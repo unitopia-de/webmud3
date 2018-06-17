@@ -1,0 +1,24 @@
+{
+  "name": "webmud.frontend",
+  "version": "0.0.2",
+  "description": "",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "nodemon server.js"
+  },
+  "dependencies": {
+    "body-parser": "^1.18.2",
+    "express": "^4.16.2",
+    "mongodb": "^2.2.35",
+    "monk": "^6.0.5",
+    "socket.io": "^2.0.4",
+    "telnet-stream": "^1.0.4",
+    "uuid": "^3.2.1"
+  },
+  "devDependencies": {
+    "nodemon": "^1.17.1"
+  },
+  "author": "Myonara",
+  "license": "MIT"
+}
