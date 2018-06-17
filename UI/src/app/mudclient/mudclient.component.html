@@ -1,0 +1,15 @@
+<div class="mud-block">
+  <pre class="mud-message" *ngFor="let message of messages">
+    {{message.text}}
+  </pre>
+</div>
+<table>
+  <tr>
+    <td>
+      <input class="mud-input" #mudInput (keyup.enter)="sendMessage()" [(ngModel)]="inpmessage" />
+    </td>
+    <td>
+      <button (click)="sendMessage()">Send</button>
+    </td>
+  </tr>
+</table>
