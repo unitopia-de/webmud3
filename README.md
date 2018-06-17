@@ -16,3 +16,8 @@ In this early stages (Versions < 0.1.0) it's not for production.
 3. open a shell and execute `nodemon server.js`
 The server is now running in the background and is listening on 5000.
 
+### Preparing UI
+1. change directory to UI directory
+2. `npm install`
+3. `ng serve --open`
+4. the default browser will open on localhost:4200... Have fun.
