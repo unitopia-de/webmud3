@@ -6,6 +6,7 @@ const bodyParser = require('body-parser');
 const http = require('http').Server(app);
 const io = require('socket.io')(http);
 const net = require('net');
+const tls = require("tls");
 const uuidv4 = require('uuid/v4');
 
 const MudSocket = require("./mudSocket");
@@ -51,8 +52,8 @@ io.on('connection', (socket) => {
 
     socket.on('mud-connect', mudOb => {
         const id = uuidv4(); // random, unique id!
-        //const tsocket = net.createConnection(/*3000 */3457,'127.0.0.1');
-        const tsocket = net.createConnection(3457,'127.0.0.1');
+        // const tsocket = tls.connect({host:'unitopia.de',port:9988,rejectUnauthorized :false});
+        const tsocket = tls.connect({host:'unitopia.de',port:992,rejectUnauthorized :false});
         const mudSocket = new MudSocket(tsocket,undefined,{debugflag:true,io:io});
        mudSocket.on("close",function(){
           io.emit("mud-disconnected",id);
