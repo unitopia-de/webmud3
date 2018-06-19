@@ -6,7 +6,8 @@ config.other = {
     storage : {
         url : 'http://localhost:8000',
         host: 'localhost',
-        port: 8000
+        port: 8000,
+        active:false,
     }
 }
 
