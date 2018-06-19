@@ -102,10 +102,14 @@ export class SocketService {
       }
       other.register2cons('mud-client');
       other.logger.add('socket connecting-1',false);
-      other.socket.emit('mud-connect', mudOb);
-      other.socket.on('mud-connected', function(id) {
-        observer.next(id);
-      }); // mud-connected
+      other.socket.emit('mud-connect', mudOb, function(data){
+        if (typeof data.id !== 'undefined') {
+          observer.next(data.id);
+        } else {
+          console.error('mud-connect-error: '+data.error);
+          other.logger.add('mud-connect-error: '+data.error);
+        }
+      });
       other.socket.on('mud-disconnected', function(id) {
         if (other.unregister2cons("mud-client")) {
           other.socket.disconnect(); 
@@ -184,6 +188,13 @@ export class SocketService {
         return;
       }
       other.logger.add('mudReceiveDebug starting!',false);
+      other.socket.on('mud-error', function(id,errtext : string) {
+        if (_id !== id) {
+          return;
+        }
+        other.logger.add(errtext,true);
+        console.log('mud-error:',errtext);
+      });
       other.socket.on('mud-debug', function(id,dbgOb : DebugData) {
         var dbgoutput : string;
         if (typeof dbgOb.option === 'undefined') {

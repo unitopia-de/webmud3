@@ -13,6 +13,7 @@
     "mongodb": "^2.2.35",
     "monk": "^6.0.5",
     "socket.io": "^2.0.4",
+    "socket.io-client": "^2.1.1",
     "telnet-stream": "^1.0.4",
     "uuid": "^3.2.1"
   },

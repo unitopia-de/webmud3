@@ -24,7 +24,7 @@ export class MudclientComponent implements OnInit {
   constructor(private socketService: SocketService) { }
 
   ngOnInit() {
-    const mudOb = {}; // TODO options???
+    const mudOb = {mudname:'Orbit'}; // TODO options???
     this.obs_connect = this.socketService.mudConnect(mudOb).subscribe(_id => {
       this.mudc_id = _id;
       this.obs_data = this.socketService.mudReceiveData(_id).subscribe(outline => {

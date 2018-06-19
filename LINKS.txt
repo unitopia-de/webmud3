@@ -1,0 +1,15 @@
+node express angular2+:
+https://stackoverflow.com/questions/42895585/hooking-up-express-js-with-angular-cli-in-dev-environment
+
+ng2 socketio node mongodb:
+https://github.com/REPTILEHAUS/reptilehaus-ng2-socket.io-chat
+
+mudclient in node with telnet-stream:
+https://github.com/iliakan/mud-client
+
+telnet-stream itself:
+https://github.com/blinkdog/telnet-stream
+
+best practices node.js in docker:
+https://nodesource.com/blog/containerizing-node-js-applications-with-docker/
+
