@@ -1,7 +1,8 @@
-# webmud3 V0.0.1 !!!
+# webmud3 V0.0.2 !!!
 Webmud3: third generation of the UNItopia Webmud as open source project.
 
 In this early stages (Versions < 0.1.0) it's not for production.
+Version 0.0.2 delivers a configurable list of muds in frontend/config/config.development, so that the development mode can be used as local browser-mudclient to multiple muds.
 
 ## Installation in the Development environment
 ### One time prerequisites:
@@ -9,6 +10,9 @@ In this early stages (Versions < 0.1.0) it's not for production.
 2. Install angular-cli:> `npm install angular-cli -g`
 3. Install nodemon:> `npm install nodemon -g`
 4. download webmud3 and extract to a working directory.
+
+### Preparing storage
+currently not used, implemented for future use.
 
 ### Preparing frontend
 1. change directory to frontend directory
