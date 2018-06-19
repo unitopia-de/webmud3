@@ -40,7 +40,7 @@ config.muds.orbit1 = {
     host : 'unitopia.de',
     port : 9988, // SSL-Port!!!
     ssl  : true,
-    rejectUnauthorized: true,
+    rejectUnauthorized: false,
     description: 'Orbit via SSL w/o reject',
     playerlevel : 'wizard,testplayer',
     mudfamily : 'unitopia',

@@ -10,6 +10,7 @@
     </td>
     <td>
       <button (click)="sendMessage()">Send</button>
+      <app-mudlist (mudselection)="onSelectMud($event)"></app-mudlist>
     </td>
   </tr>
 </table>

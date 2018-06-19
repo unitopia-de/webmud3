@@ -8,13 +8,15 @@ import { SocketService } from './shared/socket.service';
 import { LoggerService } from './shared/logger.service';
 import { LogdisplayComponent } from './logdisplay/logdisplay.component';
 import { MudclientComponent } from './mudclient/mudclient.component';
+import { MudlistComponent } from './mudlist/mudlist.component';
 
 @NgModule({
   declarations: [
     AppComponent,
     ChatComponent,
     LogdisplayComponent,
-    MudclientComponent
+    MudclientComponent,
+    MudlistComponent
   ],
   imports: [
     BrowserModule,

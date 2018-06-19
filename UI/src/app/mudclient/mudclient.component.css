@@ -7,7 +7,8 @@ table {
 .mud-block {
     max-width: 100%;
     width: 50.5em;
-    height: 90%;
+    height: 80ex;
+    max-height: 80ex;
     overflow: auto;
     background-color: black;
     color: white;

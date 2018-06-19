@@ -4,7 +4,7 @@ const express = require('express');
 const app = express();
 const bodyParser = require('body-parser');
 const http = require('http').Server(app);
-const io = require('socket.io')(http);
+const io = require('socket.io')(http);  
 const net = require('net');
 const tls = require("tls");
 const uuidv4 = require('uuid/v4');
@@ -58,6 +58,10 @@ io.on('connection', (socket) => {
         socket.emit('chat-message', chatOB);
     });
 
+    socket.on("mud-list", function(data,callback) {
+        callback(cfg.muds);
+    });
+
     socket.on('mud-connect', function(mudOb,callback)  {
         const id = uuidv4(); // random, unique id!
         var tsocket,mudcfg;
@@ -65,19 +69,22 @@ io.on('connection', (socket) => {
             callback({error:'Missing mudname'});
             return;
         }
-        if (config.muds.hasProperty(mudOb.mudname)) {
-            mudcfg = config.muds[mudOb.mudname];
+        if (cfg.muds.hasOwnProperty(mudOb.mudname)) {
+            mudcfg = cfg.muds[mudOb.mudname];
+            console.log(mudOb.mudname);
         } else {
-            callback({error:'Unknown mudname'});
+            callback({error:'Unknown mudname'+mudOb.mudname});
             return;
         }
         try {
             if (mudcfg.ssl === true) {
+                console.log("TRY SSL with reject="+mudcfg.rejectUnauthorized);
                 tsocket = tls.connect({
                     host:mudcfg.host,
                     port:mudcfg.port,
                     rejectUnauthorized :mudcfg.rejectUnauthorized});
             } else {
+                console.log("TRY w/o SSL:");
                 tsocket = net.createConnection({
                     host:mudcfg.host,
                     port:mudcfg.port});
@@ -95,6 +102,7 @@ io.on('connection', (socket) => {
             MudConnections[id] = { socket: mudSocket, mudOb: mudOb};
             callback({id:id});
         } catch (error) {
+            console.log(error.message);
             callback({error:error.toString('utf8')});
         }
     });
