@@ -1,0 +1,15 @@
+{
+  "name": "storage",
+  "version": "0.0.1",
+  "description": "",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "GPL-3.0-or-later",
+  "dependencies": {
+    "mysql": "^2.15.0",
+    "socket.io": "^2.1.1"
+  }
+}

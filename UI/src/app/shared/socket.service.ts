@@ -4,6 +4,8 @@ import * as io from 'socket.io-client';
 import { ChatMessage } from './chat-message';
 import { LoggerService } from './logger.service';
 import { DebugData } from './debug-data';
+import { MudListItem } from './mud-list-item';
+import { MudConnection } from './mud-connection';
 
 @Injectable({
   providedIn: 'root'
@@ -13,6 +15,8 @@ export class SocketService {
   private socket = undefined;
   private consumers = {};
   private currentName : string = '';
+  private mudConnections = {};
+  public mudnames : MudListItem[] = [];
 
   // Internal registeration of all socket-consumers.
    private register2cons(cons : string) {
@@ -93,6 +97,45 @@ export class SocketService {
     return observable;
   }
 
+  public mudList() : Observable<MudListItem[]> {
+    let other = this;
+    let observable = new Observable<MudListItem[]>(observer => {
+      if (other.socket === undefined) {
+        other.socket = io(other.url); 
+        other.logger.add('socket connected',false);
+      }
+      other.register2cons("mud-list");
+      other.socket.emit('mud-list', true, function(data){
+        other.mudnames = [];
+        Object.keys(data).forEach(function(key) {
+          const item : MudListItem = {
+            key : key,
+            name: data[key].name,
+            host: data[key].host,
+            port: data[key].port,
+            ssl: data[key].ssl,
+            rejectUnauthorized: data[key].rejectUnauthorized,
+            description: data[key].description,
+            playerlevel: data[key].playerlevel,
+            mudfamily: data[key].mudfamily,
+          };
+          other.mudnames.push(item);
+       });
+        observer.next(other.mudnames);
+      });
+      return () => {
+        if (other.unregister2cons("mud-list")) {
+          other.socket.disconnect(); 
+          other.socket = undefined;
+          other.logger.add('mud-list and socket disconnected-server',false);
+        } else {
+          other.logger.add('mud-list disconnected-server',false);
+        }
+      }
+    });
+    return observable;
+  }
+
   public mudConnect(mudOb : Object) : Observable<string> {
     let other = this;
     let observable = new Observable<string>(observer => {
@@ -102,11 +145,20 @@ export class SocketService {
       }
       other.register2cons('mud-client');
       other.logger.add('socket connecting-1',false);
-      other.socket.emit('mud-connect', mudOb);
-      other.socket.on('mud-connected', function(id) {
-        observer.next(id);
-      }); // mud-connected
+      other.socket.emit('mud-connect', mudOb, function(data){
+        if (typeof data.id !== 'undefined') {
+          other.mudConnections[data.id] = {
+            id: data.id,
+            connected: true,
+          }
+          observer.next(data.id);
+        } else {
+          console.error('mud-connect-error: '+data.error);
+          other.logger.add('mud-connect-error: '+data.error);
+        }
+      });
       other.socket.on('mud-disconnected', function(id) {
+        other.mudConnections[id].connected = false;
         if (other.unregister2cons("mud-client")) {
           other.socket.disconnect(); 
           other.socket = undefined;
@@ -140,6 +192,7 @@ export class SocketService {
         if (id !== _id) {
           return;
         }
+        other.mudConnections[id].connected = false;
         if (other.unregister2cons("mud-client")) {
           other.socket.disconnect(); 
           other.socket = undefined;
@@ -147,10 +200,21 @@ export class SocketService {
         } else {
           other.logger.add('mud-client disconnected-client',false);
         }
+        observer.next(_id);
         return () => {
           other.logger.add('mudDisconnect ending!',false);
         }; // disconnect
       });
+    });
+    return observable;
+  }
+
+  public mudConnectStatus(_id:string) : Observable<boolean> {
+    let other = this;
+    let observable = new Observable<boolean>(observer => {
+      if (typeof other.mudConnections[_id] !== 'undefined') {
+        observer.next(other.mudConnections[_id].connected);
+      }
     });
     return observable;
   }
@@ -184,6 +248,13 @@ export class SocketService {
         return;
       }
       other.logger.add('mudReceiveDebug starting!',false);
+      other.socket.on('mud-error', function(id,errtext : string) {
+        if (_id !== id) {
+          return;
+        }
+        other.logger.add(errtext,true);
+        console.log('mud-error:',errtext);
+      });
       other.socket.on('mud-debug', function(id,dbgOb : DebugData) {
         var dbgoutput : string;
         if (typeof dbgOb.option === 'undefined') {

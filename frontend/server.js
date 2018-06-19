@@ -4,10 +4,15 @@ const express = require('express');
 const app = express();
 const bodyParser = require('body-parser');
 const http = require('http').Server(app);
-const io = require('socket.io')(http);
+const io = require('socket.io')(http);  
 const net = require('net');
 const tls = require("tls");
 const uuidv4 = require('uuid/v4');
+const dbio = require('socket.io-client');
+var env = process.env.NODE_ENV || 'development'
+  , cfg = require('./config/config.'+env);
+const dbsocket = dbio.connect(cfg.other.storage.url, {reconnect: true});
+
 
 const MudSocket = require("./mudSocket");
 
@@ -18,6 +23,7 @@ app.use(bodyParser.urlencoded({
 app.get('/', (req, res) => {
     // res.sendFile(__dirname + '/index.html')
     res.send('Chat Server');
+    // TODO provide UI.dist
 })
 
 
@@ -42,30 +48,63 @@ io.on('connection', (socket) => {
 
     socket.on('add-chat-message', (msgOb) => {
         const timeStamp = new Date().getTime();
-        socket.emit('chat-message', {
+        const chatOB = {
             type: 'new-message',
             from: msgOb.from,
             text: msgOb.text,
             date: timeStamp
-        });
+        };
+        dbsocket.emit('chat-message', chatOB);
+        socket.emit('chat-message', chatOB);
     });
 
-    socket.on('mud-connect', mudOb => {
+    socket.on("mud-list", function(data,callback) {
+        callback(cfg.muds);
+    });
+
+    socket.on('mud-connect', function(mudOb,callback)  {
         const id = uuidv4(); // random, unique id!
-        // const tsocket = tls.connect({host:'unitopia.de',port:9988,rejectUnauthorized :false});
-        const tsocket = tls.connect({host:'unitopia.de',port:992,rejectUnauthorized :false});
-        const mudSocket = new MudSocket(tsocket,undefined,{debugflag:true,io:io});
-       mudSocket.on("close",function(){
-          io.emit("mud-disconnected",id);
-       });
-       mudSocket.on("data", function(buffer){
-          io.emit("mud-output",id,buffer.toString("utf8"));
-       });
-       mudSocket.on("debug", function(dbgOb){
-          io.emit("mud-debug",id,dbgOb);
-       });
-       io.emit("mud-connected",id);
-       MudConnections[id] = { socket: mudSocket, mudOb: mudOb};
+        var tsocket,mudcfg;
+        if (typeof mudOb.mudname === 'undefined') {
+            callback({error:'Missing mudname'});
+            return;
+        }
+        if (cfg.muds.hasOwnProperty(mudOb.mudname)) {
+            mudcfg = cfg.muds[mudOb.mudname];
+            console.log(mudOb.mudname);
+        } else {
+            callback({error:'Unknown mudname'+mudOb.mudname});
+            return;
+        }
+        try {
+            if (mudcfg.ssl === true) {
+                console.log("TRY SSL with reject="+mudcfg.rejectUnauthorized);
+                tsocket = tls.connect({
+                    host:mudcfg.host,
+                    port:mudcfg.port,
+                    rejectUnauthorized :mudcfg.rejectUnauthorized});
+            } else {
+                console.log("TRY w/o SSL:");
+                tsocket = net.createConnection({
+                    host:mudcfg.host,
+                    port:mudcfg.port});
+            }
+            const mudSocket = new MudSocket(tsocket,undefined,{debugflag:true,io:io});
+            mudSocket.on("close",function(){
+            io.emit("mud-disconnected",id);
+            });
+            mudSocket.on("data", function(buffer){
+            io.emit("mud-output",id,buffer.toString("utf8"));
+            });
+            mudSocket.on("debug", function(dbgOb){
+            io.emit("mud-debug",id,dbgOb);
+            });
+            MudConnections[id] = { socket: mudSocket, mudOb: mudOb};
+            callback({id:id});
+        } catch (error) {
+            console.log(error.message);
+            callback({error:error.toString('utf8')});
+        }
     });
 
     socket.on('mud-disconnect', id => {
@@ -98,5 +137,5 @@ io.on('connection', (socket) => {
 
 
 http.listen(5000, () => {
-    console.log('Server started on port 5000');
+    console.log('Server\'frontend\' started on port 5000');
 });

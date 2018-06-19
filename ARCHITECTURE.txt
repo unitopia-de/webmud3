@@ -1,0 +1,5 @@
+Dev-Ports:
+- UI:           4200
+- frontend:     5000
+- storage:      8000
+- mysql:        3306
