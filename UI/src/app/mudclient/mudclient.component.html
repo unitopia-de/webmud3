@@ -1,8 +1,11 @@
-<div class="mud-block">
-  <pre class="mud-message" *ngFor="let message of messages">
-    {{message.text}}
-  </pre>
-</div>
+<pre class="mud-block" ngx-auto-scroll lock-y-offset="10" observe-attributes>
+  <!-- <pre class="mud-message" *ngFor="let message of messages">
+    {{message.text | ansi2html }}
+  </pre>-->
+  <span *ngFor="let a2hMudline of mudlines">
+    <app-mudspan [ansi2html]="a2hMudline"></app-mudspan>
+  </span>
+</pre>
 <table>
   <tr>
     <td>

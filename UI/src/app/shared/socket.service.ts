@@ -158,6 +158,10 @@ export class SocketService {
         }
       });
       other.socket.on('mud-disconnected', function(id) {
+        if (typeof other.mudConnections[id] === 'undefined') {
+          console.log(id);
+          return;
+        }
         other.mudConnections[id].connected = false;
         if (other.unregister2cons("mud-client")) {
           other.socket.disconnect(); 
@@ -288,6 +292,7 @@ export class SocketService {
     console.log(_id+' '+data);
     this.socket.emit('mud-input',_id,data);
   }
+
 
   // TODO GCMP send/receive
   // TODO ANSI-Handling als pipe?

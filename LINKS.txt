@@ -13,3 +13,20 @@ https://github.com/blinkdog/telnet-stream
 best practices node.js in docker:
 https://nodesource.com/blog/containerizing-node-js-applications-with-docker/
 
+socket.on('error', (error)
+    https://socket.io/docs/server-api/#event-error
+socket.on('disconnecting', (reason)
+socket.on('reconnect_attempt', (attemptNumber) => {
+    socket.id
+
+http://ascii-table.com/ansi-escape-sequences.php
+
+https://en.wikipedia.org/wiki/ANSI_escape_code
+
+http://www.inwap.com/pdp10/ansicode.txt
+
+jansi:
+https://github.com/fusesource/jansi/blob/master/jansi/src/main/java/org/fusesource/jansi/Ansi.java
+
+ngClass, ngStyle,style.color
+https://stackoverflow.com/questions/44429104/angular2-set-a-different-color-to-an-element-depending-on-value

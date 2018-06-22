@@ -10,6 +10,7 @@ table {
     height: 80ex;
     max-height: 80ex;
     overflow: auto;
+    flex-direction: column; 
     background-color: black;
     color: white;
     padding: 0.5ex;

@@ -2,6 +2,8 @@ import { Component, OnInit, ViewChild, ElementRef, HostListener } from '@angular
 import { SocketService } from '../shared/socket.service';
 import { MudMessage } from '../shared/mud-message';
 import { DebugData } from '../shared/debug-data';
+import { AnsiService } from '../shared/ansi.service';
+import { Ansi2Html } from '../shared/ansi2html';
 
 @Component({
   selector: 'app-mudclient',
@@ -20,11 +22,17 @@ export class MudclientComponent implements OnInit {
   private obs_connected;
   private obs_data;
   private obs_debug;
+  private ansiCurrent: Ansi2Html;
+  private mudlines : Ansi2Html[] = [];
   public messages : MudMessage[] = [];
   public inpmessage : string;
   public lastdbg : DebugData;
   
-  constructor(private socketService: SocketService) { }
+  constructor(
+    private socketService: SocketService,
+    private ansiService:AnsiService) { 
+
+    }
 
   private connect() {
     if (this.mudName.toLowerCase() == 'disconnect') {
@@ -45,7 +53,16 @@ export class MudclientComponent implements OnInit {
           flag => {other.connected = flag;
         });
       other.obs_data = this.socketService.mudReceiveData(_id).subscribe(outline => {
-          other.messages.push({text:outline});
+          var outp = outline;
+          const idx = outline.indexOf(other.ansiService.ESC_CLRSCR);
+          if (idx >=0) {
+            other.messages = [];
+            other.mudlines = [];
+          }
+          const a2harr = this.ansiService.ansiTransform(outp,other.ansiCurrent);
+          other.mudlines = other.mudlines.concat(a2harr);
+          other.ansiCurrent = a2harr[a2harr.length-1];
+          other.messages.push({text:outp});
         });
       other.obs_debug = this.socketService.mudReceiveDebug(_id).subscribe(debugdata => {
           other.lastdbg = debugdata;
@@ -54,6 +71,7 @@ export class MudclientComponent implements OnInit {
   }
 
   ngOnInit() { 
+    this.ansiCurrent = this.ansiService.getDefault();
   }
 
   ngOnDestroy() {
