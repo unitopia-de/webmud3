@@ -289,7 +289,6 @@ export class SocketService {
       this.logger.add('mudSendData without socket!',true);
       return;
     }
-    console.log(_id+' '+data);
     this.socket.emit('mud-input',_id,data);
   }
 

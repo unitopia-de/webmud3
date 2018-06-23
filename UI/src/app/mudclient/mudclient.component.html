@@ -1,15 +1,12 @@
-<pre class="mud-block" ngx-auto-scroll lock-y-offset="10" observe-attributes>
-  <!-- <pre class="mud-message" *ngFor="let message of messages">
-    {{message.text | ansi2html }}
-  </pre>-->
-  <span *ngFor="let a2hMudline of mudlines">
+<div class="mud-block" ngx-auto-scroll lock-y-offset="10" observe-attributes>
+  <div display="inline" *ngFor="let a2hMudline of mudlines">
     <app-mudspan [ansi2html]="a2hMudline"></app-mudspan>
-  </span>
-</pre>
+  </div>
+</div>
 <table>
   <tr>
     <td>
-      <input class="mud-input" #mudInput (keyup.enter)="sendMessage()" [(ngModel)]="inpmessage" />
+      <input class="mud-input" #mudInput (keyup.enter)="sendMessage()" (keyup)="onKeyUp($event)" [(ngModel)]="inpmessage" />
     </td>
     <td>
       <button (click)="sendMessage()">Send</button>

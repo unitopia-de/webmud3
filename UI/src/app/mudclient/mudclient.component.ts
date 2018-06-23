@@ -3,7 +3,7 @@ import { SocketService } from '../shared/socket.service';
 import { MudMessage } from '../shared/mud-message';
 import { DebugData } from '../shared/debug-data';
 import { AnsiService } from '../shared/ansi.service';
-import { Ansi2Html } from '../shared/ansi2html';
+import { AnsiData } from '../shared/ansi-data';
 
 @Component({
   selector: 'app-mudclient',
@@ -22,10 +22,12 @@ export class MudclientComponent implements OnInit {
   private obs_connected;
   private obs_data;
   private obs_debug;
-  private ansiCurrent: Ansi2Html;
-  private mudlines : Ansi2Html[] = [];
+  private ansiCurrent: AnsiData;
+  private mudlines : AnsiData[] = [];
   public messages : MudMessage[] = [];
   public inpmessage : string;
+  private inpHistory : string[] = [];
+  private inpPointer : number = -1;
   public lastdbg : DebugData;
   
   constructor(
@@ -59,8 +61,14 @@ export class MudclientComponent implements OnInit {
             other.messages = [];
             other.mudlines = [];
           }
-          const a2harr = this.ansiService.ansiTransform(outp,other.ansiCurrent);
-          other.mudlines = other.mudlines.concat(a2harr);
+          other.ansiCurrent.ansi = outp;
+          const a2harr = this.ansiService.processAnsi(other.ansiCurrent);
+          for (var ix=0;ix<a2harr.length;ix++) {
+            //console.log('main-'+ix+":"+JSON.stringify(a2harr[ix]));
+            if (a2harr[ix].text!='') {
+              other.mudlines = other.mudlines.concat(a2harr[ix]);
+            }
+          }
           other.ansiCurrent = a2harr[a2harr.length-1];
           other.messages.push({text:outp});
         });
@@ -71,7 +79,7 @@ export class MudclientComponent implements OnInit {
   }
 
   ngOnInit() { 
-    this.ansiCurrent = this.ansiService.getDefault();
+    this.ansiCurrent = new AnsiData();
   }
 
   ngOnDestroy() {
@@ -83,12 +91,80 @@ export class MudclientComponent implements OnInit {
 
   sendMessage() {
     this.socketService.mudSendData(this.mudc_id,this.inpmessage);
+    if (this.inpmessage != '' && (this.inpHistory.length==0 || (this.inpHistory.length >0 && this.inpHistory[0] != this.inpmessage))) {
+      this.inpHistory.unshift(this.inpmessage);
+    }
     this.inpmessage = '';
   }
 
   onSelectMud(mudselection : string) {
     this.mudName = mudselection;
+    this.ansiCurrent = new AnsiData();
     this.connect();
+  }
+  onKeyUp(event:KeyboardEvent) {
+    switch (event.key) {
+      case "ArrowUp":
+        if (this.inpHistory.length < this.inpPointer) {
+          return; // at the end.....
+        }
+        if (this.inpPointer < 0) {
+          if (this.inpmessage == '') {
+            if (this.inpHistory.length > 0) {
+              this.inpPointer = 0;
+              this.inpmessage = this.inpHistory[0];
+              return;
+            } else {
+              return;
+            }
+          } else {
+            if (this.inpHistory.length>0 && this.inpmessage == this.inpHistory[0]) {
+              return;
+            }
+            this.inpHistory.unshift(this.inpmessage);
+            if (this.inpHistory.length > 1) {
+              this.inpPointer = 1;
+              this.inpmessage = this.inpHistory[1];
+              return;
+            } else {
+              this.inpPointer = 0;
+              return;
+            }
+          }
+        } else {
+          this.inpPointer++;
+          if (this.inpHistory.length > this.inpPointer) {
+            return; // at the end...
+          }
+          this.inpmessage = this.inpHistory[this.inpPointer];
+        }
+        return;
+       case "ArrowDown":
+        if (this.inpPointer < 0) {
+          return; // at the beginning
+        }
+        this.inpPointer--;
+        if (this.inpPointer < 0) {
+          this.inpmessage = '';
+          return; // at the beginning
+        }
+        this.inpmessage = this.inpHistory[this.inpPointer];
+        return;
+      case "ArrowLeft":
+      case "ArrowRight":
+      case "Shift":
+      case "Ctrl":
+      case "Alt":
+      case "AltGraph":
+      case "Meta":
+        return; // no change to the pointer...
+      case "Enter":
+        this.inpPointer = -1;
+        return;
+      default:
+        this.inpPointer = -1;
+        return;
+    }
   }
 
   @HostListener('click')

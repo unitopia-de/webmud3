@@ -1,29 +1,30 @@
 import { Component, OnInit, Input } from '@angular/core';
-import { Ansi2Html } from '../shared/ansi2html';
+import { AnsiData } from '../shared/ansi-data';
 
 @Component({
   selector: 'app-mudspan',
-  templateUrl: './mudspan.component.html',
+  template:'<span display="inline" [ngClass]="myclasses" [style.color]="fg" [style.background]="bg">{{txt}}</span>',
+  // templateUrl: './mudspan.component.html',
   styleUrls: ['./mudspan.component.css']
 })
 export class MudspanComponent implements OnInit {
 
   constructor() { }
 
-  private a2h :Ansi2Html;
+  private a2h :AnsiData;
   private myclasses : string;
   private fg:string;
   private bg:string;
   private txt:string;
 
-   @Input('ansi2html') set ansi2html(ansi: Ansi2Html) {
+   @Input('ansi2html') set ansi2html(ansi: AnsiData) {
     this.a2h = ansi;
     if (ansi.reverse) {
-      this.fg = ansi.bg_rgb;
-      this.bg = ansi.fg_rgb;
+      this.fg = ansi.bgcolor;
+      this.bg = ansi.fgcolor;
     } else {
-      this.fg = ansi.fg_rgb;
-      this.bg = ansi.bg_rgb;
+      this.fg = ansi.fgcolor;
+      this.bg = ansi.bgcolor;
     }
     if (ansi.concealed) {
       this.fg = this.bg;
@@ -40,6 +41,9 @@ export class MudspanComponent implements OnInit {
     }
     if (ansi.blink) {
       this.myclasses += ' blink';
+    }
+    if (ansi.crossedout) {
+      this.myclasses += ' crossedout';
     }
     if (this.myclasses != ''){
       this.myclasses = this.myclasses.substr(1);

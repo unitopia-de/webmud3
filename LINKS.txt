@@ -30,3 +30,6 @@ https://github.com/fusesource/jansi/blob/master/jansi/src/main/java/org/fusesour
 
 ngClass, ngStyle,style.color
 https://stackoverflow.com/questions/44429104/angular2-set-a-different-color-to-an-element-depending-on-value
+
+ANSI in jquery:
+https://codereview.stackexchange.com/questions/2719/jquery-to-display-ansi-graphics

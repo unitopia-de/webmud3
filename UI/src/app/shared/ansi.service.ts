@@ -1,8 +1,6 @@
 import { Injectable } from '@angular/core';
-import { Ansi2Html } from './ansi2html';
-import { AnsiSgrAttribute } from './ansi-sgr-attribute';
-import { AnsiColour } from './ansi-colour';
 import { Ansi256Colors } from './ansi256colors';
+import { AnsiData } from './ansi-data';
 
 @Injectable({
   providedIn: 'root'
@@ -14,7 +12,8 @@ export class AnsiService {
   public ESC_m_BG256 : string = '48;5;';
   public ESC_m_FG_RGB : string = '39;2;';
   public ESC_m_BG_RGB : string = '49;2;';
-  
+  public ESC_VALID = /^[0-9;A-Za-z]$/;
+  public ESC_ENDCHAR = /^[A-Za-z]$/;
 
   constructor() { }
 
@@ -27,201 +26,206 @@ export class AnsiService {
     }
   }
 
-  public getDefault() : Ansi2Html {
-    return {
-      esc:'',
-      result:'',
-      sgr:[],
-      fg_rgb : 'white',
-      bg_rgb : 'black',
-      bold : false,
-      italic: false,
-      underline: false,
-      blink:false,
-      reverse:false,
-      concealed:false,
+  public ansiCode(data: AnsiData): AnsiData {
+    if (data.ansiPos >= data.ansi.length-1) {
+      return data;
     }
+    data = Object.assign({},data);
+    var char = data.ansi[data.ansiPos];
+    var escape = '';
+    var stop = false;
+    if (char == '[') {
+      do {
+        data.ansiPos += 1;
+        char = data.ansi[data.ansiPos];
+        escape += char;
+        stop = this.ESC_ENDCHAR.test(char);
+      } while (this.ESC_VALID.test(char) && !stop);
+      //console.log('ESC['+escape);
+      data.ansiPos += 1;
+    } else {
+      escape += char;
+      do {
+        data.ansiPos += 1;
+        char = data.ansi[data.ansiPos];
+        escape += char;
+        stop = this.ESC_ENDCHAR.test(char);
+      } while (this.ESC_VALID.test(char) && !stop);
+      console.log('[ missing:<ESC>'+escape); // TODO provide error to server.
+      data.ansiPos += 1;
+      return data; // hide unknown escapes...
+    }
+    switch(escape[escape.length - 1]) {
+      case 'J': // Clear screen, handled somewhere else?
+      case 'H': // move to, handled somewhere else?
+        break;
+      case 'A': // Move up
+      case 'B': // Move down
+      case 'C': // Move Forward
+      case 'D': // Move back
+      case 'K': // Clear
+      case 's': // Save position
+      case 'u': // Restore position
+      default:
+        console.log('unsupported:<ESC>['+escape);
+        break; // no action?
+      case 'm': // Change attrinutes / colors
+        var codes = escape.substring(0, escape.length - 1).split(';');
+        for (var i=0; i < codes.length; i++) {
+            var code = codes[i];
+            var setcolor256fg = '';
+            var setcolor256bg = '';
+            switch (code) {
+                case '0':
+                    data.bold = false;
+                    data.faint = false;
+                    data.italic = false;
+                    data.underline = false;
+                    data.blink = false;
+                    data.reverse = false;
+                    data.concealed = false;
+                    data.crossedout = false;
+                    data.fgcolor = 'white';
+                    data.bgcolor = 'black';
+                    break;
+                case '1': data.bold = true; break;
+                case '2': data.faint = true; break;
+                case '3': data.italic = true; break;
+                case '4': data.underline = true; break;
+                case '5': data.blink = true; break; // slow
+                case '6': data.blink = true; break; // rapid
+                case '7': data.reverse = true;break; 
+                case '8': data.concealed = true; break;
+                case '9': data.crossedout = true;break;
+                case '21': data.bold = false; break;
+                case '22': data.bold = data.faint = false;break;
+                case '23': data.italic = false;break;
+                case '24': data.underline = false; break;
+                case '25': data.blink = false; break;
+                case '27': data.reverse = false; break;
+                case '28': data.concealed = false; break;// Reveal
+                case '29': data.crossedout = false;break;
+                case '30': setcolor256fg = '00'; break;
+                case '31': setcolor256fg = '01'; break;
+                case '32': setcolor256fg = '02'; break;
+                case '33': setcolor256fg = '03'; break;
+                case '34': setcolor256fg = '04'; break;
+                case '35': setcolor256fg = '05'; break;
+                case '36': setcolor256fg = '06'; break;
+                case '37': setcolor256fg = '07'; break;
+                case '38': 
+                  if (codes.length > i+2 && codes[i+1] == '5') { // 256 colors
+                    setcolor256fg = this.toHex2(Number.parseInt(codes[i+2]));
+                    i += 2;
+                  } else if (codes.length > i+4 && codes[i+1] == '2') { // 256 colors
+                    data.fgcolor = '#'+this.toHex2(Number.parseInt(codes[i+2]))
+                      + this.toHex2(Number.parseInt(codes[i+3]))
+                      + this.toHex2(Number.parseInt(codes[i+4]));
+                    i += 4;
+                    break;
+                  } else {
+                    console.log('unknown fg-color <ESC>'+escape);
+                    break;
+                  }
+                case '39': data.fgcolor = 'white';break;
+                case '40': setcolor256bg = '00'; break;
+                case '41': setcolor256bg = '01'; break;
+                case '42': setcolor256bg = '02'; break;
+                case '43': setcolor256bg = '03'; break;
+                case '44': setcolor256bg = '04'; break;
+                case '45': setcolor256bg = '05'; break;
+                case '46': setcolor256bg = '06'; break;
+                case '47': setcolor256bg = '07'; break;
+                case '48': 
+                  if (codes.length > i+2 && codes[i+1] == '5') { // 256 colors
+                    setcolor256bg = this.toHex2(Number.parseInt(codes[i+2]));
+                    i += 2;
+                  } else if (codes.length > i+4 && codes[i+1] == '2') { // 256 colors
+                    data.bgcolor = '#'+this.toHex2(Number.parseInt(codes[i+2]))
+                      + this.toHex2(Number.parseInt(codes[i+3]))
+                      + this.toHex2(Number.parseInt(codes[i+4]));
+                    i += 4;
+                    break;
+                  } else {
+                    console.log('unknown bg-color <ESC>'+escape);
+                    break;
+                  }
+                case '49': data.bgcolor = 'black';break;
+                case '90': setcolor256fg = '00'; break; // bright colors mapped to normal colors.
+                case '91': setcolor256fg = '01'; break;
+                case '92': setcolor256fg = '02'; break;
+                case '93': setcolor256fg = '03'; break;
+                case '94': setcolor256fg = '04'; break;
+                case '95': setcolor256fg = '05'; break;
+                case '96': setcolor256fg = '06'; break;
+                case '97': setcolor256fg = '07'; break;
+                case '100': setcolor256bg = '00'; break;
+                case '101': setcolor256bg = '01'; break;
+                case '102': setcolor256bg = '02'; break;
+                case '103': setcolor256bg = '03'; break;
+                case '104': setcolor256bg = '04'; break;
+                case '105': setcolor256bg = '05'; break;
+                case '106': setcolor256bg = '06'; break;
+                case '107': setcolor256bg = '07'; break;
+                default:
+                console.log('unknown attribute/color <ESC>'+escape);
+                break;
+            }
+            if (setcolor256fg!='') {
+              data.fgcolor = data.faint 
+                ? Ansi256Colors.faint[setcolor256fg] 
+                : Ansi256Colors.normal[setcolor256fg];
+            }
+            if (setcolor256bg!='') {
+              data.bgcolor = data.faint 
+                ? Ansi256Colors.faint[setcolor256bg] 
+                : Ansi256Colors.normal[setcolor256bg];
+            }
+          } // for m
+          break;
+        }
+    return data;
   }
 
-  public checkEscape(seq:string,lastchar :string,ansi2html:Ansi2Html) : Ansi2Html {
-    var mseq :string;
-    var colstr : string;
-    var split :string[];
-    var ival : number;
-    var colval : number;
-    var ob;
-    const other = this;
-    if (seq.length >= 3 && seq.substr(1,1)=='[' && lastchar == 'm') {
-      mseq = seq.substr(2);
-      mseq = mseq.substr(0,mseq.length-1);
-      console.log('ESC1:'+mseq);
-      if (mseq.startsWith(this.ESC_m_FG_RGB)) {
-        colstr = mseq.substr(this.ESC_m_FG_RGB.length);
-        split = colstr.split(';');
-        if (split.length == 3) {
-          ansi2html.fg_rgb = "#"
-            + this.toHex2(Number.parseInt(split[0]))
-            + this.toHex2(Number.parseInt(split[1]))
-            + this.toHex2(Number.parseInt(split[2]));
-        } else {
-          console.log("FG_RGB:"+mseq);
-          ansi2html.debug = 'FG_RGB:'+mseq;
-        }
-      } else if (mseq.startsWith(this.ESC_m_BG_RGB)) {
-        colstr = mseq.substr(this.ESC_m_BG_RGB.length);
-        split = colstr.split(';');
-        if (split.length == 3) {
-          ansi2html.bg_rgb = "#"
-            + this.toHex2(Number.parseInt(split[0]))
-            + this.toHex2(Number.parseInt(split[1]))
-            + this.toHex2(Number.parseInt(split[2]));
-        } else {
-          console.log("BG_RGB:"+mseq);
-          ansi2html.debug = 'BG_RGB:'+mseq;
-        }
-      } else if (mseq.startsWith(this.ESC_m_FG256)) {
-        colstr = mseq.substr(this.ESC_m_FG256.length);
-        colval = Number.parseInt(colstr);
-        ansi2html.fg = colval;
-        ansi2html.fg_bright = true;
-        ansi2html.fg_text = 'f'+this.toHex2(colval);
-        ansi2html.fg_rgb = Ansi256Colors.normal[this.toHex2(colval)];
-      } else if (mseq.startsWith(this.ESC_m_BG256)) {
-        colstr = mseq.substr(this.ESC_m_BG256.length);
-        colval = Number.parseInt(colstr);
-        ansi2html.bg = colval;
-        ansi2html.bg_bright = true;
-        ansi2html.bg_text =  'b'+this.toHex2(colval);
-        ansi2html.bg_rgb = Ansi256Colors.normal[this.toHex2(colval)];
-      } else {
-        split = mseq.split(';');
-        split.forEach(function(val :string,idx:number,arr:string[]){
-          if (val=='') val = '0';
-          ival = Number.parseInt(val);
-          ob = AnsiSgrAttribute.code2info(ival);
-          if (typeof ob !== 'undefined') {
-            ansi2html.sgr.push(ob.t);
-          } else {
-            if (val.length == 2) {
-              colstr = val.substr(1,1);
-              colval = Number.parseInt(colstr);
-              ob = AnsiColour.getCode2ColourInfo(colval);
-              if (typeof ob !== 'undefined') {
-                switch (val.substr(0,1)) {
-                  case '3': // foreground
-                    if (colval == 8) {
-                      break;
-                    } else if (colval == 9) {
-                      ansi2html.fg = -1;
-                      break;
-                    }
-                    ansi2html.fg = ob.c;
-                    ansi2html.fg_bright = false;
-                    ansi2html.fg_text = ob.t;
-                    ansi2html.fg_rgb = Ansi256Colors.faint[other.toHex2(ob.c)];
-                    break;
-                  case '4': // background
-                    if (colval == 8) {
-                      break;
-                    } else if (colval == 9) {
-                      ansi2html.bg = -1;
-                      break;
-                    }
-                    ansi2html.bg = ob.c;
-                    ansi2html.bg_bright = false;
-                    ansi2html.bg_text = ob.t;
-                    ansi2html.bg_rgb = Ansi256Colors.faint[other.toHex2(ob.c)];
-                    break;
-                  case '9': // bright foreground
-                    if (colval > 7) break;
-                    ansi2html.fg = ob.c;
-                    ansi2html.fg_bright = true;
-                    ansi2html.fg_text = ob.t;
-                    ansi2html.fg_rgb = Ansi256Colors.normal[other.toHex2(ob.c)];
+  public processAnsi(data : AnsiData) : AnsiData[] {
+    var result : AnsiData[] = [];
+    data = Object.assign({},data);
+    data.text ='';
+    // console.log('processAnsi-1 '+JSON.stringify(data));
+    while (data.ansiPos < data.ansi.length) { // <=???
+      var code :number = data.ansi.charCodeAt(data.ansiPos) & 0xff;
+      data.ansiPos += 1;
+      var display = true;
+      if (code < 33 || code > 126) {
+            switch (code) {
+                case 0: display = false; break;
+                //case 10: display = false; cursorStartOfLine.call(this); break;
+                //case 13: display = false; cursorDown.call(this, 1); break;
+                case 27: 
+                  display = false;
+                  if (data.text != '') {
+                    // console.log('processAnsi-2-'+result.length+': '+JSON.stringify(data));
+                    data = Object.assign({},data);
+                    result.push(data);
+                    data = Object.assign({},data);
+                    data.text = '';
+                  }
+                  data = this.ansiCode(data); 
                   break;
-                } // switch
-              } // color ob undef
-            } else if (val.length == 3 && val.substr(0,2)=='10') {
-              colstr = val.substr(2,1);
-              colval = Number.parseInt(colstr);
-              ob = AnsiColour.getCode2ColourInfo(colval);
-              if (colval <8 && typeof ob !== 'undefined') { // bright background
-                ansi2html.bg = ob.c;
-                ansi2html.bg_bright = true;
-                ansi2html.bg_text = ob.t;
-                ansi2html.bg_rgb = Ansi256Colors.normal[other.toHex2(ob.c)];
-              } // colval undef
-            }// len 3 and 10...
-          }// tpyoeof ob undefined else (sgr attribute)
-        });// foreach
+                default: display = true; break;
+            }
+        }
+      if (display) {
+        data.text += String.fromCharCode(code);
       }
-    } 
-    // TODO check and process escape sequences.
-    // console.log("ESC: "+seq)
-    // ansi2html.result = '<ESC>'+seq.substr(1);
-    console.log('ESC9:'+JSON.stringify(ansi2html));
-    return ansi2html;
-  }
-  public ansiTransform(inp:string,a2current:Ansi2Html) : Ansi2Html[] {
-    var newstr : string = '';
-    var ch, st, re=[], tmp, esc;
-    var result : Ansi2Html[] = [];
-    for (var i = 0; i < inp.length; i++ ) {
-      ch = inp.charCodeAt(i);  // get char 
-      st = [];                 // set up "stack"
-      tmp = String.fromCharCode(ch);
-      do {
-        st.push( ch & 0xFF );  // push byte to stack
-        ch = ch >> 8;          // shift value down by 1 byte
-      }  
-      while ( ch );
-      re = re.concat( st.reverse() );
-      // console.log(tmp +': '+ st.reverse());
-      if (st.length == 1) {
-        if (typeof esc !== 'undefined') {
-          esc += tmp;
-          if ( (st[0]>= 65 && st[0]<=90)   // uppercase ANSI
-             ||(st[0] >=97 && st[0]<=122) ){// lowercase ANSI
-              console.log('1='+JSON.stringify(a2current));
-              a2current = this.checkEscape(esc,tmp,a2current);
-              while (a2current.sgr.length>0) {
-                const sgrcmd : string = a2current.sgr.shift();
-                switch (sgrcmd) {
-                  case 'RESET': 
-                    a2current.fg_rgb = 'white';
-                    a2current.bg_rgb = 'black';
-                    break;
-                }
-              }
-              a2current.esc = esc;
-              console.log('ESC:'+esc);
-              esc = undefined;
-          } // if ANSI-Letter.
-        } else { // if typeof esc
-          switch (st[0]) {
-            case 27: 
-              esc = tmp;
-              a2current.text = newstr;
-              console.log('ESC-END:'+newstr);
-              newstr = '';
-              if (a2current.text != "") {
-                result.push(a2current);
-              }
-              // a2current.text = '';
-              break;
-            case 10: newstr += "\n"; break;
-            case 13: break; // \r
-            default: newstr = newstr.concat(tmp);break;
-          } // switch
-        } // if typeof esc
-      } else { // st.len != 1
-        newstr = newstr.concat(tmp);
-      } // if st.len else
-    } // for
-    // console.log(re);
-    a2current.text = newstr;
-    console.log('2='+JSON.stringify(a2current));
-    result.push(a2current);
+    }
+    data.ansi = '';
+    data.ansiPos = 0;
+    // console.log('processAnsi-3 '+JSON.stringify(data));
+    data = Object.assign({},data);
+    result.push(data);
+    // console.log('processAnsi-9 '+JSON.stringify(result));
     return result;
   }
+
 }

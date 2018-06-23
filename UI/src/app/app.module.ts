@@ -10,7 +10,6 @@ import { LoggerService } from './shared/logger.service';
 import { LogdisplayComponent } from './logdisplay/logdisplay.component';
 import { MudclientComponent } from './mudclient/mudclient.component';
 import { MudlistComponent } from './mudlist/mudlist.component';
-import { Ansi2htmlPipe } from './ansi2html.pipe';
 import { AnsiService } from './shared/ansi.service';
 import { MudspanComponent } from './mudspan/mudspan.component';
 
@@ -21,7 +20,6 @@ import { MudspanComponent } from './mudspan/mudspan.component';
     LogdisplayComponent,
     MudclientComponent,
     MudlistComponent,
-    Ansi2htmlPipe,
     MudspanComponent,
   ],
   imports: [
