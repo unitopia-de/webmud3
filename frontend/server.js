@@ -11,8 +11,13 @@ const uuidv4 = require('uuid/v4');
 const dbio = require('socket.io-client');
 var env = process.env.NODE_ENV || 'development'
   , cfg = require('./config/config.'+env);
-const dbsocket = dbio.connect(cfg.other.storage.url, {reconnect: true});
+  var dbsocket;
 
+  if (cfg.other.storage.active) {
+      dbsocket = dbio.connect(cfg.other.storage.url, {reconnect: true});
+  }
+  dbsocket = dbio.connect(cfg.other.storage.url, {reconnect: true});
+  
 
 const MudSocket = require("./mudSocket");
 
@@ -54,7 +59,9 @@ io.on('connection', (socket) => {
             text: msgOb.text,
             date: timeStamp
         };
-        dbsocket.emit('chat-message', chatOB);
+        if (cfg.other.storage.active) {
+            dbsocket.emit('chat-message', chatOB);
+        }
         socket.emit('chat-message', chatOB);
     });
 
@@ -128,7 +135,6 @@ io.on('connection', (socket) => {
         const mudSocket = mudConn.socket;
         // const mudOb = mudConn.mudOb;
         if (typeof inpline !== 'undefined' && inpline !== null) {
-            console.log(id+' '+inpline);
             mudSocket.write(inpline.toString('utf8')+"\r");
         }
     });

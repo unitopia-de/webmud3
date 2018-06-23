@@ -22,6 +22,7 @@
     "@angular/router": "^6.0.3",
     "@types/socket.io-client": "^1.4.32",
     "core-js": "^2.5.4",
+    "ngx-auto-scroll": "^1.1.0",
     "rxjs": "^6.0.0",
     "socket.io": "^2.1.1",
     "zone.js": "^0.8.26"
