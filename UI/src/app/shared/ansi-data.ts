@@ -3,6 +3,7 @@ export class AnsiData {
     fontwidth : number = 8;
     // data.canvas = $('<canvas width="' + (data.fontwidth * 80) + 'px" height="' + (data.fontheight * 25) + 'px">');
     ansi :string = '';
+    lastEscape:string =undefined;
     ansiPos : number = 0;
     fgcolor : string = 'white';
     bgcolor : string = 'black';
@@ -14,5 +15,6 @@ export class AnsiData {
     reverse : boolean = false;
     concealed : boolean = false;
     crossedout : boolean = false;
+    linebreakafter : boolean = false;
     text : string = '';
 }
