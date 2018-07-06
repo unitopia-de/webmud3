@@ -1,12 +1,11 @@
 <div class="mud-block" ngx-auto-scroll lock-y-offset="10" observe-attributes>
-  <div display="inline" *ngFor="let a2hMudline of mudlines">
-    <app-mudspan [ansi2html]="a2hMudline"></app-mudspan>
-  </div>
+  <div class="mud-message" display="inline" *ngFor="let a2hMudline of mudlines"><app-mudspan [ansi2html]="a2hMudline"></app-mudspan></div>
 </div>
 <table>
   <tr>
     <td>
-      <input class="mud-input" #mudInput (keyup.enter)="sendMessage()" (keyup)="onKeyUp($event)" [(ngModel)]="inpmessage" />
+      <input class="mud-input" *ngIf="!noecho" #mudInput (keyup.enter)="sendMessage()" (keyup)="onKeyUp($event)" [(ngModel)]="inpmessage" />
+      <input class="mud-input" *ngIf="noecho" #mudPW (keyup.enter)="sendPW(mudPW)" type="password"/>
     </td>
     <td>
       <button (click)="sendMessage()">Send</button>

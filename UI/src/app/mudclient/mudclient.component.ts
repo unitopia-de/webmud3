@@ -18,10 +18,12 @@ export class MudclientComponent implements OnInit {
   private mudc_id : string;
   private mudName : string = 'disconnect';
   private connected : boolean;
+  private noecho : boolean;
   private obs_connect;
   private obs_connected;
   private obs_data;
   private obs_debug;
+  private obs_signals;
   private ansiCurrent: AnsiData;
   private mudlines : AnsiData[] = [];
   public messages : MudMessage[] = [];
@@ -41,6 +43,7 @@ export class MudclientComponent implements OnInit {
       if (this.mudc_id) {
         if (this.obs_debug) this.obs_debug.unsubscribe();
         if (this.obs_data) this.obs_data.unsubscribe();
+        if (this.obs_signals) this.obs_signals.unsubscribe();
         if (this.obs_connect) this.obs_connect.unsubscribe();// including disconnect
         this.connected = false;
         this.mudc_id = undefined;
@@ -51,10 +54,17 @@ export class MudclientComponent implements OnInit {
     const mudOb = {mudname:this.mudName}; // TODO options???
     this.obs_connect = this.socketService.mudConnect(mudOb).subscribe(_id => {
       other.mudc_id = _id;
-      other.obs_connected = this.socketService.mudConnectStatus(_id).subscribe(
+      other.obs_connected = other.socketService.mudConnectStatus(_id).subscribe(
           flag => {other.connected = flag;
         });
-      other.obs_data = this.socketService.mudReceiveData(_id).subscribe(outline => {
+      other.obs_signals = other.socketService.mudReceiveSignals(_id).subscribe( 
+          musi => {
+            switch (musi.signal) {
+              case 'NOECHO-START': other.noecho = false; break;
+              case 'NOECHO-END':   other.noecho = false; break;
+            }
+          });
+      other.obs_data = other.socketService.mudReceiveData(_id).subscribe(outline => {
           var outp = outline;
           const idx = outline.indexOf(other.ansiService.ESC_CLRSCR);
           if (idx >=0) {
@@ -62,7 +72,7 @@ export class MudclientComponent implements OnInit {
             other.mudlines = [];
           }
           other.ansiCurrent.ansi = outp;
-          const a2harr = this.ansiService.processAnsi(other.ansiCurrent);
+          const a2harr = other.ansiService.processAnsi(other.ansiCurrent);
           for (var ix=0;ix<a2harr.length;ix++) {
             //console.log('main-'+ix+":"+JSON.stringify(a2harr[ix]));
             if (a2harr[ix].text!='') {
@@ -72,7 +82,7 @@ export class MudclientComponent implements OnInit {
           other.ansiCurrent = a2harr[a2harr.length-1];
           other.messages.push({text:outp});
         });
-      other.obs_debug = this.socketService.mudReceiveDebug(_id).subscribe(debugdata => {
+      other.obs_debug = other.socketService.mudReceiveDebug(_id).subscribe(debugdata => {
           other.lastdbg = debugdata;
         });
     });
@@ -95,6 +105,11 @@ export class MudclientComponent implements OnInit {
       this.inpHistory.unshift(this.inpmessage);
     }
     this.inpmessage = '';
+  }
+
+  sendPW(passw) {
+    this.socketService.mudSendData(this.mudc_id,passw);
+    passw = '';
   }
 
   onSelectMud(mudselection : string) {

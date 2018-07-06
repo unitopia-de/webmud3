@@ -36,10 +36,20 @@ io.on('connection', (socket) => {
 
     console.log('user connected');
     var MudConnections = {};
+    var Socket2Mud = {};
 
     socket.on('disconnect', function () {
         // TODO disconnect all mudclients...
         console.log('user disconnected');
+    });
+    socket.on('error', function(error) {
+        console.log('socket:'+socket.id+' error:'+error);
+    });
+    socket.on('disconnecting', function(reason) {
+        console.log('socket:'+socket.id+' disconnecting:'+reason);
+    });
+    socket.on('reconnect_attempt', (attemptNumber) => {
+        console.log('socket:'+socket.id+' reconnect_attempt:'+attemptNumber);
     });
 
     socket.on('add-message', (message) => {
@@ -96,7 +106,7 @@ io.on('connection', (socket) => {
                     host:mudcfg.host,
                     port:mudcfg.port});
             }
-            const mudSocket = new MudSocket(tsocket,undefined,{debugflag:true,io:io});
+            const mudSocket = new MudSocket(tsocket,undefined,{debugflag:true,id:id},socket);
             mudSocket.on("close",function(){
             io.emit("mud-disconnected",id);
             });
@@ -106,8 +116,13 @@ io.on('connection', (socket) => {
             mudSocket.on("debug", function(dbgOb){
             io.emit("mud-debug",id,dbgOb);
             });
-            MudConnections[id] = { socket: mudSocket, mudOb: mudOb};
-            callback({id:id});
+            MudConnections[id] = { socket: mudSocket, mudOb: mudOb,socketID:socket.id};
+            if (typeof Socket2Mud[socket.id] === 'undefined') {
+                Socket2Mud[socket.id] = [id];
+            } else {
+                Socket2Mud[socket.id].push[id];
+            }
+            callback({id:id,socketID:socket.id});
         } catch (error) {
             console.log(error.message);
             callback({error:error.toString('utf8')});
@@ -138,6 +153,7 @@ io.on('connection', (socket) => {
             mudSocket.write(inpline.toString('utf8')+"\r");
         }
     });
+
     io.emit('connected');
 });
 

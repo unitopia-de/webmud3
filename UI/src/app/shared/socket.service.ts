@@ -6,6 +6,7 @@ import { LoggerService } from './logger.service';
 import { DebugData } from './debug-data';
 import { MudListItem } from './mud-list-item';
 import { MudConnection } from './mud-connection';
+import { MudSignals } from './mud-signals';
 
 @Injectable({
   providedIn: 'root'
@@ -17,6 +18,22 @@ export class SocketService {
   private currentName : string = '';
   private mudConnections = {};
   public mudnames : MudListItem[] = [];
+
+  // Internal Sockket-Connect:
+   private socketConnect() {
+     var other = this;
+     other.socket = io(other.url); 
+    
+    other.socket.on('error', function(error) {
+      console.log('socket:'+other.socket.id+' error:'+error);
+    });
+    other.socket.on('disconnecting', function(reason) {
+        console.log('socket:'+other.socket.id+' disconnecting:'+reason);
+    });
+    other.socket.on('reconnect_attempt', (attemptNumber) => {
+        console.log('socket:'+other.socket.id+' reconnect_attempt:'+attemptNumber);
+    });
+   }
 
   // Internal registeration of all socket-consumers.
    private register2cons(cons : string) {
@@ -79,7 +96,7 @@ export class SocketService {
     let other = this;
     let observable = new Observable<ChatMessage>(observer => {
       if (other.socket === undefined) {
-        other.socket = io(other.url); 
+        other.socketConnect();
         other.logger.add('socket connected',false);
       }
       other.register2cons('chat');
@@ -101,7 +118,7 @@ export class SocketService {
     let other = this;
     let observable = new Observable<MudListItem[]>(observer => {
       if (other.socket === undefined) {
-        other.socket = io(other.url); 
+        other.socketConnect(); 
         other.logger.add('socket connected',false);
       }
       other.register2cons("mud-list");
@@ -140,7 +157,7 @@ export class SocketService {
     let other = this;
     let observable = new Observable<string>(observer => {
       if (other.socket === undefined) {
-        other.socket = io(this.url); 
+        other.socketConnect();
         other.logger.add('socket connected',false);
       }
       other.register2cons('mud-client');
@@ -171,6 +188,7 @@ export class SocketService {
           other.logger.add('mud-client disconnected-server',false);
         }
       });
+
       other.logger.add('socket connecting-2',false);
       return () => {
         if (other.unregister2cons("mud-client")) {
@@ -243,6 +261,28 @@ export class SocketService {
     }); // observable
     return observable;
   } // mudReceiveData
+
+  public mudReceiveSignals(_id: string) : Observable<MudSignals> {
+    let other = this;
+    let observable = new Observable<MudSignals>(observer => {
+      if (other.socket === undefined) {
+        other.logger.add('mudReceiveData without socket!',true);
+        return;
+      }
+      other.logger.add('mudReceiveData starting!',false);
+      other.socket.on('mud-signal',function(sdata){
+        if (sdata.id !== _id) {
+          return;
+        }
+        let musi : MudSignals = {
+          signal : sdata.signal,
+          id : sdata.id,
+        }
+        observer.next(musi);
+      })
+    });
+    return observable;
+  }
 
   public mudReceiveDebug(_id: string) : Observable<DebugData> {
     let other = this;

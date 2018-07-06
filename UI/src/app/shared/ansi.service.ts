@@ -27,10 +27,11 @@ export class AnsiService {
   }
 
   public ansiCode(data: AnsiData): AnsiData {
+    data = Object.assign({},data);
     if (data.ansiPos >= data.ansi.length-1) {
+      data.lastEscape = String.fromCharCode(27);
       return data;
     }
-    data = Object.assign({},data);
     var char = data.ansi[data.ansiPos];
     var escape = '';
     var stop = false;
@@ -40,8 +41,13 @@ export class AnsiService {
         char = data.ansi[data.ansiPos];
         escape += char;
         stop = this.ESC_ENDCHAR.test(char);
-      } while (this.ESC_VALID.test(char) && !stop);
-      //console.log('ESC['+escape);
+      } while (data.ansiPos < data.ansi.length-1 && this.ESC_VALID.test(char) && !stop);
+      if (!stop) {
+        console.log('ESC['+escape);
+        data.lastEscape = String.fromCharCode(27)+'['+escape;
+        data.ansiPos += 1;
+        return data;
+      }
       data.ansiPos += 1;
     } else {
       escape += char;
@@ -191,6 +197,11 @@ export class AnsiService {
     var result : AnsiData[] = [];
     data = Object.assign({},data);
     data.text ='';
+    if (typeof data.lastEscape !== 'undefined') {
+      console.log("esc-pad:",data.lastEscape,data.ansi.substr(0,30));
+      data.ansi = data.lastEscape + data.ansi;
+      data.lastEscape = undefined;
+    }
     // console.log('processAnsi-1 '+JSON.stringify(data));
     while (data.ansiPos < data.ansi.length) { // <=???
       var code :number = data.ansi.charCodeAt(data.ansiPos) & 0xff;
@@ -199,8 +210,8 @@ export class AnsiService {
       if (code < 33 || code > 126) {
             switch (code) {
                 case 0: display = false; break;
-                //case 10: display = false; cursorStartOfLine.call(this); break;
-                //case 13: display = false; cursorDown.call(this, 1); break;
+                case 10: break;
+                case 13: break;
                 case 27: 
                   display = false;
                   if (data.text != '') {
