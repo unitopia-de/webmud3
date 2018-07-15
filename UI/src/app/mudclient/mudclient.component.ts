@@ -1,24 +1,27 @@
-import { Component, OnInit, ViewChild, ElementRef, HostListener } from '@angular/core';
+import { Component, OnInit, ViewChild, ElementRef, HostListener, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { SocketService } from '../shared/socket.service';
 import { MudMessage } from '../shared/mud-message';
 import { DebugData } from '../shared/debug-data';
 import { AnsiService } from '../shared/ansi.service';
 import { AnsiData } from '../shared/ansi-data';
+import { ConfigService } from '../shared/config.service';
 
 @Component({
   selector: 'app-mudclient',
   templateUrl: './mudclient.component.html',
   styleUrls: ['./mudclient.component.css']
 })
-export class MudclientComponent implements OnInit {
+export class MudclientComponent implements OnInit,OnDestroy {
 
- 
+  @ViewChild('mudBlock') mudBlock : ElementRef;
   @ViewChild('mudInput') mudInput: ElementRef;
 
   private mudc_id : string;
   private mudName : string = 'disconnect';
   private connected : boolean;
-  private noecho : boolean;
+  private inpType : string = 'text';
+  private mudc_width : number;
+  private mudc_height : number;
   private obs_connect;
   private obs_connected;
   private obs_data;
@@ -34,11 +37,13 @@ export class MudclientComponent implements OnInit {
   
   constructor(
     private socketService: SocketService,
-    private ansiService:AnsiService) { 
+    private ansiService:AnsiService,
+    private cdRef:ChangeDetectorRef,
+    private cfgService:ConfigService) { 
 
     }
 
-  private connect() {
+    private connect() {
     if (this.mudName.toLowerCase() == 'disconnect') {
       if (this.mudc_id) {
         if (this.obs_debug) this.obs_debug.unsubscribe();
@@ -51,7 +56,7 @@ export class MudclientComponent implements OnInit {
       }
     }
     const other = this;
-    const mudOb = {mudname:this.mudName}; // TODO options???
+    const mudOb = {mudname:this.mudName,height:this.mudc_height,width:this.mudc_width}; // TODO options???
     this.obs_connect = this.socketService.mudConnect(mudOb).subscribe(_id => {
       other.mudc_id = _id;
       other.obs_connected = other.socketService.mudConnectStatus(_id).subscribe(
@@ -60,8 +65,8 @@ export class MudclientComponent implements OnInit {
       other.obs_signals = other.socketService.mudReceiveSignals(_id).subscribe( 
           musi => {
             switch (musi.signal) {
-              case 'NOECHO-START': other.noecho = false; break;
-              case 'NOECHO-END':   other.noecho = false; break;
+              case 'NOECHO-START': other.inpType = 'password'; break;
+              case 'NOECHO-END':   other.inpType = 'text'; break;
             }
           });
       other.obs_data = other.socketService.mudReceiveData(_id).subscribe(outline => {
@@ -92,6 +97,15 @@ export class MudclientComponent implements OnInit {
     this.ansiCurrent = new AnsiData();
   }
 
+  ngAfterViewInit() {
+    var oh = this.mudBlock.nativeElement.offsetHeight;
+    var ow = this.mudBlock.nativeElement.offsetWidth;
+    this.mudc_width = Math.floor(ow/7.5);
+    this.mudc_height = Math.floor(oh/16);
+    console.log('MudSize: '+this.mudc_width+'x'+this.mudc_height);
+    this.cfgService.setMudOutputSize(oh,ow);
+  }
+
   ngOnDestroy() {
     this.obs_debug.unsubscribe();
     this.obs_data.unsubscribe();
@@ -101,23 +115,24 @@ export class MudclientComponent implements OnInit {
 
   sendMessage() {
     this.socketService.mudSendData(this.mudc_id,this.inpmessage);
-    if (this.inpmessage != '' && (this.inpHistory.length==0 || (this.inpHistory.length >0 && this.inpHistory[0] != this.inpmessage))) {
+    if (this.inpType == 'text' && this.inpmessage != '' 
+        && (this.inpHistory.length==0 || (this.inpHistory.length >0 && this.inpHistory[0] != this.inpmessage))) {
       this.inpHistory.unshift(this.inpmessage);
     }
     this.inpmessage = '';
   }
 
-  sendPW(passw) {
-    this.socketService.mudSendData(this.mudc_id,passw);
-    passw = '';
-  }
-
   onSelectMud(mudselection : string) {
+    if (mudselection.toLowerCase() == 'disconnect') {
+      this.messages = [];
+      this.mudlines = [];
+    }
     this.mudName = mudselection;
     this.ansiCurrent = new AnsiData();
     this.connect();
   }
   onKeyUp(event:KeyboardEvent) {
+    if (this.inpType !='text') return;
     switch (event.key) {
       case "ArrowUp":
         if (this.inpHistory.length < this.inpPointer) {

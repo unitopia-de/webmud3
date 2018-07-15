@@ -45,9 +45,6 @@ export class MudspanComponent implements OnInit {
     if (ansi.crossedout) {
       this.myclasses += ' crossedout';
     }
-    if (ansi.linebreakafter) {
-      this.myclasses += ' linebreakafter';
-    }
     if (this.myclasses != ''){
       this.myclasses = this.myclasses.substr(1);
     }

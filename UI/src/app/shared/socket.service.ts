@@ -153,7 +153,7 @@ export class SocketService {
     return observable;
   }
 
-  public mudConnect(mudOb : Object) : Observable<string> {
+  public mudConnect(mudOb : any) : Observable<string> {
     let other = this;
     let observable = new Observable<string>(observer => {
       if (other.socket === undefined) {
@@ -167,6 +167,8 @@ export class SocketService {
           other.mudConnections[data.id] = {
             id: data.id,
             connected: true,
+            width: mudOb.width,
+            height: mudOb.height
           }
           observer.next(data.id);
         } else {
@@ -249,6 +251,32 @@ export class SocketService {
         return;
       }
       other.logger.add('mudReceiveData starting!',false);
+      other.socket.on('mud-gmcp-incoming',function(id,mod,msg,data){
+        if (typeof other.mudConnections[id] === 'undefined') {
+          console.log('failed[mud-gmcp-incoming].mudconn='+id);
+          return;
+        }
+        if (_id !== id) {
+          return;
+        }
+        console.log('GMCP:',mod,msg,data);
+      });
+      other.socket.on('mud-get-naws', function(id,cb) {
+        if (typeof other.mudConnections[id] === 'undefined') {
+          console.log('failed[mud-get-naws].mudconn='+id);
+          cb(false);
+          return;
+        }
+        if (_id !== id) {
+          cb(false);
+          return;
+        }
+        let mySize = {
+          height : other.mudConnections[id].height,
+          width : other.mudConnections[id].width,
+        }
+        cb(mySize);
+      })
       other.socket.on('mud-output', function(id,buffer) {
         if (_id !== id) {
           return;

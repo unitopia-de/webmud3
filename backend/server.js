@@ -2,6 +2,7 @@
 
 const express = require('express');
 const app = express();
+const path = require('path');
 const bodyParser = require('body-parser');
 const http = require('http').Server(app);
 const io = require('socket.io')(http);  
@@ -25,11 +26,11 @@ app.use(bodyParser.urlencoded({
     extended: true
 }));
 
-app.get('/', (req, res) => {
-    // res.sendFile(__dirname + '/index.html')
-    res.send('Chat Server');
-    // TODO provide UI.dist
-})
+app.use(express.static(path.join(__dirname, 'dist')));
+
+app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, 'dist/index.html'));
+  });
 
 
 io.on('connection', (socket) => {
@@ -153,11 +154,24 @@ io.on('connection', (socket) => {
             mudSocket.write(inpline.toString('utf8')+"\r");
         }
     });
+    socket.on('mud.gmcp-outgoing', (id,mod,msg,data) => {
+        if (typeof id !== 'string' || typeof MudConnections[id] === 'undefined') {
+            io.emit("mud-error","Connection-id unknown");
+            return;
+        }
+        const mudConn = MudConnections[id];
+        const mudSocket = mudConn.socket;
+        const jsdata = JSON.stringify(data);
+        let b1 = new Buffer(mod+'.'+msg+' ');
+        let b2 = new Buffer(jsdata);
+        let buf = Buffer.concat([b1,b2],b1.length+b2.length);
+        mudSocket.writeSub(201 /*TELOPT_GMCP*/, buf);
+    });
 
     io.emit('connected');
 });
 
 
 http.listen(5000, () => {
-    console.log('Server\'frontend\' started on port 5000');
+    console.log('Server\'backend\' started on port 5000');
 });
