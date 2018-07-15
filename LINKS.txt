@@ -38,3 +38,9 @@ https://ace.c9.io/
 https://www.npmjs.com/package/ng2-ace-editor
 
 https://microsoft.github.io/language-server-protocol/overview
+
+angular/material:
+https://material.angular.io/guide/getting-started
+https://material.angular.io/guide/theming
+https://material.angular.io/components/button/examples
+https://material.io/tools/icons/?style=baseline

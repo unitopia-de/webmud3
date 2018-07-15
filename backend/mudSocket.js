@@ -7,6 +7,37 @@ var MudSocket,TelnetSocket;
 
 MudSocket = class MudSocket extends TelnetSocket {
 
+    txtToBuffer(text) {
+        
+        var result = [], i = 0;
+        text = encodeURI(text);
+        while (i < text.length) {
+            var c = text.charCodeAt(i++);
+
+            // if it is a % sign, encode the following 2 bytes as a hex value
+            if (c === 37) {
+                result.push(parseInt(text.substr(i, 2), 16))
+                i += 2;
+
+            // otherwise, just the actual byte
+            } else {
+                result.push(c)
+            }
+        }
+        return new Buffer(result);
+    }
+    val16ToBuffer(result,val) {
+        result.push((val & 0xff00) >> 8);
+        result.push(val&0xff);
+        return result;
+    }
+    sizeToBuffer(w,h) {
+        var result = [];
+        result = this.val16ToBuffer(result,w);
+        result = this.val16ToBuffer(result,h);
+        return new Buffer(result);
+    }
+
   // topt: bufferSize, errorPolicy(discardBoth,keepData,keep_both)
   //       other options from stream: https://nodejs.org/api/stream.html
   constructor(_socket, topt, mopt, socket_io) {
@@ -160,6 +191,7 @@ MudSocket = class MudSocket extends TelnetSocket {
             this.tel.num2opt[this.tel.opt2num[key]] = key;
         }
       }
+      var buf;
       this._moptions = mopt || {};
       this.debugflag = (typeof this._moptions.debugflag != 'undefined' 
             && this._moptions.debugflag
@@ -188,7 +220,22 @@ MudSocket = class MudSocket extends TelnetSocket {
             }
             other.state[opt] = {server:'do',client:'wont'};
             switch (opt) {
-                case 'TELOPT_NAWS': other.writeWont(chunkData);break; // TODO calc windows size and report...
+                case 'TELOPT_NAWS': 
+                    other.state[opt] = {server:'do',client:'will'};
+                    other.writeWill(chunkData);
+                    socket_io.emit('mud-get-naws',other._moptions.id,function(sizeOb){
+                        if (sizeOb === false) {
+                            return;
+                        }
+                        buf = other.sizeToBuffer(sizeOb.width,sizeOb.height);
+                        console.log('NAWS-buf:',buf,sizeOb);
+                        other.writeSub(chunkData,buf);
+                    })
+                    break; // TODO calc windows size and report...
+                case 'TELOPT_TTYPE':
+                    other.state[opt] = {server:'do',client:'will'};
+                    other.writeWill(chunkData);
+                break;
                 default: other.writeWont(chunkData); break;
             }
         });
@@ -219,7 +266,11 @@ MudSocket = class MudSocket extends TelnetSocket {
                     socket_io.emit('mud-signal',{signal:'NOECHO-START',id:other._moptions.id});
                     break;
                 case 'TELOPT_EOR': other.writeDont(chunkData);break;
-                default: other.writeDont(chunkData); break;
+                case 'TELOPT_GMCP':
+                other.writeDo(chunkData);
+                other.state[opt].client = 'do';
+                break;
+            default: other.writeDont(chunkData); break;
             }
         });
         super.on('wont',function(chunkData) {
@@ -238,13 +289,35 @@ MudSocket = class MudSocket extends TelnetSocket {
                 default: other.writeDont(chunkData); break;
             }
         });
-        super.on('sub',function(opt,chunkData) {
-            console.log('sub:'+opt+"|"+chunkData);
+        super.on('sub',function(optin,chunkData) {
+            const opt = other.tel.num2opt[optin.toString()];
+            const subInput = new Uint8Array(chunkData)
+            console.log('sub:'+opt+"|"+subInput);
+            switch (opt) {
+                case 'TELOPT_TTYPE':
+                    if (subInput.length==1 && subInput[0] == 1) { // TELQUAL_SEND
+                        var nullBuf = new Buffer.alloc(1);
+                        var sendBuf;
+                        nullBuf[0] = 0; // TELQUAL_IS
+                        buf = new Buffer('WebMud3a');
+                        sendBuf = Buffer.concat([nullBuf,buf],buf.length+1);
+                        console.log('TTYPE: ',sendBuf);
+                        other.writeSub(optin,sendBuf);
+                    }
+                    break;
+                case 'TELOPT_GMCP':
+                    let tmpstr = chunkData.toString();
+                    let ix = tmpstr.indexOf(' ');
+                    let jx = tmpstr.indexOf('.');
+                    let jsdata = tmpstr.substr(ix+1);
+                    socket_io.emit('mud-gmcp-incoming',other._moptions.id,tmpstr.substr(0,jx),tmpstr.substr(jx+1,ix-jx),JSON.parse(jsdata));
+                    break;
+            }
             socket_io.emit('mud.debug',
                 {id:other._moptions.id,type:'sub',option:opt,data:chunkData});
         });
         super.on('error',function(chunkData) {
-            console.log('_tsocket-error:'+chunkData);
+            console.log('mudSocket-error:'+chunkData);
             socket_io.emit('mud.debug',
                 {id:other._moptions.id,type:'error',data:chunkData});
         });

@@ -57,4 +57,15 @@ config.muds.orbit2 = {
     mudfamily : 'unitopia',
 };
 
+config.muds.orbit3 = {
+    name : 'Orbit3',
+    host : 'unitopia.de',
+    port : 9876, // non SSL!!
+    ssl  : true,
+    rejectUnauthorized: true, // unused
+    description: 'Orbit for internal testing purposes',
+    playerlevel : 'wizard,testplayer',
+    mudfamily : 'unitopia',
+};
+
 module.exports = config;

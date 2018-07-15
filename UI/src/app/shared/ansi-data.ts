@@ -15,6 +15,5 @@ export class AnsiData {
     reverse : boolean = false;
     concealed : boolean = false;
     crossedout : boolean = false;
-    linebreakafter : boolean = false;
     text : string = '';
 }

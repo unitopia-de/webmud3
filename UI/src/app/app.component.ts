@@ -1,4 +1,6 @@
-import { Component } from '@angular/core';
+import { Component, HostListener } from '@angular/core';
+
+import { ConfigService } from './shared/config.service';
 
 @Component({
   selector: 'app-root',
@@ -7,4 +9,13 @@ import { Component } from '@angular/core';
 })
 export class AppComponent {
   title = 'app';
+
+  constructor(private cfgsrv : ConfigService) {
+    this.onResize();
+  }
+  
+  @HostListener('window:resize', ['$event'])
+  onResize(event?) {
+    this.cfgsrv.setWindowsSize(window.innerHeight, window.innerWidth);
+  } 
 }
