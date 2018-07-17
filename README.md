@@ -2,11 +2,11 @@
 Webmud3: third generation of the UNItopia Webmud as open source project.
 
 In this early stages (Versions < 0.1.0) it's not for production.
-Version 0.0.2 delivers a configurable list of muds in frontend/config/config.development, so that the development mode can be used as local browser-mudclient to multiple muds.
-Version 0.0.3 added ANSI colour support
-Version 0.0.4 fixed an ANSI colour issue and renamed frontend dir to backend.
-Version 0.0.5 implmented telnet_neg: echo,terminaltype and naws. started with GMCP support.
-Version 0.0.6 implemented sound on top of GMCP, working with UNItopia so far.
+1. Version 0.0.2 delivers a configurable list of muds in frontend/config/config.development, so that the development mode can be used as local browser-mudclient to multiple muds.
+2. Version 0.0.3 added ANSI colour support
+3. Version 0.0.4 fixed an ANSI colour issue and renamed frontend dir to backend.
+4. Version 0.0.5 implmented telnet_neg: echo,terminaltype and naws. started with GMCP support.
+5. Version 0.0.6 implemented sound on top of GMCP, working with UNItopia so far.
 
 ## Installation in the Development environment
 ### One time prerequisites:
