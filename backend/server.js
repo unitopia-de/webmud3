@@ -154,7 +154,7 @@ io.on('connection', (socket) => {
             mudSocket.write(inpline.toString('utf8')+"\r");
         }
     });
-    socket.on('mud.gmcp-outgoing', (id,mod,msg,data) => {
+    socket.on('mud-gmcp-outgoing', (id,mod,msg,data) => {
         if (typeof id !== 'string' || typeof MudConnections[id] === 'undefined') {
             io.emit("mud-error","Connection-id unknown");
             return;
@@ -165,6 +165,7 @@ io.on('connection', (socket) => {
         let b1 = new Buffer(mod+'.'+msg+' ');
         let b2 = new Buffer(jsdata);
         let buf = Buffer.concat([b1,b2],b1.length+b2.length);
+        console.log(mod,msg,data);
         mudSocket.writeSub(201 /*TELOPT_GMCP*/, buf);
     });
 

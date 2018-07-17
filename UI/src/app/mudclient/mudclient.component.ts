@@ -67,6 +67,13 @@ export class MudclientComponent implements OnInit,OnDestroy {
             switch (musi.signal) {
               case 'NOECHO-START': other.inpType = 'password'; break;
               case 'NOECHO-END':   other.inpType = 'text'; break;
+              case 'Sound.Play.Once':
+                console.log("Play: ",musi.playSoundFile);
+                let audio = new Audio();
+                audio.src = musi.playSoundFile;
+                audio.load();
+                audio.play();
+                break;
             }
           });
       other.obs_data = other.socketService.mudReceiveData(_id).subscribe(outline => {
