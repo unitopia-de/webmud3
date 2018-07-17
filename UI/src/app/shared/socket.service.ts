@@ -243,6 +243,15 @@ export class SocketService {
     return observable;
   }
 
+  public sendGMCP(id:string,mod:string,msg:string,data:any) {
+    if (typeof this.mudConnections[id] === 'undefined') {
+      console.log('failed[GMCP_Send_packet].mudconn='+id);
+      return;
+    }
+    console.log('GMCP-send:',mod,msg,data);
+    this.socket.emit('mud-gmcp-outgoing',id,mod,msg,data);
+  }
+
   public mudReceiveData(_id: string) : Observable<string> {
     let other = this;
     let observable = new Observable<string>(observer => {
@@ -251,16 +260,6 @@ export class SocketService {
         return;
       }
       other.logger.add('mudReceiveData starting!',false);
-      other.socket.on('mud-gmcp-incoming',function(id,mod,msg,data){
-        if (typeof other.mudConnections[id] === 'undefined') {
-          console.log('failed[mud-gmcp-incoming].mudconn='+id);
-          return;
-        }
-        if (_id !== id) {
-          return;
-        }
-        console.log('GMCP:',mod,msg,data);
-      });
       other.socket.on('mud-get-naws', function(id,cb) {
         if (typeof other.mudConnections[id] === 'undefined') {
           console.log('failed[mud-get-naws].mudconn='+id);
@@ -308,6 +307,43 @@ export class SocketService {
         }
         observer.next(musi);
       })
+      other.socket.on('mud-gmcp-incoming',function(id,mod,msg,data){
+        if (typeof other.mudConnections[id] === 'undefined') {
+          console.log('failed[mud-gmcp-incoming].mudconn='+id);
+          return;
+        }
+        if (_id !== id) {
+          return;
+        }
+        switch (mod.toLowerCase().trim()) {
+          case 'core':
+            switch (msg.toLowerCase().trim()) {
+              case 'hello':
+              other.mudConnections[_id]['gmcp-mudname'] = data.name;
+              other.sendGMCP(_id,'Core','Hello',{'client':'Webmud3a','version':'0.0.6'});
+              other.sendGMCP(_id,'Core','Supports.Set',['Sound 1']);
+              break;
+            }
+            break;
+          case 'sound':
+            switch (msg.toLowerCase().trim()) {
+              case 'url':
+                other.mudConnections[_id]['sound-url'] = data.url;
+                break;
+              case 'event':
+                let soundSignal : MudSignals = {
+                  signal: 'Sound.Play.Once',
+                  id: data.file,
+                  playSoundFile: other.mudConnections[_id]['sound-url']+'/'+data.file,
+                }
+                observer.next(soundSignal);
+                break;
+            }
+            break;
+          default:
+        }
+        console.log('GMCP:',mod,msg,data);
+      });
     });
     return observable;
   }
