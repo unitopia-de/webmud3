@@ -1,4 +1,4 @@
-# webmud3 V0.0.6 !!!
+# webmud3 V0.0.7 !!!
 Webmud3: third generation of the UNItopia Webmud as open source project.
 
 In this early stages (Versions < 0.1.0) it's not for production.
@@ -7,6 +7,7 @@ In this early stages (Versions < 0.1.0) it's not for production.
 3. Version 0.0.4 fixed an ANSI colour issue and renamed frontend dir to backend.
 4. Version 0.0.5 implmented telnet_neg: echo,terminaltype and naws. started with GMCP support.
 5. Version 0.0.6 implemented sound on top of GMCP, working with UNItopia so far.
+6. Version 0.0.7 Rewrite for portal and created dockerfile.
 
 ## Installation in the Development environment
 ### One time prerequisites:
@@ -28,4 +29,8 @@ The server is now running in the background and is listening on 5000.
 1. change directory to UI directory
 2. `npm install`
 3. `ng serve --open`
-4. the default browser will open on localhost:4200... Have fun.
+4. the default browser will open on localhost:4200/webmud3... Have fun.
+
+### Creating docker image:
+1. change directory to webmud3. (where UI and backend are in)
+2. docker build -t webmud3:v0.0.7 -f ./dockerfiles/ng.dockerfile .

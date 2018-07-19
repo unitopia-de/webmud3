@@ -1,0 +1,4 @@
+# Dockerignore for e.g. node_modules
+node_modules
+npm-debug.log
+dist

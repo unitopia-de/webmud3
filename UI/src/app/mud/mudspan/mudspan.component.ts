@@ -1,5 +1,5 @@
 import { Component, OnInit, Input } from '@angular/core';
-import { AnsiData } from '../shared/ansi-data';
+import { AnsiData } from '../ansi-data';
 
 @Component({
   selector: 'app-mudspan',

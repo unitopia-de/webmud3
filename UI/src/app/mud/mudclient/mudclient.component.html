@@ -1,4 +1,4 @@
-<div class="mud-block" #mudBlock ngx-auto-scroll lock-y-offset="10" observe-attributes>
+<div class="mud-block" #mudBlock [scrollTop]="mudBlock.scrollHeight">
   <div class="mud-message" display="inline" *ngFor="let a2hMudline of mudlines"><app-mudspan [ansi2html]="a2hMudline"></app-mudspan></div>
 </div>
 <table>
@@ -7,7 +7,7 @@
       <input [(type)]="inpType" class="mud-input" #mudInput (keyup.enter)="sendMessage()" (keyup)="onKeyUp($event)" [(ngModel)]="inpmessage" />
     </td>
     <td>
-      <app-mudlist (mudselection)="onSelectMud($event)"></app-mudlist>
+      <app-mudlist *ngIf="freeParam" (mudselection)="onSelectMud($event)"></app-mudlist>
     </td>
   </tr>
 </table>

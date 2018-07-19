@@ -1,5 +1,5 @@
 import { Component, OnInit, Output, EventEmitter } from '@angular/core';
-import { SocketService } from '../shared/socket.service';
+import { SocketService } from '../../shared/socket.service';
 
 @Component({
   selector: 'app-mudlist',

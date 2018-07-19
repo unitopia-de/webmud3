@@ -1,0 +1,3 @@
+# Dockerignore for e.g. node_modules
+*/node_modules
+*/dist
