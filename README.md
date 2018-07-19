@@ -34,3 +34,5 @@ The server is now running in the background and is listening on 5000.
 ### Creating docker image:
 1. change directory to webmud3. (where UI and backend are in)
 2. docker build -t webmud3:v0.0.7 -f ./dockerfiles/ng.dockerfile .
+3. docker run -p 5000:5000 webmud3:v0.0.7
+Then the docker container is running on port 5000 (localhost:5000/webmud3)
