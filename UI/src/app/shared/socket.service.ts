@@ -3,10 +3,10 @@ import { Observable } from 'rxjs';
 import * as io from 'socket.io-client';
 import { ChatMessage } from './chat-message';
 import { LoggerService } from './logger.service';
-import { DebugData } from './debug-data';
-import { MudListItem } from './mud-list-item';
-import { MudConnection } from './mud-connection';
-import { MudSignals } from './mud-signals';
+import { DebugData } from '../mud/debug-data';
+import { MudListItem } from '../mud/mud-list-item';
+// import { MudConnection } from './mud-connection';
+import { MudSignals } from '../mud/mud-signals';
 
 @Injectable({
   providedIn: 'root'
@@ -142,7 +142,7 @@ export class SocketService {
       });
       return () => {
         if (other.unregister2cons("mud-list")) {
-          other.socket.disconnect(); 
+          if (typeof other.socket !== 'undefined') other.socket.disconnect(); 
           other.socket = undefined;
           other.logger.add('mud-list and socket disconnected-server',false);
         } else {
@@ -183,7 +183,7 @@ export class SocketService {
         }
         other.mudConnections[id].connected = false;
         if (other.unregister2cons("mud-client")) {
-          other.socket.disconnect(); 
+          if (typeof other.socket !== 'undefined') other.socket.disconnect(); 
           other.socket = undefined;
           other.logger.add('mud-client and socket disconnected-server',false);
         } else {
@@ -194,7 +194,7 @@ export class SocketService {
       other.logger.add('socket connecting-2',false);
       return () => {
         if (other.unregister2cons("mud-client")) {
-          other.socket.disconnect(); 
+          if (typeof other.socket !== 'undefined') other.socket.disconnect(); 
           other.socket = undefined;
           other.logger.add('socket disconnected',false);
         } // if
@@ -218,7 +218,7 @@ export class SocketService {
         }
         other.mudConnections[id].connected = false;
         if (other.unregister2cons("mud-client")) {
-          other.socket.disconnect(); 
+          if (typeof other.socket !== 'undefined') other.socket.disconnect(); 
           other.socket = undefined;
           other.logger.add('mud-client and socket disconnected-client',false);
         } else {
@@ -276,6 +276,12 @@ export class SocketService {
         }
         cb(mySize);
       })
+      other.socket.on('mud-disconnected', function(id) {
+        if (_id !== id) {
+          return;
+        }
+        observer.next('\r\n(Verbindung getrennt)\r\n');
+      });
       other.socket.on('mud-output', function(id,buffer) {
         if (_id !== id) {
           return;
@@ -284,7 +290,7 @@ export class SocketService {
       }); // mud-output
       return () => {
         other.logger.add('mudReceiveData ending!',false);
-      }; // disconnect
+      }; // mudReceiveData ending
     }); // observable
     return observable;
   } // mudReceiveData
@@ -383,7 +389,7 @@ export class SocketService {
       }); // mud-output
       return () => {
         other.logger.add('mudReceiveDebug ending!',false);
-      }; // disconnect
+      }; // mudReceiveDebug ending
     }); // observable
     return observable;
   } // mudReceiveDebug

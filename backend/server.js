@@ -10,15 +10,9 @@ const net = require('net');
 const tls = require("tls");
 const uuidv4 = require('uuid/v4');
 const dbio = require('socket.io-client');
+
 var env = process.env.NODE_ENV || 'development'
   , cfg = require('./config/config.'+env);
-  var dbsocket;
-
-  if (cfg.other.storage.active) {
-      dbsocket = dbio.connect(cfg.other.storage.url, {reconnect: true});
-  }
-  dbsocket = dbio.connect(cfg.other.storage.url, {reconnect: true});
-  
 
 const MudSocket = require("./mudSocket");
 
@@ -91,7 +85,7 @@ io.on('connection', (socket) => {
             mudcfg = cfg.muds[mudOb.mudname];
             console.log(mudOb.mudname);
         } else {
-            callback({error:'Unknown mudname'+mudOb.mudname});
+            callback({error:'Unknown mudname: '+mudOb.mudname});
             return;
         }
         try {

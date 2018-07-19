@@ -1,7 +1,6 @@
 import { BrowserModule } from '@angular/platform-browser';
 import { NgModule } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import {NgxAutoScrollModule} from "ngx-auto-scroll";
 import {BrowserAnimationsModule} from '@angular/platform-browser/animations';
 import {MatTabsModule} from '@angular/material';
 
@@ -10,34 +9,35 @@ import { ChatComponent } from './chat/chat.component';
 import { SocketService } from './shared/socket.service';
 import { LoggerService } from './shared/logger.service';
 import { LogdisplayComponent } from './logdisplay/logdisplay.component';
-import { MudclientComponent } from './mudclient/mudclient.component';
-import { MudlistComponent } from './mudlist/mudlist.component';
-import { AnsiService } from './shared/ansi.service';
-import { MudspanComponent } from './mudspan/mudspan.component';
+import { AnsiService } from './mud/ansi.service';
 import { TabviewComponent } from './tabview/tabview.component';
 import { TabconDirective } from './tabcon.directive';
 import { ConfigService } from './shared/config.service';
+import { AppRoutingModule } from './app-routing.module';
+import { NonportalModule } from './nonportal/nonportal.module';
+import { MudModule } from './mud/mud.module';
+import { NonPortalGuard } from './non-portal-guard';
+import { PortalGuard } from './portal-guard';
 
 @NgModule({
   declarations: [
     AppComponent,
     ChatComponent,
     LogdisplayComponent,
-    MudclientComponent,
-    MudlistComponent,
-    MudspanComponent,
     TabviewComponent,
     TabconDirective,
   ],
   imports: [
     BrowserModule,
     MatTabsModule,
-    BrowserAnimationsModule,
+    BrowserAnimationsModule,MudModule,
+    NonportalModule,
     FormsModule,
-    NgxAutoScrollModule
+    AppRoutingModule
   ],
   providers: [
     SocketService,
+    NonPortalGuard,PortalGuard,
     LoggerService,
     ConfigService,
     AnsiService

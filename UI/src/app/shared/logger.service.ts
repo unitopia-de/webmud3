@@ -11,6 +11,11 @@ export class LoggerService {
     if (!this.debugflag && !errflag) {
       return; // no output of debugmessages!
     }
+    if (errflag) {
+      console.error(message);
+    } else {
+      console.log(message);
+    }
     this.messages.push(message);
   }
  

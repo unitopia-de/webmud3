@@ -1,10 +1,11 @@
-import { Component, OnInit, ViewChild, ElementRef, HostListener, OnDestroy, ChangeDetectorRef } from '@angular/core';
-import { SocketService } from '../shared/socket.service';
-import { MudMessage } from '../shared/mud-message';
-import { DebugData } from '../shared/debug-data';
-import { AnsiService } from '../shared/ansi.service';
-import { AnsiData } from '../shared/ansi-data';
-import { ConfigService } from '../shared/config.service';
+import { Component, OnInit, ViewChild, ElementRef, HostListener, OnDestroy, ChangeDetectorRef, Input } from '@angular/core';
+import { SocketService } from '../../shared/socket.service';
+import { MudMessage } from '../mud-message';
+import { DebugData } from '../debug-data';
+import { AnsiService } from '../ansi.service';
+import { AnsiData } from '../ansi-data';
+import { ConfigService } from '../../shared/config.service';
+import { WebmudConfig } from '../webmud-config';
 
 @Component({
   selector: 'app-mudclient',
@@ -13,12 +14,14 @@ import { ConfigService } from '../shared/config.service';
 })
 export class MudclientComponent implements OnInit,OnDestroy {
 
+  @Input() cfg : WebmudConfig;
   @ViewChild('mudBlock') mudBlock : ElementRef;
   @ViewChild('mudInput') mudInput: ElementRef;
 
   private mudc_id : string;
   private mudName : string = 'disconnect';
   private connected : boolean;
+  private freeParam : boolean = true;
   private inpType : string = 'text';
   private mudc_width : number;
   private mudc_height : number;
@@ -102,6 +105,12 @@ export class MudclientComponent implements OnInit,OnDestroy {
 
   ngOnInit() { 
     this.ansiCurrent = new AnsiData();
+    console.log('cfg:',JSON.stringify(this.cfg));
+    if (typeof this.cfg !== 'undefined' && typeof this.cfg.mudname !== 'undefined'
+        && this.cfg.mudname !== '') {
+      this.mudName = this.cfg.mudname;
+      this.freeParam = false;
+    } 
   }
 
   ngAfterViewInit() {
@@ -111,6 +120,11 @@ export class MudclientComponent implements OnInit,OnDestroy {
     this.mudc_height = Math.floor(oh/16);
     console.log('MudSize: '+this.mudc_width+'x'+this.mudc_height);
     this.cfgService.setMudOutputSize(oh,ow);
+    if (!this.freeParam) {
+      if (this.cfg.autoConnect) {
+        this.connect();
+      }
+    }
   }
 
   ngOnDestroy() {
