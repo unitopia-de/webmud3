@@ -1,5 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { WebmudConfig } from '../../mud/webmud-config';
+import { ServerConfigService } from '../../shared/server-config.service';
 
 @Component({
   selector: 'app-orbit',
@@ -8,8 +9,8 @@ import { WebmudConfig } from '../../mud/webmud-config';
 })
 export class OrbitComponent implements OnInit {
 
-  private mudcfg : WebmudConfig = {
-    mudname : 'orbit',
+  public mudcfg : WebmudConfig = {
+    mudname : this.srvcfg.getOrbitName(),
     autoConnect : true,
     autoLogin : false,
     autoUser : '',
@@ -17,7 +18,7 @@ export class OrbitComponent implements OnInit {
     localEcho : true
   }
 
-  constructor() { }
+  constructor(public srvcfg:ServerConfigService) { }
 
   ngOnInit() {
   }

@@ -18,6 +18,8 @@ import { NonportalModule } from './nonportal/nonportal.module';
 import { MudModule } from './mud/mud.module';
 import { NonPortalGuard } from './non-portal-guard';
 import { PortalGuard } from './portal-guard';
+import { WINDOW_PROVIDERS } from './shared/WINDOW_PROVIDERS';
+import { ServerConfigService } from './shared/server-config.service';
 
 @NgModule({
   declarations: [
@@ -36,6 +38,8 @@ import { PortalGuard } from './portal-guard';
     AppRoutingModule
   ],
   providers: [
+    WINDOW_PROVIDERS,
+    ServerConfigService,
     SocketService,
     NonPortalGuard,PortalGuard,
     LoggerService,

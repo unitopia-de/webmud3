@@ -21,8 +21,8 @@ export class MudclientComponent implements OnInit,OnDestroy {
   private mudc_id : string;
   private mudName : string = 'disconnect';
   private connected : boolean;
-  private freeParam : boolean = true;
-  private inpType : string = 'text';
+  public freeParam : boolean = true;
+  public inpType : string = 'text';
   private mudc_width : number;
   private mudc_height : number;
   private obs_connect;
@@ -31,7 +31,7 @@ export class MudclientComponent implements OnInit,OnDestroy {
   private obs_debug;
   private obs_signals;
   private ansiCurrent: AnsiData;
-  private mudlines : AnsiData[] = [];
+  public mudlines : AnsiData[] = [];
   public messages : MudMessage[] = [];
   public inpmessage : string;
   private inpHistory : string[] = [];
@@ -60,6 +60,11 @@ export class MudclientComponent implements OnInit,OnDestroy {
     }
     const other = this;
     const mudOb = {mudname:this.mudName,height:this.mudc_height,width:this.mudc_width}; // TODO options???
+    if (this.cfg.autoUser != '') {
+      mudOb['user'] = this.cfg.autoUser;
+      mudOb['token'] = this.cfg.autoToken;
+      mudOb['password'] = this.cfg.autoPw || '';
+    }
     this.obs_connect = this.socketService.mudConnect(mudOb).subscribe(_id => {
       other.mudc_id = _id;
       other.obs_connected = other.socketService.mudConnectStatus(_id).subscribe(

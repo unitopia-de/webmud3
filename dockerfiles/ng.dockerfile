@@ -7,6 +7,9 @@ WORKDIR /app
 # fetching packages and...
 COPY UI/package*.json /app/
 
+RUN echo https://alpine.mirror.wearetriple.com/v3.5/main > /etc/apk/repositories; \
+    echo https://alpine.mirror.wearetriple.com/v3.5/community >> /etc/apk/repositories
+
 # ... install them together with angular-cli, prequisite git included.
 RUN apk update && apk upgrade && \
     apk add --no-cache bash git openssh \
@@ -20,7 +23,7 @@ COPY ./UI/ /app/
 ARG configuration=production
 
 # create the output of the angular app
-RUN ng build --output-path=dist/out
+RUN ng build --prod --output-path=dist/out
 
 # produces the final node.js immage.
 FROM node:8-alpine AS webmud3
@@ -35,6 +38,6 @@ COPY ./backend/ /app/
 COPY --from=ng-build-stage /app/dist/out/ /app/dist/
 
 # and install all the dependencies.
-RUN npm install
+RUN mkdir /run/secrets && npm install
 
 CMD node server.js

@@ -4,5 +4,6 @@ export class WebmudConfig {
     autoLogin : boolean = false;
     autoUser : string = '';
     autoToken : string = '';
+    autoPw? :string ='';
     localEcho : boolean = false;
 }

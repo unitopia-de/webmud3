@@ -1,4 +1,5 @@
-import { Injectable } from '@angular/core';
+import { Injectable, Inject } from '@angular/core';
+import { WINDOW } from './WINDOW_PROVIDERS';
 import { Observable } from 'rxjs';
 import * as io from 'socket.io-client';
 import { ChatMessage } from './chat-message';
@@ -7,22 +8,23 @@ import { DebugData } from '../mud/debug-data';
 import { MudListItem } from '../mud/mud-list-item';
 // import { MudConnection } from './mud-connection';
 import { MudSignals } from '../mud/mud-signals';
+import { ServerConfigService } from './server-config.service';
 
 @Injectable({
   providedIn: 'root'
 })
 export class SocketService {
-  private url = 'http://localhost:5000';
   private socket = undefined;
   private consumers = {};
   private currentName : string = '';
   private mudConnections = {};
   public mudnames : MudListItem[] = [];
 
-  // Internal Sockket-Connect:
+  // Internal Socket-Connect:
    private socketConnect() {
      var other = this;
-     other.socket = io(other.url); 
+     var url = this.srvcfg.getBackend();
+     other.socket = io(url); 
     
     other.socket.on('error', function(error) {
       console.log('socket:'+other.socket.id+' error:'+error);
@@ -164,11 +166,23 @@ export class SocketService {
       other.logger.add('socket connecting-1',false);
       other.socket.emit('mud-connect', mudOb, function(data){
         if (typeof data.id !== 'undefined') {
-          other.mudConnections[data.id] = {
-            id: data.id,
-            connected: true,
-            width: mudOb.width,
-            height: mudOb.height
+          if (typeof mudOb.user !== 'undefined') {
+            other.mudConnections[data.id] = {
+              id: data.id,
+              connected: true,
+              width: mudOb.width,
+              height: mudOb.height,
+              user: mudOb.user,
+              token: mudOb.token,
+              password: mudOb.password,
+            }  
+          } else {
+            other.mudConnections[data.id] = {
+              id: data.id,
+              connected: true,
+              width: mudOb.width,
+              height: mudOb.height
+            }  
           }
           observer.next(data.id);
         } else {
@@ -313,6 +327,26 @@ export class SocketService {
         }
         observer.next(musi);
       })
+      other.socket.on('mud-gmcp-start', function(id){
+        if (typeof other.mudConnections[id] === 'undefined') {
+          console.log('failed[mud-gmcp-incoming].mudconn='+id);
+          return;
+        }
+        if (_id !== id) {
+          return;
+        }
+        other.sendGMCP(_id,'Core','Hello',{
+          'client':other.srvcfg.getWebmudName(),
+          'version':other.srvcfg.getWebmudVersion()});
+        other.sendGMCP(_id,'Core','Supports.Set',['Char 1','Sound 1']);
+        if (typeof other.mudConnections[id].user !== 'undefined') {
+          other.sendGMCP(_id,'Char','Login',{
+            name:other.mudConnections[id].user,
+            password:other.mudConnections[id].password,
+            // token:other.mudConnections[id].token,
+          });
+        }
+      })
       other.socket.on('mud-gmcp-incoming',function(id,mod,msg,data){
         if (typeof other.mudConnections[id] === 'undefined') {
           console.log('failed[mud-gmcp-incoming].mudconn='+id);
@@ -326,11 +360,23 @@ export class SocketService {
             switch (msg.toLowerCase().trim()) {
               case 'hello':
               other.mudConnections[_id]['gmcp-mudname'] = data.name;
-              other.sendGMCP(_id,'Core','Hello',{'client':'Webmud3a','version':'0.0.6'});
-              other.sendGMCP(_id,'Core','Supports.Set',['Sound 1']);
               break;
             }
             break;
+          case 'char':
+          switch (msg.toLowerCase().trim()) {
+            case 'name':
+              other.mudConnections[_id]['gmcp-charname'] = data.name;
+              other.mudConnections[_id]['gmcp-fullname'] = data.fullname;
+              other.mudConnections[_id]['gmcp-gender'] = data.gender;
+              let titleSignal : MudSignals = {
+                signal: 'name@mud',
+                id: data.name + '@' + other.mudConnections[_id]['gmcp-mudname'],
+              }
+              observer.next(titleSignal);
+              break;
+          }
+          break;
           case 'sound':
             switch (msg.toLowerCase().trim()) {
               case 'url':
@@ -405,5 +451,5 @@ export class SocketService {
 
   // TODO GCMP send/receive
   // TODO ANSI-Handling als pipe?
-  constructor(private logger : LoggerService) { }
+  constructor(private logger : LoggerService,private srvcfg:ServerConfigService) { }
 }

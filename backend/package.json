@@ -1,7 +1,11 @@
 {
-  "name": "webmud.backend",
-  "version": "0.0.5",
-  "description": "",
+  "name": "webmud3.backend",
+  "version": "0.0.11",
+  "description": "Webmud3 Backend Service",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/unitopia-de/webmud3.git"
+  },
   "main": "server.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
@@ -9,6 +13,7 @@
   },
   "dependencies": {
     "body-parser": "^1.18.2",
+    "cors": "^2.8.4",
     "express": "^4.16.2",
     "socket.io": "^2.0.4",
     "socket.io-client": "^2.1.1",
@@ -16,7 +21,7 @@
     "uuid": "^3.2.1"
   },
   "devDependencies": {
-    "nodemon": "^1.17.1"
+    "nodemon": "^1.18.4"
   },
   "author": "Myonara",
   "license": "MIT"

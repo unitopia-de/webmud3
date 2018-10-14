@@ -8,7 +8,7 @@ import { TabData } from '../shared/tabdata';
 })
 export class TabviewComponent implements OnInit {
 
-  private alltabs : TabData[] = [];
+  public alltabs : TabData[] = [];
 
   constructor() { }
 

@@ -1,18 +1,44 @@
 'use strict';
 
+var env = process.env.NODE_ENV || 'development'
+  , cfg = require('./config/config.'+env);
+
 const express = require('express');
 const app = express();
 const path = require('path');
 const bodyParser = require('body-parser');
-const http = require('http').Server(app);
+const fs = require('fs');
+const cors = require('cors');
+var whitelist = ['https://www.unitopia.de:2018', 'https://www.unitopia.de',
+    'http://localhost:2018','http://localhost:5000','http://localhost:4200',];
+var corsOptions = {
+    origin: function (origin, callback) {
+        console.log("origin: ",origin);
+      if (whitelist.indexOf(origin) !== -1) {
+        callback(null, true)
+      } else {
+        callback(new Error('Not allowed by CORS'))
+      }
+    }
+  }
+app.use(cors(corsOptions));
+var http;
+var options;
+if (cfg.tls) {
+    options = {
+        key: fs.readFileSync(cfg.tls_key),
+        cert: fs.readFileSync(cfg.tls_cert)
+      };
+    http = require('https').Server(options,app);
+} else {
+    http = require('http').Server(app);
+}
 const io = require('socket.io')(http);  
+io.set('origins', whitelist);
 const net = require('net');
 const tls = require("tls");
 const uuidv4 = require('uuid/v4');
 const dbio = require('socket.io-client');
-
-var env = process.env.NODE_ENV || 'development'
-  , cfg = require('./config/config.'+env);
 
 const MudSocket = require("./mudSocket");
 
