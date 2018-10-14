@@ -1,4 +1,4 @@
-# webmud3 V0.0.11 !!!
+# webmud3 V0.0.12 !!!
 Webmud3: third generation of the UNItopia Webmud as open source project.
 
 In this early stages (Versions < 0.1.0) it's not for production.
@@ -10,6 +10,7 @@ In this early stages (Versions < 0.1.0) it's not for production.
 6. Version 0.0.7 Rewrite for portal and created dockerfile.
 7. Version 0.0.8-0.0.10: Getting docker configuration to run on UNItopia.de
 8. Version 0.0.11: Enabling CORS. 
+9. Version 0.0.12: bugfix CORS.
 
 ## Installation in the Development environment
 ### One time prerequisites:

@@ -14,6 +14,8 @@ var whitelist = ['https://www.unitopia.de:2018', 'https://www.unitopia.de',
 var corsOptions = {
     origin: function (origin, callback) {
         console.log("origin: ",origin);
+        callback(null, true);
+        return;
       if (whitelist.indexOf(origin) !== -1) {
         callback(null, true)
       } else {
