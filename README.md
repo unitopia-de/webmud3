@@ -1,4 +1,4 @@
-# webmud3 V0.0.7 !!!
+# webmud3 V0.0.11 !!!
 Webmud3: third generation of the UNItopia Webmud as open source project.
 
 In this early stages (Versions < 0.1.0) it's not for production.
@@ -8,6 +8,8 @@ In this early stages (Versions < 0.1.0) it's not for production.
 4. Version 0.0.5 implmented telnet_neg: echo,terminaltype and naws. started with GMCP support.
 5. Version 0.0.6 implemented sound on top of GMCP, working with UNItopia so far.
 6. Version 0.0.7 Rewrite for portal and created dockerfile.
+7. Version 0.0.8-0.0.10: Getting docker configuration to run on UNItopia.de
+8. Version 0.0.11: Enabling CORS. 
 
 ## Installation in the Development environment
 ### One time prerequisites:
@@ -23,6 +25,7 @@ currently not used, implemented for future use.
 1. change directory to backend directory
 2. execute:> `npm install`
 3. open a shell and execute `nodemon server.js`
+
 The server is now running in the background and is listening on 5000.
 
 ### Preparing UI
@@ -35,4 +38,5 @@ The server is now running in the background and is listening on 5000.
 1. change directory to webmud3. (where UI and backend are in)
 2. docker build -t webmud3:v0.0.7 -f ./dockerfiles/ng.dockerfile .
 3. docker run -p 5000:5000 webmud3:v0.0.7
+
 Then the docker container is running on port 5000 (localhost:5000/webmud3)

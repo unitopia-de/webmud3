@@ -11,7 +11,7 @@ export class MudlistComponent implements OnInit {
   private obs_list;
   @Output() mudselection = new EventEmitter<string>();
 
-  constructor(private socketService: SocketService) { }
+  constructor(public socketService: SocketService) { }
 
   ngOnInit() {
     const other = this;

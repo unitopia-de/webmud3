@@ -8,9 +8,9 @@ import { UnitopiaComponent } from './nonportal/unitopia/unitopia.component';
  
  
 const appRoutes: Routes = [
-  { path: 'login',  canActivate: [NonPortalGuard],component: LoginComponent },
+  /*{ path: 'login',  canActivate: [NonPortalGuard],component: LoginComponent },*/
   { path: 'orbit',   canActivate: [NonPortalGuard],component: OrbitComponent },
-  { path: 'portal',  canActivate: [PortalGuard],component: UnitopiaComponent },
+  /*{ path: 'portal',  canActivate: [PortalGuard],component: UnitopiaComponent },*/
   { path: '',       canActivate: [NonPortalGuard],component: UnitopiaComponent,  pathMatch: 'full' },
   { path: '**', redirectTo: '/'}
 ];

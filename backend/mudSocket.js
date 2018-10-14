@@ -269,6 +269,7 @@ MudSocket = class MudSocket extends TelnetSocket {
                 case 'TELOPT_GMCP':
                 other.writeDo(chunkData);
                 other.state[opt].client = 'do';
+                socket_io.emit('mud-gmcp-start',other._moptions.id);
                 break;
             default: other.writeDont(chunkData); break;
             }

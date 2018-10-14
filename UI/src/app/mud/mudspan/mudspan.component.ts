@@ -12,10 +12,10 @@ export class MudspanComponent implements OnInit {
   constructor() { }
 
   private a2h :AnsiData;
-  private myclasses : string;
-  private fg:string;
-  private bg:string;
-  private txt:string;
+  public myclasses : string;
+  public fg:string;
+  public bg:string;
+  public txt:string;
 
    @Input('ansi2html') set ansi2html(ansi: AnsiData) {
     this.a2h = ansi;

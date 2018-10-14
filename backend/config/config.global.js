@@ -18,14 +18,8 @@ config.mudfamilies = {
     }
 }
 
+config.tls = process.env.TLS || false;
+config.tls_cert = process.env.TLS_CERT || '';
+config.tls_key = process.env.TLS_KEY || '',
+
 config.muds = {};
-config.muds.unitopia = {
-    name : 'UNItopia',
-    host : 'unitopia.de',
-    port : 992, // SSL-Port!!!
-    ssl  : true,
-    rejectUnauthorized: true,
-    description: 'UNItopia via SSL',
-    playerlevel : 'all',
-    mudfamily : 'unitopia',
-};

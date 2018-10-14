@@ -1,5 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { WebmudConfig } from '../../mud/webmud-config';
+import { ServerConfigService } from '../../shared/server-config.service';
 
 @Component({
   selector: 'app-unitopia',
@@ -8,8 +9,8 @@ import { WebmudConfig } from '../../mud/webmud-config';
 })
 export class UnitopiaComponent implements OnInit {
 
-  private mudcfg : WebmudConfig = {
-    mudname : 'unitopia',
+  public mudcfg : WebmudConfig = {
+    mudname : this.srvcfg.getUNItopiaName(),
     autoConnect : true,
     autoLogin : false,
     autoUser : '',
@@ -17,7 +18,7 @@ export class UnitopiaComponent implements OnInit {
     localEcho : true
   }
 
-  constructor() { }
+  constructor(public srvcfg:ServerConfigService) { }
 
   ngOnInit() {
   }
