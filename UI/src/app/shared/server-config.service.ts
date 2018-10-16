@@ -26,7 +26,7 @@ export class ServerConfigService {
   }
 
   getWebmudVersion(): string {
-    return "v0.0.11";
+    return "v0.0.15";
   }
 
   getUNItopiaName() : string {

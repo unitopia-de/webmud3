@@ -9,12 +9,12 @@ const path = require('path');
 const bodyParser = require('body-parser');
 const fs = require('fs');
 const cors = require('cors');
-var whitelist = ['https://www.unitopia.de:2018', 'https://www.unitopia.de',
-    'http://localhost:2018','http://localhost:5000','http://localhost:4200',];
 var corsOptions = {
     origin: function (origin, callback) {
         console.log("origin: ",origin);
-      if (whitelist.indexOf(origin) !== -1) {
+        callback(null, true);
+        return;
+      if (cfg.whitelist.indexOf(origin) !== -1) {
         callback(null, true)
       } else {
         callback(new Error('Not allowed by CORS'))
@@ -34,11 +34,10 @@ if (cfg.tls) {
     http = require('http').Server(app);
 }
 const io = require('socket.io')(http);  
-io.set('origins', whitelist);
+io.set('origins', cfg.whitelist);
 const net = require('net');
 const tls = require("tls");
 const uuidv4 = require('uuid/v4');
-const dbio = require('socket.io-client');
 
 const MudSocket = require("./mudSocket");
 

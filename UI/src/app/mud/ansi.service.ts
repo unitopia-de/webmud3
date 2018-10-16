@@ -26,6 +26,12 @@ export class AnsiService {
     }
   }
 
+  private invColor(s:string) {
+    var iconv = (parseInt(s.substr(1), 16) << 8) / 256;
+    iconv = (iconv ^ 0x00ffffff) & 0x00ffffff; // Invert color
+    return '#'+("000000".slice(0,6-iconv.toString(16).length))+iconv.toString(16);
+  }
+
   public ansiCode(data: AnsiData): AnsiData {
     data = Object.assign({},data);
     if (data.ansiPos >= data.ansi.length-1) {
@@ -91,8 +97,8 @@ export class AnsiService {
                     data.reverse = false;
                     data.concealed = false;
                     data.crossedout = false;
-                    data.fgcolor = 'white';
-                    data.bgcolor = 'black';
+                    data.fgcolor = '#ffffff';
+                    data.bgcolor = '#000000';
                     break;
                 case '1': data.bold = true; break;
                 case '2': data.faint = true; break;
@@ -186,6 +192,13 @@ export class AnsiService {
               data.bgcolor = data.faint 
                 ? Ansi256Colors.faint[setcolor256bg] 
                 : Ansi256Colors.normal[setcolor256bg];
+            }
+            if (data.fgcolor == data.bgcolor) {
+              data.fgcolor = this.invColor(data.fgcolor);
+            }
+            if (data.optionInvert) {
+              data.fgcolor = this.invColor(data.fgcolor);
+              data.bgcolor = this.invColor(data.bgcolor);
             }
           } // for m
           break;
