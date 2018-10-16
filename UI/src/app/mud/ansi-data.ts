@@ -5,8 +5,8 @@ export class AnsiData {
     ansi :string = '';
     lastEscape:string =undefined;
     ansiPos : number = 0;
-    fgcolor : string = 'white';
-    bgcolor : string = 'black';
+    fgcolor : string = '#ffffff';
+    bgcolor : string = '#000000';
     bold : boolean = false;
     faint : boolean = false;
     blink : boolean = false;
@@ -15,5 +15,6 @@ export class AnsiData {
     reverse : boolean = false;
     concealed : boolean = false;
     crossedout : boolean = false;
+    optionInvert : boolean = false;
     text : string = '';
 }

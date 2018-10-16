@@ -2,6 +2,8 @@ var config = require('./config.global');
 
 config.env = 'production';
 
+config.whitelist = ['https://www.unitopia.de:2018', 'https://www.unitopia.de'];
+
 config.muds.unitopia = {
     name : 'UNItopia',
     host : 'unitopia.de',

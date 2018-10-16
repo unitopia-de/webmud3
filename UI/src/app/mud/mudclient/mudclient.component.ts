@@ -6,6 +6,7 @@ import { AnsiService } from '../ansi.service';
 import { AnsiData } from '../ansi-data';
 import { ConfigService } from '../../shared/config.service';
 import { WebmudConfig } from '../webmud-config';
+import { standardizeConfig } from '@angular/router/src/config';
 
 @Component({
   selector: 'app-mudclient',
@@ -158,6 +159,7 @@ export class MudclientComponent implements OnInit,OnDestroy {
     this.connect();
   }
   onKeyUp(event:KeyboardEvent) {
+    var a2h : AnsiData;
     if (this.inpType !='text') return;
     switch (event.key) {
       case "ArrowUp":
@@ -216,6 +218,9 @@ export class MudclientComponent implements OnInit,OnDestroy {
         return; // no change to the pointer...
       case "Enter":
         this.inpPointer = -1;
+        a2h = Object.assign({},this.mudlines[this.mudlines.length-1]);
+        a2h.text = "\r\n";
+        this.mudlines.push(a2h);
         return;
       default:
         this.inpPointer = -1;
