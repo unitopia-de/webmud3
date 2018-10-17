@@ -1,4 +1,4 @@
-# webmud3 V0.0.15 !!!
+# webmud3 V0.0.16 !!!
 Webmud3: third generation of the UNItopia Webmud as open source project.
 
 In this early stages (Versions < 0.1.0) it's not for production.
@@ -13,7 +13,8 @@ In this early stages (Versions < 0.1.0) it's not for production.
 9. Version 0.0.12: bugfix CORS.
 10. Version 0.0.13: polyfill for IE11,10,9.
 11. Version 0.0.14: Bugfixes favicon,title,config
-12. Version 0.0.15: invert foreground, if forgraound is identical to background color. shorten input-line. on enter return on output (input_to-issue)
+12. Version 0.0.15: invert foreground, if forground is identical to background color. shorten input-line. on enter return on output (input_to-issue)
+13. Version 0.0.16: dynamic height of mud window, fixed montype size fixing ie+edge, fewer logs
 
 ## Installation in the Development environment
 ### One time prerequisites:
@@ -38,9 +39,7 @@ The server is now running in the background and is listening on 5000.
 3. `ng serve --open`
 4. the default browser will open on localhost:4200/webmud3... Have fun.
 
-### Creating docker image:
-1. change directory to webmud3. (where UI and backend are in)
-2. docker build -t webmud3:v0.0.7 -f ./dockerfiles/ng.dockerfile .
-3. docker run -p 5000:5000 webmud3:v0.0.7
+### Retrieving docker image:
+1. The docker images are available at https://hub.docker.com/r/myonara/webmud3/
 
 Then the docker container is running on port 5000 (localhost:5000/webmud3)

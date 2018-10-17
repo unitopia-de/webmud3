@@ -13,7 +13,7 @@ export class ServerConfigService {
 
 
   getBackend(): string {
-    console.log(this.window);
+    // console.log(this.window);
     var l_origin = this.window.location.origin;
     if (this.originMap.hasOwnProperty(l_origin)) {
       return this.originMap[l_origin];
@@ -21,12 +21,18 @@ export class ServerConfigService {
     return l_origin;
   }
 
+   getHeight(elem) : string {
+    var style = window.getComputedStyle(elem);
+    console.log("TODO style: ",style);
+    return '1px';
+   }
+
   getWebmudName(): string {
     return "Webmud3";
   }
 
   getWebmudVersion(): string {
-    return "v0.0.15";
+    return "v0.0.16";
   }
 
   getUNItopiaName() : string {

@@ -214,7 +214,9 @@ MudSocket = class MudSocket extends TelnetSocket {
         super.on('do',function(chunkData) {
             const opt = other.tel.num2opt[chunkData.toString()];
             if (other.debugflag) {
-                console.log('do:'+opt);
+                if (opt !='TELOPT_TM') { // supress log for timemsg...
+                    console.log('do:'+opt);
+                }
                 socket_io.emit('mud.debug',
                     {id:other._moptions.id,type:'do',data:opt});
             }
@@ -293,7 +295,9 @@ MudSocket = class MudSocket extends TelnetSocket {
         super.on('sub',function(optin,chunkData) {
             const opt = other.tel.num2opt[optin.toString()];
             const subInput = new Uint8Array(chunkData)
-            console.log('sub:'+opt+"|"+subInput);
+            if (opt != 'TELOPT_GMCP') {
+                console.log('sub:'+opt+"|"+subInput);
+            }
             switch (opt) {
                 case 'TELOPT_TTYPE':
                     if (subInput.length==1 && subInput[0] == 1) { // TELQUAL_SEND
@@ -311,6 +315,7 @@ MudSocket = class MudSocket extends TelnetSocket {
                     let ix = tmpstr.indexOf(' ');
                     let jx = tmpstr.indexOf('.');
                     let jsdata = tmpstr.substr(ix+1);
+                    console.log('GMCP-incoming: ',tmpstr);
                     socket_io.emit('mud-gmcp-incoming',other._moptions.id,tmpstr.substr(0,jx),tmpstr.substr(jx+1,ix-jx),JSON.parse(jsdata));
                     break;
             }
