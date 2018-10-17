@@ -14,7 +14,7 @@
   "dependencies": {
     "body-parser": "^1.18.2",
     "cors": "^2.8.4",
-    "express": "^4.16.2",
+    "express": "^4.16.4",
     "socket.io": "^2.0.4",
     "socket.io-client": "^2.1.1",
     "telnet-stream": "^1.0.4",

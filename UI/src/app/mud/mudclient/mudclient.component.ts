@@ -7,6 +7,7 @@ import { AnsiData } from '../ansi-data';
 import { ConfigService } from '../../shared/config.service';
 import { WebmudConfig } from '../webmud-config';
 import { standardizeConfig } from '@angular/router/src/config';
+import { ServerConfigService } from '../../shared/server-config.service';
 
 @Component({
   selector: 'app-mudclient',
@@ -43,7 +44,8 @@ export class MudclientComponent implements OnInit,OnDestroy {
     private socketService: SocketService,
     private ansiService:AnsiService,
     private cdRef:ChangeDetectorRef,
-    private cfgService:ConfigService) { 
+    private cfgService:ConfigService,
+    private srvcfgService:ServerConfigService) { 
 
     }
 
@@ -77,7 +79,7 @@ export class MudclientComponent implements OnInit,OnDestroy {
               case 'NOECHO-START': other.inpType = 'password'; break;
               case 'NOECHO-END':   other.inpType = 'text'; break;
               case 'Sound.Play.Once':
-                console.log("Play: ",musi.playSoundFile);
+                // console.log("Play: ",musi.playSoundFile);
                 let audio = new Audio();
                 audio.src = musi.playSoundFile;
                 audio.load();
@@ -119,13 +121,18 @@ export class MudclientComponent implements OnInit,OnDestroy {
     } 
   }
 
-  ngAfterViewInit() {
+  calculateSizing() {
     var oh = this.mudBlock.nativeElement.offsetHeight;
     var ow = this.mudBlock.nativeElement.offsetWidth;
+    // var elem = this.srvcfgService.getHeight(this.mudBlock.nativeElement);
     this.mudc_width = Math.floor(ow/7.5);
     this.mudc_height = Math.floor(oh/16);
-    console.log('MudSize: '+this.mudc_width+'x'+this.mudc_height);
+    // console.log('MudSize: '+this.mudc_width+'x'+this.mudc_height);
     this.cfgService.setMudOutputSize(oh,ow);
+  }
+
+  ngAfterViewInit() {
+    this.calculateSizing();
     if (!this.freeParam) {
       if (this.cfg.autoConnect) {
         this.connect();
@@ -163,6 +170,7 @@ export class MudclientComponent implements OnInit,OnDestroy {
     if (this.inpType !='text') return;
     switch (event.key) {
       case "ArrowUp":
+        //console.log("INP-1:",this.inpPointer,this.inpHistory.length);
         if (this.inpHistory.length < this.inpPointer) {
           return; // at the end.....
         }
@@ -191,13 +199,14 @@ export class MudclientComponent implements OnInit,OnDestroy {
           }
         } else {
           this.inpPointer++;
-          if (this.inpHistory.length > this.inpPointer) {
+          if (this.inpHistory.length < this.inpPointer) {
             return; // at the end...
           }
           this.inpmessage = this.inpHistory[this.inpPointer];
         }
         return;
        case "ArrowDown":
+        //console.log("INP-2:",this.inpPointer,this.inpHistory.length);
         if (this.inpPointer < 0) {
           return; // at the beginning
         }
@@ -209,6 +218,8 @@ export class MudclientComponent implements OnInit,OnDestroy {
         this.inpmessage = this.inpHistory[this.inpPointer];
         return;
       case "ArrowLeft":
+        //console.log("INP-3:",this.inpPointer,this.inpHistory.length);
+        return;
       case "ArrowRight":
       case "Shift":
       case "Ctrl":
@@ -233,5 +244,9 @@ export class MudclientComponent implements OnInit,OnDestroy {
     this.mudInput.nativeElement.focus();
   }
 
+  @HostListener('window:resize', ['$event'])
+onResize(event) {
+  this.calculateSizing();
+}
 
 }

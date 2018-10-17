@@ -391,8 +391,8 @@ export class SocketService {
                 observer.next(soundSignal);
                 break;
             }
-            break;
-          default:
+            return;
+          default: break;
         }
         console.log('GMCP:',mod,msg,data);
       });
