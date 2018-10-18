@@ -1,4 +1,4 @@
-import { Component, OnInit, ViewChild, ElementRef, HostListener, OnDestroy, ChangeDetectorRef, Input } from '@angular/core';
+import { Component, OnInit, ViewChild, ElementRef, HostListener, OnDestroy, ChangeDetectorRef, Input, AfterViewChecked } from '@angular/core';
 import { SocketService } from '../../shared/socket.service';
 import { MudMessage } from '../mud-message';
 import { DebugData } from '../debug-data';
@@ -14,19 +14,23 @@ import { ServerConfigService } from '../../shared/server-config.service';
   templateUrl: './mudclient.component.html',
   styleUrls: ['./mudclient.component.css']
 })
-export class MudclientComponent implements OnInit,OnDestroy {
+export class MudclientComponent implements AfterViewChecked,OnInit,OnDestroy {
 
   @Input() cfg : WebmudConfig;
   @ViewChild('mudBlock') mudBlock : ElementRef;
   @ViewChild('mudInput') mudInput: ElementRef;
+  @ViewChild('mudTest') mudTest: ElementRef;
 
   private mudc_id : string;
   private mudName : string = 'disconnect';
   private connected : boolean;
-  public freeParam : boolean = true;
+  public sizeCalculated : boolean = false;
   public inpType : string = 'text';
   private mudc_width : number;
   private mudc_height : number;
+  public ref_width : number;
+  public ref_height: number;
+  private ref_height_ratio:number;
   private obs_connect;
   private obs_connected;
   private obs_data;
@@ -117,26 +121,39 @@ export class MudclientComponent implements OnInit,OnDestroy {
     if (typeof this.cfg !== 'undefined' && typeof this.cfg.mudname !== 'undefined'
         && this.cfg.mudname !== '') {
       this.mudName = this.cfg.mudname;
-      this.freeParam = false;
     } 
   }
 
   calculateSizing() {
     var oh = this.mudBlock.nativeElement.offsetHeight;
     var ow = this.mudBlock.nativeElement.offsetWidth;
-    // var elem = this.srvcfgService.getHeight(this.mudBlock.nativeElement);
-    this.mudc_width = Math.floor(ow/7.5);
-    this.mudc_height = Math.floor(oh/16);
-    // console.log('MudSize: '+this.mudc_width+'x'+this.mudc_height);
-    this.cfgService.setMudOutputSize(oh,ow);
-  }
-
-  ngAfterViewInit() {
-    this.calculateSizing();
-    if (!this.freeParam) {
-      if (this.cfg.autoConnect) {
+    if (this.mudc_height != Math.floor(oh/this.ref_height_ratio)) {
+      this.mudc_height = Math.floor(oh/this.ref_height_ratio);
+      console.log('MudSize: '+this.mudc_width+'x'+this.mudc_height+' <= '+ow+'x'+oh);
+      if (typeof this.mudc_id === 'undefined' && this.cfg.autoConnect) {
         this.connect();
       }
+    }
+    this.cfgService.setMudOutputSize(oh,ow);
+    if (typeof this.mudc_id !== undefined) {
+      this.socketService.setMudOutputSize(this.mudc_id,this.mudc_height,this.mudc_height);
+    }
+  }
+
+  calculateTest() {
+    this.ref_width = this.mudTest.nativeElement.offsetWidth;
+    this.ref_height = this.mudTest.nativeElement.offsetHeight;
+    this.mudc_width = 80;
+    this.ref_height_ratio = this.ref_height/25.0;
+  }
+
+  ngAfterViewChecked() {
+    var other = this;
+    if (!this.sizeCalculated) {
+      this.calculateTest();
+      setTimeout(function(){other.sizeCalculated = true;},500);
+    } else {
+      this.calculateSizing();
     }
   }
 
