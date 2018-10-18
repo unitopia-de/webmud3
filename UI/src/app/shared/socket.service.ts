@@ -217,6 +217,11 @@ export class SocketService {
     return observable;
   } // mudConnect
 
+  
+  public setMudOutputSize(_id : string,height:number,width : number) {
+    
+  }
+
   public mudDisconnect(_id : string) : Observable<string> {
     let other = this;
     let observable = new Observable<string>(observer => {

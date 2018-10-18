@@ -3,6 +3,7 @@ import { NgModule } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import {BrowserAnimationsModule} from '@angular/platform-browser/animations';
 import {MatTabsModule} from '@angular/material';
+import { DeviceDetectorModule } from 'ngx-device-detector';
 
 import { AppComponent } from './app.component';
 import { ChatComponent } from './chat/chat.component';
@@ -35,6 +36,7 @@ import { ServerConfigService } from './shared/server-config.service';
     BrowserAnimationsModule,MudModule,
     NonportalModule,
     FormsModule,
+    DeviceDetectorModule.forRoot(),
     AppRoutingModule
   ],
   providers: [

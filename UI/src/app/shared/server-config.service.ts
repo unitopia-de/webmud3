@@ -1,5 +1,6 @@
 import { Injectable, Inject } from '@angular/core';
 import { WINDOW } from './WINDOW_PROVIDERS';
+import { DeviceDetectorService } from 'ngx-device-detector';
 
 @Injectable({
   providedIn: 'root'
@@ -10,6 +11,8 @@ export class ServerConfigService {
     'http://localhost:4200':'http://localhost:5000',
     'http://localhost:2018':'http://localhost:2018',
   };
+  private deviceInfo = null;
+  private browserInfo = {};
 
 
   getBackend(): string {
@@ -21,18 +24,12 @@ export class ServerConfigService {
     return l_origin;
   }
 
-   getHeight(elem) : string {
-    var style = window.getComputedStyle(elem);
-    console.log("TODO style: ",style);
-    return '1px';
-   }
-
   getWebmudName(): string {
     return "Webmud3";
   }
 
   getWebmudVersion(): string {
-    return "v0.0.16";
+    return "v0.0.17";
   }
 
   getUNItopiaName() : string {
@@ -43,5 +40,36 @@ export class ServerConfigService {
     return 'orbit';
   }
 
-  constructor(@Inject(WINDOW) private window:Window) { }
+  getBrowserInfo():Object {
+    return this.browserInfo;
+  }
+
+  getWidth80(width : number):number {
+    switch(this.browserInfo["browser"].toLowerCase()) {
+      case 'ie':
+      case 'edge':
+        return width * 1.162 + 1;
+    }
+    return width * 1.05 + 1;
+  } 
+
+  displayBrowser() {
+    this.deviceInfo = this.deviceService.getDeviceInfo();
+    const isMobile = this.deviceService.isMobile();
+    const isTablet = this.deviceService.isTablet();
+    const isDesktopDevice = this.deviceService.isDesktop();
+    this.browserInfo["browser"] = this.deviceInfo.browser;
+    this.browserInfo["browser_version"] = this.deviceInfo.browser_version;
+    this.browserInfo["os"] = this.deviceInfo.os;
+    this.browserInfo["os_version"] = this.deviceInfo.os_version;
+    this.browserInfo["userAgent"] = this.deviceInfo.userAgent;
+    this.browserInfo["isMobile"] = isMobile;
+    this.browserInfo["isTablet"] = isTablet;
+    this.browserInfo["isDesktop"] = isDesktopDevice;
+    console.log('Device_info: ', this.deviceInfo);
+  }
+
+  constructor(@Inject(WINDOW) private window:Window,private deviceService: DeviceDetectorService) {
+    this.displayBrowser();
+   }
 }

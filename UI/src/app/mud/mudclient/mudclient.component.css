@@ -4,17 +4,26 @@ table {
     width: 100%;
 }
 
+.mud-test {
+    font-family: "Courier New", Courier, monospace;
+    font-size: 14px;
+    background-color: black;
+    color: white;
+    padding: 0.5ex;
+    margin-top: 0;
+    margin-bottom: 0;
+    display: inline-block;
+}
+
 .mud-block {
-    max-width: 100%;
-    width: 600px;
     height: 90vh;
     min-height: 400px;
     max-height: 90vh;
     overflow-x: auto;
     overflow-y: auto;
     flex-direction: column; 
-    font-family: monospace;
-    font-size: 13px;
+    font-family: "Courier New", Courier, monospace;
+    font-size: 14px;
     background-color: black;
     color: white;
     padding: 0.5ex;
@@ -28,5 +37,6 @@ table {
 }
 
 .mud-input {
-    max-width: 600px;
+    font-family: "Courier New", Courier, monospace;
+    font-size: 14px;
 }

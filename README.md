@@ -14,7 +14,7 @@ In this early stages (Versions < 0.1.0) it's not for production.
 10. Version 0.0.13: polyfill for IE11,10,9.
 11. Version 0.0.14: Bugfixes favicon,title,config
 12. Version 0.0.15: invert foreground, if forground is identical to background color. shorten input-line. on enter return on output (input_to-issue)
-13. Version 0.0.16: dynamic height of mud window, fixed montype size fixing ie+edge, fewer logs
+13. Version 0.0.16: dynamic height of mud window, fixed monotype size fixing ie+edge, fewer logs
 
 ## Installation in the Development environment
 ### One time prerequisites:
@@ -22,9 +22,6 @@ In this early stages (Versions < 0.1.0) it's not for production.
 2. Install angular-cli:> `npm install angular-cli -g`
 3. Install nodemon:> `npm install nodemon -g`
 4. download webmud3 and extract to a working directory.
-
-### Preparing storage
-currently not used, implemented for future use.
 
 ### Preparing backend
 1. change directory to backend directory
