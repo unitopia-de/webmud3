@@ -188,11 +188,13 @@ export class SocketService {
         } else {
           console.error('mud-connect-error: '+data.error);
           other.logger.add('mud-connect-error: '+data.error);
+          observer.next(null);
         }
       });
       other.socket.on('mud-disconnected', function(id) {
         if (typeof other.mudConnections[id] === 'undefined') {
           console.log(id);
+          observer.next(null);
           return;
         }
         other.mudConnections[id].connected = false;
@@ -200,8 +202,10 @@ export class SocketService {
           if (typeof other.socket !== 'undefined') other.socket.disconnect(); 
           other.socket = undefined;
           other.logger.add('mud-client and socket disconnected-server',false);
+          observer.next(null);
         } else {
           other.logger.add('mud-client disconnected-server',false);
+          observer.next(null);
         }
       });
 
@@ -211,6 +215,7 @@ export class SocketService {
           if (typeof other.socket !== 'undefined') other.socket.disconnect(); 
           other.socket = undefined;
           other.logger.add('socket disconnected',false);
+          observer.next(null);
         } // if
       }; // disconnect
     }); // observable
@@ -219,7 +224,10 @@ export class SocketService {
 
   
   public setMudOutputSize(_id : string,height:number,width : number) {
-    
+    if (this.socket === undefined) {
+      return;
+    }
+    this.socket.emit('mud-window-size',_id,height,width);
   }
 
   public mudDisconnect(_id : string) : Observable<string> {

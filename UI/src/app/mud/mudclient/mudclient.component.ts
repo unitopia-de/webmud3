@@ -20,13 +20,14 @@ export class MudclientComponent implements AfterViewChecked,OnInit,OnDestroy {
   @ViewChild('mudBlock') mudBlock : ElementRef;
   @ViewChild('mudInput') mudInput: ElementRef;
   @ViewChild('mudTest') mudTest: ElementRef;
+  @ViewChild('mudMenu') mudMenu : ElementRef;
 
   private mudc_id : string;
   private mudName : string = 'disconnect';
-  private connected : boolean;
+  public connected : boolean;
   public sizeCalculated : boolean = false;
   public inpType : string = 'text';
-  private mudc_width : number;
+  private mudc_width : number = 80;
   private mudc_height : number;
   public ref_width : number;
   public ref_height: number;
@@ -43,6 +44,11 @@ export class MudclientComponent implements AfterViewChecked,OnInit,OnDestroy {
   private inpHistory : string[] = [];
   private inpPointer : number = -1;
   public lastdbg : DebugData;
+  private startCnt : number = 0;
+  public colourInvert : boolean = false;
+  public stdfg : string ='white';
+  public stdbg : string ='black';
+  public blackOnWhite: boolean = false;
   
   constructor(
     private socketService: SocketService,
@@ -51,6 +57,27 @@ export class MudclientComponent implements AfterViewChecked,OnInit,OnDestroy {
     private cfgService:ConfigService,
     private srvcfgService:ServerConfigService) { 
 
+    }
+
+    menuAction(act : string) {
+      switch(act) {
+        case 'connect':
+            if (typeof this.cfg !== 'undefined' && typeof this.cfg.mudname !== 'undefined'
+                  && this.cfg.mudname !== '') {
+              this.mudName = this.cfg.mudname;
+              this.connect();
+            } 
+            return;
+        case 'disconnect':
+            this.mudName = 'disconnect';
+            this.connect();
+            return;
+        case 'loginPortal': return; // TODO  redirect to /login.
+        case 'invert=true':  this.colourInvert = true; return;
+        case 'invert=false': this.colourInvert = false; return;
+        case 'blackOnWhite=true':  this.blackOnWhite=true; this.stdbg = 'white';this.stdfg = 'black'; return;
+        case 'blackOnWhite=false': this.blackOnWhite=false; this.stdbg = 'black';this.stdfg = 'white'; return;
+      }
     }
 
     private connect() {
@@ -73,6 +100,11 @@ export class MudclientComponent implements AfterViewChecked,OnInit,OnDestroy {
       mudOb['password'] = this.cfg.autoPw || '';
     }
     this.obs_connect = this.socketService.mudConnect(mudOb).subscribe(_id => {
+      if (_id == null) {
+        other.connected = false;
+        other.mudc_id = undefined;
+        return;
+      }
       other.mudc_id = _id;
       other.obs_connected = other.socketService.mudConnectStatus(_id).subscribe(
           flag => {other.connected = flag;
@@ -125,34 +157,42 @@ export class MudclientComponent implements AfterViewChecked,OnInit,OnDestroy {
   }
 
   calculateSizing() {
-    var oh = this.mudBlock.nativeElement.offsetHeight;
+    // var oh = this.mudBlock.nativeElement.offsetHeight;
     var ow = this.mudBlock.nativeElement.offsetWidth;
-    if (this.mudc_height != Math.floor(oh/this.ref_height_ratio)) {
-      this.mudc_height = Math.floor(oh/this.ref_height_ratio);
-      console.log('MudSize: '+this.mudc_width+'x'+this.mudc_height+' <= '+ow+'x'+oh);
-      if (typeof this.mudc_id === 'undefined' && this.cfg.autoConnect) {
+    var tmpheight = this.srvcfgService.getViewPortHeight();
+    tmpheight -= 2*this.mudMenu.nativeElement.offsetHeight;
+    tmpheight -= 2*this.mudInput.nativeElement.offsetHeight;
+    tmpheight = Math.floor(Math.floor(tmpheight/(this.ref_height_ratio))*this.ref_height_ratio+0.5);
+    var other = this;
+    setTimeout(function(){
+      other.ref_height = tmpheight;
+      other.cdRef.detectChanges();
+    });
+    if (this.mudc_height != Math.floor(tmpheight/this.ref_height_ratio)) {
+      this.mudc_height = Math.floor(tmpheight/(this.ref_height_ratio+1));
+      console.log('MudSize: '+this.mudc_width+'x'+this.mudc_height+' <= '+ow+'x'+tmpheight);
+      this.startCnt++;
+      if (this.startCnt == 1 && typeof this.mudc_id === 'undefined' && this.cfg.autoConnect) {
         this.connect();
       }
+      if (typeof this.mudc_id !== undefined) {
+        this.socketService.setMudOutputSize(this.mudc_id,this.mudc_height,this.mudc_width);
+      }
     }
-    this.cfgService.setMudOutputSize(oh,ow);
-    if (typeof this.mudc_id !== undefined) {
-      this.socketService.setMudOutputSize(this.mudc_id,this.mudc_height,this.mudc_height);
-    }
-  }
-
-  calculateTest() {
-    this.ref_width = this.mudTest.nativeElement.offsetWidth;
-    this.ref_height = this.mudTest.nativeElement.offsetHeight;
-    this.mudc_width = 80;
-    this.ref_height_ratio = this.ref_height/25.0;
   }
 
   ngAfterViewChecked() {
     var other = this;
+    var tmpwidth;
     if (!this.sizeCalculated) {
-      this.calculateTest();
-      setTimeout(function(){other.sizeCalculated = true;},500);
-    } else {
+      tmpwidth = this.mudTest.nativeElement.offsetWidth;
+      this.ref_height_ratio = this.mudTest.nativeElement.offsetHeight/25.0;
+      setTimeout(function(){
+        other.ref_width = tmpwidth;
+        other.sizeCalculated = true;
+        other.cdRef.detectChanges();
+      });
+    } else if (this.startCnt <= 0) {
       this.calculateSizing();
     }
   }
