@@ -165,6 +165,7 @@ export class SocketService {
         other.socketConnect();
         other.logger.add('socket connected',false);
       }
+      mudOb['browser'] = other.srvcfg.getBrowserInfo();
       other.register2cons('mud-client');
       other.logger.add('socket connecting-1',false);
       other.socket.emit('mud-connect', mudOb, function(data){
@@ -329,10 +330,10 @@ export class SocketService {
     let other = this;
     let observable = new Observable<MudSignals>(observer => {
       if (other.socket === undefined) {
-        other.logger.add('mudReceiveData without socket!',true);
+        other.logger.add('mudReceiveSignals without socket!',true);
         return;
       }
-      other.logger.add('mudReceiveData starting!',false);
+      other.logger.add('mudReceiveSignals starting!',false);
       other.socket.on('mud-signal',function(sdata){
         if (sdata.id !== _id) {
           return;

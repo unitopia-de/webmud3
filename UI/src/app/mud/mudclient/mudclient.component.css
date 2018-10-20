@@ -15,11 +15,22 @@ table {
     display: inline-block;
 }
 
+.above-scroller  {
+    overflow-x: scroll;
+    overflow-y:hidden;
+    display:block;
+    height: 20px;
+  }
+.scroller {
+    height: 20px;
+  }
+  
 .mud-block {
     min-height: 400px;
-    overflow-x: auto;
-    overflow-y: auto;
+    overflow-x: scroll;
+    overflow-y: scroll;
     flex-direction: column; 
+    flex-wrap: wrap;
     font-family: monospace;
     font-size: 14px;
     padding: 0.5ex;

@@ -16,5 +16,6 @@ export class AnsiData {
     concealed : boolean = false;
     crossedout : boolean = false;
     optionInvert : boolean = false;
+    timeString: string = '';
     text : string = '';
 }

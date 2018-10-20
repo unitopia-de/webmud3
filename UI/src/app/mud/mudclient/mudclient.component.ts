@@ -21,11 +21,13 @@ export class MudclientComponent implements AfterViewChecked,OnInit,OnDestroy {
   @ViewChild('mudInput') mudInput: ElementRef;
   @ViewChild('mudTest') mudTest: ElementRef;
   @ViewChild('mudMenu') mudMenu : ElementRef;
+  @ViewChild('scroller') scroller: ElementRef; 
 
   private mudc_id : string;
   private mudName : string = 'disconnect';
   public connected : boolean;
   public sizeCalculated : boolean = false;
+  public sizeCalculated2 : boolean = false;
   public inpType : string = 'text';
   private mudc_width : number = 80;
   private mudc_height : number;
@@ -49,6 +51,10 @@ export class MudclientComponent implements AfterViewChecked,OnInit,OnDestroy {
   public stdfg : string ='white';
   public stdbg : string ='black';
   public blackOnWhite: boolean = false;
+
+  scroll() {
+    this.mudBlock.nativeElement.scrollTo(this.scroller.nativeElement.scrollLeft,0);
+  }
   
   constructor(
     private socketService: SocketService,
@@ -131,6 +137,13 @@ export class MudclientComponent implements AfterViewChecked,OnInit,OnDestroy {
             other.mudlines = [];
           }
           other.ansiCurrent.ansi = outp;
+          var ts = new Date();
+          other.ansiCurrent.timeString = ((ts.getDate() < 10)?"0":"") + ts.getDate() +"."
+                                       + (((ts.getMonth()+1) < 10)?"0":"") + (ts.getMonth()+1) +"."
+                                       + ts.getFullYear() + ' '
+                                       +((ts.getHours() < 10)?"0":"") + ts.getHours() +":"
+                                       + ((ts.getMinutes() < 10)?"0":"") + ts.getMinutes() +":"
+                                       + ((ts.getSeconds() < 10)?"0":"") + ts.getSeconds();
           const a2harr = other.ansiService.processAnsi(other.ansiCurrent);
           for (var ix=0;ix<a2harr.length;ix++) {
             //console.log('main-'+ix+":"+JSON.stringify(a2harr[ix]));
@@ -166,6 +179,7 @@ export class MudclientComponent implements AfterViewChecked,OnInit,OnDestroy {
     var other = this;
     setTimeout(function(){
       other.ref_height = tmpheight;
+      // other.sizeCalculated2 = true;
       other.cdRef.detectChanges();
     });
     if (this.mudc_height != Math.floor(tmpheight/this.ref_height_ratio)) {
@@ -185,7 +199,7 @@ export class MudclientComponent implements AfterViewChecked,OnInit,OnDestroy {
     var other = this;
     var tmpwidth;
     if (!this.sizeCalculated) {
-      tmpwidth = this.mudTest.nativeElement.offsetWidth;
+      tmpwidth = this.mudTest.nativeElement.offsetWidth * 1.0125;
       this.ref_height_ratio = this.mudTest.nativeElement.offsetHeight/25.0;
       setTimeout(function(){
         other.ref_width = tmpwidth;
