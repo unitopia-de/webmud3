@@ -222,6 +222,9 @@ MudSocket = class MudSocket extends TelnetSocket {
             }
             other.state[opt] = {server:'do',client:'wont'};
             switch (opt) {
+                case 'TELOPT_TM':
+                    other.writeWill(chunkData);
+                    break;
                 case 'TELOPT_NAWS': 
                     other.state[opt] = {server:'do',client:'will'};
                     other.writeWill(chunkData);

@@ -34,6 +34,9 @@ export class SocketService {
     });
     other.socket.on('reconnect_attempt', (attemptNumber) => {
         console.log('socket:'+other.socket.id+' reconnect_attempt:'+attemptNumber);
+        other.socket.disconnect();
+        other.socket = undefined;
+        other.logger.add('socket disconnected by reconnect.',false);
     });
    }
 

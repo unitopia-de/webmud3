@@ -1,5 +1,9 @@
 'use strict';
 
+// loads module and registers app specific cleanup callback...
+var cleanup = require('./cleanup').Cleanup(myCleanup);
+process.stdin.resume(); // Prevents the program from closing instantly
+
 var env = process.env.NODE_ENV || 'development'
   , cfg = require('./config/config.'+env);
 
@@ -61,7 +65,8 @@ io.on('connection', (socket) => {
     socket.on('disconnect', function () {
         // TODO disconnect all mudclients...
         console.log('socket:'+socket.id+' user disconnected');
-        if (typeof Socket2Mud === 'undefined') {
+        if (typeof Socket2Mud === 'undefined' || 
+            typeof Socket2Mud[socket.id] === 'undefined') {
             return
         }
         Socket2Mud[socket.id].forEach(function(id) {
@@ -148,13 +153,13 @@ io.on('connection', (socket) => {
             }
             const mudSocket = new MudSocket(tsocket,undefined,{debugflag:true,id:id},socket);
             mudSocket.on("close",function(){
-            io.emit("mud-disconnected",id);
+            socket.emit("mud-disconnected",id);
             });
             mudSocket.on("data", function(buffer){
-            io.emit("mud-output",id,buffer.toString("utf8"));
+            socket.emit("mud-output",id,buffer.toString("utf8"));
             });
             mudSocket.on("debug", function(dbgOb){
-            io.emit("mud-debug",id,dbgOb);
+            socket.emit("mud-debug",id,dbgOb);
             });
             MudConnections[id] = { socket: mudSocket, mudOb: mudOb,socketID:socket.id};
             if (typeof Socket2Mud[socket.id] === 'undefined') {
@@ -172,7 +177,7 @@ io.on('connection', (socket) => {
 
     socket.on('mud-window-size', (id,height,width) => {
         if (typeof id !== 'string' || typeof MudConnections[id] === 'undefined') {
-            io.emit("mud-error","Connection-id unknown");
+            socket.emit("mud-error","Connection-id unknown");
             return;
         }
         const mudConn = MudConnections[id];
@@ -192,7 +197,7 @@ io.on('connection', (socket) => {
 
     socket.on('mud-disconnect', id => {
         if (typeof id !== 'string' || typeof MudConnections[id] === 'undefined') {
-            io.emit("mud-error","Connection-id unknown");
+            socket.emit("mud-error","Connection-id unknown");
             return;
         }
         const mudConn = MudConnections[id];
@@ -204,12 +209,12 @@ io.on('connection', (socket) => {
             delete Socket2Mud[socket.id];
         }
         console.log('socket:'+socket.id+' mud-disconnect-mudOb: ',mudOb);
-        io.emit("mud-disconnected",id);
+        socket.emit("mud-disconnected",id);
         delete MudConnections[id];
     });
     socket.on('mud-input', (id,inpline) => {
         if (typeof id !== 'string' || typeof MudConnections[id] === 'undefined') {
-            io.emit("mud-error","Connection-id unknown");
+            socket.emit("mud-error","Connection-id unknown");
             return;
         }
         const mudConn = MudConnections[id];
@@ -221,7 +226,7 @@ io.on('connection', (socket) => {
     });
     socket.on('mud-gmcp-outgoing', (id,mod,msg,data) => {
         if (typeof id !== 'string' || typeof MudConnections[id] === 'undefined') {
-            io.emit("mud-error","Connection-id unknown");
+            socket.emit("mud-error","Connection-id unknown");
             return;
         }
         const mudConn = MudConnections[id];
@@ -234,9 +239,25 @@ io.on('connection', (socket) => {
         mudSocket.writeSub(201 /*TELOPT_GMCP*/, buf);
     });
 
-    io.emit('connected');
+    socket.emit('connected');
 });
 
+function myCleanup() {
+    console.log("Cleanup starts.");
+    if (typeof MudConnections !== "undefined") {
+        for (var key in MudConnections) {
+            // skip loop if the property is from prototype
+            if (!MudConnections.hasOwnProperty(key)) continue;
+            // get object.
+            var obj = MudConnections[key];
+            // disconnect gracefully.
+            obj.socket.end();
+            // message to all frontends...
+            io.emit("mud-disconnected",key);
+        }
+    }
+    console.log("Cleanup ends.");
+}
 
 http.listen(5000, () => {
     console.log('Server\'backend\' started on port 5000');
