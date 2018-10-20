@@ -1,0 +1,21 @@
+<div class="menu-block">
+  <button class="main-menu" mat-button [matMenuTriggerFor]="conn">Verbindung</button>
+  <mat-menu #conn="matMenu">
+    <button *ngIf='!connected' (click)="onClickMenu('connect')" mat-menu-item>Verbinden</button>
+    <button *ngIf='connected' (click)="onClickMenu('disconnect')" mat-menu-item>Trennen</button>
+    <button *ngIf='portalLogin' (click)="onClickMenu('loginPortal')" mat-menu-item>Anmelden am Portal</button>
+  </mat-menu>
+  <button class="main-menu" mat-button [matMenuTriggerFor]="view">Anzeige</button>
+  <mat-menu #view="matMenu">
+    <button (click)="onClickMenu('invert')" mat-menu-item>
+        <mat-icon *ngIf='mudmcfg.invert'>check_box</mat-icon>
+        <mat-icon *ngIf='!mudmcfg.invert'>check_box_outline_blank</mat-icon>
+        <span>Invertieren</span>
+      </button>
+      <button (click)="onClickMenu('blackOnWhite')" mat-menu-item>
+          <mat-icon *ngIf='mudmcfg.blackOnWhite'>check_box</mat-icon>
+          <mat-icon *ngIf='!mudmcfg.blackOnWhite'>check_box_outline_blank</mat-icon>
+          <span>Schwarz auf Weiss</span>
+        </button>
+  </mat-menu>
+</div>

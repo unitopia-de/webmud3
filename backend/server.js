@@ -1,5 +1,9 @@
 'use strict';
 
+// loads module and registers app specific cleanup callback...
+var cleanup = require('./cleanup').Cleanup(myCleanup);
+process.stdin.resume(); // Prevents the program from closing instantly
+
 var env = process.env.NODE_ENV || 'development'
   , cfg = require('./config/config.'+env);
 
@@ -51,16 +55,36 @@ app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, 'dist/index.html'));
   });
 
+var MudConnections = {};
+var Socket2Mud = {};
 
 io.on('connection', (socket) => {
 
-    console.log('user connected');
-    var MudConnections = {};
-    var Socket2Mud = {};
+    console.log('socket:'+socket.id+' user connected');
 
     socket.on('disconnect', function () {
         // TODO disconnect all mudclients...
-        console.log('user disconnected');
+        console.log('socket:'+socket.id+' user disconnected');
+        if (typeof Socket2Mud === 'undefined' || 
+            typeof Socket2Mud[socket.id] === 'undefined') {
+            return
+        }
+        Socket2Mud[socket.id].forEach(function(id) {
+            var mudSocket,mudOb;
+            var mudConn = MudConnections[id];
+            if (typeof mudConn !== 'undefined') {
+                mudSocket = mudConn.socket;
+                if (typeof mudSocket !=='undefined') {
+                    mudSocket.end();
+                }
+                mudOb = mudConn.mudOb;
+                if (typeof mudOb !== 'undefined') {
+                    console.log('socket:'+socket.id+' socket-disconnet-mudOb ',mudOb);
+                }
+            }
+            delete MudConnections[id];
+        });
+        delete Socket2Mud[socket.id];
     });
     socket.on('error', function(error) {
         console.log('socket:'+socket.id+' error:'+error);
@@ -108,33 +132,34 @@ io.on('connection', (socket) => {
         }
         if (cfg.muds.hasOwnProperty(mudOb.mudname)) {
             mudcfg = cfg.muds[mudOb.mudname];
-            console.log(mudOb.mudname);
+            console.log('socket:'+socket.id+' Mud: '+mudOb.mudname);
         } else {
             callback({error:'Unknown mudname: '+mudOb.mudname});
             return;
         }
         try {
             if (mudcfg.ssl === true) {
-                console.log("TRY SSL with reject="+mudcfg.rejectUnauthorized);
+                console.log('socket:'+socket.id+' TRY SSL with reject='
+                       +mudcfg.rejectUnauthorized);
                 tsocket = tls.connect({
                     host:mudcfg.host,
                     port:mudcfg.port,
                     rejectUnauthorized :mudcfg.rejectUnauthorized});
             } else {
-                console.log("TRY w/o SSL:");
+                console.log('socket:'+socket.id+' TRY w/o SSL:');
                 tsocket = net.createConnection({
                     host:mudcfg.host,
                     port:mudcfg.port});
             }
             const mudSocket = new MudSocket(tsocket,undefined,{debugflag:true,id:id},socket);
             mudSocket.on("close",function(){
-            io.emit("mud-disconnected",id);
+            socket.emit("mud-disconnected",id);
             });
             mudSocket.on("data", function(buffer){
-            io.emit("mud-output",id,buffer.toString("utf8"));
+            socket.emit("mud-output",id,buffer.toString("utf8"));
             });
             mudSocket.on("debug", function(dbgOb){
-            io.emit("mud-debug",id,dbgOb);
+            socket.emit("mud-debug",id,dbgOb);
             });
             MudConnections[id] = { socket: mudSocket, mudOb: mudOb,socketID:socket.id};
             if (typeof Socket2Mud[socket.id] === 'undefined') {
@@ -142,28 +167,54 @@ io.on('connection', (socket) => {
             } else {
                 Socket2Mud[socket.id].push[id];
             }
+            console.log('socket:'+socket.id+' connect-mudOb: ',mudOb);
             callback({id:id,socketID:socket.id});
         } catch (error) {
-            console.log(error.message);
+            console.log('socket:'+socket.id+' error: '+error.message);
             callback({error:error.toString('utf8')});
         }
     });
 
-    socket.on('mud-disconnect', id => {
+    socket.on('mud-window-size', (id,height,width) => {
         if (typeof id !== 'string' || typeof MudConnections[id] === 'undefined') {
-            io.emit("mud-error","Connection-id unknown");
+            socket.emit("mud-error","Connection-id unknown");
             return;
         }
         const mudConn = MudConnections[id];
         const mudSocket = mudConn.socket;
-        // const mudOb = mudConn.mudOb;
+        var mudOb = mudConn.mudOb;
+        if (mudOb.height == height && mudOb.width == width) {
+            return;
+        } else {
+            mudOb.height = height;
+            mudOb.width = width;
+            MudConnections[id].mudOb = mudOb;
+        }
+        var buf = mudSocket.sizeToBuffer(width,height);
+        console.log('NAWS-buf:',buf,width,height);
+        mudSocket.writeSub(31 /*TELOPT_NAWS*/, buf);
+    });
+
+    socket.on('mud-disconnect', id => {
+        if (typeof id !== 'string' || typeof MudConnections[id] === 'undefined') {
+            socket.emit("mud-error","Connection-id unknown");
+            return;
+        }
+        const mudConn = MudConnections[id];
+        const mudSocket = mudConn.socket;
+        const mudOb = mudConn.mudOb;
         mudSocket.end();
-        io.emit("mud-disconnected",id);
+        Socket2Mud[socket.id] = Socket2Mud[socket.id].filter(mid => mid != id);
+        if (Socket2Mud[socket.id].length == 0) {
+            delete Socket2Mud[socket.id];
+        }
+        console.log('socket:'+socket.id+' mud-disconnect-mudOb: ',mudOb);
+        socket.emit("mud-disconnected",id);
         delete MudConnections[id];
     });
     socket.on('mud-input', (id,inpline) => {
         if (typeof id !== 'string' || typeof MudConnections[id] === 'undefined') {
-            io.emit("mud-error","Connection-id unknown");
+            socket.emit("mud-error","Connection-id unknown");
             return;
         }
         const mudConn = MudConnections[id];
@@ -175,7 +226,7 @@ io.on('connection', (socket) => {
     });
     socket.on('mud-gmcp-outgoing', (id,mod,msg,data) => {
         if (typeof id !== 'string' || typeof MudConnections[id] === 'undefined') {
-            io.emit("mud-error","Connection-id unknown");
+            socket.emit("mud-error","Connection-id unknown");
             return;
         }
         const mudConn = MudConnections[id];
@@ -184,13 +235,29 @@ io.on('connection', (socket) => {
         let b1 = new Buffer(mod+'.'+msg+' ');
         let b2 = new Buffer(jsdata);
         let buf = Buffer.concat([b1,b2],b1.length+b2.length);
-        console.log(mod,msg,data);
+        console.log('socket:'+socket.id+' ',mod,msg,data);
         mudSocket.writeSub(201 /*TELOPT_GMCP*/, buf);
     });
 
-    io.emit('connected');
+    socket.emit('connected');
 });
 
+function myCleanup() {
+    console.log("Cleanup starts.");
+    if (typeof MudConnections !== "undefined") {
+        for (var key in MudConnections) {
+            // skip loop if the property is from prototype
+            if (!MudConnections.hasOwnProperty(key)) continue;
+            // get object.
+            var obj = MudConnections[key];
+            // disconnect gracefully.
+            obj.socket.end();
+            // message to all frontends...
+            io.emit("mud-disconnected",key);
+        }
+    }
+    console.log("Cleanup ends.");
+}
 
 http.listen(5000, () => {
     console.log('Server\'backend\' started on port 5000');

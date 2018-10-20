@@ -5,7 +5,7 @@ table {
 }
 
 .mud-test {
-    font-family: "Courier New", Courier, monospace;
+    font-family: monospace;
     font-size: 14px;
     background-color: black;
     color: white;
@@ -16,19 +16,18 @@ table {
 }
 
 .mud-block {
-    height: 90vh;
     min-height: 400px;
-    max-height: 90vh;
     overflow-x: auto;
     overflow-y: auto;
     flex-direction: column; 
-    font-family: "Courier New", Courier, monospace;
+    font-family: monospace;
     font-size: 14px;
-    background-color: black;
-    color: white;
     padding: 0.5ex;
     margin-top: 0;
     margin-bottom: 0;
+    border-style: solid;
+    border-color: grey;
+    border-bottom-width: thin;
 }
 
 .mud-message {
@@ -37,6 +36,6 @@ table {
 }
 
 .mud-input {
-    font-family: "Courier New", Courier, monospace;
+    font-family: monospace;
     font-size: 14px;
 }

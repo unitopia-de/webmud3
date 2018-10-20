@@ -16,7 +16,7 @@ export class ServerConfigService {
 
 
   getBackend(): string {
-    // console.log(this.window);
+    console.log(this.window);
     var l_origin = this.window.location.origin;
     if (this.originMap.hasOwnProperty(l_origin)) {
       return this.originMap[l_origin];
@@ -24,12 +24,16 @@ export class ServerConfigService {
     return l_origin;
   }
 
+  getViewPortHeight():number {
+    return this.window.innerHeight;
+  }
+
   getWebmudName(): string {
     return "Webmud3";
   }
 
   getWebmudVersion(): string {
-    return "v0.0.17";
+    return "v0.0.19";
   }
 
   getUNItopiaName() : string {
@@ -43,15 +47,6 @@ export class ServerConfigService {
   getBrowserInfo():Object {
     return this.browserInfo;
   }
-
-  getWidth80(width : number):number {
-    switch(this.browserInfo["browser"].toLowerCase()) {
-      case 'ie':
-      case 'edge':
-        return width * 1.162 + 1;
-    }
-    return width * 1.05 + 1;
-  } 
 
   displayBrowser() {
     this.deviceInfo = this.deviceService.getDeviceInfo();
