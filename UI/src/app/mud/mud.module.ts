@@ -6,7 +6,7 @@ import { MudspanComponent } from './mudspan/mudspan.component';
 import { MudclientComponent } from './mudclient/mudclient.component';
 import { FormsModule } from '../../../node_modules/@angular/forms';
 import { MudmenuComponent } from './mudmenu/mudmenu.component';
-import { MatIconModule } from '@angular/material';
+import { MatIconModule, MatTooltipModule } from '@angular/material';
 
 @NgModule({
   imports: [
@@ -14,6 +14,7 @@ import { MatIconModule } from '@angular/material';
     FormsModule,
     MatMenuModule,
     MatIconModule,
+    MatTooltipModule
   ],
   declarations: [MudlistComponent,MudspanComponent,MudclientComponent, MudmenuComponent],
   exports: [MudlistComponent,MudspanComponent,MudclientComponent],

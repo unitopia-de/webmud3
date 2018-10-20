@@ -18,32 +18,26 @@ exports.Cleanup = function Cleanup(callback) {
   process.on('SIGINT', function () {
     console.log('Ctrl-C...');
     process.emit('cleanup');
-    setTimout(function(){process.exit(2);});
+    process.exit(2);
   });
 
   // catch SIGTERM event and exit normally (docker exit!)
   process.on('SIGTERM', function () {
     console.log('SIGTERM ...');
     process.emit('cleanup');
-    setTimout(function(){process.exit(2);},100);
-  });
-
-  process.on('SIGKILL', function () {
-    console.log('SIGKILL ...');
-    process.emit('cleanup');
-    setTimout(function(){process.exit(2);},100);
+    process.exit(2);
   });
 
   // catches "kill pid" (for example: nodemon restart)
 process.on('SIGUSR1', function () {
     console.log('SIGUSR1...');
     process.emit('cleanup');
-    setTimout(function(){process.exit(2);});
+    process.exit(2);
   });
 process.on('SIGUSR2', function () {
     console.log('SIGUSR2...');
     process.emit('cleanup');
-    setTimout(function(){process.exit(2);});
+    process.exit(2);
   });
 
   //catch uncaught exceptions, trace, then exit normally

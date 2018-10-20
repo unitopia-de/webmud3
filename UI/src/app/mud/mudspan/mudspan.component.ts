@@ -19,6 +19,7 @@ export class MudspanComponent implements OnInit {
   public txt:string;
   public bow:boolean=false;
   public invert:boolean = false;
+  public tt:string='';
 
   private calcFgBg() {
     var lfg,lbg;
@@ -63,6 +64,7 @@ export class MudspanComponent implements OnInit {
 
    @Input('ansi2html') set ansi2html(ansi: AnsiData) {
     this.a2h = ansi;
+    this.tt = ansi.timeString;// console.log(this.tt);
     this.calcFgBg();
     this.myclasses = '';
     if (ansi.bold) {
