@@ -24,7 +24,7 @@ table {
 .scroller {
     height: 20px;
   }
-
+  
 .mud-block {
     min-height: 400px;
     overflow-x: scroll;
