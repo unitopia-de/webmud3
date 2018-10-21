@@ -233,7 +233,7 @@ export class SocketService {
     }
     this.socket.emit('mud-window-size',_id,height,width);
   }
-
+  
   public mudDisconnect(_id : string) : Observable<string> {
     let other = this;
     let observable = new Observable<string>(observer => {
@@ -282,6 +282,13 @@ export class SocketService {
     console.log('GMCP-send:',mod,msg,data);
     this.socket.emit('mud-gmcp-outgoing',id,mod,msg,data);
   }
+  public sendPing(_id : string) {
+    if (this.socket === undefined) {
+      return;
+    }
+    this.sendGMCP(_id,'Core','Ping','');
+  }
+
 
   public mudReceiveData(_id: string) : Observable<string> {
     let other = this;
@@ -355,7 +362,7 @@ export class SocketService {
         other.sendGMCP(_id,'Core','Hello',{
           'client':other.srvcfg.getWebmudName(),
           'version':other.srvcfg.getWebmudVersion()});
-        other.sendGMCP(_id,'Core','Supports.Set',['Char 1','Sound 1']);
+        other.sendGMCP(_id,'Core','Supports.Set',['Char 1','Char.Items 1','Comm 1','Playermap 1','Sound 1']);
         if (typeof other.mudConnections[id].user !== 'undefined') {
           other.sendGMCP(_id,'Char','Login',{
             name:other.mudConnections[id].user,
@@ -376,8 +383,25 @@ export class SocketService {
           case 'core':
             switch (msg.toLowerCase().trim()) {
               case 'hello':
-              other.mudConnections[_id]['gmcp-mudname'] = data.name;
-              break;
+                other.mudConnections[_id]['gmcp-mudname'] = data.name;
+                break;
+              case 'goodbye':
+                let goodbyeMsg : MudSignals = {
+                  signal: 'Core.GoodBye',
+                  id: data,
+                }
+                observer.next(goodbyeMsg);
+                break;
+              case 'ping':
+                let pingMsg : MudSignals = {
+                  signal: 'Core.Ping',
+                  id: '',
+                }
+                observer.next(pingMsg);
+                return;
+              default:
+                console.log('GMCP:',mod,msg,data);
+                return;
             }
             break;
           case 'char':
@@ -392,6 +416,9 @@ export class SocketService {
               }
               observer.next(titleSignal);
               break;
+            default:
+              console.log('GMCP:',mod,msg,data);
+              return;
           }
           break;
           case 'sound':
@@ -407,6 +434,9 @@ export class SocketService {
                 }
                 observer.next(soundSignal);
                 break;
+              default:
+                console.log('GMCP:',mod,msg,data);
+                return;
             }
             return;
           default: break;

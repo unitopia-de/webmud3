@@ -318,6 +318,10 @@ MudSocket = class MudSocket extends TelnetSocket {
                     let ix = tmpstr.indexOf(' ');
                     let jx = tmpstr.indexOf('.');
                     let jsdata = tmpstr.substr(ix+1);
+                    if (ix < 0  || jsdata == '') {
+                        jsdata = '{}';
+                        ix = tmpstr.length;
+                    }
                     console.log('GMCP-incoming: ',tmpstr);
                     socket_io.emit('mud-gmcp-incoming',other._moptions.id,tmpstr.substr(0,jx),tmpstr.substr(jx+1,ix-jx),JSON.parse(jsdata));
                     break;
