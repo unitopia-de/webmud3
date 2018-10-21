@@ -18,4 +18,5 @@
           <span>Schwarz auf Weiss</span>
         </button>
   </mat-menu>
+  <button class="main-menu" *ngIf='mudmcfg.enablePing' (click)="onClickMenu('ping')" mat-button>{{mudmcfg.deltaPing}}</button>
 </div>

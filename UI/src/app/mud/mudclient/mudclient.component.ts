@@ -47,6 +47,7 @@ export class MudclientComponent implements AfterViewChecked,OnInit,OnDestroy {
   private inpPointer : number = -1;
   public lastdbg : DebugData;
   private startCnt : number = 0;
+  public togglePing : boolean = false;
   public colourInvert : boolean = false;
   public stdfg : string ='white';
   public stdbg : string ='black';
@@ -83,6 +84,9 @@ export class MudclientComponent implements AfterViewChecked,OnInit,OnDestroy {
         case 'invert=false': this.colourInvert = false; return;
         case 'blackOnWhite=true':  this.blackOnWhite=true; this.stdbg = 'white';this.stdfg = 'black'; return;
         case 'blackOnWhite=false': this.blackOnWhite=false; this.stdbg = 'black';this.stdfg = 'white'; return;
+        case 'ping':
+            this.socketService.sendPing(this.mudc_id);
+            return;
       }
     }
 
@@ -127,6 +131,12 @@ export class MudclientComponent implements AfterViewChecked,OnInit,OnDestroy {
                 audio.load();
                 audio.play();
                 break;
+              case 'Core.Ping':
+                this.togglePing = !this.togglePing;
+                break;
+              case 'Core.GoodBye':
+              default:
+                console.log('mud-signal: ',musi);
             }
           });
       other.obs_data = other.socketService.mudReceiveData(_id).subscribe(outline => {
