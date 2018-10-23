@@ -21,6 +21,7 @@ export class MudmenuComponent implements OnInit {
   public mudmcfg = {
     invert:false,
     blackOnWhite:false,
+    colorOff:false,
     enablePing:true,
     manualPing:false,
     startPing : new Date(),
@@ -48,6 +49,10 @@ export class MudmenuComponent implements OnInit {
         return;
       case 'loginPortal':
         this.menuAction.emit('loginPortal');
+        return;
+      case 'colorOff':
+        this.mudmcfg.colorOff = !this.mudmcfg.colorOff;
+        this.menuAction.emit('colorOff='+this.mudmcfg.colorOff);
         return;
       case 'invert':
         this.mudmcfg.invert = !this.mudmcfg.invert;

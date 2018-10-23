@@ -1,0 +1,16 @@
+<div ngDraggable [handle]="TitleBar">
+  <mat-toolbar class="tool-bar">
+    <span class="title-bar" #TitleBar>{{config.wtitle}}</span>
+    <button class="window-menu" (click)="onMenuAction('lock')" mat-button>
+      <mat-icon *ngIf='lockDrag'>lock</mat-icon>
+      <mat-icon *ngIf='!lockDrag'>lock_open</mat-icon>
+    </button>
+    <button class="window-menu" *ngIf='config.save' (click)="onMenuAction('save')" mat-button>
+      <mat-icon>save</mat-icon>
+    </button>
+    <button class="window-menu" (click)="onMenuAction('cancel')" mat-button>
+        <mat-icon>cancel</mat-icon>
+    </button>
+  </mat-toolbar>
+  <div><ng-template #container></ng-template></div>
+</div>

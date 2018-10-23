@@ -52,6 +52,7 @@ export class MudclientComponent implements AfterViewChecked,OnInit,OnDestroy {
   public stdfg : string ='white';
   public stdbg : string ='black';
   public blackOnWhite: boolean = false;
+  public colorOff : boolean=false;
 
   scroll() {
     this.mudBlock.nativeElement.scrollTo(this.scroller.nativeElement.scrollLeft,0);
@@ -80,13 +81,21 @@ export class MudclientComponent implements AfterViewChecked,OnInit,OnDestroy {
             this.connect();
             return;
         case 'loginPortal': return; // TODO  redirect to /login.
-        case 'invert=true':  this.colourInvert = true; return;
-        case 'invert=false': this.colourInvert = false; return;
-        case 'blackOnWhite=true':  this.blackOnWhite=true; this.stdbg = 'white';this.stdfg = 'black'; return;
-        case 'blackOnWhite=false': this.blackOnWhite=false; this.stdbg = 'black';this.stdfg = 'white'; return;
+        case 'colorOff=true':  this.colorOff = true; break;
+        case 'colorOff=false': this.colorOff = false; break;
+        case 'invert=true':  this.colourInvert = true; break;
+        case 'invert=false': this.colourInvert = false; break;
+        case 'blackOnWhite=true':  this.blackOnWhite=true; break;
+        case 'blackOnWhite=false': this.blackOnWhite=false; break;
         case 'ping':
             this.socketService.sendPing(this.mudc_id);
             return;
+        default: return;
+      }
+      if (this.blackOnWhite || this.colourInvert) {
+        this.stdbg = 'white';this.stdfg = 'black';
+      } else {
+        this.stdbg = 'black';this.stdfg = 'white'; 
       }
     }
 
@@ -318,11 +327,6 @@ export class MudclientComponent implements AfterViewChecked,OnInit,OnDestroy {
         this.inpPointer = -1;
         return;
     }
-  }
-
-  @HostListener('click')
-  public autofocusInput() {
-    this.mudInput.nativeElement.focus();
   }
 
   @HostListener('window:resize', ['$event'])

@@ -19,19 +19,31 @@ export class MudspanComponent implements OnInit {
   public txt:string;
   public bow:boolean=false;
   public invert:boolean = false;
+  public colorOff : boolean = false;
   public tt:string='';
 
   private calcFgBg() {
     var lfg,lbg;
-    if (typeof this.a2h === 'undefined') {
+    if (typeof this.a2h === 'undefined' || this.colorOff) {
+      if (this.bow || this.invert) {
+        this.fg = '#000000';
+        this.bg = '#ffffff';
+      } else {
+        this.fg = '#ffffff';
+        this.bg = '#000000';
+      }
       return;
     }
-    if ((this.a2h.reverse && !this.invert)||(!this.a2h.reverse && this.invert)) {
+    if (this.a2h.reverse) {
       lfg = this.a2h.bgcolor;
       lbg = this.a2h.fgcolor;
     } else {
       lfg = this.a2h.fgcolor;
       lbg = this.a2h.bgcolor;
+    }
+    if (this.invert) {
+      lfg = this.ansiService.invColor(lfg);
+      lbg = this.ansiService.invColor(lbg);
     }
     if (!this.bow) {
       this.fg = lfg;
@@ -59,6 +71,14 @@ export class MudspanComponent implements OnInit {
       return;
     }
     this.invert = flag;
+    this.calcFgBg();
+  }
+
+  @Input('colorOff') set colorOffFlag(flag : boolean) {
+    if (this.colorOff == flag) {
+      return;
+    }
+    this.colorOff = flag;
     this.calcFgBg();
   }
 

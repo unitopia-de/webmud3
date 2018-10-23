@@ -1,6 +1,8 @@
 import { Component, HostListener } from '@angular/core';
 
 import { ConfigService } from './shared/config.service';
+import { WindowConfig } from './nonmodal/window-config';
+import { WindowsService } from './nonmodal/windows.service';
 
 @Component({
   selector: 'app-root',
@@ -8,10 +10,13 @@ import { ConfigService } from './shared/config.service';
   styleUrls: ['./app.component.css']
 })
 export class AppComponent {
-  title = 'app';
 
-  constructor(private cfgsrv : ConfigService) {
+  constructor(private cfgsrv : ConfigService,public wincfg : WindowsService) {
     this.onResize();
+  }
+
+  OnMenuAction(event:string) {
+    this.wincfg.OnMenuAction(event);
   }
   
   @HostListener('window:resize', ['$event'])
