@@ -34,8 +34,8 @@ export class AnsiService {
 
   public blackToWhite(s:string) {
     var iconv = (parseInt(s.substr(1), 16) << 8) / 256;
-    var r = iconv & 0xff0000 >> 16;
-    var g = iconv & 0x00ff00 >> 8;
+    var r = (iconv & 0xff0000) >> 16;
+    var g = (iconv & 0x00ff00) >> 8;
     var b = iconv & 0x0000ff;
     return ( r == g && g == b) ? this.invColor(s) : s;
   }

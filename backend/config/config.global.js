@@ -6,6 +6,33 @@ config.mudfamilies = {
     unitopia : {
         MXP : true,
         GMCP : true,
+        GMCP_Support: {
+            Sound : {
+                version : '1',
+                standard: true,
+                optional: false,
+            },
+            Char : {
+                version : '1',
+                standard:true,
+                optional:false,
+            },
+            'Char.Items' : {
+                version : '1',
+                standard:true,
+                optional:false,
+            },
+            Comm : {
+                version : '1',
+                standard:true,
+                optional:false,
+            },
+            Playermap : {
+                version : '1',
+                standard:false,
+                optional:true,
+            },
+        }
     }
 }
 

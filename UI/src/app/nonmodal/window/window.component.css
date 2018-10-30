@@ -1,0 +1,9 @@
+
+
+.window-nonmodal {
+    border-style: solid;
+    border-color: grey;
+    border-bottom-width: thin;
+    background: white;
+    display: inline-block;
+}

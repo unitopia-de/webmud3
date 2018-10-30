@@ -24,16 +24,12 @@ export class ServerConfigService {
     return l_origin;
   }
 
-  getViewPortHeight():number {
-    return this.window.innerHeight;
-  }
-
   getWebmudName(): string {
     return "Webmud3";
   }
 
   getWebmudVersion(): string {
-    return "v0.0.24";
+    return "v0.0.26";
   }
 
   getUNItopiaName() : string {
