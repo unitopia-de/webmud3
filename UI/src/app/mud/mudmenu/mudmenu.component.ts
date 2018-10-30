@@ -1,4 +1,9 @@
 import { Component, OnInit, Input, Output, EventEmitter } from '@angular/core';
+import { WindowConfig } from 'src/app/nonmodal/window-config';
+import { WindowsService } from 'src/app/nonmodal/windows.service';
+import { GmcpMenu } from 'src/app/gmcp/gmcp-menu';
+import { Observable } from 'rxjs';
+import { GmcpService } from 'src/app/gmcp/gmcp.service';
 
 @Component({
   selector: 'app-mudmenu',
@@ -15,6 +20,16 @@ export class MudmenuComponent implements OnInit {
     } 
   }
   get toggleFlag(): string { return this.toggleFlag; }
+  @Input() set mud_id(mud_id:string) {
+    if (typeof mud_id !=='undefined') {
+      this.gmcpobs = this.gmcpsrv.GmcpObservableMenu(mud_id);
+      var other = this;
+      this.gmcpobs.subscribe(gm => {
+        other.gmcpMenu = gm;
+        other.gmcpFlag = gm.length>0;
+      })
+    }
+  }
  
   @Output() menuAction= new EventEmitter<string>();
 
@@ -28,7 +43,11 @@ export class MudmenuComponent implements OnInit {
     deltaPing:'GMCP-Ping: -',
   };
 
-  constructor() { }
+  private gmcpobs : Observable<GmcpMenu[]>;
+  public gmcpMenu : GmcpMenu[];
+  public gmcpFlag : boolean;
+
+  constructor(private wincfg : WindowsService,private gmcpsrv : GmcpService) { }
 
   onPingResponse() {
     if (this.mudmcfg.manualPing) {
@@ -39,8 +58,17 @@ export class MudmenuComponent implements OnInit {
     }
   }
 
+  onClickGmcpMenu(gmen:GmcpMenu) {
+    this.gmcpsrv.menuAction(gmen);
+  }
+
   onClickMenu(what:string) {
     switch (what) {
+      case 'new-window':
+        var newwin : WindowConfig = new WindowConfig();
+        newwin.visible = true;
+        this.wincfg.newWindow(newwin);
+        return;
       case 'connect':
         this.menuAction.emit('connect');
         return;

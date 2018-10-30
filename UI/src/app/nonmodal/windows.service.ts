@@ -1,15 +1,30 @@
-import { Injectable } from '@angular/core';
+import { Injectable, Inject } from '@angular/core';
 import { WindowConfig } from './window-config';
+import { UUID } from 'angular2-uuid';
+import { WINDOW } from '../shared/WINDOW_PROVIDERS';
 
 @Injectable({
   providedIn: 'root'
 })
 export class WindowsService {
+  setWindowsSize(innerHeight: number, innerWidth: number): any {
+    // TODO propagate resizing...
+  }
   public windowsconfigurations :WindowConfig[] = [];
-  private wincfgIndex = {}
+  private wincfgIndex = {};
+
+  getViewPortHeight():number {
+    return this.window.innerHeight;
+  }
+  getViewPortWidth():number {
+    return this.window.innerWidth;
+  }
 
   public newWindow(cfg : WindowConfig) {
-
+    const maxindex = this.windowsconfigurations.length;
+    cfg.windowid = UUID.UUID();
+    this.windowsconfigurations.push(cfg);
+    this.focus(maxindex,false);
   }
 
   private focus(index : number,targetLock : boolean) {
@@ -36,6 +51,7 @@ export class WindowsService {
   private deleteWindow(index : number) {
     var maxindex = this.windowsconfigurations.length-1;
     var cwin = this.windowsconfigurations[index];
+    cwin.visible = false;
     var zoffset;
     for(var i = index; i < maxindex; i++) {
       var dwin = this.windowsconfigurations[i+1];
@@ -44,7 +60,7 @@ export class WindowsService {
       this.windowsconfigurations[i] = dwin;
     }
     this.windowsconfigurations.pop();
-    for (var j = 0;j <= maxindex;j++) {
+    for (var j = 0;j < this.windowsconfigurations.length;j++) {
       var id = this.windowsconfigurations[j].windowid;
       this.wincfgIndex[id] = j;
     }
@@ -66,8 +82,12 @@ export class WindowsService {
         return;
       case 'save':
       case 'cancel':
+        this.deleteWindow(index);
+        return;
     }
   }
 
-  constructor() { }
+
+
+  constructor(@Inject(WINDOW) private window:Window) { }
 }

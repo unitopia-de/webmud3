@@ -4,10 +4,9 @@ import { MudMessage } from '../mud-message';
 import { DebugData } from '../debug-data';
 import { AnsiService } from '../ansi.service';
 import { AnsiData } from '../ansi-data';
-import { ConfigService } from '../../shared/config.service';
 import { WebmudConfig } from '../webmud-config';
-import { standardizeConfig } from '@angular/router/src/config';
 import { ServerConfigService } from '../../shared/server-config.service';
+import { WindowsService } from 'src/app/nonmodal/windows.service';
 
 @Component({
   selector: 'app-mudclient',
@@ -23,7 +22,7 @@ export class MudclientComponent implements AfterViewChecked,OnInit,OnDestroy {
   @ViewChild('mudMenu') mudMenu : ElementRef;
   @ViewChild('scroller') scroller: ElementRef; 
 
-  private mudc_id : string;
+  public mudc_id : string;
   private mudName : string = 'disconnect';
   public connected : boolean;
   public sizeCalculated : boolean = false;
@@ -62,7 +61,7 @@ export class MudclientComponent implements AfterViewChecked,OnInit,OnDestroy {
     private socketService: SocketService,
     private ansiService:AnsiService,
     private cdRef:ChangeDetectorRef,
-    private cfgService:ConfigService,
+    private wincfg:WindowsService,
     private srvcfgService:ServerConfigService) { 
 
     }
@@ -191,7 +190,7 @@ export class MudclientComponent implements AfterViewChecked,OnInit,OnDestroy {
   calculateSizing() {
     // var oh = this.mudBlock.nativeElement.offsetHeight;
     var ow = this.mudBlock.nativeElement.offsetWidth;
-    var tmpheight = this.srvcfgService.getViewPortHeight();
+    var tmpheight = this.wincfg.getViewPortHeight();
     tmpheight -= 2*this.mudMenu.nativeElement.offsetHeight;
     tmpheight -= 2*this.mudInput.nativeElement.offsetHeight;
     tmpheight = Math.floor(Math.floor(tmpheight/(this.ref_height_ratio))*this.ref_height_ratio+0.5);
@@ -203,7 +202,7 @@ export class MudclientComponent implements AfterViewChecked,OnInit,OnDestroy {
     });
     if (this.mudc_height != Math.floor(tmpheight/this.ref_height_ratio)) {
       this.mudc_height = Math.floor(tmpheight/(this.ref_height_ratio+1));
-      console.log('MudSize: '+this.mudc_width+'x'+this.mudc_height+' <= '+ow+'x'+tmpheight);
+      // console.log('MudSize: '+this.mudc_width+'x'+this.mudc_height+' <= '+ow+'x'+tmpheight);
       this.startCnt++;
       if (this.startCnt == 1 && typeof this.mudc_id === 'undefined' && this.cfg.autoConnect) {
         this.connect();

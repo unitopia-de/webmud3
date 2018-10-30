@@ -9,6 +9,7 @@ import { MudListItem } from '../mud/mud-list-item';
 // import { MudConnection } from './mud-connection';
 import { MudSignals } from '../mud/mud-signals';
 import { ServerConfigService } from './server-config.service';
+import { GmcpService } from '../gmcp/gmcp.service';
 
 @Injectable({
   providedIn: 'root'
@@ -351,7 +352,7 @@ export class SocketService {
         }
         observer.next(musi);
       })
-      other.socket.on('mud-gmcp-start', function(id){
+      other.socket.on('mud-gmcp-start', function(id,gmcp_support){
         if (typeof other.mudConnections[id] === 'undefined') {
           console.log('failed[mud-gmcp-incoming].mudconn='+id);
           return;
@@ -362,7 +363,10 @@ export class SocketService {
         other.sendGMCP(_id,'Core','Hello',{
           'client':other.srvcfg.getWebmudName(),
           'version':other.srvcfg.getWebmudVersion()});
-        other.sendGMCP(_id,'Core','Supports.Set',['Char 1','Char.Items 1','Comm 1','Playermap 1','Sound 1']);
+        other.gmcpsrv.set_gmcp_support(id,gmcp_support,function (_id:string,mod:string,onoff:boolean) {
+            other.mudSwitchGmcpModule(_id,mod,onoff);
+          });
+          // other.sendGMCP(_id,'Core','Supports.Set',['Char 1','Char.Items 1','Comm 1','Playermap 1','Sound 1']);
         if (typeof other.mudConnections[id].user !== 'undefined') {
           other.sendGMCP(_id,'Char','Login',{
             name:other.mudConnections[id].user,
@@ -495,8 +499,18 @@ export class SocketService {
     this.socket.emit('mud-input',_id,data);
   }
 
+  public mudSwitchGmcpModule(_id:string,mod:string,onoff:boolean) {
+    if (onoff) {
+      this.sendGMCP(_id,'Core','Supports.Add',[mod]);
+    } else {
+      this.sendGMCP(_id,'Core','Supports.Remove',[mod]);
+    }
+  }
 
   // TODO GCMP send/receive
   // TODO ANSI-Handling als pipe?
-  constructor(private logger : LoggerService,private srvcfg:ServerConfigService) { }
+  constructor(
+    private logger : LoggerService,
+    private srvcfg:ServerConfigService,
+    private gmcpsrv: GmcpService) { }
 }

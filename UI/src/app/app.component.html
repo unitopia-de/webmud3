@@ -1,4 +1,4 @@
 <router-outlet></router-outlet>
-<div *ngFor="let cfg of wincfg.windowsconfigurations">
-  <app-window [config]='cfg' (menuAction)='OnMenuAction(event)'></app-window>
+<div class="nonmodal-container" *ngFor="let cfg of wincfg.windowsconfigurations">
+  <app-window [config]='cfg' (menuAction)='OnMenuAction($event)'></app-window>
 </div>

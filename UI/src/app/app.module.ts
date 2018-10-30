@@ -14,7 +14,6 @@ import { LogdisplayComponent } from './logdisplay/logdisplay.component';
 import { AnsiService } from './mud/ansi.service';
 import { TabviewComponent } from './tabview/tabview.component';
 import { TabconDirective } from './tabcon.directive';
-import { ConfigService } from './shared/config.service';
 import { AppRoutingModule } from './app-routing.module';
 import { NonportalModule } from './nonportal/nonportal.module';
 import { MudModule } from './mud/mud.module';
@@ -54,7 +53,6 @@ import { MaterialModule } from './material.module';
     SocketService,WindowsService,
     NonPortalGuard,PortalGuard,
     LoggerService,
-    ConfigService,
     AnsiService
   ],
   bootstrap: [AppComponent]

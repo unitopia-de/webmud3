@@ -1,13 +1,14 @@
-import { Component, OnInit, Input, ViewChild, ViewContainerRef, Compiler, ComponentFactory, Type, NgModule, Output, EventEmitter } from '@angular/core';
+import { Component, OnInit, Input, ViewChild, ViewContainerRef, Compiler, ComponentFactory, Type, NgModule, Output, EventEmitter, ComponentRef } from '@angular/core';
 import { MyDynamicComponent } from './my-dynamic.component';
 import { BrowserModule } from '@angular/platform-browser';
 import { FormsModule } from '@angular/forms';
 import { WindowConfig } from '../window-config';
+import { NonmodalModule } from '../nonmodal.module';
 
 @Component({
   selector: 'app-window',
   templateUrl: './window.component.html',
-  styleUrls: ['./window.component.css']
+  styleUrls: ['./window.component.css',"../../../../node_modules/angular2-draggable/css/resizable.min.css"]
 })
 export class WindowComponent implements OnInit {
   @Input('config') config : WindowConfig;
@@ -17,6 +18,7 @@ export class WindowComponent implements OnInit {
   public lockDrag : boolean = false;
 
   onMenuAction(what) {
+    console.log(this.config.windowid,what);
     switch (what) {
       case 'lock':
         this.lockDrag = !this.lockDrag;
@@ -40,9 +42,11 @@ export class WindowComponent implements OnInit {
 
   ngOnInit() {
     this.lockDrag = this.config.initalLock || false;
-    this.createComponentFactory(MyDynamicComponent).then(
-      (factory: ComponentFactory<MyDynamicComponent>) => this.viewContainer.createComponent(factory),
-      (err: any) => console.error(err));
+    var other = this;
+	  this.createComponentFactory(MyDynamicComponent)
+      .then((factory: ComponentFactory<MyDynamicComponent>) => this.viewContainer.createComponent(factory))
+      .then((comp: ComponentRef<MyDynamicComponent>) => comp.instance.config = other.config)
+      .catch((err: any) => console.error(err));
   }
 
   private createComponentFactory(componentType: Type<MyDynamicComponent>): Promise<ComponentFactory<MyDynamicComponent>> {
@@ -59,9 +63,9 @@ export class WindowComponent implements OnInit {
   private createDynamicModule(componentType: Type<MyDynamicComponent>): Type<any> {
 		@NgModule({
 			declarations: [
-				componentType
+				
 			],
-			imports: [BrowserModule, FormsModule]
+			imports: [BrowserModule, FormsModule,NonmodalModule]
 		})
 		class RuntimeComponentModule {
 		}

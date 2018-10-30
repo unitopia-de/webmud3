@@ -137,6 +137,16 @@ io.on('connection', (socket) => {
             callback({error:'Unknown mudname: '+mudOb.mudname});
             return;
         }
+        var gmcp_support = undefined;
+        if (mudcfg.hasOwnProperty('mudfamily')) {
+            if (cfg.hasOwnProperty('mudfamilies') && typeof cfg.mudfamilies[mudcfg.mudfamily] !== 'undefined') {
+                var fam = cfg.mudfamilies[mudcfg.mudfamily];
+                if (typeof fam.GMCP !== 'undefined' && fam.GMCP === true && typeof fam.GMCP_Support !== 'undefined') {
+                    gmcp_support = fam.GMCP_Support;
+                    gmcp_support['mudfamily'] = mudcfg.mudfamily;
+                }
+            }
+        }
         try {
             if (mudcfg.ssl === true) {
                 console.log('socket:'+socket.id+' TRY SSL with reject='
@@ -151,7 +161,7 @@ io.on('connection', (socket) => {
                     host:mudcfg.host,
                     port:mudcfg.port});
             }
-            const mudSocket = new MudSocket(tsocket,undefined,{debugflag:true,id:id},socket);
+            const mudSocket = new MudSocket(tsocket,undefined,{debugflag:true,id:id,gmcp_support:gmcp_support},socket);
             mudSocket.on("close",function(){
             socket.emit("mud-disconnected",id);
             });

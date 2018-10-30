@@ -1,10 +1,10 @@
-<div ngDraggable [handle]="TitleBar">
+<div class="window-nonmodal" [ngDraggable]="!lockDrag" [handle]="TitleBar" [ngResizable]="!lockDrag" *ngIf='config.visible'>
   <mat-toolbar class="tool-bar">
-    <span class="title-bar" #TitleBar>{{config.wtitle}}</span>
     <button class="window-menu" (click)="onMenuAction('lock')" mat-button>
       <mat-icon *ngIf='lockDrag'>lock</mat-icon>
       <mat-icon *ngIf='!lockDrag'>lock_open</mat-icon>
     </button>
+    <span class="title-bar" #TitleBar>{{config.wtitle}}</span>
     <button class="window-menu" *ngIf='config.save' (click)="onMenuAction('save')" mat-button>
       <mat-icon>save</mat-icon>
     </button>

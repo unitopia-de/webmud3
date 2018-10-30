@@ -6,7 +6,7 @@
     <button (click)="onClickMenu('colorOff')" mat-menu-item>
       <mat-icon *ngIf='mudmcfg.colorOff'>check_box</mat-icon>
       <mat-icon *ngIf='!mudmcfg.colorOff'>check_box_outline_blank</mat-icon>
-      <span>Farbe Aus</span>
+      <span>Farbe An/Aus</span>
     </button>
     <button (click)="onClickMenu('invert')" mat-menu-item>
         <mat-icon *ngIf='mudmcfg.invert'>check_box</mat-icon>
@@ -19,6 +19,15 @@
           <span>Schwarz auf Weiss</span>
     </button>
   </mat-menu>
+  <button class="main-menu" mat-button [matMenuTriggerFor]="gmcpMenuBlock" *ngIf="gmcpFlag">Module</button>
+  <mat-menu #gmcpMenuBlock="matMenu">
+    <button *ngFor="let gmen of gmcpMenu"(click)="onClickGmcpMenu(gmen)" mat-menu-item>
+      <mat-icon *ngIf='gmen.active'>check_box</mat-icon>
+      <mat-icon *ngIf='!gmen.active'>check_box_outline_blank</mat-icon>
+      <span>{{gmen.name}}</span>
+    </button>
+  </mat-menu>
   <button class="main-menu" *ngIf='mudmcfg.enablePing' (click)="onClickMenu('ping')" mat-button>{{mudmcfg.deltaPing}}</button>
-  <!--     <button *ngIf='false' (click)="onClickMenu('loginPortal')" mat-menu-item>Anmelden am Portal</button> -->
+  <button *ngIf='false' class="main-menu" (click)="onClickMenu('new-window')" mat-button>Fenstertest</button>
+  <button *ngIf='false' class="main-menu" (click)="onClickMenu('loginPortal')" mat-button>Anmelden am Portal</button>
 </div>
