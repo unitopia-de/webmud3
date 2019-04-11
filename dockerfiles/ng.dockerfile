@@ -5,7 +5,7 @@ FROM node:8-alpine AS ng-build-stage
 WORKDIR /app
 
 # fetching packages and...
-COPY UI/package*.json /app/
+COPY UI7/package*.json /app/
 
 RUN echo https://alpine.mirror.wearetriple.com/v3.5/main > /etc/apk/repositories; \
     echo https://alpine.mirror.wearetriple.com/v3.5/community >> /etc/apk/repositories
@@ -17,7 +17,7 @@ RUN apk update && apk upgrade && \
     &&  npm install
 
 # fetch the angular sources and stuff
-COPY ./UI/ /app/
+COPY ./UI7/ /app/
 
 # ok may be we have to do more with the environment...
 ARG configuration=production

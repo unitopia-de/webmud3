@@ -271,6 +271,7 @@ MudSocket = class MudSocket extends TelnetSocket {
                     socket_io.emit('mud-signal',{signal:'NOECHO-START',id:other._moptions.id});
                     break;
                 case 'TELOPT_EOR': other.writeDont(chunkData);break;
+                case 'TELOPT_CHARSET': other.writeDo(chunkData);break;
                 case 'TELOPT_GMCP':
                 if (typeof other._moptions.gmcp_support !== 'undefined') {
                     other.writeDo(chunkData);
@@ -314,6 +315,18 @@ MudSocket = class MudSocket extends TelnetSocket {
                         buf = new Buffer('WebMud3a');
                         sendBuf = Buffer.concat([nullBuf,buf],buf.length+1);
                         console.log('TTYPE: ',sendBuf);
+                        other.writeSub(optin,sendBuf);
+                    }
+                    break;
+                case 'TELOPT_CHARSET':
+                    console.log('SB CHARSET:',chunkData.toString());
+                    if (subInput.length>=1 && subInput[0] == 1) { // TELQUAL_SEND
+                        var nullBuf = new Buffer.alloc(1);
+                        var sendBuf;
+                        nullBuf[0] = 2; // TELQUAL_INFO
+                        buf = new Buffer('UTF-8');
+                        sendBuf = Buffer.concat([nullBuf,buf],buf.length+1);
+                        console.log('SB-Accept CHARSET: ',sendBuf);
                         other.writeSub(optin,sendBuf);
                     }
                     break;

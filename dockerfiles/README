@@ -1,19 +1,24 @@
 
 
 #   im .. folgendes ausfuehren (ggf Version anpassen)
-docker build -f dockerfiles/ng.dockerfile -t myonara/webmud3:v0.0.26 .
+docker build -f dockerfiles/ng.dockerfile -t myonara/webmud3:v0.0.28 .
+docker build -f dockerfiles/mdconn.dockerfile -t myonara/mdconn:v0.0.17 .
 
 #   test als standalone container
-docker run -d -p 2018:5000 --name webmud3test myonara/webmud3:v0.0.26
+docker run -d -p 2018:5000 --name webmud3test myonara/webmud3:v0.0.28
+docker run -d --name mudconnOrbit myonara/mdconn:v0.0.6
 
 #   ebenso nach einem swarm init:
 docker stack deploy -c dockerfiles/w3_docker_compose_secret.yml webmud3a
+
+docker stack deploy -c dockerfiles/w3mdc_docker_compose.yml mdconn
 
 #deinstallieren:
 docker service rm webmud3a_web
 
 #service anschauen:
 docker service ls
+docker service ps mdconn_mdconn2 --no-trunc
 
 #service details:
 docker service ps --no-trunc webmud3a_web
@@ -38,5 +43,6 @@ https://github.com/socketio/socket.io/issues/2476
 
 Das siegreiche Gnomi redet zu dir: Ich hab 'modprobe ip_vs' gemacht, aber
         das hab ich jetzt in /etc/modules reingeschrieben, so dass es nicht
-        mehr notwendig sein sollte. Ansonsten nur 'systemctl restart
-        docker'
+        mehr notwendig sein sollte. Ansonsten nur 'systemctl restart docker'
+
+failed to update secret: Error response from daemon: rpc error: code = InvalidArgument desc = only updates to Labels are allowed

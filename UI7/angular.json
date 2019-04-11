@@ -3,7 +3,7 @@
   "version": 1,
   "newProjectRoot": "projects",
   "projects": {
-    "UI": {
+    "UI7": {
       "root": "",
       "sourceRoot": "src",
       "projectType": "application",
@@ -13,7 +13,7 @@
         "build": {
           "builder": "@angular-devkit/build-angular:browser",
           "options": {
-            "outputPath": "../dist",
+            "outputPath": "dist/UI7",
             "index": "src/index.html",
             "main": "src/main.ts",
             "polyfills": "src/polyfills.ts",
@@ -25,7 +25,8 @@
             "styles": [
               "src/styles.css"
             ],
-            "scripts": []
+            "scripts": [],
+            "es5BrowserSupport": true
           },
           "configurations": {
             "production": {
@@ -43,25 +44,32 @@
               "aot": true,
               "extractLicenses": true,
               "vendorChunk": false,
-              "buildOptimizer": true
+              "buildOptimizer": true,
+              "budgets": [
+                {
+                  "type": "initial",
+                  "maximumWarning": "2mb",
+                  "maximumError": "5mb"
+                }
+              ]
             }
           }
         },
         "serve": {
           "builder": "@angular-devkit/build-angular:dev-server",
           "options": {
-            "browserTarget": "UI:build"
+            "browserTarget": "UI7:build"
           },
           "configurations": {
             "production": {
-              "browserTarget": "UI:build:production"
+              "browserTarget": "UI7:build:production"
             }
           }
         },
         "extract-i18n": {
           "builder": "@angular-devkit/build-angular:extract-i18n",
           "options": {
-            "browserTarget": "UI:build"
+            "browserTarget": "UI7:build"
           }
         },
         "test": {
@@ -95,19 +103,20 @@
         }
       }
     },
-    "UI-e2e": {
+    "UI7-e2e": {
       "root": "e2e/",
       "projectType": "application",
+      "prefix": "",
       "architect": {
         "e2e": {
           "builder": "@angular-devkit/build-angular:protractor",
           "options": {
             "protractorConfig": "e2e/protractor.conf.js",
-            "devServerTarget": "UI:serve"
+            "devServerTarget": "UI7:serve"
           },
           "configurations": {
             "production": {
-              "devServerTarget": "UI:serve:production"
+              "devServerTarget": "UI7:serve:production"
             }
           }
         },
@@ -123,5 +132,5 @@
       }
     }
   },
-  "defaultProject": "UI"
+  "defaultProject": "UI7"
 }

@@ -1,4 +1,4 @@
-# webmud3 V0.0.25 !!!
+# webmud3 V0.0.26 !!!
 Webmud3: third generation of the UNItopia Webmud as open source project.
 
 In this early stages (Versions < 0.1.0) it's not for production.
@@ -22,6 +22,7 @@ In this early stages (Versions < 0.1.0) it's not for production.
 18. Version 0.0.22/23: Finally get some scrollbars activated for Safari.
 19. Version 0.0.24: GMCP-Ping,GMVP-GoodBye and request more GMCP Modules from MUD (Ongoing)
 20. Version 0.0.25: Bugfixing BlackOnWhite,Colours. Start with non modal windows (Ongoing)
+21. Version 0.0.26: first configruable gmcp module sound (switch off/on)
 
 ## Installation in the Development environment
 ### One time prerequisites:
