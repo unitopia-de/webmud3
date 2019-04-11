@@ -13,15 +13,15 @@
   },
   "dependencies": {
     "body-parser": "^1.18.2",
-    "cors": "^2.8.4",
+    "cors": "^2.8.5",
     "express": "^4.16.4",
-    "socket.io": "^2.0.4",
-    "socket.io-client": "^2.1.1",
+    "socket.io": "^2.2.0",
+    "socket.io-client": "^2.2.0",
     "telnet-stream": "^1.0.4",
     "uuid": "^3.2.1"
   },
   "devDependencies": {
-    "nodemon": "^1.18.4"
+    "nodemon": "^1.18.10"
   },
   "author": "Myonara",
   "license": "MIT"
