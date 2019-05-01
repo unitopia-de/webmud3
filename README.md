@@ -1,5 +1,8 @@
-# webmud3 V0.0.28 !!!
+# webmud3 V0.0.36 !!!
 Webmud3: third generation of the UNItopia Webmud as open source project.
+
+Is up and running o the UNItopia server for testers only.
+Special settings for UNItopia and docker creation in dockerfiles/README.
 
 In this early stages (Versions < 0.1.0) it's not for production.
 See [VERSION_HISTORY.md](VERSIONS_HISTORY.md)
