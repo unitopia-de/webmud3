@@ -7,6 +7,7 @@ import { AnsiData } from '../ansi-data';
 import { WebmudConfig } from '../webmud-config';
 import { ServerConfigService } from '../../shared/server-config.service';
 import { WindowsService } from 'src/app/nonmodal/windows.service';
+import { WindowConfig } from 'src/app/nonmodal/window-config';
 
 @Component({
   selector: 'app-mudclient',
@@ -89,7 +90,13 @@ export class MudclientComponent implements AfterViewChecked,OnInit,OnDestroy {
         case 'ping':
             this.socketService.sendPing(this.mudc_id);
             return;
-        default: return;
+        case 'displayLog':
+            var cfg = new WindowConfig();
+            this.wincfg.newWindow(cfg);
+            return;
+        default: 
+          console.log('unknown menuAction',act);
+          return;
       }
       if (this.blackOnWhite || this.colourInvert) {
         this.stdbg = 'white';this.stdfg = 'black';
@@ -112,6 +119,7 @@ export class MudclientComponent implements AfterViewChecked,OnInit,OnDestroy {
     }
     const other = this;
     const mudOb = {mudname:this.mudName,height:this.mudc_height,width:this.mudc_width}; // TODO options???
+    this.wincfg.setTitle(this.srvcfgService.getWebmudName()+" "+this.mudName);// TODO portal!!!
     if (this.cfg.autoUser != '') {
       mudOb['user'] = this.cfg.autoUser;
       mudOb['token'] = this.cfg.autoToken;

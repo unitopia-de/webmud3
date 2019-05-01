@@ -16,8 +16,14 @@ export class ServerConfigService {
 
 
   getBackend(): string {
-    console.log(this.window);
-    var l_origin = this.window.location.origin;
+    // console.log(this.window);
+    const l_origin = this.window.location.origin;
+    const l_path = this.window.location.pathname;
+    if (l_origin == 'https://www.unitopia.de' && l_path.startsWith('/webmud3/')) {
+      return 'https://www.unitopia.de/mysocket.io/';
+    }
+
+    // console.log('l_origin:',l_origin);
     if (this.originMap.hasOwnProperty(l_origin)) {
       return this.originMap[l_origin];
     }
@@ -29,7 +35,7 @@ export class ServerConfigService {
   }
 
   getWebmudVersion(): string {
-    return "v0.0.26";
+    return "v0.0.36";
   }
 
   getUNItopiaName() : string {

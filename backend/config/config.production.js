@@ -2,7 +2,7 @@ var config = require('./config.global');
 
 config.env = 'production';
 
-config.whitelist = ['https://www.unitopia.de:2018', 'https://www.unitopia.de'];
+config.whitelist = ['https://www.unitopia.de','https://www.unitopia.de/webmud3/'];
 
 config.muds.unitopia = {
     name : 'UNItopia',
@@ -25,5 +25,7 @@ config.muds.orbit = {
     playerlevel : 'wizard,testplayer',
     mudfamily : 'unitopia',
 };
+
+config.tls = false;
 
 module.exports = config;

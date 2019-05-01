@@ -90,6 +90,9 @@ export class MudmenuComponent implements OnInit {
         this.mudmcfg.blackOnWhite = !this.mudmcfg.blackOnWhite;
         this.menuAction.emit('blackOnWhite='+this.mudmcfg.blackOnWhite);
         return;
+      case 'displayLog':
+        this.menuAction.emit('displayLog');
+        return;
       case 'ping':
         this.mudmcfg.startPing = new Date();
         this.mudmcfg.manualPing = true;

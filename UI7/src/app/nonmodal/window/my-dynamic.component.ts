@@ -7,4 +7,8 @@ import { WindowConfig } from '../window-config';
 })
 export class MyDynamicComponent {
   public config :  WindowConfig;
+  constructor() {
+
+  }
+  
 }

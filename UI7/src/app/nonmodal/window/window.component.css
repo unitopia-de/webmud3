@@ -6,4 +6,6 @@
     border-bottom-width: thin;
     background: white;
     display: inline-block;
+    min-width: 10px;
+    min-height: 10px;
 }
