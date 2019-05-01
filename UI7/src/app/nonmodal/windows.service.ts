@@ -2,6 +2,7 @@ import { Injectable, Inject } from '@angular/core';
 import { WindowConfig } from './window-config';
 import { UUID } from 'angular2-uuid';
 import { WINDOW } from '../shared/WINDOW_PROVIDERS';
+import { Title } from '@angular/platform-browser';
 
 @Injectable({
   providedIn: 'root'
@@ -25,6 +26,7 @@ export class WindowsService {
     cfg.windowid = UUID.UUID();
     this.windowsconfigurations.push(cfg);
     this.focus(maxindex,false);
+    console.log("newWindow",maxindex);
   }
 
   private focus(index : number,targetLock : boolean) {
@@ -87,7 +89,10 @@ export class WindowsService {
     }
   }
 
+  public setTitle(tstr) {
+    this.titleService.setTitle(tstr);
+  }
 
 
-  constructor(@Inject(WINDOW) private window:Window) { }
+  constructor(@Inject(WINDOW) private window:Window,private titleService:Title) { }
 }

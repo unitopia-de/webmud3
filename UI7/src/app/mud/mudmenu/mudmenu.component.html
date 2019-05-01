@@ -18,7 +18,10 @@
           <mat-icon *ngIf='!mudmcfg.blackOnWhite'>check_box_outline_blank</mat-icon>
           <span>Schwarz auf Weiss</span>
     </button>
-  </mat-menu>
+    <!-- <button (click)="onClickMenu('displayLog')" mat-menu-item>
+      <span>Log anzeigen</span>
+    </button> -->
+</mat-menu>
   <button class="main-menu" mat-button [matMenuTriggerFor]="gmcpMenuBlock" *ngIf="gmcpFlag">Module</button>
   <mat-menu #gmcpMenuBlock="matMenu">
     <button *ngFor="let gmen of gmcpMenu"(click)="onClickGmcpMenu(gmen)" mat-menu-item>

@@ -64,6 +64,13 @@ export class AnsiService {
       }
       data.ansiPos += 1;
     } else {
+      switch (char) {
+        case '7': // Save current cursor position
+        case '8': // Restore cursor position
+        case 'D': // Scroll Down one Line
+          data.ansiPos += 1;
+          return data;
+        }
       escape += char;
       do {
         data.ansiPos += 1;
@@ -89,6 +96,8 @@ export class AnsiService {
       default:
         console.log('unsupported:<ESC>['+escape);
         break; // no action?
+      case 'r': //  scroll screen
+        break; // no action!
       case 'm': // Change attrinutes / colors
         var codes = escape.substring(0, escape.length - 1).split(';');
         for (var i=0; i < codes.length; i++) {
@@ -225,7 +234,7 @@ export class AnsiService {
     }
     // console.log('processAnsi-1 '+JSON.stringify(data));
     while (data.ansiPos < data.ansi.length) { // <=???
-      var code :number = data.ansi.charCodeAt(data.ansiPos) & 0xff;
+      var code :number = data.ansi.charCodeAt(data.ansiPos); //  & 0xff;
       data.ansiPos += 1;
       var display = true;
       if (code < 33 || code > 126) {

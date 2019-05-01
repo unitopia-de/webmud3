@@ -12,10 +12,10 @@ const app = express();
 const path = require('path');
 const bodyParser = require('body-parser');
 const fs = require('fs');
-const cors = require('cors');
+/* const cors = require('cors');
 var corsOptions = {
     origin: function (origin, callback) {
-        console.log("origin: ",origin);
+        console.log("origin: ["+new Date().toUTCString()+"]: ",origin);
         callback(null, true);
         return;
       if (cfg.whitelist.indexOf(origin) !== -1) {
@@ -24,8 +24,8 @@ var corsOptions = {
         callback(new Error('Not allowed by CORS'))
       }
     }
-  }
-app.use(cors(corsOptions));
+  } */
+// app.use(cors(corsOptions));
 var http;
 var options;
 if (cfg.tls) {
@@ -34,11 +34,12 @@ if (cfg.tls) {
         cert: fs.readFileSync(cfg.tls_cert)
       };
     http = require('https').Server(options,app);
+    console.log("https active");
 } else {
     http = require('http').Server(app);
 }
-const io = require('socket.io')(http);  
-io.set('origins', cfg.whitelist);
+const io = require('socket.io')(http,{'path':'/mysocket.io','transports': ['websocket']});
+// io.set('origins', cfg.whitelist);
 const net = require('net');
 const tls = require("tls");
 const uuidv4 = require('uuid/v4');
@@ -48,19 +49,26 @@ const MudSocket = require("./mudSocket");
 app.use(bodyParser.urlencoded({
     extended: true
 }));
-
+/*
+app.get('/socket.io-client/dist/*', (req,res) => {
+    var mypath = req.path.substr(0);
+    console.log('socket-path',mypath);
+    res.sendFile(path.join(__dirname, 'node_modules'+mypath));
+});
+*/
 app.use(express.static(path.join(__dirname, 'dist')));
 
 app.get('*', (req, res) => {
+    console.log('path:',req.path);
     res.sendFile(path.join(__dirname, 'dist/index.html'));
   });
 
 var MudConnections = {};
 var Socket2Mud = {};
 
-io.on('connection', (socket) => {
+io.of('/').on('connection', (socket) => { // nsp /mysocket.io/ instead of /
 
-    console.log('socket:'+socket.id+' user connected');
+    console.log('socket:'+socket.id+' user connected',socket);
 
     socket.on('disconnect', function () {
         // TODO disconnect all mudclients...
@@ -270,5 +278,5 @@ function myCleanup() {
 }
 
 http.listen(5000, () => {
-    console.log('Server\'backend\' started on port 5000');
+    console.log('Server\'backend\' started on port 5000: '+new Date().toUTCString());
 });

@@ -14,6 +14,8 @@
  * Learn more in https://angular.io/guide/browser-support
  */
 
+(window as any).global = window;
+
 /***************************************************************************************************
  * BROWSER POLYFILLS
  */
@@ -57,7 +59,7 @@ import 'web-animations-js';  // Run `npm install --save web-animations-js`.
  */
 import 'zone.js/dist/zone';  // Included with Angular CLI.
 
-import 'socket.io-client/dist/socket.io';
+/* import 'socket.io-client/dist/socket.io'; */
 
 import 'global-shim';// fix global issue-myonara.
 

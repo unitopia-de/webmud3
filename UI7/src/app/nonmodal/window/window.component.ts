@@ -1,24 +1,55 @@
-import { Component, OnInit, Input, ViewChild, ViewContainerRef, Compiler, ComponentFactory, Type, NgModule, Output, EventEmitter, ComponentRef } from '@angular/core';
+import { Component, OnInit, Input, ViewChild, Output, EventEmitter, ComponentFactoryResolver, OnDestroy, AfterViewInit } from '@angular/core';
 import { MyDynamicComponent } from './my-dynamic.component';
-import { BrowserModule } from '@angular/platform-browser';
-import { FormsModule } from '@angular/forms';
 import { WindowConfig } from '../window-config';
-import { NonmodalModule } from '../nonmodal.module';
+import { WindowsHostDirective } from '../windows-host.directive';
+import { SimpleEditComponent } from '../simpleedit/simpleedit.component';
 
 @Component({
   selector: 'app-window',
   templateUrl: './window.component.html',
   styleUrls: ['./window.component.css',"../../../../node_modules/angular2-draggable/css/resizable.min.css"]
 })
-export class WindowComponent implements OnInit {
+export class WindowComponent implements OnInit, OnDestroy, AfterViewInit {
+  ngOnDestroy(): void {
+    
+  }
+  ngOnInit(): void {
+    // clearInterval(this.interval);
+  }
   @Input('config') config : WindowConfig;
   @Output('menuAction') menuAction= new EventEmitter<string>();
-  @ViewChild('container', {read: ViewContainerRef}) viewContainer: ViewContainerRef;
+  @ViewChild(WindowsHostDirective) winHost : WindowsHostDirective;
+  interval:any;
+
+  ngAfterViewInit() {
+    // this.loadComponent();
+    /*this.interval = setInterval(() => {
+      this.loadComponent();
+    }, 3000);*/
+  }
 
   public lockDrag : boolean = false;
 
+  loadComponent() {
+    var cmp: any;
+    switch (this.config.component) {
+      case 'SimpleEditComponent': cmp = SimpleEditComponent; break;
+      default: console.log("Unknown Component:",this.config.component); return;
+    }
+    if (typeof this.winHost === 'undefined') {
+      console.log("winHost undefined");
+      return;
+    }
+    let componentFactory = this.componentFactoryResolver.resolveComponentFactory(cmp);
+    let viewContainerRef = this.winHost.viewContainerRef;
+    viewContainerRef.clear();
+
+    let componentRef = viewContainerRef.createComponent(componentFactory);
+    (<MyDynamicComponent>componentRef.instance).config = this.config;
+  }
+
   onMenuAction(what) {
-    console.log(this.config.windowid,what);
+    console.log('menuAction',this.config.windowid,what);
     switch (what) {
       case 'lock':
         this.lockDrag = !this.lockDrag;
@@ -38,38 +69,6 @@ export class WindowComponent implements OnInit {
   }
 
 
-	constructor(private compiler: Compiler) {}
+	constructor(private componentFactoryResolver: ComponentFactoryResolver) {}
 
-  ngOnInit() {
-    this.lockDrag = this.config.initalLock || false;
-    var other = this;
-	  this.createComponentFactory(MyDynamicComponent)
-      .then((factory: ComponentFactory<MyDynamicComponent>) => this.viewContainer.createComponent(factory))
-      .then((comp: ComponentRef<MyDynamicComponent>) => comp.instance.config = other.config)
-      .catch((err: any) => console.error(err));
-  }
-
-  private createComponentFactory(componentType: Type<MyDynamicComponent>): Promise<ComponentFactory<MyDynamicComponent>> {
-		let runtimeModule = this.createDynamicModule(componentType);
-		// compile module
-		return this.compiler
-			.compileModuleAndAllComponentsAsync(runtimeModule)
-			// All factories available in this module are returned instead of just the one we are interested in.
-			// We filter the array to just get the factory for this componentType.
-			.then(moduleWithFactories =>
-				moduleWithFactories.componentFactories.find(fact => fact.componentType === componentType));
-	}
-
-  private createDynamicModule(componentType: Type<MyDynamicComponent>): Type<any> {
-		@NgModule({
-			declarations: [
-				
-			],
-			imports: [BrowserModule, FormsModule,NonmodalModule]
-		})
-		class RuntimeComponentModule {
-		}
-		// a module for just this Type
-		return RuntimeComponentModule;
-	}
 }

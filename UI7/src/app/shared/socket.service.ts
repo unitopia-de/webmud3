@@ -25,17 +25,26 @@ export class SocketService {
    private socketConnect() {
      var other = this;
      var url = this.srvcfg.getBackend();
-     other.socket = io(url); 
+     other.logger.add('socket-url: '+url,false);
+     other.socket = io(url, {'path':'/mysocket.io','transports': ['websocket']});
     
     other.socket.on('error', function(error) {
-      console.log('socket:'+other.socket.id+' error:'+error);
+      other.logger.add('socket:'+other.socket.id+' error:'+error,true);
     });
     other.socket.on('disconnecting', function(reason) {
-        console.log('socket:'+other.socket.id+' disconnecting:'+reason);
+      other.logger.add('socket:'+other.socket.id+' disconnecting:'+reason,false);
     });
     other.socket.on('reconnect_attempt', (attemptNumber) => {
-        console.log('socket:'+other.socket.id+' reconnect_attempt:'+attemptNumber);
-        other.socket.disconnect();
+        if (typeof other.socket === 'undefined') {
+          other.logger.add('undefined socket reconnect??',false);
+          return;
+        }
+        other.logger.add('socket:reconnect_attempt:'+attemptNumber,false);
+        if (attemptNumber == 1) { console.log(other.socket); }
+        return;
+        if (typeof other.socket !== 'undefined' && typeof other.socket.id !== 'undefined') {
+          other.socket.disconnect(); 
+        }
         other.socket = undefined;
         other.logger.add('socket disconnected by reconnect.',false);
     });
