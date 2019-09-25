@@ -76,28 +76,32 @@ export class GmcpService {
     this.gmcpconfig.push(gcfg);
     this.add_mudConnAndModule(gcfg.mud_id,gcfg.module_name);
     var other = this;
-    gcfg.callback('add_gmcp_module',gcfg,actual_menu,actual_menu.index,function(chgmenu:string){
-      actual_menu.mud_id = gcfg.mud_id;
-      actual_menu.cfg = gcfg;
-      if (typeof other.gmcpmenus[gcfg.mud_id]==='undefined') {
-        actual_menu.index = 0;
-        other.gmcpmenus[gcfg.mud_id] = [actual_menu];
-        other.gmcpEvE[gcfg.mud_id] = new EventEmitter();
-        let observable = new Observable<GmcpMenu[]>(observer => {
-          observer.next(other.gmcpmenus[gcfg.mud_id]);
-          other.gmcpEvE[gcfg.mud_id].subscribe(gmenu => {
-            console.log('obs',gcfg.mud_id,gmenu);
-            observer.next(gmenu);
+    if (typeof gcfg.callback === 'function') {
+      gcfg.callback('add_gmcp_module',gcfg,actual_menu,actual_menu.index,function(chgmenu:string){
+        actual_menu.mud_id = gcfg.mud_id;
+        actual_menu.cfg = gcfg;
+        if (typeof other.gmcpmenus[gcfg.mud_id]==='undefined') {
+          actual_menu.index = 0;
+          other.gmcpmenus[gcfg.mud_id] = [actual_menu];
+          other.gmcpEvE[gcfg.mud_id] = new EventEmitter();
+          let observable = new Observable<GmcpMenu[]>(observer => {
+            observer.next(other.gmcpmenus[gcfg.mud_id]);
+            other.gmcpEvE[gcfg.mud_id].subscribe(gmenu => {
+              console.log('obs',gcfg.mud_id,gmenu);
+              observer.next(gmenu);
+            });
           });
-        });
-        other.gmcpOb[gcfg.mud_id] = observable;
-      } else {
-        actual_menu.index = other.gmcpmenus[gcfg.mud_id].length;
-        other.gmcpmenus[gcfg.mud_id].push(actual_menu);
-        other.gmcpEvE[gcfg.mud_id].emit(other.gmcpmenus[gcfg.mud_id]);
-        console.log('emit',gcfg.mud_id,other.gmcpmenus[gcfg.mud_id]);
-      }
-    });
+          other.gmcpOb[gcfg.mud_id] = observable;
+        } else {
+          actual_menu.index = other.gmcpmenus[gcfg.mud_id].length;
+          other.gmcpmenus[gcfg.mud_id].push(actual_menu);
+          other.gmcpEvE[gcfg.mud_id].emit(other.gmcpmenus[gcfg.mud_id]);
+          console.log('emit',gcfg.mud_id,other.gmcpmenus[gcfg.mud_id]);
+        }
+      });
+    } else {
+      console.error('gcfg.callback not a function');
+    }
   }
 
   public set_gmcp_support(mud_id:string,gmcp_support:Object,cb_mudSwitchGmcpModule) {

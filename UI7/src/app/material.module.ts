@@ -2,7 +2,7 @@ import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
 import {MatButtonModule,MatCheckboxModule,MatToolbarModule,MatInputModule,MatTabsModule,
-    MatProgressSpinnerModule,MatCardModule,MatMenuModule, MatIconModule} from '@angular/material';
+    MatProgressSpinnerModule,MatCardModule,MatMenuModule, MatIconModule,} from '@angular/material';
 
 
 @NgModule({

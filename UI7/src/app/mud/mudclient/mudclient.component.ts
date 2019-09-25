@@ -8,6 +8,10 @@ import { WebmudConfig } from '../webmud-config';
 import { ServerConfigService } from '../../shared/server-config.service';
 import { WindowsService } from 'src/app/nonmodal/windows.service';
 import { WindowConfig } from 'src/app/nonmodal/window-config';
+import { FilesService } from '../files.service';
+import { FileInfo } from '../file-info';
+import { prepareSyntheticPropertyName } from '@angular/compiler/src/render3/util';
+import { MudListItem } from '../mud-list-item';
 
 @Component({
   selector: 'app-mudclient',
@@ -40,6 +44,7 @@ export class MudclientComponent implements AfterViewChecked,OnInit,OnDestroy {
   private obs_debug;
   private obs_signals;
   private ansiCurrent: AnsiData;
+  private filesWindow: WindowConfig;
   public mudlines : AnsiData[] = [];
   public messages : MudMessage[] = [];
   public inpmessage : string;
@@ -63,6 +68,7 @@ export class MudclientComponent implements AfterViewChecked,OnInit,OnDestroy {
     private ansiService:AnsiService,
     private cdRef:ChangeDetectorRef,
     private wincfg:WindowsService,
+    private filesrv: FilesService,
     private srvcfgService:ServerConfigService) { 
 
     }
@@ -92,6 +98,7 @@ export class MudclientComponent implements AfterViewChecked,OnInit,OnDestroy {
             return;
         case 'displayLog':
             var cfg = new WindowConfig();
+            cfg.wtitle = "logfile";
             this.wincfg.newWindow(cfg);
             return;
         default: 
@@ -140,12 +147,73 @@ export class MudclientComponent implements AfterViewChecked,OnInit,OnDestroy {
             switch (musi.signal) {
               case 'NOECHO-START': other.inpType = 'password'; break;
               case 'NOECHO-END':   other.inpType = 'text'; break;
+              case 'name@mud':
+                if (typeof musi.wizard !== 'undefined') {
+                  this.filesrv.startFilesModule();
+                }
+                break;
               case 'Sound.Play.Once':
                 // console.log("Play: ",musi.playSoundFile);
                 let audio = new Audio();
                 audio.src = musi.playSoundFile;
                 audio.load();
                 audio.play();
+                break;
+              case 'Files.URL':
+                let newfile = this.filesrv.processURL(musi.filepath);
+                if (typeof newfile === 'undefined') {
+                  break;
+                } else if (newfile.alreadyLoaded) {
+                  newfile.save(newfile.content,function(err,data){
+                    if (typeof err !== 'undefined') {
+                      other.wincfg.CancelSave(newfile.windowsId,'Fehler beim Speichern');
+                    } else {
+                      other.wincfg.SaveComplete(newfile.windowsId);
+                    }
+                  })
+                } else {
+                  let filewincfg : WindowConfig = new WindowConfig();
+                  filewincfg.component = 'EditorComponent';
+                  filewincfg.data = newfile;
+                  filewincfg.wtitle = newfile.filename;
+                  newfile.load(function(err,data) {
+                    if (typeof err !== 'undefined') {
+                    } else {
+                      newfile.content = data;
+                      const windowsid = other.wincfg.newWindow(filewincfg);
+                      newfile.relateWindow(windowsid);
+                    }
+                  })
+                  break;
+                }
+              case 'Files.Dir':
+                if (typeof this.filesWindow === 'undefined') {
+                  let newcfg = other.wincfg.findFilesWindow(this.filesWindow,musi);
+                  this.filesWindow = newcfg;
+                  this.filesWindow.outGoingEvents.subscribe((x:string) => {
+                    console.log("filesWindow-actions: ",x);
+                    let xsplit = x.split(':');
+                    switch(xsplit[0]) {
+                      case 'FileOpen':
+                        // Files.OpenFile { "file": "/w/myonara/ed.tmp" }
+                        this.socketService.sendGMCP(_id,"Files","OpenFile",{"file":xsplit[1]+xsplit[2]});
+                        break;
+                      case 'ChangeDir':
+                        if (xsplit[2]=="../") {
+                          this.socketService.sendGMCP(_id,"Files","ChDir",{"dir":xsplit[2]});
+                        } else {
+                          this.socketService.sendGMCP(_id,"Files","ChDir",{"dir":xsplit[1]+xsplit[2]});
+                        }
+                        break;
+                    }
+                  }, err => {
+                    console.log("filesWindow.outGoingEvents-Error: ",err);
+                  }, () => {
+                    console.log("filesWindow.outGoingEvents-complete");
+                  });
+                } else {
+
+                }
                 break;
               case 'Core.Ping':
                 this.togglePing = !this.togglePing;

@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, Input, Output, EventEmitter } from '@angular/core';
 import { WindowConfig } from '../window-config';
 
 @Component({
@@ -7,6 +7,28 @@ import { WindowConfig } from '../window-config';
 })
 export class MyDynamicComponent {
   public config :  WindowConfig;
+  public lastInMsg : string = '';
+  public lastOutMsg : string = '';
+  public lastError : string = '';
+
+  protected incommingMsg(msg : string) {
+
+  }
+
+  protected outgoingMsg(msg : string) {
+    this.lastOutMsg = msg;
+    this.outMsg.emit(msg);
+  }
+  
+  @Input()
+  set inMsg(inMsg: string) {
+    this.lastInMsg = inMsg;
+    this.incommingMsg(inMsg);
+  }
+  get inMsg(): string { return this.lastInMsg; }
+
+  @Output() outMsg = new EventEmitter<string>();
+
   constructor() {
 
   }

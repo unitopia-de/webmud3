@@ -58,6 +58,12 @@ app.get('/socket.io-client/dist/*', (req,res) => {
 */
 app.use(express.static(path.join(__dirname, 'dist')));
 
+app.get("/ace/*", (req,res) => {
+    var mypath = req.path.substr(5);
+    console.log('ace-path',mypath);
+    res.sendFile(path.join(__dirname, 'node_modules/ace-builds/src-min-noconflict/'+mypath));
+});
+
 app.get('*', (req, res) => {
     console.log('path:',req.path);
     res.sendFile(path.join(__dirname, 'dist/index.html'));
@@ -68,7 +74,7 @@ var Socket2Mud = {};
 
 io.of('/').on('connection', (socket) => { // nsp /mysocket.io/ instead of /
 
-    console.log('socket:'+socket.id+' user connected',socket);
+    console.log('socket:'+socket.id+' user connected');
 
     socket.on('disconnect', function () {
         // TODO disconnect all mudclients...

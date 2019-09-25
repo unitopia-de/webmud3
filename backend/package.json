@@ -12,6 +12,7 @@
     "dev": "nodemon server.js"
   },
   "dependencies": {
+    "ace-builds": "^1.4.4",
     "body-parser": "^1.18.2",
     "cors": "^2.8.5",
     "express": "^4.16.4",

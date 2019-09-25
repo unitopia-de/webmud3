@@ -10,6 +10,7 @@ import { MudListItem } from '../mud/mud-list-item';
 import { MudSignals } from '../mud/mud-signals';
 import { ServerConfigService } from './server-config.service';
 import { GmcpService } from '../gmcp/gmcp.service';
+import { GmcpConfig } from '../gmcp/gmcp-config';
 
 @Injectable({
   providedIn: 'root'
@@ -373,8 +374,8 @@ export class SocketService {
           'client':other.srvcfg.getWebmudName(),
           'version':other.srvcfg.getWebmudVersion()});
         other.gmcpsrv.set_gmcp_support(id,gmcp_support,function (_id:string,mod:string,onoff:boolean) {
-            other.mudSwitchGmcpModule(_id,mod,onoff);
-          });
+          other.mudSwitchGmcpModule(_id,mod,onoff);
+        });
           // other.sendGMCP(_id,'Core','Supports.Set',['Char 1','Char.Items 1','Comm 1','Playermap 1','Sound 1']);
         if (typeof other.mudConnections[id].user !== 'undefined') {
           other.sendGMCP(_id,'Char','Login',{
@@ -423,9 +424,20 @@ export class SocketService {
               other.mudConnections[_id]['gmcp-charname'] = data.name;
               other.mudConnections[_id]['gmcp-fullname'] = data.fullname;
               other.mudConnections[_id]['gmcp-gender'] = data.gender;
-              let titleSignal : MudSignals = {
-                signal: 'name@mud',
-                id: data.name + '@' + other.mudConnections[_id]['gmcp-mudname'],
+              let titleSignal : MudSignals;
+              if (typeof data.wizard !== 'undefined' && data.wizard > 0) {
+                other.mudConnections[_id]['gmcp-wizard'] = data.wizard;
+                titleSignal = {
+                  signal: 'name@mud',
+                  id: data.name + '@' + other.mudConnections[_id]['gmcp-mudname'],
+                  wizard: data.wizard,
+                }
+                other.mudSwitchGmcpModule(_id,"Files 1",true);
+              } else {
+                titleSignal = {
+                  signal: 'name@mud',
+                  id: data.name + '@' + other.mudConnections[_id]['gmcp-mudname'],
+                }
               }
               observer.next(titleSignal);
               break;
@@ -452,6 +464,29 @@ export class SocketService {
                 return;
             }
             return;
+          case 'files':
+            switch(msg.toLowerCase().trim()) {
+              case 'url': 
+                let fileSignal : MudSignals = {
+                  signal: 'Files.URL',
+                  id: _id,
+                  filepath: data.url,
+                }
+                observer.next(fileSignal);
+                return;
+              case 'directorylist':
+                other.mudConnections[_id]['dir-current'] = data.path;
+                other.mudConnections[_id]['dir-entries'] = data.entries;
+                let dirSignal : MudSignals = {
+                  signal: 'Files.Dir',
+                  id: _id,
+                  filepath: data.path,
+                  entries: data.entries,
+                }
+                observer.next(dirSignal);
+                console.log('Files.DirectoryList:',data.path);
+                return;
+            }
           default: break;
         }
         console.log('GMCP:',mod,msg,data);

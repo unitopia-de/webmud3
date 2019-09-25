@@ -25,6 +25,7 @@ import { NonmodalModule } from './nonmodal/nonmodal.module';
 import { WindowComponent } from './nonmodal/window/window.component';
 import { CommonModule } from '@angular/common';
 import { MaterialModule } from './material.module';
+import { HttpClientModule } from '@angular/common/http';
 
 @NgModule({
   declarations: [
@@ -37,7 +38,7 @@ import { MaterialModule } from './material.module';
   ],
   imports: [
     BrowserModule,CommonModule,
-    MaterialModule,
+    MaterialModule,HttpClientModule,
     BrowserAnimationsModule,MudModule,
     NonportalModule,
     FormsModule,
