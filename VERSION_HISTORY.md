@@ -20,3 +20,4 @@
 20. Version 0.0.25: Bugfixing BlackOnWhite,Colours. Start with non modal windows (Ongoing)
 21. Version 0.0.26: first configruable gmcp module sound (switch off/on)
 22. Version 0.0.27/28: upgrade UI(angular 6) to UI7 (angular7), testing mdconn Service to connect via pipe to Orbit
+23. Version 0.0.29-0.0.36: Big switch to productive Apache redirection on UNItopia server. 
