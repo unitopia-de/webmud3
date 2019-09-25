@@ -32,6 +32,11 @@ config.mudfamilies = {
                 standard:false,
                 optional:true,
             },
+            Files : {
+                version : '1',
+                standard:false,
+                optional:true,
+            },
         }
     }
 }

@@ -9,6 +9,15 @@
   <link rel="icon" type="image/x-icon" href="favicon.ico">
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
   <!-- <script src="/socket.io-client/dist/socket.io.js"></script> -->
+  <script src="http://localhost:5000/ace/ace.js"></script>
+  <script>
+    console.log("ace",ace.config.get('basePath'));
+    var path = "http://localhost:5000/ace/";
+    ace.config.set('basePath', path);
+    ace.config.set('modePath', path);
+    ace.config.set('themePath', path);
+    ace.config.set('workerPath', path);  
+  </script>
 </head>
 <body>
   <app-root></app-root>

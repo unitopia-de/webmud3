@@ -71,8 +71,18 @@ export class UnitopiaService {
         };
         cb_add_gmcp_module(gmcpcfg);
         return;
+      case 'files':
+      case 'files 1':
+        gmcpcfg.module_name = 'Files';
+        gmcpcfg.version = '1';
+        cb_add_gmcp_module(gmcpcfg);
+        return;
       case 'char':
       case 'char 1':
+          gmcpcfg.module_name = 'Char';
+          gmcpcfg.version = '1';
+          cb_add_gmcp_module(gmcpcfg);
+        return;
       case 'char.items':
       case 'char.items 1':
       case 'comm':
@@ -91,6 +101,12 @@ export class UnitopiaService {
         return;
       case 'char':
       case 'char 1':
+          cb_switch(_id,'Char 1',true);
+          return;
+      case 'files':
+      case 'files 1':
+          cb_switch(_id,'Files 1',true);
+          return;
       case 'char.items':
       case 'char.items 1':
       case 'comm':

@@ -5,15 +5,18 @@ import { BrowserModule } from '@angular/platform-browser';
 import { FormsModule } from '@angular/forms';
 import { MyDynamicComponent } from './window/my-dynamic.component';
 import { SimpleEditComponent } from './simpleedit/simpleedit.component';
-import { WindowsHostDirective } from './windows-host.directive';
+import { EditorComponent } from './editor/editor.component';
+import { AceEditorModule } from 'ng2-ace-editor';
+import { MaterialModule } from '../material.module';
+import { DirlistComponent } from './dirlist/dirlist.component';
 
 @NgModule({
 
   imports: [
-    BrowserModule,FormsModule,
-    CommonModule,AngularDraggableModule,
+    BrowserModule,FormsModule,AceEditorModule,
+    CommonModule,AngularDraggableModule,MaterialModule,
   ],
-  declarations: [MyDynamicComponent, SimpleEditComponent, WindowsHostDirective],
-  entryComponents: [SimpleEditComponent],
+  declarations: [MyDynamicComponent, SimpleEditComponent, EditorComponent, DirlistComponent],
+  entryComponents: [SimpleEditComponent,EditorComponent,DirlistComponent],
 })
 export class NonmodalModule { }

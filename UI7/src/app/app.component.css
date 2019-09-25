@@ -3,6 +3,12 @@
     position: fixed;
     top : 50px;
     left : 50px;
+    z-index: 20;
+    display: block;
+}
+
+md-checkbox.md-checked .md-icon:after, md-checkbox.md-indeterminate .md-icon:after {
+    display: inline-block;
 }
 
 /* width */
