@@ -49,13 +49,13 @@ const MudSocket = require("./mudSocket");
 app.use(bodyParser.urlencoded({
     extended: true
 }));
-/*
+
 app.get('/socket.io-client/dist/*', (req,res) => {
     var mypath = req.path.substr(0);
     console.log('socket-path',mypath);
     res.sendFile(path.join(__dirname, 'node_modules'+mypath));
 });
-*/
+
 app.use(express.static(path.join(__dirname, 'dist')));
 
 app.get("/ace/*", (req,res) => {
@@ -72,7 +72,7 @@ app.get('*', (req, res) => {
 var MudConnections = {};
 var Socket2Mud = {};
 
-io.of('/').on('connection', (socket) => { // nsp /mysocket.io/ instead of /
+io.of('/mysocket.io/').on('connection', (socket) => { // nsp /mysocket.io/ instead of /
 
     console.log('socket:'+socket.id+' user connected');
 

@@ -12,17 +12,17 @@
     "dev": "nodemon server.js"
   },
   "dependencies": {
-    "ace-builds": "^1.4.4",
-    "body-parser": "^1.18.2",
+    "ace-builds": "^1.4.6",
+    "body-parser": "^1.19.0",
     "cors": "^2.8.5",
-    "express": "^4.16.4",
-    "socket.io": "^2.2.0",
-    "socket.io-client": "^2.2.0",
+    "express": "^4.17.1",
+    "socket.io": "^2.3.0",
+    "socket.io-client": "^2.3.0",
     "telnet-stream": "^1.0.4",
-    "uuid": "^3.2.1"
+    "uuid": "^3.3.3"
   },
   "devDependencies": {
-    "nodemon": "^1.18.11"
+    "nodemon": "^1.19.2"
   },
   "author": "Myonara",
   "license": "MIT"

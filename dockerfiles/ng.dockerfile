@@ -17,7 +17,7 @@ RUN apk update && apk upgrade && \
     &&  npm install
 
 # fetch the angular sources and stuff
-COPY ./UI7/ /app/
+COPY ./UI8/ /app/
 
 # ok may be we have to do more with the environment...
 ARG configuration=production
