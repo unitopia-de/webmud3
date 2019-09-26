@@ -1,0 +1,15 @@
+<div class="chat-block" ngx-auto-scroll lock-y-offset="10" observe-attributes>
+  <div class="chat-message" *ngFor="let message of messages">
+    {{message.date| date: 'M/d/yy'}} {{message.date| date: 'h:mm:ss'}}: {{message.text}}
+  </div>
+</div>
+<table>
+  <tr>
+    <td>
+      <input class="chat-input" #chatInput (keyup.enter)="sendMessage()" [(ngModel)]="message" />
+    </td>
+    <td>
+      <button (click)="sendMessage()">Send</button>
+    </td>
+  </tr>
+</table>

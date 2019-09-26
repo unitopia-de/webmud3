@@ -1,0 +1,11 @@
+
+
+.window-nonmodal {
+    border-style: solid;
+    border-color: grey;
+    border-bottom-width: thin;
+    background: white;
+    display: inline-block;
+    min-width: 218px;
+    min-height: 71px;
+}
