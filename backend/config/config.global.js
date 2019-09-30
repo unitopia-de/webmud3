@@ -3,7 +3,14 @@ var config = module.exports = {};
 config.env = 'development';
 
 config.mudfamilies = {
+    basistelnet : {
+        charset: 'ascii',
+        MXP : false,
+        GMCP : false,
+        GMCP_Support: {}
+    },
     unitopia : {
+        charset: 'utf8',
         MXP : true,
         GMCP : true,
         GMCP_Support: {

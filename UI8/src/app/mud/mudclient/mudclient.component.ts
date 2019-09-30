@@ -163,7 +163,7 @@ export class MudclientComponent implements AfterViewChecked,OnInit,OnDestroy {
                 let newfile = this.filesrv.processURL(musi.filepath);
                 if (typeof newfile === 'undefined') {
                   break;
-                } else if (newfile.alreadyLoaded) {
+                } else if (newfile.saveActive) {
                   newfile.save(newfile.content,function(err,data){
                     if (typeof err !== 'undefined') {
                       other.wincfg.CancelSave(newfile.windowsId,'Fehler beim Speichern');

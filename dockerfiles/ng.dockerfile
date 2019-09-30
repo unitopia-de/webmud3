@@ -1,11 +1,11 @@
 # based on node 8, alpine for least resource requirements.
-FROM node:8-alpine AS ng-build-stage
+FROM node:10-alpine AS ng-build-stage
 
 # working dir in build stage
 WORKDIR /app
 
 # fetching packages and...
-COPY UI7/package*.json /app/
+COPY UI8/package*.json /app/
 
 RUN echo https://alpine.mirror.wearetriple.com/v3.5/main > /etc/apk/repositories; \
     echo https://alpine.mirror.wearetriple.com/v3.5/community >> /etc/apk/repositories
@@ -23,10 +23,10 @@ COPY ./UI8/ /app/
 ARG configuration=production
 
 # create the output of the angular app
-RUN ng build --prod --output-path=dist/out
+RUN ng build --output-path=dist/out
 
 # produces the final node.js immage.
-FROM node:8-alpine AS webmud3
+FROM node:10-alpine AS webmud3
 
 # again a working dir...
 WORKDIR /app

@@ -152,6 +152,7 @@ io.of('/mysocket.io/').on('connection', (socket) => { // nsp /mysocket.io/ inste
             return;
         }
         var gmcp_support = undefined;
+        var charset = 'ascii';
         if (mudcfg.hasOwnProperty('mudfamily')) {
             if (cfg.hasOwnProperty('mudfamilies') && typeof cfg.mudfamilies[mudcfg.mudfamily] !== 'undefined') {
                 var fam = cfg.mudfamilies[mudcfg.mudfamily];
@@ -159,6 +160,7 @@ io.of('/mysocket.io/').on('connection', (socket) => { // nsp /mysocket.io/ inste
                     gmcp_support = fam.GMCP_Support;
                     gmcp_support['mudfamily'] = mudcfg.mudfamily;
                 }
+                charset = fam.charset;
             }
         }
         try {
@@ -175,7 +177,7 @@ io.of('/mysocket.io/').on('connection', (socket) => { // nsp /mysocket.io/ inste
                     host:mudcfg.host,
                     port:mudcfg.port});
             }
-            const mudSocket = new MudSocket(tsocket,undefined,{debugflag:true,id:id,gmcp_support:gmcp_support},socket);
+            const mudSocket = new MudSocket(tsocket,undefined,{debugflag:true,id:id,gmcp_support:gmcp_support,charset:charset},socket);
             mudSocket.on("close",function(){
             socket.emit("mud-disconnected",id);
             });
@@ -243,9 +245,12 @@ io.of('/mysocket.io/').on('connection', (socket) => { // nsp /mysocket.io/ inste
         }
         const mudConn = MudConnections[id];
         const mudSocket = mudConn.socket;
-        // const mudOb = mudConn.mudOb;
+        const mudOptions = mudSocket._moptions;
+        // console.log('mudConn: ',mudConn);
+        // console.log('mudSocket: ',mudSocket);
+        // console.log('mudOptions: ',mudOptions);
         if (typeof inpline !== 'undefined' && inpline !== null) {
-            mudSocket.write(inpline.toString('utf8')+"\r");
+            mudSocket.write(inpline.toString(mudOptions.charset)+"\r");
         }
     });
     socket.on('mud-gmcp-outgoing', (id,mod,msg,data) => {

@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { FileInfo } from './file-info';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 
 @Injectable({
   providedIn: 'root'
@@ -61,21 +61,21 @@ export class FilesService {
       other.filemap[filepath] = fileinfo;
     };
     fileinfo.load = function(cb) {
-        other.http.get<string>(url).subscribe((value:string) => {
+        other.http.get(url,{ responseType: 'text'}).subscribe((value:string) => {
           console.log("File loaded: ",filepath);
-          cb(null,value);
+          cb(undefined,value);
         },(err:any) => {
           console.log("File load failed: ",filepath,err);
-          cb (err,null);
+          cb (err,undefined);
         });
       };
     fileinfo.save = function(txt,cb) {
-        other.http.put<string>(url,txt).subscribe((value:string) => {
+        other.http.put(url,txt,{ responseType: 'text'}).subscribe((value:string) => {
           console.log("File saved: ",filepath);
-          cb(null,value);
+          cb(undefined,value);
         },(err:any) => {
           console.log("File save failed: ",filepath,err);
-          cb (err,null);
+          cb (err,undefined);
         });
     };
     return fileinfo;

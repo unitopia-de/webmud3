@@ -15,4 +15,12 @@ export class SimpleEditComponent extends MyDynamicComponent implements OnInit {
   ngOnInit() {
   }
 
+  editKey() {
+
+  }
+
+  scrollEdit() {
+    
+  }
+
 }

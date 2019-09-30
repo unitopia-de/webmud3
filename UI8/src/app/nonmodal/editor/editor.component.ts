@@ -7,8 +7,7 @@ import { FileInfo } from 'src/app/mud/file-info';
   templateUrl: './editor.component.html',
   styleUrls: ['./editor.component.css']
 })
-export class EditorComponent extends MyDynamicComponent implements OnInit {
-
+export class EditorComponent extends MyDynamicComponent implements AfterViewInit {
   @ViewChild('editor', {static: false}) editor;
   public text : string = "";
   private fileinfo : FileInfo;
@@ -54,19 +53,23 @@ export class EditorComponent extends MyDynamicComponent implements OnInit {
 
   ngOnInit() {
     this.fileinfo = <FileInfo>this.config.data;
-    var emode = "text";
+    
     if (typeof this.fileinfo !== 'undefined') {
       this.text = this.fileinfo.content;
-      emode = this.fileinfo.filetype;
       // this.editor.getEditor().setValue()
   } else {
       this.text = 'Test-Log\nZeile2\n3';
     }
-
+  }
+  ngAfterViewInit(){
+    var emode = "text";
+    if (typeof this.fileinfo !== 'undefined') {
+        emode = this.fileinfo.filetype;
+    }
     this.editor.setTheme("eclipse");
 
     this.editor.getEditor().setOptions({
         mode : emode,
     });
-  }
+}
 }

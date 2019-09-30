@@ -35,7 +35,7 @@ export class ServerConfigService {
   }
 
   getWebmudVersion(): string {
-    return "v0.0.36";
+    return "v0.0.37";
   }
 
   getUNItopiaName() : string {
@@ -44,6 +44,10 @@ export class ServerConfigService {
 
   getOrbitName():string {
     return 'orbit';
+  }
+
+  getUni1993Name():string {
+    return 'uni1993';
   }
 
   getBrowserInfo():Object {

@@ -26,6 +26,17 @@ config.muds.orbit = {
     mudfamily : 'unitopia',
 };
 
+config.muds.uni1993 = {
+    name : 'Uni1993',
+    host : 'unitopia.de',
+    port : 1993, 
+    ssl  : false,
+    rejectUnauthorized: true,
+    description: 'Unitopia 1993',
+    playerlevel : 'all',
+    mudfamily : 'basistelnet',
+};
+
 config.tls = false;
 
 module.exports = config;

@@ -1,7 +1,7 @@
 <div #mudMenu><app-mudmenu [connected]="connected" [portalLogin]="true" [togglePing]="togglePing" [mud_id]="mudc_id" (menuAction)="menuAction($event)"></app-mudmenu></div>
 <div class='mud-heigth'>
 <div class="above-scroller" *ngIf='sizeCalculated2' #scroller (scroll)="scroll()" [style.width.px]='ref_width'>
-    <div class="scroller" [style.min-width.px]='mudBlock.scrollWidth'></div>
+    <div class="scroller" [style.min-width.px]='mudBlock.nativeElement.scrollWidth'></div>
 </div>
 <div class="mud-test" #mudTest *ngIf='!sizeCalculated'>
   12345678901234567890123456789012345678901234567890123456789012345678901234567890<br/>
