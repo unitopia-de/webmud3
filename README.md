@@ -1,31 +1,21 @@
-# webmud3 V0.0.37 !!!
+# webmud3 V0.0.40 !!!
 Webmud3: third generation of the UNItopia Webmud as open source project.
 
 Is up and running o the UNItopia server for testers only.
-Special settings for UNItopia and docker creation in dockerfiles/README.
 
-In this early stages (Versions < 0.1.0) it's not for production.
-See [VERSION_HISTORY.md](VERSIONS_HISTORY.md)
+With version 0.0.40 there are three dockerfiles for creating docker images,
+two of them are reserved for unitopia purposes (see dockerfiles/README).
 
-## Installation in the Development environment
-### One time prerequisites:
-1. Install node.js together with npm: https://nodejs.org/en/download/
-2. Install angular-cli:> `npm install angular-cli -g`
-3. Install nodemon:> `npm install nodemon -g`
-4. download webmud3 and extract to a working directory.
+For own testing please use the following docker command to create the docker image:
+docker build -f dockerfiles/ng-local.dockerfile -t myonara/webmud3:local .
 
-### Preparing backend
-1. change directory to backend directory
-2. execute:> `npm install`
-3. open a shell and execute `nodemon server.js`
+For standalone execution:
+docker run -d -p 5000:5000 --name webmud3test myonara/webmud3:local
 
-The server is now running in the background and is listening on 5000.
+Prior to Version V0.0.40 there was a possiblity yto manually edit the files and 
+load it outside docker. 
 
-### Preparing UI
-1. change directory to UI directory
-2. `npm install`
-3. `ng serve --open`
-4. the default browser will open on localhost:4200/webmud3... Have fun.
+Hint: Currently is the local docker image not working, will be fixed soon.
 
 ### Retrieving docker image:
 1. The docker images are available at https://hub.docker.com/r/myonara/webmud3/
