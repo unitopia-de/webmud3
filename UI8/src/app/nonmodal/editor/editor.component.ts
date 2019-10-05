@@ -26,8 +26,13 @@ export class EditorComponent extends MyDynamicComponent implements AfterViewInit
     this.editor.getEditor().resize()
   }
 
+  protected outgoingMsg(msg:string) {
+    super.outgoingMsg(msg);
+  }
+
   protected incommingMsg(msg : string) {
     var msgSplit = msg.split(":");
+    var other = this;
     switch (msgSplit[0]) {
       case 'resize':
         if (msgSplit.length == 3) {
@@ -36,11 +41,11 @@ export class EditorComponent extends MyDynamicComponent implements AfterViewInit
         }
       case 'save':
         this.fileinfo.save(this.text,function(err,data){
-          if (err !== null) {
+          if (err !== undefined) {
             console.error("EditorComponent:Save:Failed",err);
-            this.OutgoingMessage('error:Speichern fehlgeschlagen');
+            other.outgoingMsg('error:Speichern fehlgeschlagen');
           } else {
-            this.OutgoingMessage('saved');
+            other.outgoingMsg('saved');
           }
         })
         return;

@@ -40,6 +40,7 @@ export class FilesService {
         case '.h':
         case '.inc':
           filetype = 'c_cpp';
+          console.log("filetype:",filetype);
       }
     }
     if (this.filemap.hasOwnProperty(filepath)) {

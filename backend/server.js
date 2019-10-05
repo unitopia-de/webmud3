@@ -38,7 +38,7 @@ if (cfg.tls) {
 } else {
     http = require('http').Server(app);
 }
-const io = require('socket.io')(http,{'path':'/mysocket.io','transports': ['websocket']});
+const io = require('socket.io')(http,{'path':'%%MYSOCKETPATH%%','transports': ['websocket']});
 // io.set('origins', cfg.whitelist);
 const net = require('net');
 const tls = require("tls");
@@ -72,7 +72,7 @@ app.get('*', (req, res) => {
 var MudConnections = {};
 var Socket2Mud = {};
 
-io.of('/mysocket.io/').on('connection', (socket) => { // nsp /mysocket.io/ instead of /
+io.of('%%MYSOCKET%%').on('connection', (socket) => { // nsp /mysocket.io/ instead of /
 
     console.log('socket:'+socket.id+' user connected');
 
@@ -177,7 +177,7 @@ io.of('/mysocket.io/').on('connection', (socket) => { // nsp /mysocket.io/ inste
                     host:mudcfg.host,
                     port:mudcfg.port});
             }
-            const mudSocket = new MudSocket(tsocket,undefined,{debugflag:true,id:id,gmcp_support:gmcp_support,charset:charset},socket);
+            const mudSocket = new MudSocket(tsocket,{bufferSize:65536},{debugflag:true,id:id,gmcp_support:gmcp_support,charset:charset},socket);
             mudSocket.on("close",function(){
             socket.emit("mud-disconnected",id);
             });
@@ -250,7 +250,7 @@ io.of('/mysocket.io/').on('connection', (socket) => { // nsp /mysocket.io/ inste
         // console.log('mudSocket: ',mudSocket);
         // console.log('mudOptions: ',mudOptions);
         if (typeof inpline !== 'undefined' && inpline !== null) {
-            mudSocket.write(inpline.toString(mudOptions.charset)+"\r");
+            mudSocket.write(inpline.toString(mudOptions.charset)+"\r\n");
         }
     });
     socket.on('mud-gmcp-outgoing', (id,mod,msg,data) => {

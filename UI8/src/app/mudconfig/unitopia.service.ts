@@ -46,7 +46,7 @@ export class UnitopiaService {
         this.toggleSound(gcfg,gmen,_cb);
         return;
       case 'add_gmcp_module':
-        console.log("unitopia.service.menuAction: ",action,gcfg,gmen,index);
+        // console.log("unitopia.service.menuAction: ",action,gcfg,gmen,index);
         _cb(action);
         return;
       default:

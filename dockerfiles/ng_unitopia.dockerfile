@@ -19,11 +19,15 @@ RUN apk update && apk upgrade && \
 # fetch the angular sources and stuff
 COPY ./UI8/ /app/
 
+# exchange webmud3 in baseref webmud3\UI8\src\index.html
+RUN sed -i 's-%%BASEREF%%-/webmud3/-' /app/src/index.html
+RUN sed -i 's-%%ACEREF%%-https://www.unitopia.de/webmud3/ace/-' /app/src/index.html
+
 # ok may be we have to do more with the environment...
 ARG configuration=production
 
 # create the output of the angular app
-RUN ng build --output-path=dist/out
+RUN ng build --prod --output-path=dist/out
 
 # produces the final node.js immage.
 FROM node:10-alpine AS webmud3
@@ -33,6 +37,10 @@ WORKDIR /app
 
 # fetch the backend source files...
 COPY ./backend/ /app/
+
+# exchange mysocket.io
+RUN sed -i 's=%%MYSOCKETPATH%%=/mysocket.io=' /app/server.js
+RUN sed -i 's=%%MYSOCKET%%=/mysocket.io/=' /app/server.js
 
 #fetch the angular distribution for serving from node.js
 COPY --from=ng-build-stage /app/dist/out/ /app/dist/

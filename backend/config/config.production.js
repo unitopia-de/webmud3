@@ -31,7 +31,7 @@ config.muds.uni1993 = {
     host : 'unitopia.de',
     port : 1993, 
     ssl  : false,
-    rejectUnauthorized: true,
+    rejectUnauthorized: false,
     description: 'Unitopia 1993',
     playerlevel : 'all',
     mudfamily : 'basistelnet',

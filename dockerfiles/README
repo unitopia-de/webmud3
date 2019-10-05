@@ -1,12 +1,16 @@
 # Anpassungen für UNItopia:
 index.html: <base href="/webmud3/">
 server.js: i.of(nsp) : nsp /mysocket.io/ instead of /
+webmud3\UI8\src\app\shared\server-config.service.ts :mysocket.io
 
 # Version anpassen: 
 #  server-config.service.ts
 
 #   im .. folgendes ausfuehren (ggf Version anpassen)
-docker build -f dockerfiles/ng.dockerfile -t myonara/webmud3:v0.0.38 .
+docker build -f dockerfiles/ng.dockerfile -t myonara/webmud3:local .
+docker build -f dockerfiles/ng_unitopia.dockerfile -t myonara/webmud3:unitopia .
+docker build -f dockerfiles/ng_unitopia_test.dockerfile -t myonara/webmud3:unitopiatest .
+
 docker build -f dockerfiles/mdconn.dockerfile -t myonara/mdconn:v0.0.17 .
 
 #   test als standalone container
@@ -16,6 +20,9 @@ docker run -d -p 50000:80 --name helloplain -P nginxdemos/hello:plain-text
 
 #   ebenso nach einem swarm init:
 docker stack deploy -c dockerfiles/w3_docker_compose.yml webmud3a
+docker stack deploy -c dockerfiles/w3_docker_compose_test.yml webmud3atest
+
+
 docker stack deploy -c dockerfiles/w3_docker_compose_secret.yml webmud3a
 docker stack deploy -c dockerfiles/w3_docker_compose_with_apache.yml webmud3a
 

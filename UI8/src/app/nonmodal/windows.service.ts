@@ -9,21 +9,58 @@ import { Observable } from 'rxjs';
   providedIn: 'root'
 })
 export class WindowsService {
+
+
+  /**
+   * propaget windows size...
+   *
+   * @param {number} innerHeight
+   * @param {number} innerWidth
+   * @returns {*}
+   * @memberof WindowsService
+   */
   setWindowsSize(innerHeight: number, innerWidth: number): any {
     // TODO propagate resizing...
   }
   public windowsconfigurations :WindowConfig[] = [];
   private wincfgIndex = {};
   private cmdQueue = new EventEmitter<string>();
-
+/**
+ * view port height
+ *
+ * @returns {number}
+ * @memberof WindowsService
+ */
   getViewPortHeight():number {
     return this.window.innerHeight;
   }
+
+
+  /**
+   * view port width.
+   *
+   * @returns {number}
+   * @memberof WindowsService
+   */
   getViewPortWidth():number {
     return this.window.innerWidth;
   }
-
-  public newWindow(cfg : WindowConfig) : string {
+/**
+ *  close all windows e.g. on disconnect.
+ *
+ * @memberof WindowsService
+ */
+public closeAllWindows() {
+    this.windowsconfigurations = [];
+  }
+/**
+ * create a new window.
+ *
+ * @param {WindowConfig} cfg  window configuration
+ * @returns {string}  the unqiue window id.
+ * @memberof WindowsService
+ */
+public newWindow(cfg : WindowConfig) : string {
     const maxindex = this.windowsconfigurations.length;
     cfg.windowid = UUID.UUID();
     cfg.visible = true;
@@ -32,9 +69,17 @@ export class WindowsService {
     console.log("newWindow",maxindex);
     return cfg.windowid;
   }
-
-  public findFilesWindow(cfg : WindowConfig,data:Object) : WindowConfig {
-    if (typeof cfg === 'undefined') {
+/**
+ *  open or connect to directory window.
+ *
+ * @param {WindowConfig} cfg  window configuration
+ * @param {Object} data  data to process
+ * @param {number} offsetwidth  initial offset
+ * @returns {WindowConfig}  new or changed window configuration
+ * @memberof WindowsService
+ */
+public findFilesWindow(cfg : WindowConfig,data:Object) : WindowConfig {
+    if (typeof cfg === 'undefined' || cfg.visible == false) {
       cfg = new WindowConfig();
       cfg.component = "DirlistComponent";
       cfg.save = false;
@@ -44,9 +89,10 @@ export class WindowsService {
     } else {
       cfg.data = data;
     }
-    cfg.dontCancel = true;
+    cfg.dontCancel = false;
     cfg.visible = true;
     this.cmdQueue.emit(cfg.windowid+":updateDir");
+    console.log('findFilesWindow: ',data);
     return cfg;
   }
 
@@ -88,15 +134,21 @@ export class WindowsService {
       this.wincfgIndex[id] = j;
     }
   } 
-
-  public OnMenuAction(event:string) {
+/**
+ * pass the menu event to the winndow services... 
+ *
+ * @param {string} event  windowid : action
+ * @returns
+ * @memberof WindowsService
+ */
+public OnMenuAction(event:string) {
     var esp : string[] = event.split(":");
     if (esp.length<2 || typeof this.wincfgIndex[esp[0]] === 'undefined') {
       console.log('windowsService:OnMenuAction-Unknown Event: ',event);
       return;
     }
     const index = this.wincfgIndex[esp[0]];
-    // let wincfg = this.windowsconfigurations[index];
+    let wincfg = this.windowsconfigurations[index];
     switch(esp[1]) {
       case 'lock':
         this.focus(index,true);
@@ -115,8 +167,13 @@ export class WindowsService {
         return;
     }
   }
-  
-  public getDownStream() {
+  /**
+   * returns an observable on the cmdQueue.
+   *
+   * @returns  an observable on the cmdQueue.
+   * @memberof WindowsService
+   */
+  public getDownStream() : Observable<string>{
     var other = this;
     return new Observable<string>(observer => {
       other.cmdQueue.subscribe(
@@ -126,15 +183,34 @@ export class WindowsService {
     })
   }
     
-
-  public CancelSave(winid:string,reason:string) {
+/**
+ * convert cancelSave to cmdqueue
+ *
+ * @param {string} winid  unique windows id
+ * @param {string} reason  reason why save has failed.
+ * @memberof WindowsService
+ */
+public CancelSave(winid:string,reason:string) {
     this.cmdQueue.emit(winid+":CancelSave:"+reason);
   }
+
+  /**
+   *  indicate, that save was completed.
+   *
+   * @param {string} winid    the unique windows id
+   * @memberof WindowsService
+   */
   public SaveComplete(winid:string) {
     this.cmdQueue.emit(winid+":saved");
   }
 
-  public setTitle(tstr:string) {
+/**
+ *  set the tab title of this window.
+ *
+ * @param {string} tstr  title to set.
+ * @memberof WindowsService
+ */
+public setTitle(tstr:string) {
     this.titleService.setTitle(tstr.substr(0,1).toUpperCase()+tstr.substr(1));
   }
 

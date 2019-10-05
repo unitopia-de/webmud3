@@ -26,8 +26,10 @@ export class SocketService {
    private socketConnect() {
      var other = this;
      var url = this.srvcfg.getBackend();
+     var nsp = this.srvcfg.getSocketNamespace();
      other.logger.add('socket-url: '+url,false);
-     other.socket = io(url, {'path':'/mysocket.io','transports': ['websocket']});
+     other.logger.add('socket-nsp: '+nsp,false);
+     other.socket = io(url, {'path':nsp,'transports': ['websocket']});
     
     other.socket.on('error', function(error) {
       other.logger.add('socket:'+other.socket.id+' error:'+error,true);
@@ -93,8 +95,15 @@ export class SocketService {
     }
   }
   
-  // send a chat message to the server, connected with a name.
-  public sendChatMessage(message:string,name : string = '') {
+  /**
+   * sending some chatmessage. (untested)
+   *
+   * @param {string} message  the message itself
+   * @param {string} [name='']   the alternate name, current_name otherwise
+   * @returns nothing.
+   * @memberof SocketService
+   */
+    public sendChatMessage(message:string,name : string = '') {
     let cname : string = name;
     if (typeof message ==='undefined' || message.trim()=='') {
       return;
@@ -107,7 +116,13 @@ export class SocketService {
     this.logger.add('sendChatMessage:'+message,false);
   }
 
-  // get an observable for one new message.
+  
+  /**
+   * get an observable for one new message
+   *
+   * @returns {Observable<ChatMessage>}
+   * @memberof SocketService
+   */
   public getChatMessages() : Observable<ChatMessage> {
     let other = this;
     let observable = new Observable<ChatMessage>(observer => {
@@ -129,8 +144,13 @@ export class SocketService {
     }); // observable
     return observable;
   }
-
-  public mudList() : Observable<MudListItem[]> {
+/**
+ * return an observable list of available muds.
+ *
+ * @returns {Observable<MudListItem[]>}
+ * @memberof SocketService
+ */
+public mudList() : Observable<MudListItem[]> {
     let other = this;
     let observable = new Observable<MudListItem[]>(observer => {
       if (other.socket === undefined) {
@@ -168,8 +188,14 @@ export class SocketService {
     });
     return observable;
   }
-
-  public mudConnect(mudOb : any) : Observable<string> {
+/**
+ * Initialization/connecting the mud according to the mudob, called by the mudclient component.
+ *
+ * @param {*} mudOb the mud cofniguration object
+ * @returns {Observable<string>}
+ * @memberof SocketService
+ */
+public mudConnect(mudOb : any) : Observable<string> {
     let other = this;
     let observable = new Observable<string>(observer => {
       if (other.socket === undefined) {
@@ -208,7 +234,7 @@ export class SocketService {
       });
       other.socket.on('mud-disconnected', function(id) {
         if (typeof other.mudConnections[id] === 'undefined') {
-          console.log(id);
+          console.log('mud-disconnected:',id);
           observer.next(null);
           return;
         }
@@ -237,14 +263,28 @@ export class SocketService {
     return observable;
   } // mudConnect
 
-  
+  /**
+   * Communicate the window size to mud.
+   *
+   * @param {string} _id  mud connection id.
+   * @param {number} height height of window in character
+   * @param {number} width  width of window in character
+   * @returns
+   * @memberof SocketService
+   */
   public setMudOutputSize(_id : string,height:number,width : number) {
     if (this.socket === undefined) {
       return;
     }
     this.socket.emit('mud-window-size',_id,height,width);
   }
-  
+  /**
+   * disconnect on command. (not called yet)
+   *
+   * @param {string} _id  mudconnection id.
+   * @returns {Observable<string>}
+   * @memberof SocketService
+   */
   public mudDisconnect(_id : string) : Observable<string> {
     let other = this;
     let observable = new Observable<string>(observer => {
@@ -274,8 +314,14 @@ export class SocketService {
     });
     return observable;
   }
-
-  public mudConnectStatus(_id:string) : Observable<boolean> {
+/**
+ * returns the current status(observer of it)
+ *
+ * @param {string} _id  mud connection id
+ * @returns {Observable<boolean>}
+ * @memberof SocketService
+ */
+public mudConnectStatus(_id:string) : Observable<boolean> {
     let other = this;
     let observable = new Observable<boolean>(observer => {
       if (typeof other.mudConnections[_id] !== 'undefined') {
@@ -284,8 +330,17 @@ export class SocketService {
     });
     return observable;
   }
-
-  public sendGMCP(id:string,mod:string,msg:string,data:any) {
+/**
+ * sending a gmcp packet
+ *
+ * @param {string} id  mud connection id,
+ * @param {string} mod module descriptor
+ * @param {string} msg the message itself
+ * @param {*} data additional data structure.
+ * @returns nothing.
+ * @memberof SocketService
+ */
+public sendGMCP(id:string,mod:string,msg:string,data:any) {
     if (typeof this.mudConnections[id] === 'undefined') {
       console.log('failed[GMCP_Send_packet].mudconn='+id);
       return;
@@ -300,8 +355,14 @@ export class SocketService {
     this.sendGMCP(_id,'Core','Ping','');
   }
 
-
-  public mudReceiveData(_id: string) : Observable<string> {
+/**
+ * receiving data from mud via observer.
+ *
+ * @param {string} _id  mud connection id.
+ * @returns {Observable<string>}  output strings...
+ * @memberof SocketService
+ */
+public mudReceiveData(_id: string) : Observable<string> {
     let other = this;
     let observable = new Observable<string>(observer => {
       if (other.socket === undefined) {
@@ -343,8 +404,14 @@ export class SocketService {
     }); // observable
     return observable;
   } // mudReceiveData
-
-  public mudReceiveSignals(_id: string) : Observable<MudSignals> {
+/**
+ * receive signals (oberver)
+ *
+ * @param {string} _id  mud connection id
+ * @returns {Observable<MudSignals>} observer on signals...
+ * @memberof SocketService
+ */
+public mudReceiveSignals(_id: string) : Observable<MudSignals> {
     let other = this;
     let observable = new Observable<MudSignals>(observer => {
       if (other.socket === undefined) {
@@ -494,8 +561,14 @@ export class SocketService {
     });
     return observable;
   }
-
-  public mudReceiveDebug(_id: string) : Observable<DebugData> {
+/**
+ * receive debug data from mud as observable.
+ *
+ * @param {string} _id  mud connection id.
+ * @returns {Observable<DebugData>} the DebugData observer
+ * @memberof SocketService
+ */
+public mudReceiveDebug(_id: string) : Observable<DebugData> {
     let other = this;
     let observable = new Observable<DebugData>(observer => {
       if (other.socket === undefined) {
@@ -542,8 +615,15 @@ export class SocketService {
     }
     this.socket.emit('mud-input',_id,data);
   }
-
-  public mudSwitchGmcpModule(_id:string,mod:string,onoff:boolean) {
+/**
+ * switchgmcp module on or off.
+ *
+ * @param {string} _id  mud connection id.
+ * @param {string} mod  module
+ * @param {boolean} onoff  true on false off.
+ * @memberof SocketService
+ */
+public mudSwitchGmcpModule(_id:string,mod:string,onoff:boolean) {
     if (onoff) {
       this.sendGMCP(_id,'Core','Supports.Add',[mod]);
     } else {
@@ -551,8 +631,6 @@ export class SocketService {
     }
   }
 
-  // TODO GCMP send/receive
-  // TODO ANSI-Handling als pipe?
   constructor(
     private logger : LoggerService,
     private srvcfg:ServerConfigService,
