@@ -83,6 +83,7 @@ export class MudclientComponent implements AfterViewChecked,OnInit,OnDestroy {
             } 
             return;
         case 'disconnect':
+            this.wincfg.closeAllWindows();
             this.mudName = 'disconnect';
             this.connect();
             return;
@@ -163,7 +164,7 @@ export class MudclientComponent implements AfterViewChecked,OnInit,OnDestroy {
                 let newfile = this.filesrv.processURL(musi.filepath);
                 if (typeof newfile === 'undefined') {
                   break;
-                } else if (newfile.alreadyLoaded) {
+                } else if (newfile.saveActive) {
                   newfile.save(newfile.content,function(err,data){
                     if (typeof err !== 'undefined') {
                       other.wincfg.CancelSave(newfile.windowsId,'Fehler beim Speichern');
@@ -180,6 +181,7 @@ export class MudclientComponent implements AfterViewChecked,OnInit,OnDestroy {
                     if (typeof err !== 'undefined') {
                     } else {
                       newfile.content = data;
+                      filewincfg.save = true;
                       const windowsid = other.wincfg.newWindow(filewincfg);
                       newfile.relateWindow(windowsid);
                     }
@@ -187,33 +189,32 @@ export class MudclientComponent implements AfterViewChecked,OnInit,OnDestroy {
                   break;
                 }
               case 'Files.Dir':
-                if (typeof this.filesWindow === 'undefined') {
+                  let nooldcfg = (typeof this.filesWindow === 'undefined');
                   let newcfg = other.wincfg.findFilesWindow(this.filesWindow,musi);
                   this.filesWindow = newcfg;
-                  this.filesWindow.outGoingEvents.subscribe((x:string) => {
-                    console.log("filesWindow-actions: ",x);
-                    let xsplit = x.split(':');
-                    switch(xsplit[0]) {
-                      case 'FileOpen':
-                        // Files.OpenFile { "file": "/w/myonara/ed.tmp" }
-                        this.socketService.sendGMCP(_id,"Files","OpenFile",{"file":xsplit[1]+xsplit[2]});
-                        break;
-                      case 'ChangeDir':
-                        if (xsplit[2]=="../") {
-                          this.socketService.sendGMCP(_id,"Files","ChDir",{"dir":xsplit[2]});
-                        } else {
-                          this.socketService.sendGMCP(_id,"Files","ChDir",{"dir":xsplit[1]+xsplit[2]});
-                        }
-                        break;
-                    }
-                  }, err => {
-                    console.log("filesWindow.outGoingEvents-Error: ",err);
-                  }, () => {
-                    console.log("filesWindow.outGoingEvents-complete");
-                  });
-                } else {
-
-                }
+                  if (nooldcfg) {
+                    this.filesWindow.outGoingEvents.subscribe((x:string) => {
+                      console.log("filesWindow-actions: ",x);
+                      let xsplit = x.split(':');
+                      switch(xsplit[0]) {
+                        case 'FileOpen':
+                          // Files.OpenFile { "file": "/w/myonara/ed.tmp" }
+                          this.socketService.sendGMCP(_id,"Files","OpenFile",{"file":xsplit[1]+xsplit[2]});
+                          break;
+                        case 'ChangeDir':
+                          if (xsplit[2]=="../") {
+                            this.socketService.sendGMCP(_id,"Files","ChDir",{"dir":xsplit[2]});
+                          } else {
+                            this.socketService.sendGMCP(_id,"Files","ChDir",{"dir":xsplit[1]+xsplit[2]});
+                          }
+                          break;
+                      }
+                    }, err => {
+                      console.log("filesWindow.outGoingEvents-Error: ",err);
+                    }, () => {
+                      console.log("filesWindow.outGoingEvents-complete");
+                    });
+                  }
                 break;
               case 'Core.Ping':
                 this.togglePing = !this.togglePing;

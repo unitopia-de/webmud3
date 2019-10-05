@@ -27,18 +27,20 @@ export class DirlistComponent extends MyDynamicComponent implements OnInit {
      }
     this.path = this.musi.filepath;
     this.entries = this.musi.entries;
-    console.log('updateDirList:',this.entries);
+    console.log('updateDirList:',this.path);
    }
 
    protected incommingMsg(msg : string) {
     var msgSplit = msg.split(":");
     switch(msgSplit[0]) {
+      case "resize": return;
       case "updateDir":
         this.updateDirList();
-        break;
+        return;
       default:
         break;
     }
+    console.log('dirlist-msg: ',msg);
   }
 
   fileOpen(file:string) {

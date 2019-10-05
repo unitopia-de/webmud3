@@ -9,3 +9,7 @@
     min-width: 218px;
     min-height: 71px;
 }
+
+.tool-bar {
+    cursor: pointer;
+}

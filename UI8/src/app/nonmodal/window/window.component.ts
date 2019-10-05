@@ -33,6 +33,7 @@ export class WindowComponent implements AfterViewInit {
     this.loadComponent();
   }
   loadComponent() {
+    let self = this;
     var cmp: any;
     if (typeof this.windowsHost === 'undefined') {
       console.error("windowsHost undefined");
@@ -52,24 +53,24 @@ export class WindowComponent implements AfterViewInit {
     this.cri.config = this.config;
     this.cri.outMsg.subscribe((x:string) => {
       console.log("outMsg: ",x);
-      this.config.outGoingEvents.emit(x);
+      self.config.outGoingEvents.emit(x);
     }, err => {
       console.log("outMsg-Error: ",err);
-      this.config.outGoingEvents.error(err);
+      self.config.outGoingEvents.error(err);
     }, () => {
       console.log("outMsg-complete");
-      this.config.outGoingEvents.complete();
+      self.config.outGoingEvents.complete();
     });
-    let self = this;
     this.winsrv.getDownStream().subscribe((x:string)=>{
       let exp = x.split(":");
-      if (exp[0] == this.config.windowid) {
+      console.log("DownStream: ",x);
+      if (exp[0] == self.config.windowid) {
         self.cri.inMsg = exp.slice(1).join(":");
       }
     },(err:any)=>{
-      // console.log("DownStream-error: ",err)
+      console.log("DownStream-error: ",err)
     },()=>{
-      // console.log("downStream -complete");
+      console.log("DownStream-complete");
     })
     this.cdRef.detectChanges();
   }
@@ -86,6 +87,7 @@ export class WindowComponent implements AfterViewInit {
         }
         return;
       case 'save':
+        this.cri.inMsg = 'save';
         this.menuAction.emit(this.config.windowid+':save');
         return;
       case 'cancel':
@@ -104,6 +106,10 @@ export class WindowComponent implements AfterViewInit {
 
   onResizeStop(event:IResizeEvent) {
     this.updateMyStyle(event.size.width,event.size.height);
+  }
+
+  onMoveEnd(event: Object) {
+    console.log('onMoveEnd',event);
   }
 
 	constructor(private componentFactoryResolver: ComponentFactoryResolver,private cdRef : ChangeDetectorRef,private winsrv : WindowsService) {}

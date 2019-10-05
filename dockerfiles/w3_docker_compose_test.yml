@@ -2,7 +2,7 @@ version: "3.7"
 services:
   web:
     # replace username/repo:tag with your name and image details
-    image: myonara/webmud3:unitopia
+    image: myonara/webmud3:unitopiatest
     environment: 
       NODE_ENV: 'production'
     # command: --tls-cert=/run/secrets/cert.pem --tls-key=/run/secrets/privkey.pem
@@ -15,11 +15,11 @@ services:
       labels:
         com.docker.lb.hosts: www.unitopia.de
         com.docker.lb.network: webnet
-        com.docker.lb.port: 2018
+        com.docker.lb.port: 2019
       restart_policy:
         condition: on-failure
     ports:
-      - "2018:5000"
+      - "2019:5000"
     networks:
       - webnet
 networks:

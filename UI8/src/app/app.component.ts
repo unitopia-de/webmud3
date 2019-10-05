@@ -14,7 +14,7 @@ export class AppComponent {
   }
 
   OnMenuAction(event:string) {
-    console.log(event);
+    console.log('appComponent-OnMenuAction: ',event);
     this.wincfg.OnMenuAction(event);
   }
   

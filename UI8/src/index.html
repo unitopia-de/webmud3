@@ -3,16 +3,16 @@
 <head>
   <meta charset="utf-8">
   <title>WebMUD3 UNItopia</title>
-  <base href="/">
+  <base href="%%BASEREF%%">
 
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="icon" type="image/x-icon" href="favicon.ico">
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
   <!-- <script src="/socket.io-client/dist/socket.io.js"></script> -->
-  <script src="http://localhost:5000/ace/ace.js"></script>
+  <script src="%%ACEREF%%ace.js"></script>
   <script>
     console.log("ace",ace.config.get('basePath'));
-    var path = "http://localhost:5000/ace/";
+    var path = "%%ACEREF%%";
     ace.config.set('basePath', path);
     ace.config.set('modePath', path);
     ace.config.set('themePath', path);

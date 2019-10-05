@@ -1,7 +1,8 @@
 <div class="window-nonmodal" [ngDraggable]="!lockDrag" [handle]="TitleBar" [ngResizable]="!lockDrag" *ngIf='config.visible'
     (rzStart)="onResizeStart($event)"
     (rzResizing)="onResizing($event)"
-    (rzStop)="onResizeStop($event)">
+    (rzStop)="onResizeStop($event)"
+    (endOffset)="onMoveEnd($event)">
   <mat-toolbar #toolbar class="tool-bar">
     <button class="window-menu" (click)="onMenuAction('lock')" mat-button>
       <mat-icon *ngIf='lockDrag'>lock</mat-icon>

@@ -7,8 +7,7 @@ import { FileInfo } from 'src/app/mud/file-info';
   templateUrl: './editor.component.html',
   styleUrls: ['./editor.component.css']
 })
-export class EditorComponent extends MyDynamicComponent implements OnInit {
-
+export class EditorComponent extends MyDynamicComponent implements AfterViewInit {
   @ViewChild('editor', {static: false}) editor;
   public text : string = "";
   private fileinfo : FileInfo;
@@ -27,8 +26,13 @@ export class EditorComponent extends MyDynamicComponent implements OnInit {
     this.editor.getEditor().resize()
   }
 
+  protected outgoingMsg(msg:string) {
+    super.outgoingMsg(msg);
+  }
+
   protected incommingMsg(msg : string) {
     var msgSplit = msg.split(":");
+    var other = this;
     switch (msgSplit[0]) {
       case 'resize':
         if (msgSplit.length == 3) {
@@ -37,11 +41,11 @@ export class EditorComponent extends MyDynamicComponent implements OnInit {
         }
       case 'save':
         this.fileinfo.save(this.text,function(err,data){
-          if (err !== null) {
+          if (err !== undefined) {
             console.error("EditorComponent:Save:Failed",err);
-            this.OutgoingMessage('error:Speichern fehlgeschlagen');
+            other.outgoingMsg('error:Speichern fehlgeschlagen');
           } else {
-            this.OutgoingMessage('saved');
+            other.outgoingMsg('saved');
           }
         })
         return;
@@ -54,19 +58,23 @@ export class EditorComponent extends MyDynamicComponent implements OnInit {
 
   ngOnInit() {
     this.fileinfo = <FileInfo>this.config.data;
-    var emode = "text";
+    
     if (typeof this.fileinfo !== 'undefined') {
       this.text = this.fileinfo.content;
-      emode = this.fileinfo.filetype;
       // this.editor.getEditor().setValue()
   } else {
       this.text = 'Test-Log\nZeile2\n3';
     }
-
+  }
+  ngAfterViewInit(){
+    var emode = "text";
+    if (typeof this.fileinfo !== 'undefined') {
+        emode = this.fileinfo.filetype;
+    }
     this.editor.setTheme("eclipse");
 
     this.editor.getEditor().setOptions({
         mode : emode,
     });
-  }
+}
 }

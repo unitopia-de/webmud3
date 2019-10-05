@@ -1,11 +1,11 @@
 # based on node 8, alpine for least resource requirements.
-FROM node:8-alpine AS ng-build-stage
+FROM node:10-alpine AS ng-build-stage
 
 # working dir in build stage
 WORKDIR /app
 
 # fetching packages and...
-COPY UI7/package*.json /app/
+COPY UI8/package*.json /app/
 
 RUN echo https://alpine.mirror.wearetriple.com/v3.5/main > /etc/apk/repositories; \
     echo https://alpine.mirror.wearetriple.com/v3.5/community >> /etc/apk/repositories
@@ -19,6 +19,10 @@ RUN apk update && apk upgrade && \
 # fetch the angular sources and stuff
 COPY ./UI8/ /app/
 
+# exchange webmud3 in baseref webmud3\UI8\src\index.html
+RUN sed -i 's-%%BASEREF%%-/webmud3/-' /app/src/index.html
+RUN sed -i 's-%%ACEREF%%-https://www.unitopia.de/webmud3/ace/-' /app/src/index.html
+
 # ok may be we have to do more with the environment...
 ARG configuration=production
 
@@ -26,13 +30,17 @@ ARG configuration=production
 RUN ng build --prod --output-path=dist/out
 
 # produces the final node.js immage.
-FROM node:8-alpine AS webmud3
+FROM node:10-alpine AS webmud3
 
 # again a working dir...
 WORKDIR /app
 
 # fetch the backend source files...
 COPY ./backend/ /app/
+
+# exchange mysocket.io
+RUN sed -i 's=%%MYSOCKETPATH%%=/mysocket.io=' /app/server.js
+RUN sed -i 's=%%MYSOCKET%%=/mysocket.io/=' /app/server.js
 
 #fetch the angular distribution for serving from node.js
 COPY --from=ng-build-stage /app/dist/out/ /app/dist/

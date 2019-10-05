@@ -1,17 +1,19 @@
 <div>{{path}}</div>
-<table>
-  <ng-container *ngFor="let entry of entries">
-    <tr *ngIf="entry.isdir==0">
-      <td><a (click)="fileOpen(entry.name)">{{entry.name}}</a></td>
-      <td>{{entry.size}}</td>
-      <td>{{entry.filedate}}</td>
-      <td>{{entry.filetime}}</td>
-    </tr>
-    <tr *ngIf="entry.isdir!=0">
-      <td><a (click)="changeDir(entry.name)">{{entry.name}}</a></td>
-      <td></td>
-      <td>{{entry.filedate}}</td>
-      <td>{{entry.filetime}}</td>
-    </tr>
-  </ng-container>
-</table>
+<div class="dirlistpane">
+  <table>
+    <ng-container *ngFor="let entry of entries">
+      <tr *ngIf="entry.isdir==0">
+        <td><a (mouseup)="fileOpen(entry.name)">{{entry.name}}</a></td>
+        <td>{{entry.size}}</td>
+        <td>{{entry.filedate}}</td>
+        <td>{{entry.filetime}}</td>
+      </tr>
+      <tr *ngIf="entry.isdir!=0">
+        <td><a (mouseup)="changeDir(entry.name)">{{entry.name}}</a></td>
+        <td></td>
+        <td>{{entry.filedate}}</td>
+        <td>{{entry.filetime}}</td>
+      </tr>
+    </ng-container>
+  </table>
+</div>
