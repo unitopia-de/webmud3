@@ -1,5 +1,5 @@
-<div>{{path}}</div>
-<div class="dirlistpane">
+<div  [ngStyle]="myStyle()">
+  <div>{{path}}</div>
   <table>
     <ng-container *ngFor="let entry of entries">
       <tr *ngIf="entry.isdir==0">

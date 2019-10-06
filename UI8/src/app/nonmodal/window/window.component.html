@@ -2,6 +2,7 @@
     (rzStart)="onResizeStart($event)"
     (rzResizing)="onResizing($event)"
     (rzStop)="onResizeStop($event)"
+    (movingOffset)="onMoving($event)"
     (endOffset)="onMoveEnd($event)">
   <mat-toolbar #toolbar class="tool-bar">
     <button class="window-menu" (click)="onMenuAction('lock')" mat-button>

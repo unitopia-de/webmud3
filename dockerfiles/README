@@ -1,63 +1,66 @@
-# Anpassungen für UNItopia:
-index.html: <base href="/webmud3/">
-server.js: i.of(nsp) : nsp /mysocket.io/ instead of /
-webmud3\UI8\src\app\shared\server-config.service.ts :mysocket.io
+# README for docker commands
 
-# Version anpassen: 
-#  server-config.service.ts
+### To adjust versions:  webmud3\UI8\src\app\shared\server-config.service.ts
 
-#   im .. folgendes ausfuehren (ggf Version anpassen)
-docker build -f dockerfiles/ng-local.dockerfile -t myonara/webmud3:local .
+
+### To build the docker images 
+
+docker build -f Dockerfile -t myonara/webmud3:latest .
+
 docker build -f dockerfiles/ng_unitopia.dockerfile -t myonara/webmud3:unitopia .
+
 docker build -f dockerfiles/ng_unitopia_test.dockerfile -t myonara/webmud3:unitopiatest .
+
+
+### To run the docker containers in a swarm:
+
+docker stack deploy -c dockerfiles/w3_docker_compose_local.yml webmud3alocal
+
+docker stack deploy -c dockerfiles/w3_docker_compose.yml webmud3a
+
+docker stack deploy -c dockerfiles/w3_docker_compose_test.yml webmud3atest
+
+
+### Test docker containers as standalone
+
+docker run -d -p 2018:5000 --name webmud3local myonara/webmud3:latest
+
+docker run -d --name mudconnOrbit myonara/mdconn:v0.0.6
+
+docker run -d -p 50000:80 --name helloplain -P nginxdemos/hello:plain-text
+
+
+### docker commands for diagnosis:
+
+
+#### List services (stack deploys) and details:
+
+docker service ls
+
+docker service ps --no-trunc webmud3a_web
+
+docker service ps --no-trunc webmud3atest_web
+
+docker service ps --no-trunc webmud3alocal_web
+
+#### get container id and logs
+
+docker container ls 
+
+docker logs --follow <contaienrid>
+
+
+
+### Obsolete docker commands
 
 docker build -f dockerfiles/mdconn.dockerfile -t myonara/mdconn:v0.0.17 .
 
-#   test als standalone container
-docker run -d -p 2018:5000 --name webmud3local myonara/webmud3:local
-docker run -d --name mudconnOrbit myonara/mdconn:v0.0.6
-docker run -d -p 50000:80 --name helloplain -P nginxdemos/hello:plain-text
-
-#   ebenso nach einem swarm init:
-docker stack deploy -c dockerfiles/w3_docker_compose.yml webmud3a
-docker stack deploy -c dockerfiles/w3_docker_compose_test.yml webmud3atest
-docker stack deploy -c dockerfiles/w3_docker_compose_local.yml webmud3alocal
-
 docker stack deploy -c dockerfiles/w3_docker_compose_secret.yml webmud3a
+
 docker stack deploy -c dockerfiles/w3_docker_compose_with_apache.yml webmud3a
 
 docker stack deploy -c dockerfiles/w3mdc_docker_compose.yml mdconn
 
-#deinstallieren:
-docker service rm webmud3a_web
-
-#service anschauen:
-docker service ls
-docker service ps mdconn_mdconn2 --no-trunc
-
-#service details:
-docker service ps --no-trunc webmud3a_web
-
-# oder (ohgott):
-journalctl -u docker
-# login logout sehen...und raus mit strg+p, str+q
 docker attach <containerid>
-# oder auch:
-docker logs --follow servicename
-Ohgott sagt: docker exec -ti <name> /bin/sh
 
-
-# Tip Konfigurationsfile abh. von Umgebungsvariablen im Backend dem Frontend bekannt machen:
-# https://github.com/angular/angular-cli/issues/6711
-
-#cross origin:
-https://www.npmjs.com/package/cors
-
-# reconnection issues:
-https://github.com/socketio/socket.io/issues/2476
-
-Das siegreiche Gnomi redet zu dir: Ich hab 'modprobe ip_vs' gemacht, aber
-        das hab ich jetzt in /etc/modules reingeschrieben, so dass es nicht
-        mehr notwendig sein sollte. Ansonsten nur 'systemctl restart docker'
-
-failed to update secret: Error response from daemon: rpc error: code = InvalidArgument desc = only updates to Labels are allowed
+docker exec -ti <name> /bin/sh
