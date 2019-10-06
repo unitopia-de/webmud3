@@ -2,7 +2,7 @@ version: "3.7"
 services:
   web:
     # replace username/repo:tag with your name and image details
-    image: myonara/webmud3:local
+    image: myonara/webmud3:latest
     environment: 
       NODE_ENV: 'production'
     # command: --tls-cert=/run/secrets/cert.pem --tls-key=/run/secrets/privkey.pem

@@ -14,8 +14,8 @@ export class EditorComponent extends MyDynamicComponent implements AfterViewInit
 
   constructor() { super(); }
 
-  private cwidth : number = 100;
-  private cheight : number = 100;
+  private cwidth : number = 200;
+  private cheight : number = 200;
   myStyle(): object {
     return {"width": this.cwidth+'px',"height":this.cheight+'px'};
   } 
@@ -37,8 +37,8 @@ export class EditorComponent extends MyDynamicComponent implements AfterViewInit
       case 'resize':
         if (msgSplit.length == 3) {
           this.updateMyStyle(parseInt(msgSplit[1]),parseInt(msgSplit[2]));
-          return;
         }
+        break;
       case 'save':
         this.fileinfo.save(this.text,function(err,data){
           if (err !== undefined) {
@@ -49,9 +49,9 @@ export class EditorComponent extends MyDynamicComponent implements AfterViewInit
           }
         })
         return;
-      default:
-        console.log('EditorComponent Unknown incomming message: ',msg);
+      default: break;
     }
+    console.log('EditorComponent Unknown incomming message: ',msg);
   }
 
   // snippets: this.editor.getEditor().insert("Something cool");

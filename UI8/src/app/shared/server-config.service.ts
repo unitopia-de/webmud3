@@ -80,7 +80,7 @@ export class ServerConfigService {
  * @memberof ServerConfigService
  */
   getWebmudVersion(): string {
-    return "v0.0.40";
+    return "v0.0.41";
   }
 /**
  * Returns the corresponding string out of the server configuration to identify unitopia.

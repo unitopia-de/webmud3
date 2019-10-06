@@ -24,3 +24,4 @@
 24. Version 0.0.37: Directory and filess/edit modules
 25. Version 0.0.38-39: Lots of Bugfixes to Files and Directory Module
 26. Version 0.0.40: 3 Dockerfiles for 3 docker image-tags: local, unitopiatest and unitopia
+27. Version 0.0.41: Docker-naming revisited

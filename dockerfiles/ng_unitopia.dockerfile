@@ -1,4 +1,4 @@
-# based on node 8, alpine for least resource requirements.
+# based on node 10, alpine for least resource requirements.
 FROM node:10-alpine AS ng-build-stage
 
 # working dir in build stage

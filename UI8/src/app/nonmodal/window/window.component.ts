@@ -21,12 +21,26 @@ export class WindowComponent implements AfterViewInit {
   public lockDrag : boolean = false;
   public cwidth : number = 218;
   public cheight : number = 218-71;
+  public cposx : number = 100;
+  public cposy : number = 100;
+  public moving: boolean = false;
   private cri: MyDynamicComponent; 
 
-  private updateMyStyle(twidth,theight) {
+  private updateMySize(twidth,theight) {
     this.cwidth = twidth - 4;
     this.cheight = theight-71;
     this.cri.inMsg = "resize:"+this.cwidth+":"+this.cheight;
+  }
+
+  private updateMyPosition(posx,posy,move) {
+    this.cposx = posx;
+    this.cposy = posy;
+    this.moving = move;
+    if (move) {
+      this.cri.inMsg = "moving:"+this.cposx+":"+this.cposy;
+    } else {
+      this.cri.inMsg = "endMove:"+this.cposx+":"+this.cposy;
+    }
   }
 
   ngAfterViewInit(): void {
@@ -97,19 +111,24 @@ export class WindowComponent implements AfterViewInit {
   }
 
   onResizeStart(event:IResizeEvent) {
-    this.updateMyStyle(event.size.width,event.size.height);
+    this.updateMySize(event.size.width,event.size.height);
   }
 
   onResizing(event:IResizeEvent) {
-    this.updateMyStyle(event.size.width,event.size.height);
+    this.updateMySize(event.size.width,event.size.height);
   }
 
   onResizeStop(event:IResizeEvent) {
-    this.updateMyStyle(event.size.width,event.size.height);
+    this.updateMySize(event.size.width,event.size.height);
   }
 
   onMoveEnd(event: Object) {
-    console.log('onMoveEnd',event);
+    console.log('onMoveEnd:',event);
+    this.updateMyPosition(event["x"],event["y"],false);
+  }
+
+  onMoving(event: Object) {
+    this.updateMyPosition(event["x"],event["y"],true);
   }
 
 	constructor(private componentFactoryResolver: ComponentFactoryResolver,private cdRef : ChangeDetectorRef,private winsrv : WindowsService) {}
