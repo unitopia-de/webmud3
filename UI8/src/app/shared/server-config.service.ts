@@ -61,7 +61,7 @@ export class ServerConfigService {
     switch (this.getBackendCode()) {
       case 1: return '/mysocket.io';
       case 3: return '/mysocket-test.io';
-      default: return "/";
+      default: return "/socket.io";
     }
   }
 /**

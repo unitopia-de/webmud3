@@ -20,8 +20,8 @@ RUN apk update && apk upgrade && \
 COPY ./UI8/ /app/
 
 # exchange webmud3 in baseref webmud3\UI8\src\index.html
-RUN sed -i 's-%%BASEREF%%-/-' /app/src/index.html
-RUN sed -i 's-%%ACEREF%%-https://localhost/ace/-' /app/src/index.html
+RUN sed -i 's-%%BASEREF%%-/-' /app/src/index.html && sed -i 's-%%ACEREF%%-http://localhost:2018/ace/-' /app/src/index.html 
+# && cat /app/src/index.html
 
 # ok may be we have to do more with the environment...
 ARG configuration=production
@@ -39,8 +39,8 @@ WORKDIR /app
 COPY ./backend/ /app/
 
 # exchange mysocket.io
-RUN sed -i 's=%%MYSOCKETPATH%%=/=' /app/server.js
-RUN sed -i 's=%%MYSOCKET%%=/=' /app/server.js
+RUN sed -i 's=%%MYSOCKETPATH%%=/socket.io=' /app/server.js && sed -i 's=%%MYSOCKET%%=/=' /app/server.js 
+# && cat /app/server.js
 
 #fetch the angular distribution for serving from node.js
 COPY --from=ng-build-stage /app/dist/out/ /app/dist/

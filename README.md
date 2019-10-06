@@ -6,18 +6,21 @@ Is up and running o the UNItopia server for testers only.
 With version 0.0.40 there are three dockerfiles for creating docker images,
 two of them are reserved for unitopia purposes (see dockerfiles/README).
 
+
 For own testing please use the following docker command to create the docker image:
+docker pull myonara/webmud3:local
+To build an own image from the webmud3 directory:
 docker build -f dockerfiles/ng-local.dockerfile -t myonara/webmud3:local .
 
 For standalone execution:
 docker run -d -p 5000:5000 --name webmud3test myonara/webmud3:local
 
-Prior to Version V0.0.40 there was a possiblity yto manually edit the files and 
-load it outside docker. 
+For swarm init:
+docker stack deploy -c dockerfiles/w3_docker_compose_local.yml webmud3alocal
 
-Hint: Currently is the local docker image not working, will be fixed soon.
-
-### Retrieving docker image:
-1. The docker images are available at https://hub.docker.com/r/myonara/webmud3/
+Prior to Version V0.0.40 there was a possiblity to manually edit the files and 
+load and test it outside docker. Take a look into dockerfiles/ng-local.dockerfile
+and perform the replace-steps to index.html and server.js manually,
+if you really insist on executing without docker. 
 
 Then the docker container is running on port 5000 (localhost:5000/webmud3)
