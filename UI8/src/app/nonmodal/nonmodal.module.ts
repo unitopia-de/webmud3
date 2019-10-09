@@ -4,19 +4,21 @@ import { AngularDraggableModule } from 'angular2-draggable';
 import { BrowserModule } from '@angular/platform-browser';
 import { FormsModule } from '@angular/forms';
 import { MyDynamicComponent } from './window/my-dynamic.component';
-import { SimpleEditComponent } from './simpleedit/simpleedit.component';
 import { EditorComponent } from './editor/editor.component';
 import { AceEditorModule } from 'ng2-ace-editor';
 import { MaterialModule } from '../material.module';
 import { DirlistComponent } from './dirlist/dirlist.component';
+import { ConfigviewerComponent } from './configviewer/configviewer.component';
+
+import { ColorPickerModule } from 'ngx-color-picker';
 
 @NgModule({
 
   imports: [
     BrowserModule,FormsModule,AceEditorModule,
-    CommonModule,AngularDraggableModule,MaterialModule,
+    CommonModule,AngularDraggableModule,MaterialModule,ColorPickerModule,
   ],
-  declarations: [MyDynamicComponent, SimpleEditComponent, EditorComponent, DirlistComponent],
-  entryComponents: [SimpleEditComponent,EditorComponent,DirlistComponent],
+  declarations: [MyDynamicComponent, EditorComponent, DirlistComponent, ConfigviewerComponent],
+  entryComponents: [EditorComponent,DirlistComponent, ConfigviewerComponent],
 })
 export class NonmodalModule { }

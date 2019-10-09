@@ -30,7 +30,7 @@
 </div>
 
 <div class="mud-block" #mudBlock *ngIf='sizeCalculated' [style.width.px]='ref_width' [style.height.px]='ref_height' [style.background-color]="stdbg" [style.color]="stdfg" [scrollTop]="mudBlock.scrollHeight">
-  <div class="mud-message" display="inline" *ngFor="let a2hMudline of mudlines"><app-mudspan [colorOff]='colorOff' [blackToWhite]='blackOnWhite' [invertFlag]="colourInvert" [ansi2html]="a2hMudline"></app-mudspan></div>
+  <div class="mud-message" display="inline" *ngFor="let a2hMudline of mudlines"><app-mudspan [colorOff]='colorOff' [blackToWhite]='blackOnWhite' [invertFlag]="colourInvert" [ansi2html]="a2hMudline" [localEchoColor]="localEchoColor" [localEchoActive]="localEchoActive"></app-mudspan></div>
 </div>
 </div>
 <input [(type)]="inpType" class="mud-input" [style.width.px]='ref_width' #mudInput (keyup.enter)="sendMessage()" (keyup)="onKeyUp($event)" [(ngModel)]="inpmessage" />

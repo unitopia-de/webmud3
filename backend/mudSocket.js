@@ -24,7 +24,7 @@ MudSocket = class MudSocket extends TelnetSocket {
                 result.push(c)
             }
         }
-        return new Buffer(result);
+        return Buffer.from(result);
     }
     val16ToBuffer(result,val) {
         result.push((val & 0xff00) >> 8);
@@ -35,14 +35,14 @@ MudSocket = class MudSocket extends TelnetSocket {
         var result = [];
         result = this.val16ToBuffer(result,w);
         result = this.val16ToBuffer(result,h);
-        return new Buffer(result);
+        return Buffer.from(result);
     }
 
   // topt: bufferSize, errorPolicy(discardBoth,keepData,keep_both)
   //       other options from stream: https://nodejs.org/api/stream.html
   constructor(_socket, topt, mopt, socket_io) {
       super(_socket,topt);
-      console.log('mudSocket creating');
+      console.log('MUDSOCKET: creating');
       this.state = {};
       this.tel = { opt2num: 
         { IAC: "255",
@@ -196,7 +196,6 @@ MudSocket = class MudSocket extends TelnetSocket {
       this.debugflag = (typeof this._moptions.debugflag != 'undefined' 
             && this._moptions.debugflag
             && typeof socket_io !== 'undefined');
-      console.log('MudSocket.debugflag='+this.debugflag);
       var other = this;
         super.on('close', function() {
             if (other.debugflag) {
@@ -215,7 +214,7 @@ MudSocket = class MudSocket extends TelnetSocket {
             const opt = other.tel.num2opt[chunkData.toString()];
             if (other.debugflag) {
                 if (opt !='TELOPT_TM') { // supress log for timemsg...
-                    console.log('do:'+opt);
+                    console.log('MUDSOCKET: do:'+opt);
                 }
                 socket_io.emit('mud.debug',
                     {id:other._moptions.id,type:'do',data:opt});
@@ -233,7 +232,7 @@ MudSocket = class MudSocket extends TelnetSocket {
                             return;
                         }
                         buf = other.sizeToBuffer(sizeOb.width,sizeOb.height);
-                        console.log('NAWS-buf:',buf,sizeOb);
+                        console.log('MUDSOCKET: NAWS-buf:',buf,sizeOb);
                         other.writeSub(chunkData,buf);
                     })
                     break; // TODO calc windows size and report...
@@ -247,7 +246,7 @@ MudSocket = class MudSocket extends TelnetSocket {
         super.on('dont',function(chunkData) {
             const opt = other.tel.num2opt[chunkData.toString()];
             if (other.debugflag) {
-                console.log('dont:'+opt);
+                console.log('MUDSOCKET: dont:'+opt);
                 socket_io.emit('mud.debug',
                     {id:other._moptions.id,type:'dont',data:opt});
             }
@@ -259,7 +258,7 @@ MudSocket = class MudSocket extends TelnetSocket {
         super.on('will',function(chunkData) {
             const opt = other.tel.num2opt[chunkData.toString()];
             if (other.debugflag) {
-                console.log('will:'+opt);
+                console.log('MUDSOCKET: will:'+opt);
                 socket_io.emit('mud.debug',
                     {id:other._moptions.id,type:'will',data:opt});
             }
@@ -287,7 +286,7 @@ MudSocket = class MudSocket extends TelnetSocket {
         super.on('wont',function(chunkData) {
             const opt = other.tel.num2opt[chunkData.toString()];
             if (other.debugflag) {
-                console.log('wont:'+opt);
+                console.log('MUDSOCKET: wont:'+opt);
                 socket_io.emit('mud.debug',
                     {id:other._moptions.id,type:'wont',data:opt});
             }
@@ -303,30 +302,30 @@ MudSocket = class MudSocket extends TelnetSocket {
         super.on('sub',function(optin,chunkData) {
             const opt = other.tel.num2opt[optin.toString()];
             const subInput = new Uint8Array(chunkData)
-            if (opt != 'TELOPT_GMCP') {
-                console.log('sub:'+opt+"|"+subInput);
+            if (opt != 'TELOPT_GMCP' && other.debugflag) {
+                console.log('MUDSOCKET: sub:'+opt+"|"+subInput);
             }
             switch (opt) {
                 case 'TELOPT_TTYPE':
                     if (subInput.length==1 && subInput[0] == 1) { // TELQUAL_SEND
-                        var nullBuf = new Buffer.alloc(1);
+                        var nullBuf = Buffer.alloc(1);
                         var sendBuf;
                         nullBuf[0] = 0; // TELQUAL_IS
-                        buf = new Buffer('WebMud3a');
+                        buf = Buffer.from('WebMud3a');
                         sendBuf = Buffer.concat([nullBuf,buf],buf.length+1);
-                        console.log('TTYPE: ',sendBuf);
+                        console.log('MUDSOCKET: TTYPE: ',sendBuf);
                         other.writeSub(optin,sendBuf);
                     }
                     break;
                 case 'TELOPT_CHARSET':
-                    console.log('SB CHARSET:',chunkData.toString());
+                    console.log('MUDSOCKET: SB CHARSET:',chunkData.toString());
                     if (subInput.length>=1 && subInput[0] == 1) { // TELQUAL_SEND
-                        var nullBuf = new Buffer.alloc(1);
+                        var nullBuf = Buffer.alloc(1);
                         var sendBuf;
                         nullBuf[0] = 2; // TELQUAL_INFO
-                        buf = new Buffer('UTF-8');
+                        buf = Buffer.from('UTF-8');
                         sendBuf = Buffer.concat([nullBuf,buf],buf.length+1);
-                        console.log('SB-Accept CHARSET: ',sendBuf);
+                        console.log('MUDSOCKET: SB-Accept CHARSET: ',sendBuf);
                         other.writeSub(optin,sendBuf);
                     }
                     break;
@@ -339,7 +338,7 @@ MudSocket = class MudSocket extends TelnetSocket {
                         jsdata = '{}';
                         ix = tmpstr.length;
                     }
-                    console.log('GMCP-incoming: ',tmpstr);
+                    // console.log('GMCP-incoming: ',tmpstr);
                     socket_io.emit('mud-gmcp-incoming',other._moptions.id,tmpstr.substr(0,jx),tmpstr.substr(jx+1,ix-jx),JSON.parse(jsdata));
                     break;
             }
@@ -351,7 +350,7 @@ MudSocket = class MudSocket extends TelnetSocket {
             socket_io.emit('mud.debug',
                 {id:other._moptions.id,type:'error',data:chunkData});
         });
-      console.log('mudSocket created');
+      console.log('MUDSOCKET: created');
   } // constructor...
 };
 

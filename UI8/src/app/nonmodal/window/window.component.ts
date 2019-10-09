@@ -1,11 +1,11 @@
 import { Component, Input, ViewChild, Output, EventEmitter, ComponentFactoryResolver, AfterViewInit, ViewContainerRef, ChangeDetectorRef } from '@angular/core';
 import { MyDynamicComponent } from './my-dynamic.component';
 import { WindowConfig } from '../window-config';
-import { SimpleEditComponent } from '../simpleedit/simpleedit.component';
 import { EditorComponent } from '../editor/editor.component';
 import { IResizeEvent } from 'angular2-draggable/lib/models/resize-event';
 import { WindowsService } from '../windows.service';
 import { DirlistComponent } from '../dirlist/dirlist.component';
+import { ConfigviewerComponent } from '../configviewer/configviewer.component';
 
 @Component({
   selector: 'app-window',
@@ -54,9 +54,9 @@ export class WindowComponent implements AfterViewInit {
       return;
     }
     switch (this.config.component) {
-      case 'SimpleEditComponent': cmp = SimpleEditComponent; break;
       case 'EditorComponent': cmp = EditorComponent; break;
       case 'DirlistComponent': cmp = DirlistComponent; break;
+      case 'ConfigviewerComponent': cmp = ConfigviewerComponent; break;
       default: console.log("Unknown Component:",this.config.component); return;
     }
     let componentFactory = this.componentFactoryResolver.resolveComponentFactory(cmp);

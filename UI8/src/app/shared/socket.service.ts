@@ -203,6 +203,8 @@ public mudConnect(mudOb : any) : Observable<string> {
         other.logger.add('socket connected',false);
       }
       mudOb['browser'] = other.srvcfg.getBrowserInfo();
+      mudOb['client'] =  other.srvcfg.getWebmudName();
+      mudOb['version']=  other.srvcfg.getWebmudVersion();
       other.register2cons('mud-client');
       other.logger.add('socket connecting-1',false);
       other.socket.emit('mud-connect', mudOb, function(data){
@@ -362,9 +364,9 @@ public sendGMCP(id:string,mod:string,msg:string,data:any) {
  * @returns {Observable<string>}  output strings...
  * @memberof SocketService
  */
-public mudReceiveData(_id: string) : Observable<string> {
+public mudReceiveData(_id: string) : Observable<string[]> {
     let other = this;
-    let observable = new Observable<string>(observer => {
+    let observable = new Observable<string[]>(observer => {
       if (other.socket === undefined) {
         other.logger.add('mudReceiveData without socket!',true);
         return;
@@ -390,13 +392,13 @@ public mudReceiveData(_id: string) : Observable<string> {
         if (_id !== id) {
           return;
         }
-        observer.next('\r\n(Verbindung getrennt)\r\n');
+        observer.next(['\r\n(Verbindung getrennt)\r\n',undefined]);
       });
       other.socket.on('mud-output', function(id,buffer) {
         if (_id !== id) {
           return;
         }
-        observer.next(buffer);
+        observer.next([buffer,undefined]);
       }); // mud-output
       return () => {
         other.logger.add('mudReceiveData ending!',false);
@@ -440,6 +442,7 @@ public mudReceiveSignals(_id: string) : Observable<MudSignals> {
         other.sendGMCP(_id,'Core','Hello',{
           'client':other.srvcfg.getWebmudName(),
           'version':other.srvcfg.getWebmudVersion()});
+          other.sendGMCP(_id,'Core','BrowserInfo', {}); // Will be filled from backend, as we don't trust here...
         other.gmcpsrv.set_gmcp_support(id,gmcp_support,function (_id:string,mod:string,onoff:boolean) {
           other.mudSwitchGmcpModule(_id,mod,onoff);
         });

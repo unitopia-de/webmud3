@@ -1,7 +1,8 @@
 <div class="menu-block">
   <button class="main-menu" *ngIf='!connected' (click)="onClickMenu('connect')" mat-button>Verbinden</button>
   <button class="main-menu" *ngIf='connected' (click)="onClickMenu('disconnect')" mat-button>Trennen</button>
-  <button class="main-menu" mat-button [matMenuTriggerFor]="view">Anzeige</button>
+  <button class="main-menu" (click)="onClickMenu('displayViewConfig')" mat-button>Anzeige</button>
+ <!-- <button class="main-menu" mat-button [matMenuTriggerFor]="view">Anzeige</button>
   <mat-menu #view="matMenu">
     <button (click)="onClickMenu('colorOff')" mat-menu-item>
       <mat-icon *ngIf='mudmcfg.colorOff'>check_box</mat-icon>
@@ -21,7 +22,7 @@
     <button (click)="onClickMenu('displayLog')" mat-menu-item>
       <span>Log anzeigen</span>
     </button>
-</mat-menu>
+</mat-menu>-->
   <button class="main-menu" mat-button [matMenuTriggerFor]="gmcpMenuBlock" *ngIf="gmcpFlag">Module</button>
   <mat-menu #gmcpMenuBlock="matMenu">
     <button *ngFor="let gmen of gmcpMenu"(click)="onClickGmcpMenu(gmen)" mat-menu-item>
@@ -34,3 +35,5 @@
   <button *ngIf='false' class="main-menu" (click)="onClickMenu('new-window')" mat-button>Fenstertest</button>
   <button *ngIf='false' class="main-menu" (click)="onClickMenu('loginPortal')" mat-button>Anmelden am Portal</button>
 </div>
+
+

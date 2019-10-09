@@ -47,6 +47,7 @@ export class MudclientComponent implements AfterViewChecked,OnInit,OnDestroy {
   private filesWindow: WindowConfig;
   public mudlines : AnsiData[] = [];
   public messages : MudMessage[] = [];
+  public logfile : string = "";
   public inpmessage : string;
   private inpHistory : string[] = [];
   private inpPointer : number = -1;
@@ -56,6 +57,8 @@ export class MudclientComponent implements AfterViewChecked,OnInit,OnDestroy {
   public colourInvert : boolean = false;
   public stdfg : string ='white';
   public stdbg : string ='black';
+  public localEchoActive : boolean = true;
+  public localEchoColor: string = '#a8ff00';
   public blackOnWhite: boolean = false;
   public colorOff : boolean=false;
 
@@ -74,6 +77,7 @@ export class MudclientComponent implements AfterViewChecked,OnInit,OnDestroy {
     }
 
     menuAction(act : string) {
+      var self = this;
       switch(act) {
         case 'connect':
             if (typeof this.cfg !== 'undefined' && typeof this.cfg.mudname !== 'undefined'
@@ -99,11 +103,49 @@ export class MudclientComponent implements AfterViewChecked,OnInit,OnDestroy {
             return;
         case 'displayLog':
             var cfg = new WindowConfig();
+            var mylogfile = new FileInfo();
             cfg.wtitle = "logfile";
             this.wincfg.newWindow(cfg);
             return;
+        case 'displayViewConfig=true': // TODO einmal-Screen.
+            var cfg = new WindowConfig();
+            cfg.wtitle = "Konfiguration der Anzeige";
+            cfg.component = 'ConfigviewerComponent';
+            cfg.outGoingEvents.subscribe(x => {
+              switch(x) {
+                case 'colorOff=true':  self.colorOff = true; break;
+                case 'colorOff=false': self.colorOff = false; break;
+                case 'invert=true':  self.colourInvert = true; break;
+                case 'invert=false': self.colourInvert = false; break;
+                case 'blackOnWhite=true':  self.blackOnWhite=true; break;
+                case 'blackOnWhite=false': self.blackOnWhite=false; break;
+                case 'localEcho=true':  self.localEchoActive = true; break;
+                case 'localEcho=false': self.localEchoActive = false; break;
+                default:
+                    var xsplit = x.split("=");
+                    switch (xsplit[0]) {
+                      case "LocalEchoColor":
+                        self.localEchoColor = xsplit[1];
+                        return;
+                      default:
+                        console.error("Unknown ConfigviewerMessage: ",x);
+                        return;
+                    }
+              }
+              if (self.blackOnWhite || self.colourInvert) {
+                self.stdbg = 'white';self.stdfg = 'black';
+              } else {
+                self.stdbg = 'black';self.stdfg = 'white'; 
+              }
+            }, error => {
+              console.error(error);
+            }, ()=>{
+
+            })
+            this.wincfg.newWindow(cfg);
+            return;
         default: 
-          console.log('unknown menuAction',act);
+          console.error('unknown menuAction',act);
           return;
       }
       if (this.blackOnWhite || this.colourInvert) {
@@ -225,13 +267,23 @@ export class MudclientComponent implements AfterViewChecked,OnInit,OnDestroy {
             }
           });
       other.obs_data = other.socketService.mudReceiveData(_id).subscribe(outline => {
-          var outp = outline;
-          const idx = outline.indexOf(other.ansiService.ESC_CLRSCR);
-          if (idx >=0) {
-            other.messages = [];
-            other.mudlines = [];
+          var outp = outline[0];
+          var iecho = outline[1];
+          if (typeof outp !== 'undefined') {
+            const idx = outp.indexOf(other.ansiService.ESC_CLRSCR);
+            if (idx >=0) {
+              other.messages = [];
+              other.mudlines = [];
+            }
+            other.ansiCurrent.ansi = outp;
+            other.ansiCurrent.mudEcho = undefined;
+            other.messages.push({text:outp});
+          } else  {
+            other.ansiCurrent.ansi = '';
+            other.ansiCurrent.mudEcho = iecho;
+            other.messages.push({text:iecho});
+            console.error(new Error('mudecho in mudReceiveData'));
           }
-          other.ansiCurrent.ansi = outp;
           var ts = new Date();
           other.ansiCurrent.timeString = ((ts.getDate() < 10)?"0":"") + ts.getDate() +"."
                                        + (((ts.getMonth()+1) < 10)?"0":"") + (ts.getMonth()+1) +"."
@@ -242,12 +294,11 @@ export class MudclientComponent implements AfterViewChecked,OnInit,OnDestroy {
           const a2harr = other.ansiService.processAnsi(other.ansiCurrent);
           for (var ix=0;ix<a2harr.length;ix++) {
             //console.log('main-'+ix+":"+JSON.stringify(a2harr[ix]));
-            if (a2harr[ix].text!='') {
+            if (a2harr[ix].text!=''||typeof a2harr[ix].mudEcho !=='undefined') {
               other.mudlines = other.mudlines.concat(a2harr[ix]);
             }
           }
           other.ansiCurrent = a2harr[a2harr.length-1];
-          other.messages.push({text:outp});
         });
       other.obs_debug = other.socketService.mudReceiveDebug(_id).subscribe(debugdata => {
           other.lastdbg = debugdata;
@@ -314,10 +365,30 @@ export class MudclientComponent implements AfterViewChecked,OnInit,OnDestroy {
   }
 
   sendMessage() {
+    var other = this;
     this.socketService.mudSendData(this.mudc_id,this.inpmessage);
-    if (this.inpType == 'text' && this.inpmessage != '' 
-        && (this.inpHistory.length==0 || (this.inpHistory.length >0 && this.inpHistory[0] != this.inpmessage))) {
-      this.inpHistory.unshift(this.inpmessage);
+    if (this.inpType == 'text' && this.inpmessage != '') {
+      other.ansiCurrent.ansi = '';
+      other.ansiCurrent.mudEcho = this.inpmessage+'\r\n';
+      other.messages.push({text:this.inpmessage+'\r\n'});
+      var ts = new Date();
+      other.ansiCurrent.timeString = ((ts.getDate() < 10)?"0":"") + ts.getDate() +"."
+                                   + (((ts.getMonth()+1) < 10)?"0":"") + (ts.getMonth()+1) +"."
+                                   + ts.getFullYear() + ' '
+                                   +((ts.getHours() < 10)?"0":"") + ts.getHours() +":"
+                                   + ((ts.getMinutes() < 10)?"0":"") + ts.getMinutes() +":"
+                                   + ((ts.getSeconds() < 10)?"0":"") + ts.getSeconds();
+      const a2harr = other.ansiService.processAnsi(other.ansiCurrent);
+      for (var ix=0;ix<a2harr.length;ix++) {
+        //console.log('main-'+ix+":"+JSON.stringify(a2harr[ix]));
+        if (a2harr[ix].text!=''||typeof a2harr[ix].mudEcho !=='undefined') {
+          other.mudlines = other.mudlines.concat(a2harr[ix]);
+        }
+      }
+      other.ansiCurrent = a2harr[a2harr.length-1];
+      if ((this.inpHistory.length==0 || (this.inpHistory.length >0 && this.inpHistory[0] != this.inpmessage))) {
+        this.inpHistory.unshift(this.inpmessage);
+      }
     }
     this.inpmessage = '';
   }
