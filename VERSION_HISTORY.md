@@ -25,3 +25,5 @@
 25. Version 0.0.38-39: Lots of Bugfixes to Files and Directory Module
 26. Version 0.0.40: 3 Dockerfiles for 3 docker image-tags: local, unitopiatest and unitopia
 27. Version 0.0.41: Docker-naming revisited
+28. Version 0.0.42: LocalEcho established with foreground colorchoice. TRansported Core.Browserinfo from Backend to UNItopia
+29. Version 0.0.43: Bugfixes,Enhancements and Code Beauitfying for Logging backend and frontend

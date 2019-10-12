@@ -20,6 +20,9 @@ export class MudspanComponent implements OnInit {
   public bow:boolean=false;
   public invert:boolean = false;
   public colorOff : boolean = false;
+  public echoFlag : boolean = true;
+  public echoCol : string = '#a8ff00';
+  public echoBak : string = '#000000';
   public tt:string='';
 
   private calcFgBg() {
@@ -44,6 +47,17 @@ export class MudspanComponent implements OnInit {
     if (this.invert) {
       lfg = this.ansiService.invColor(lfg);
       lbg = this.ansiService.invColor(lbg);
+    }
+    if (typeof this.a2h.text !=='undefined' && this.a2h.text !='') {
+      ; // no change
+    } else if (typeof this.a2h.mudEcho !== 'undefined') {
+      if (this.echoFlag) {
+        this.txt = this.a2h.mudEcho;
+        lfg = this.echoCol;
+        lbg = this.echoBak;
+      } else {
+        this.txt = '';
+      }
     }
     if (!this.bow) {
       this.fg = lfg;
@@ -82,6 +96,30 @@ export class MudspanComponent implements OnInit {
     this.calcFgBg();
   }
 
+  @Input('localEchoActive') set localEchoActive(flag : boolean) {
+    if (this.echoFlag == flag) {
+      return;
+    }
+    this.echoFlag = flag;
+    this.calcFgBg();
+  }
+  
+  @Input('localEchoColor') set localEchoColor(col : string) {
+    if (this.echoCol == col) {
+      return;
+    }
+    this.echoCol = col;
+    this.calcFgBg();
+  }
+
+  @Input('localEchoBackground') set localEchoBackground(col : string) {
+    if (this.echoBak == col) {
+      return;
+    }
+    this.echoBak = col;
+    this.calcFgBg();
+  }
+
    @Input('ansi2html') set ansi2html(ansi: AnsiData) {
     this.a2h = ansi;
     this.tt = ansi.timeString;// console.log(this.tt);
@@ -102,11 +140,16 @@ export class MudspanComponent implements OnInit {
     if (ansi.crossedout) {
       this.myclasses += ' crossedout';
     }
+    if (ansi.faint) {
+      this.myclasses += ' faint';
+    }
     if (this.myclasses != ''){
       this.myclasses = this.myclasses.substr(1);
     }
-    if (typeof ansi.text !=='undefined') {
+    if (typeof ansi.text !=='undefined' && ansi.text !='') {
       this.txt = ansi.text;
+    } else if (typeof ansi.mudEcho !=='undefined' && this.echoFlag) {
+      this.txt = ansi.mudEcho;
     } else {
       this.txt = '';
     }

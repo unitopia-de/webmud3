@@ -69,6 +69,18 @@ public newWindow(cfg : WindowConfig) : string {
     console.log("newWindow",maxindex);
     return cfg.windowid;
   }
+private findWindowByCfg(cfg:WindowConfig):boolean {
+  if (typeof cfg === 'undefined') {
+    return true;
+  }
+  var i: number;
+  for (i=0;i< this.windowsconfigurations.length;i++) {
+    if (this.windowsconfigurations[i].windowid == cfg.windowid) {
+      return false;
+    }
+  }
+  return true;
+}
 /**
  *  open or connect to directory window.
  *
@@ -79,7 +91,7 @@ public newWindow(cfg : WindowConfig) : string {
  * @memberof WindowsService
  */
 public findFilesWindow(cfg : WindowConfig,data:Object) : WindowConfig {
-    if (typeof cfg === 'undefined' || cfg.visible == false) {
+    if (this.findWindowByCfg(cfg)) {
       cfg = new WindowConfig();
       cfg.component = "DirlistComponent";
       cfg.save = false;

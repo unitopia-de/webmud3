@@ -1,6 +1,7 @@
 import { Injectable, Inject } from '@angular/core';
 import { WINDOW } from './WINDOW_PROVIDERS';
 import { DeviceDetectorService } from 'ngx-device-detector';
+import { UUID } from 'angular2-uuid';
 
 @Injectable({
   providedIn: 'root'
@@ -80,7 +81,7 @@ export class ServerConfigService {
  * @memberof ServerConfigService
  */
   getWebmudVersion(): string {
-    return "v0.0.41";
+    return "v0.0.43";
   }
 /**
  * Returns the corresponding string out of the server configuration to identify unitopia.
@@ -126,6 +127,16 @@ export class ServerConfigService {
     const isMobile = this.deviceService.isMobile();
     const isTablet = this.deviceService.isTablet();
     const isDesktopDevice = this.deviceService.isDesktop();
+    var clientType : string;
+    if (isDesktopDevice) {
+      clientType = 'Desktop';
+    } else if (isMobile) {
+      clientType = 'Mobile';
+    } else if (isTablet) {
+      clientType = 'Tablet';
+    } else {
+      clientType = 'Unknown';
+    }
     this.browserInfo["browser"] = this.deviceInfo.browser;
     this.browserInfo["browser_version"] = this.deviceInfo.browser_version;
     this.browserInfo["os"] = this.deviceInfo.os;
@@ -134,7 +145,9 @@ export class ServerConfigService {
     this.browserInfo["isMobile"] = isMobile;
     this.browserInfo["isTablet"] = isTablet;
     this.browserInfo["isDesktop"] = isDesktopDevice;
-    // console.log('Device_info: ', this.deviceInfo);
+    this.browserInfo["clientType"] = clientType;
+    this.browserInfo["clientID"] = UUID.UUID();
+    console.log('Device_info: ', this.deviceInfo);
   }
 
   constructor(@Inject(WINDOW) private window:Window,private deviceService: DeviceDetectorService) {

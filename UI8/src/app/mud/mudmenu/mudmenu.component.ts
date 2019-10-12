@@ -4,6 +4,7 @@ import { WindowsService } from 'src/app/nonmodal/windows.service';
 import { GmcpMenu } from 'src/app/gmcp/gmcp-menu';
 import { Observable } from 'rxjs';
 import { GmcpService } from 'src/app/gmcp/gmcp.service';
+import { AnsiService } from '../ansi.service';
 
 @Component({
   selector: 'app-mudmenu',
@@ -41,13 +42,16 @@ export class MudmenuComponent implements OnInit {
     manualPing:false,
     startPing : new Date(),
     deltaPing:'GMCP-Ping: -',
+    colorLocalEcho:'#a8ff00',
+    background: '#000000',
+    localEcho:true,
   };
 
   private gmcpobs : Observable<GmcpMenu[]>;
   public gmcpMenu : GmcpMenu[];
   public gmcpFlag : boolean;
 
-  constructor(private wincfg : WindowsService,private gmcpsrv : GmcpService) { }
+  constructor(private wincfg : WindowsService,private gmcpsrv : GmcpService,private ansisrv : AnsiService) { }
 
   onPingResponse() {
     if (this.mudmcfg.manualPing) {
@@ -78,28 +82,39 @@ export class MudmenuComponent implements OnInit {
       case 'loginPortal':
         this.menuAction.emit('loginPortal');
         return;
+        case 'displayLog':
+            this.menuAction.emit('displayLog');
+            return;
+        case 'ping':
+            this.mudmcfg.startPing = new Date();
+            this.mudmcfg.manualPing = true;
+            this.mudmcfg.deltaPing = 'GMCP-Ping: -';
+            this.menuAction.emit('ping');
+            return;
       case 'colorOff':
         this.mudmcfg.colorOff = !this.mudmcfg.colorOff;
         this.menuAction.emit('colorOff='+this.mudmcfg.colorOff);
-        return;
+        break;
       case 'invert':
         this.mudmcfg.invert = !this.mudmcfg.invert;
         this.menuAction.emit('invert='+this.mudmcfg.invert);
-        return;
+        break;
       case 'blackOnWhite':
         this.mudmcfg.blackOnWhite = !this.mudmcfg.blackOnWhite;
         this.menuAction.emit('blackOnWhite='+this.mudmcfg.blackOnWhite);
+        break;
+      case 'LocalEcho':
+        this.mudmcfg.localEcho = !this.mudmcfg.localEcho;
+        this.menuAction.emit('localEcho='+this.mudmcfg.localEcho);
         return;
-      case 'displayLog':
-        this.menuAction.emit('displayLog');
-        return;
-      case 'ping':
-        this.mudmcfg.startPing = new Date();
-        this.mudmcfg.manualPing = true;
-        this.mudmcfg.deltaPing = 'GMCP-Ping: -';
-        this.menuAction.emit('ping');
-        return;
+      case 'displayViewConfig':
+          this.menuAction.emit('displayViewConfig=true');
+          return;
     }
+    var inpcol = [this.mudmcfg.colorLocalEcho,this.mudmcfg.background];
+    var coltmp : string[] = this.ansisrv.extractColors(undefined,inpcol,this.mudmcfg.blackOnWhite,this.mudmcfg.invert,this.mudmcfg.colorOff);
+    this.mudmcfg.colorLocalEcho = coltmp[0];
+    this.mudmcfg.background = coltmp[1];
   }
 
   ngOnInit() {

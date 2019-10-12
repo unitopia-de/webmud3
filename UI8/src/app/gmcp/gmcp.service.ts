@@ -47,7 +47,7 @@ export class GmcpService {
           if (index > -1) {
             other.gmcpmenus[mud_id][index].active = !other.gmcpmenus[mud_id][index].active;
             other.gmcpEvE[mud_id].emit(other.gmcpmenus[mud_id]);
-            console.log('emit-toggle',mud_id,other.gmcpmenus[mud_id]);
+            console.log('G05: emit-toggle',mud_id,other.gmcpmenus[mud_id]);
           }
       }
     });
@@ -61,7 +61,7 @@ export class GmcpService {
       let observable = new Observable<GmcpMenu[]>(observer => {
         observer.next(other.gmcpmenus[_id]);
         other.gmcpEvE[_id].subscribe(gmenu => {
-          console.log(gmenu);
+          // console.log('G05: GmcpObservableMenu',gmenu);
           observer.next(gmenu);
         })
       });
@@ -71,12 +71,13 @@ export class GmcpService {
   }
 
   public add_gmcp_module(gcfg : GmcpConfig) {
+    console.log("G05 add_gmcp_module:",gcfg);
     gcfg.initial_menu.index = this.gmcpconfig.length;
     var actual_menu = Object.assign({},gcfg.initial_menu);
     this.gmcpconfig.push(gcfg);
     this.add_mudConnAndModule(gcfg.mud_id,gcfg.module_name);
     var other = this;
-    if (typeof gcfg.callback === 'function') {
+    if (typeof gcfg.callback === 'function' && typeof gcfg.initial_menu !== 'undefined' && gcfg.initial_menu.name != '') {
       gcfg.callback('add_gmcp_module',gcfg,actual_menu,actual_menu.index,function(chgmenu:string){
         actual_menu.mud_id = gcfg.mud_id;
         actual_menu.cfg = gcfg;
@@ -87,7 +88,7 @@ export class GmcpService {
           let observable = new Observable<GmcpMenu[]>(observer => {
             observer.next(other.gmcpmenus[gcfg.mud_id]);
             other.gmcpEvE[gcfg.mud_id].subscribe(gmenu => {
-              console.log('obs',gcfg.mud_id,gmenu);
+              console.log('G05 add_gmcp_module obs',gcfg.mud_id,gmenu);
               observer.next(gmenu);
             });
           });
@@ -96,11 +97,11 @@ export class GmcpService {
           actual_menu.index = other.gmcpmenus[gcfg.mud_id].length;
           other.gmcpmenus[gcfg.mud_id].push(actual_menu);
           other.gmcpEvE[gcfg.mud_id].emit(other.gmcpmenus[gcfg.mud_id]);
-          console.log('emit',gcfg.mud_id,other.gmcpmenus[gcfg.mud_id]);
+          // console.log('G05 add_gmcp_module emit',gcfg.mud_id,other.gmcpmenus[gcfg.mud_id]);
         }
       });
     } else {
-      console.error('gcfg.callback not a function',gcfg);
+      console.error('G05 gcfg.callback not a function or menu not defined.',gcfg);
     }
   }
 

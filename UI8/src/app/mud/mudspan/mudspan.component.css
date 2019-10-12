@@ -1,6 +1,37 @@
 span {
     white-space: pre;
 }
+.bold {
+    font-weight: bold;
+}
+.italic {
+    font-style: italic;
+}
+.underline {
+    text-decoration: underline;
+}
+.crossedout {
+    text-decoration: line-through;
+}
+.faint {
+    filter: brightness(45%);
+}
+.blink {
+    animation: blink-animation 1s steps(5, start) infinite;
+    -webkit-animation: blink-animation 1s steps(5, start) infinite;
+  }
+  @keyframes blink-animation {
+    to {
+      visibility: hidden;
+    }
+  }
+  @-webkit-keyframes blink-animation {
+    to {
+      visibility: hidden;
+    }
+  }
+
+
 /* Tooltip container */
 .tooltip {
     position: relative;

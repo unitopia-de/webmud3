@@ -40,6 +40,54 @@ export class AnsiService {
     return ( r == g && g == b) ? this.invColor(s) : s;
   }
 
+  public extractColors(a2h :AnsiData,colors:string[],bow:boolean,invert:boolean,colorOff:boolean):string[] {
+    var result = ['#000000','#ffffff'];
+    var lfg : string;
+    var lbg : string;
+    if (colorOff) {
+      if (bow || invert) {
+        result[0] = '#000000';
+        result[1] = '#ffffff';
+      } else {
+        result[0] = '#ffffff';
+        result[1] = '#000000';
+      }
+      return result;
+    } else  if (typeof colors !=='undefined' && colors.length==2) {
+      lfg = colors[0];
+      lbg = colors[1];
+    } else if (typeof a2h === 'undefined') {
+      if (bow || invert) {
+        result[0] = '#000000';
+        result[1] = '#ffffff';
+      } else {
+        result[0] = '#ffffff';
+        result[1] = '#000000';
+      }
+      return result;
+    } else {
+      if (a2h.reverse) {
+        lfg = a2h.bgcolor;
+        lbg = a2h.fgcolor;
+      } else {
+        lfg = a2h.fgcolor;
+        lbg = a2h.bgcolor;
+      }
+    }
+    if (invert) {
+      lfg = this.invColor(lfg);
+      lbg = this.invColor(lbg);
+    }
+    if (!bow) {
+      result[0] = lfg;
+      result[1] = lbg;
+    } else {
+      result[0] = this.blackToWhite(lfg);
+      result[1] = this.blackToWhite(lbg);
+    }
+    return result;
+  }
+
   public ansiCode(data: AnsiData): AnsiData {
     data = Object.assign({},data);
     if (data.ansiPos >= data.ansi.length-1) {
@@ -227,6 +275,15 @@ export class AnsiService {
     var result : AnsiData[] = [];
     data = Object.assign({},data);
     data.text ='';
+    if (typeof data.mudEcho !== 'undefined' && data.ansi =='') {
+      // console.error(new Error("processAnsi-mudEcho."));
+      data = Object.assign({},data);
+      result.push(data);
+      data = Object.assign({},data);
+      data.mudEcho = undefined;
+      result.push(data);
+      return result;
+    }
     if (typeof data.lastEscape !== 'undefined') {
       console.log("esc-pad:",data.lastEscape,data.ansi.substr(0,30));
       data.ansi = data.lastEscape + data.ansi;

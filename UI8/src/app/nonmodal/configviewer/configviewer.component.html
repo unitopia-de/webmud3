@@ -1,0 +1,42 @@
+<div class="noselect">
+    <button (click)="onClickMenu('colorOff')" mat-menu-item>
+        <mat-icon *ngIf='mudmcfg.colorOff'>check_box</mat-icon>
+        <mat-icon *ngIf='!mudmcfg.colorOff'>check_box_outline_blank</mat-icon>
+        <span>Farbe An/Aus</span>
+      </button>
+      <button (click)="onClickMenu('invert')" mat-menu-item>
+          <mat-icon *ngIf='mudmcfg.invert'>check_box</mat-icon>
+          <mat-icon *ngIf='!mudmcfg.invert'>check_box_outline_blank</mat-icon>
+          <span>Invertieren</span>
+      </button>
+      <button (click)="onClickMenu('blackOnWhite')" mat-menu-item>
+            <mat-icon *ngIf='mudmcfg.blackOnWhite'>check_box</mat-icon>
+            <mat-icon *ngIf='!mudmcfg.blackOnWhite'>check_box_outline_blank</mat-icon>
+            <span>Schwarz auf Weiss</span>
+      </button>
+      <button (click)="onClickMenu('LocalEcho')" mat-menu-item>
+        <mat-icon *ngIf='mudmcfg.localEcho'>check_box</mat-icon>
+        <mat-icon *ngIf='!mudmcfg.localEcho'>check_box_outline_blank</mat-icon>
+        <span>LocalEcho an</span>
+      </button>
+
+<span style.background="grey"
+style.align="center"
+[cpOKButton]="true"
+ [cpSaveClickOutside]="false"
+ [cpPosition]="'top-right'"
+ [cpOKButtonClass]= "'btn btn-primary btn-xs'"
+ (colorPickerClose)="onClickMenu('closeColorLocalEcho')"
+[(colorPicker)]="mudmcfg.colorLocalEcho">Textfarbe</span>
+<span [style.color]="mudmcfg.colorLocalEcho"
+[style.background]="mudmcfg.background"
+style.align="center">Ergebnis</span>
+<span style.background="grey"
+style.align="center"
+[cpOKButton]="true"
+ [cpSaveClickOutside]="false"
+ [cpPosition]="'top-right'"
+ [cpOKButtonClass]= "'btn btn-primary btn-xs'"
+ (colorPickerClose)="onClickMenu('closeBackgroundLocalEcho')"
+[(colorPicker)]="mudmcfg.background">Hintergrund</span>
+</div>
