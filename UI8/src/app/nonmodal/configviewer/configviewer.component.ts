@@ -46,7 +46,10 @@ export class ConfigviewerComponent extends MyDynamicComponent implements OnInit 
       case 'closeColorLocalEcho':
           this.outgoingMsg('LocalEchoColor='+this.mudmcfg.colorLocalEcho);
           return;
-    }
+      case 'closeBackgroundLocalEcho':
+        this.outgoingMsg('LocalEchoBackground='+this.mudmcfg.background);
+        return;
+  }
   }
 
   ngOnInit() {

@@ -1,15 +1,16 @@
-<div class="window-nonmodal" [ngDraggable]="!lockDrag" [handle]="TitleBar" [ngResizable]="!lockDrag" *ngIf='config.visible'
+<div class="window-nonmodal" [ngDraggable]="!lockDrag" [handle]="TitleHandle" [ngResizable]="!lockDrag" *ngIf='config.visible'
     (rzStart)="onResizeStart($event)"
     (rzResizing)="onResizing($event)"
     (rzStop)="onResizeStop($event)"
     (movingOffset)="onMoving($event)"
     (endOffset)="onMoveEnd($event)">
-  <mat-toolbar #toolbar class="tool-bar">
+  <mat-toolbar #toolbar class="tool-bar noselect">
     <button class="window-menu" (click)="onMenuAction('lock')" mat-button>
       <mat-icon *ngIf='lockDrag'>lock</mat-icon>
       <mat-icon *ngIf='!lockDrag'>lock_open</mat-icon>
     </button>
-    <span class="title-bar" #TitleBar>{{config.wtitle}}</span>
+    <span class="title-bar" #TitleHandle>&#x2588;&#x2588;&#x2588;</span>
+    <span class="title-bar" [title]="config.tooltip" #TitleBar>{{config.wtitle}}</span>
     <button class="window-menu" *ngIf='config.save' (click)="onMenuAction('save')" mat-button>
       <mat-icon>save</mat-icon>
     </button>

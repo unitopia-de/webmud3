@@ -178,7 +178,7 @@ io.of('%%MYSOCKET%%').on('connection', (socket) => { // nsp /mysocket.io/ instea
                     host:mudcfg.host,
                     port:mudcfg.port});
             }
-            const mudSocket = new MudSocket(tsocket,{bufferSize:65536},{debugflag:true,id:id,gmcp_support:gmcp_support,charset:charset},socket);
+            const mudSocket = new MudSocket(tsocket,{bufferSize:65536},{debugflag:false,id:id,gmcp_support:gmcp_support,charset:charset},socket);
             mudSocket.on("close",function(){
             socket.emit("mud-disconnected",id);
             });
@@ -277,7 +277,9 @@ io.of('%%MYSOCKET%%').on('connection', (socket) => { // nsp /mysocket.io/ instea
         mudSocket.writeSub(201 /*TELOPT_GMCP*/, buf);
     });
 
-    socket.emit('connected');
+    socket.emit('connected',socket.id,real_ip,function(action,oMudOb) {
+        console.log('S02-connected:',action,oMudOb);
+    });
 });
 
 function myCleanup() {

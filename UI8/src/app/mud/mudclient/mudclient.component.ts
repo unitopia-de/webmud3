@@ -59,6 +59,7 @@ export class MudclientComponent implements AfterViewChecked,OnInit,OnDestroy {
   public stdbg : string ='black';
   public localEchoActive : boolean = true;
   public localEchoColor: string = '#a8ff00';
+  public localEchoBackground: string = "#000000";
   public blackOnWhite: boolean = false;
   public colorOff : boolean=false;
 
@@ -126,6 +127,9 @@ export class MudclientComponent implements AfterViewChecked,OnInit,OnDestroy {
                     switch (xsplit[0]) {
                       case "LocalEchoColor":
                         self.localEchoColor = xsplit[1];
+                        return;
+                      case "LocalEchoBackground":
+                        self.localEchoBackground = xsplit[1];
                         return;
                       default:
                         console.error("Unknown ConfigviewerMessage: ",x);
@@ -219,6 +223,7 @@ export class MudclientComponent implements AfterViewChecked,OnInit,OnDestroy {
                   filewincfg.component = 'EditorComponent';
                   filewincfg.data = newfile;
                   filewincfg.wtitle = newfile.filename;
+                  filewincfg.tooltip = newfile.filepath;
                   newfile.load(function(err,data) {
                     if (typeof err !== 'undefined') {
                     } else {

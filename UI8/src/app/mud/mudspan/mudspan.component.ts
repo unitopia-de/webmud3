@@ -21,7 +21,8 @@ export class MudspanComponent implements OnInit {
   public invert:boolean = false;
   public colorOff : boolean = false;
   public echoFlag : boolean = true;
-  public echoCol : string = 'a8ff00';
+  public echoCol : string = '#a8ff00';
+  public echoBak : string = '#000000';
   public tt:string='';
 
   private calcFgBg() {
@@ -53,6 +54,7 @@ export class MudspanComponent implements OnInit {
       if (this.echoFlag) {
         this.txt = this.a2h.mudEcho;
         lfg = this.echoCol;
+        lbg = this.echoBak;
       } else {
         this.txt = '';
       }
@@ -110,6 +112,14 @@ export class MudspanComponent implements OnInit {
     this.calcFgBg();
   }
 
+  @Input('localEchoBackground') set localEchoBackground(col : string) {
+    if (this.echoBak == col) {
+      return;
+    }
+    this.echoBak = col;
+    this.calcFgBg();
+  }
+
    @Input('ansi2html') set ansi2html(ansi: AnsiData) {
     this.a2h = ansi;
     this.tt = ansi.timeString;// console.log(this.tt);
@@ -129,6 +139,9 @@ export class MudspanComponent implements OnInit {
     }
     if (ansi.crossedout) {
       this.myclasses += ' crossedout';
+    }
+    if (ansi.faint) {
+      this.myclasses += ' faint';
     }
     if (this.myclasses != ''){
       this.myclasses = this.myclasses.substr(1);

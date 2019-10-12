@@ -232,7 +232,9 @@ MudSocket = class MudSocket extends TelnetSocket {
                             return;
                         }
                         buf = other.sizeToBuffer(sizeOb.width,sizeOb.height);
-                        console.log('MUDSOCKET: NAWS-buf:',buf,sizeOb);
+                        if (other.debugflag) {
+                            console.log('MUDSOCKET: NAWS-buf:',buf,sizeOb);
+                        }
                         other.writeSub(chunkData,buf);
                     })
                     break; // TODO calc windows size and report...
@@ -313,19 +315,25 @@ MudSocket = class MudSocket extends TelnetSocket {
                         nullBuf[0] = 0; // TELQUAL_IS
                         buf = Buffer.from('WebMud3a');
                         sendBuf = Buffer.concat([nullBuf,buf],buf.length+1);
-                        console.log('MUDSOCKET: TTYPE: ',sendBuf);
+                        if (other.debugflag) {
+                            console.log('MUDSOCKET: TTYPE: ',sendBuf);
+                        }
                         other.writeSub(optin,sendBuf);
                     }
                     break;
                 case 'TELOPT_CHARSET':
-                    console.log('MUDSOCKET: SB CHARSET:',chunkData.toString());
+                    if (other.debugflag) {
+                        console.log('MUDSOCKET: SB CHARSET:',chunkData.toString());
+                    }
                     if (subInput.length>=1 && subInput[0] == 1) { // TELQUAL_SEND
                         var nullBuf = Buffer.alloc(1);
                         var sendBuf;
                         nullBuf[0] = 2; // TELQUAL_INFO
                         buf = Buffer.from('UTF-8');
                         sendBuf = Buffer.concat([nullBuf,buf],buf.length+1);
-                        console.log('MUDSOCKET: SB-Accept CHARSET: ',sendBuf);
+                        if (other.debugflag) {
+                            console.log('MUDSOCKET: SB-Accept CHARSET: ',sendBuf);
+                        }
                         other.writeSub(optin,sendBuf);
                     }
                     break;
@@ -338,7 +346,9 @@ MudSocket = class MudSocket extends TelnetSocket {
                         jsdata = '{}';
                         ix = tmpstr.length;
                     }
-                    // console.log('GMCP-incoming: ',tmpstr);
+                    if (other.debugflag) {
+                        console.log('MUDSOCKET: GMCP-incoming: ',tmpstr);
+                    }
                     socket_io.emit('mud-gmcp-incoming',other._moptions.id,tmpstr.substr(0,jx),tmpstr.substr(jx+1,ix-jx),JSON.parse(jsdata));
                     break;
             }
@@ -347,8 +357,10 @@ MudSocket = class MudSocket extends TelnetSocket {
         });
         super.on('error',function(chunkData) {
             console.log('mudSocket-error:'+chunkData);
-            socket_io.emit('mud.debug',
-                {id:other._moptions.id,type:'error',data:chunkData});
+            if (other.debugflag) {
+                socket_io.emit('mud.debug',
+                    {id:other._moptions.id,type:'error',data:chunkData});
+            }
         });
       console.log('MUDSOCKET: created');
   } // constructor...

@@ -4,6 +4,7 @@ export class WindowConfig {
     windowid : string = ''; // unique id
     visible : boolean = false;
     wtitle : string = 'Editor'; // Window title
+    tooltip : string = '';
     initalLock : boolean = false; // Initialisation of lock.
     save:boolean=false; // saving allowed or not.
     dontCancel:boolean=false; // supress cancelbutton
