@@ -1,6 +1,7 @@
 import { Component, OnInit, ViewChild, AfterViewInit } from '@angular/core';
 import { MyDynamicComponent } from '../window/my-dynamic.component';
 import { FileInfo } from 'src/app/mud/file-info';
+import { NGXLogger } from 'ngx-logger';
 
 @Component({
   selector: 'app-editor',
@@ -12,7 +13,7 @@ export class EditorComponent extends MyDynamicComponent implements AfterViewInit
   public text : string = "";
   private fileinfo : FileInfo;
 
-  constructor() { super(); }
+  constructor(private logger:NGXLogger) { super(); }
 
   private cwidth : number = 200;
   private cheight : number = 200;
@@ -27,10 +28,12 @@ export class EditorComponent extends MyDynamicComponent implements AfterViewInit
   }
 
   protected outgoingMsg(msg:string) {
+    this.logger.debug('EditorComponent-outgoingMsg',msg);
     super.outgoingMsg(msg);
   }
 
   protected incommingMsg(msg : string) {
+    this.logger.debug('EditorComponent-incommingMsg',msg);
     var msgSplit = msg.split(":");
     var other = this;
     switch (msgSplit[0]) {
@@ -39,19 +42,25 @@ export class EditorComponent extends MyDynamicComponent implements AfterViewInit
           this.updateMyStyle(parseInt(msgSplit[1]),parseInt(msgSplit[2]));
         }
         break;
+      case 'moving':
+      case 'endMove':
+        break;
       case 'save':
-        this.fileinfo.save(this.text,function(err,data){
+        this.fileinfo.content = this.text;
+        this.fileinfo.save01_start(this.fileinfo.file,function(err,data){
+          other.logger.debug('EditorComponent-incommingMsg-save01_start',err);
           if (err !== undefined) {
-            console.error("EditorComponent:Save:Failed",err);
             other.outgoingMsg('error:Speichern fehlgeschlagen');
           } else {
             other.outgoingMsg('saved');
           }
         })
         return;
-      default: break;
+      default: 
+        this.logger.debug('EditorComponent-incommingMsg UNKNOWN',msg);
+        return;;
     }
-    console.log('EditorComponent Unknown incomming message: ',msg);
+    
   }
 
   // snippets: this.editor.getEditor().insert("Something cool");
@@ -69,7 +78,9 @@ export class EditorComponent extends MyDynamicComponent implements AfterViewInit
   ngAfterViewInit(){
     var emode = "text";
     if (typeof this.fileinfo !== 'undefined') {
-        emode = this.fileinfo.filetype;
+        emode = this.fileinfo.edditortype || 'text';
+    } else {
+        emode = 'text';
     }
     this.editor.setTheme("eclipse");
 

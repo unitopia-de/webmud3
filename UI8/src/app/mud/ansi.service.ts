@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { Ansi256Colors } from './ansi256colors';
 import { AnsiData } from './ansi-data';
+import { NGXLogger } from 'ngx-logger';
 
 @Injectable({
   providedIn: 'root'
@@ -15,7 +16,7 @@ export class AnsiService {
   public ESC_VALID = /^[0-9;A-Za-z]$/;
   public ESC_ENDCHAR = /^[A-Za-z]$/;
 
-  constructor() { }
+  constructor(private logger:NGXLogger) { }
 
   private toHex2(val:number) {
     var result = val.toString(16);
@@ -105,7 +106,7 @@ export class AnsiService {
         stop = this.ESC_ENDCHAR.test(char);
       } while (data.ansiPos < data.ansi.length-1 && this.ESC_VALID.test(char) && !stop);
       if (!stop) {
-        console.log('ESC['+escape);
+        this.logger.debug('AnsiService:ansiCode:','ESC['+escape);
         data.lastEscape = String.fromCharCode(27)+'['+escape;
         data.ansiPos += 1;
         return data;
@@ -126,7 +127,7 @@ export class AnsiService {
         escape += char;
         stop = this.ESC_ENDCHAR.test(char);
       } while (this.ESC_VALID.test(char) && !stop);
-      console.log('[ missing:<ESC>'+escape); // TODO provide error to server.
+      this.logger.error('AnsiService:ansiCode missing-ESC:','ESC['+escape);
       data.ansiPos += 1;
       return data; // hide unknown escapes...
     }
@@ -142,7 +143,7 @@ export class AnsiService {
       case 's': // Save position
       case 'u': // Restore position
       default:
-        console.log('unsupported:<ESC>['+escape);
+        this.logger.error('AnsiService:ansiCode unsupported-ESC:','ESC['+escape);
         break; // no action?
       case 'r': //  scroll screen
         break; // no action!
@@ -201,7 +202,7 @@ export class AnsiService {
                     i += 4;
                     break;
                   } else {
-                    console.log('unknown fg-color <ESC>'+escape);
+                    this.logger.error('AnsiService:ansiCode unknown fgcolor-ESC:','ESC['+escape);
                     break;
                   }
                 case '39': data.fgcolor = 'white';break;
@@ -224,7 +225,7 @@ export class AnsiService {
                     i += 4;
                     break;
                   } else {
-                    console.log('unknown bg-color <ESC>'+escape);
+                    this.logger.error('AnsiService:ansiCode unknown bgcolor-ESC:','ESC['+escape);
                     break;
                   }
                 case '49': data.bgcolor = 'black';break;
@@ -245,8 +246,8 @@ export class AnsiService {
                 case '106': setcolor256bg = '06'; break;
                 case '107': setcolor256bg = '07'; break;
                 default:
-                console.log('unknown attribute/color <ESC>'+escape);
-                break;
+                    this.logger.error('AnsiService:ansiCode unknown attribute/color-ESC:','ESC['+escape);
+                    break;
             }
             if (setcolor256fg!='') {
               data.fgcolor = data.faint 
@@ -276,7 +277,6 @@ export class AnsiService {
     data = Object.assign({},data);
     data.text ='';
     if (typeof data.mudEcho !== 'undefined' && data.ansi =='') {
-      // console.error(new Error("processAnsi-mudEcho."));
       data = Object.assign({},data);
       result.push(data);
       data = Object.assign({},data);
@@ -285,11 +285,11 @@ export class AnsiService {
       return result;
     }
     if (typeof data.lastEscape !== 'undefined') {
-      console.log("esc-pad:",data.lastEscape,data.ansi.substr(0,30));
+      this.logger.info('AnsiService:processAnsi esc-pad',data.lastEscape,data.ansi.substr(0,30));
       data.ansi = data.lastEscape + data.ansi;
       data.lastEscape = undefined;
     }
-    // console.log('processAnsi-1 '+JSON.stringify(data));
+    this.logger.trace('AnsiService:processAnsi',data);
     while (data.ansiPos < data.ansi.length) { // <=???
       var code :number = data.ansi.charCodeAt(data.ansiPos); //  & 0xff;
       data.ansiPos += 1;
@@ -302,7 +302,6 @@ export class AnsiService {
                 case 27: 
                   display = false;
                   if (data.text != '') {
-                    // console.log('processAnsi-2-'+result.length+': '+JSON.stringify(data));
                     data = Object.assign({},data);
                     result.push(data);
                     data = Object.assign({},data);
@@ -319,10 +318,8 @@ export class AnsiService {
     }
     data.ansi = '';
     data.ansiPos = 0;
-    // console.log('processAnsi-3 '+JSON.stringify(data));
     data = Object.assign({},data);
     result.push(data);
-    // console.log('processAnsi-9 '+JSON.stringify(result));
     return result;
   }
 

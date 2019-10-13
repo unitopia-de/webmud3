@@ -8,7 +8,6 @@ export class PortalGuard implements CanActivate {
 
     }
   canActivate(route: ActivatedRouteSnapshot, state: RouterStateSnapshot): boolean  {
-    console.log('PortalGuard#canActivate called');
     
     let url: string = state.url;
     return this.checkLogin(url);

@@ -122,7 +122,7 @@ export class MudspanComponent implements OnInit {
 
    @Input('ansi2html') set ansi2html(ansi: AnsiData) {
     this.a2h = ansi;
-    this.tt = ansi.timeString;// console.log(this.tt);
+    this.tt = ansi.timeString;
     this.calcFgBg();
     this.myclasses = '';
     if (ansi.bold) {

@@ -1,6 +1,7 @@
 import { Component, HostListener } from '@angular/core';
 
 import { WindowsService } from './nonmodal/windows.service';
+import { NGXLogger } from 'ngx-logger';
 
 @Component({
   selector: 'app-root',
@@ -9,12 +10,12 @@ import { WindowsService } from './nonmodal/windows.service';
 })
 export class AppComponent {
 
-  constructor(public wincfg : WindowsService) {
+  constructor(public wincfg : WindowsService,private logger:NGXLogger) {
     this.onResize();
   }
 
   OnMenuAction(event:string) {
-    console.log('appComponent-OnMenuAction: ',event);
+    this.logger.debug('appComponent-OnMenuAction',event);
     this.wincfg.OnMenuAction(event);
   }
   

@@ -6,6 +6,7 @@ import { IResizeEvent } from 'angular2-draggable/lib/models/resize-event';
 import { WindowsService } from '../windows.service';
 import { DirlistComponent } from '../dirlist/dirlist.component';
 import { ConfigviewerComponent } from '../configviewer/configviewer.component';
+import { NGXLogger } from 'ngx-logger';
 
 @Component({
   selector: 'app-window',
@@ -50,14 +51,14 @@ export class WindowComponent implements AfterViewInit {
     let self = this;
     var cmp: any;
     if (typeof this.windowsHost === 'undefined') {
-      console.error("windowsHost undefined");
+      this.logger.error('WindowComponent-windowsHost undefined');
       return;
     }
     switch (this.config.component) {
       case 'EditorComponent': cmp = EditorComponent; break;
       case 'DirlistComponent': cmp = DirlistComponent; break;
       case 'ConfigviewerComponent': cmp = ConfigviewerComponent; break;
-      default: console.log("Unknown Component:",this.config.component); return;
+      default: this.logger.error('WindowComponent-windowsHost Unknown Component',this.config.component);
     }
     let componentFactory = this.componentFactoryResolver.resolveComponentFactory(cmp);
     this.windowsHost.clear();
@@ -66,31 +67,31 @@ export class WindowComponent implements AfterViewInit {
     this.cri = (<MyDynamicComponent>componentRef.instance);
     this.cri.config = this.config;
     this.cri.outMsg.subscribe((x:string) => {
-      console.log("outMsg: ",x);
+      this.logger.debug('WindowComponent-cri.outMsg',x);
       self.config.outGoingEvents.emit(x);
     }, err => {
-      console.log("outMsg-Error: ",err);
+      this.logger.error('WindowComponent-cri.outMsg error',err);
       self.config.outGoingEvents.error(err);
     }, () => {
-      console.log("outMsg-complete");
+      this.logger.info('WindowComponent-cri.outMsg complete');
       self.config.outGoingEvents.complete();
     });
     this.winsrv.getDownStream().subscribe((x:string)=>{
       let exp = x.split(":");
-      console.log("DownStream: ",x);
+      this.logger.debug('WindowComponent-getDownStream',x);
       if (exp[0] == self.config.windowid) {
         self.cri.inMsg = exp.slice(1).join(":");
       }
     },(err:any)=>{
-      console.log("DownStream-error: ",err)
+      this.logger.error('WindowComponent-DownStream error',err);
     },()=>{
-      console.log("DownStream-complete");
+      this.logger.info('WindowComponent-DownStream complete');
     })
     this.cdRef.detectChanges();
   }
 
   onMenuAction(what) {
-    console.log('menuAction',this.config.windowid,what);
+    this.logger.debug('WindowComponent-menuAction complete',this.config.windowid,what);
     switch (what) {
       case 'lock':
         this.lockDrag = !this.lockDrag;
@@ -123,7 +124,6 @@ export class WindowComponent implements AfterViewInit {
   }
 
   onMoveEnd(event: Object) {
-    console.log('onMoveEnd:',event);
     this.updateMyPosition(event["x"],event["y"],false);
   }
 
@@ -131,6 +131,6 @@ export class WindowComponent implements AfterViewInit {
     this.updateMyPosition(event["x"],event["y"],true);
   }
 
-	constructor(private componentFactoryResolver: ComponentFactoryResolver,private cdRef : ChangeDetectorRef,private winsrv : WindowsService) {}
+	constructor(private componentFactoryResolver: ComponentFactoryResolver,private cdRef : ChangeDetectorRef,private winsrv : WindowsService,private logger:NGXLogger) {}
 
 }

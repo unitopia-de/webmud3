@@ -8,8 +8,6 @@ import { AngularDraggableModule } from 'angular2-draggable';
 import { AppComponent } from './app.component';
 import { ChatComponent } from './chat/chat.component';
 import { SocketService } from './shared/socket.service';
-import { LoggerService } from './shared/logger.service';
-import { LogdisplayComponent } from './logdisplay/logdisplay.component';
 import { AnsiService } from './mud/ansi.service';
 import { TabviewComponent } from './tabview/tabview.component';
 import { TabconDirective } from './tabcon.directive';
@@ -26,12 +24,12 @@ import { WindowComponent } from './nonmodal/window/window.component';
 import { CommonModule } from '@angular/common';
 import { MaterialModule } from './material.module';
 import { HttpClientModule } from '@angular/common/http';
+import { LoggerModule, NgxLoggerLevel } from 'ngx-logger';
 
 @NgModule({
   declarations: [
     AppComponent,
     ChatComponent,
-    LogdisplayComponent,
     TabviewComponent,
     TabconDirective,
     WindowComponent,
@@ -45,6 +43,10 @@ import { HttpClientModule } from '@angular/common/http';
     NonmodalModule,
     AngularDraggableModule,
     DeviceDetectorModule.forRoot(),
+    LoggerModule.forRoot({
+      level: NgxLoggerLevel.TRACE, 
+      serverLogLevel: NgxLoggerLevel.TRACE,
+      enableSourceMaps: true}),
     AppRoutingModule
   ],
   providers: [
@@ -52,7 +54,6 @@ import { HttpClientModule } from '@angular/common/http';
     ServerConfigService,
     SocketService,WindowsService,
     NonPortalGuard,PortalGuard,
-    LoggerService,
     AnsiService
   ],
   bootstrap: [AppComponent]

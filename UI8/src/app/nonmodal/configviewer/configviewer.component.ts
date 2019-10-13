@@ -1,5 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { MyDynamicComponent } from '../window/my-dynamic.component';
+import { NGXLogger } from 'ngx-logger';
 
 @Component({
   selector: 'app-configviewer',
@@ -8,7 +9,7 @@ import { MyDynamicComponent } from '../window/my-dynamic.component';
 })
 export class ConfigviewerComponent extends MyDynamicComponent implements OnInit {
 
-  constructor() { super(); }
+  constructor(private logger:NGXLogger) { super(); }
 
   public mudmcfg = {
     invert:false,
@@ -23,6 +24,7 @@ export class ConfigviewerComponent extends MyDynamicComponent implements OnInit 
     localEcho:true,
   };
   onClickMenu(what:string) {
+    this.logger.debug('ConfigviewerComponent:onClickMenu:',what);
     switch(what){
       case 'colorOff':
         this.mudmcfg.colorOff = !this.mudmcfg.colorOff;

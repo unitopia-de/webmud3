@@ -5,6 +5,7 @@ import { GmcpMenu } from 'src/app/gmcp/gmcp-menu';
 import { Observable } from 'rxjs';
 import { GmcpService } from 'src/app/gmcp/gmcp.service';
 import { AnsiService } from '../ansi.service';
+import { NGXLogger } from 'ngx-logger';
 
 @Component({
   selector: 'app-mudmenu',
@@ -51,7 +52,7 @@ export class MudmenuComponent implements OnInit {
   public gmcpMenu : GmcpMenu[];
   public gmcpFlag : boolean;
 
-  constructor(private wincfg : WindowsService,private gmcpsrv : GmcpService,private ansisrv : AnsiService) { }
+  constructor(private wincfg : WindowsService,private gmcpsrv : GmcpService,private logger:NGXLogger,private ansisrv : AnsiService) { }
 
   onPingResponse() {
     if (this.mudmcfg.manualPing) {
@@ -59,14 +60,17 @@ export class MudmenuComponent implements OnInit {
       var stopPing = new Date();
       var delta = stopPing.getTime() - this.mudmcfg.startPing.getTime();
       this.mudmcfg.deltaPing = 'GMCP-Ping: '+delta+' ms';
+      this.logger.debug('MudmenuComponent:onPingResponse:',this.mudmcfg.deltaPing);
     }
   }
 
   onClickGmcpMenu(gmen:GmcpMenu) {
+    this.logger.trace('MudmenuComponent:onClickGmcpMenu:',gmen);
     this.gmcpsrv.menuAction(gmen);
   }
 
   onClickMenu(what:string) {
+    this.logger.debug('MudmenuComponent:onClickMenu:',what);
     switch (what) {
       case 'new-window':
         var newwin : WindowConfig = new WindowConfig();
