@@ -24,7 +24,7 @@ export class EditorComponent extends MyDynamicComponent implements AfterViewInit
   private updateMyStyle(twidth,theight) {
     this.cwidth = twidth;
     this.cheight = theight;
-    this.editor.getEditor().resize()
+    this.editor.getEditor().resize();
   }
 
   protected outgoingMsg(msg:string) {
@@ -33,7 +33,6 @@ export class EditorComponent extends MyDynamicComponent implements AfterViewInit
   }
 
   protected incommingMsg(msg : string) {
-    this.logger.debug('EditorComponent-incommingMsg',msg);
     var msgSplit = msg.split(":");
     var other = this;
     switch (msgSplit[0]) {
@@ -43,21 +42,17 @@ export class EditorComponent extends MyDynamicComponent implements AfterViewInit
         }
         break;
       case 'moving':
+        break;
       case 'endMove':
+        this.logger.debug('EditorComponent-incommingMsg',msg);
         break;
       case 'save':
+        this.logger.debug('EditorComponent-incommingMsg',msg);
         this.fileinfo.content = this.text;
-        this.fileinfo.save01_start(this.fileinfo.file,function(err,data){
-          other.logger.debug('EditorComponent-incommingMsg-save01_start',err);
-          if (err !== undefined) {
-            other.outgoingMsg('error:Speichern fehlgeschlagen');
-          } else {
-            other.outgoingMsg('saved');
-          }
-        })
+        this.fileinfo.save01_start(this.fileinfo.file);
         return;
       default: 
-        this.logger.debug('EditorComponent-incommingMsg UNKNOWN',msg);
+        this.logger.error('EditorComponent-incommingMsg UNKNOWN',msg);
         return;;
     }
     
@@ -82,10 +77,11 @@ export class EditorComponent extends MyDynamicComponent implements AfterViewInit
     } else {
         emode = 'text';
     }
-    this.editor.setTheme("eclipse");
-
+    this.logger.debug('EditorComponent-editortype',emode);
     this.editor.getEditor().setOptions({
         mode : emode,
     });
+    this.editor.setTheme("eclipse");
+    this.editor.getEditor().resize();
 }
 }

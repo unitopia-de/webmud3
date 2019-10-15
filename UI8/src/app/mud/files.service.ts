@@ -20,14 +20,11 @@ export class FilesService {
     const url = fileinfo.lasturl;
     const filepath = fileinfo.file;
     this.logger.trace('FilesService-processFileInfo-start',fileinfo);
-    if (this.filemap.hasOwnProperty(filepath)) {
+    if (this.filemap.hasOwnProperty(filepath)&& fileinfo.saveActive) {
       var cfileinfo : FileInfo = this.filemap[filepath];
-      if (fileinfo.saveActive) {
-        cfileinfo.save02_url(url);
-      } else {
-        cfileinfo.save05_error(cfileinfo.windowsId,"Vorhandene FileInfo");
-      }
+      cfileinfo.save02_url(url);
       cfileinfo.alreadyLoaded = true;
+      cfileinfo.saveActive = true;
       this.logger.trace('FilesService-processFileInfo-alreadyLoaded',cfileinfo);
       return cfileinfo;
     } else {
@@ -46,18 +43,8 @@ export class FilesService {
       other.logger.debug('FilesService-save02_url',fileinfo);
       other.http.put(url2,fileinfo.content,{ responseType: 'text'}).subscribe((value:string) => {
         fileinfo.oldContent = fileinfo.content;
-        fileinfo.save03_saved(filepath,function(err2,data){
-          other.logger.debug('FilesService-save03_saved',fileinfo,err2);
-          if (typeof(err2) !== "undefined") {
-            fileinfo.save05_error(fileinfo.windowsId,err2);
-            return;
-          }
-          if (fileinfo.temporary) {
-            fileinfo.save04_closing(fileinfo.windowsId);
-          } else {
-            fileinfo.save06_success(fileinfo.windowsId);
-          }
-        });
+        fileinfo.saveActive = false;
+        fileinfo.save03_saved(filepath);
       },(err:any) => {
         other.logger.error('FilesService-save02_url-rrror',fileinfo,err);
         fileinfo.save05_error(fileinfo.windowsId,err);

@@ -18,9 +18,9 @@ export class FileInfo {
 
     alreadyLoaded? : boolean = false;
     windowsId? : string = undefined;
-    save01_start? = function(filepath,cb) {};
+    save01_start? = function(filepath) {};
     save02_url? = function(url) {};
-    save03_saved? = function(filepath,cb){};
+    save03_saved? = function(filepath){};
     save04_closing? = function(windowsid){};
     save05_error? = function(windowsid,error){};
     save06_success? = function(windowsid){};

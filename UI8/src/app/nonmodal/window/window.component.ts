@@ -27,10 +27,14 @@ export class WindowComponent implements AfterViewInit {
   public moving: boolean = false;
   private cri: MyDynamicComponent; 
 
-  private updateMySize(twidth,theight) {
+  private updateMySize(twidth:number,theight:number,endflag:boolean) {
     this.cwidth = twidth - 4;
     this.cheight = theight-71;
-    this.cri.inMsg = "resize:"+this.cwidth+":"+this.cheight;
+    if (endflag){
+      this.cri.inMsg = "resizeEnd:"+this.cwidth+":"+this.cheight;
+    } else {
+      this.cri.inMsg = "resize:"+this.cwidth+":"+this.cheight;
+    }
   }
 
   private updateMyPosition(posx,posy,move) {
@@ -112,15 +116,15 @@ export class WindowComponent implements AfterViewInit {
   }
 
   onResizeStart(event:IResizeEvent) {
-    this.updateMySize(event.size.width,event.size.height);
+    this.updateMySize(event.size.width,event.size.height,false);
   }
 
   onResizing(event:IResizeEvent) {
-    this.updateMySize(event.size.width,event.size.height);
+    this.updateMySize(event.size.width,event.size.height,false);
   }
 
   onResizeStop(event:IResizeEvent) {
-    this.updateMySize(event.size.width,event.size.height);
+    this.updateMySize(event.size.width,event.size.height,true);
   }
 
   onMoveEnd(event: Object) {

@@ -639,30 +639,26 @@ public mudReceiveSignals(_id: string) : Observable<MudSignals> {
                     fileinfo.edditortype = 'text';
                     break;
                 }
-                fileinfo.save01_start = function(filepath,cb) {
+                fileinfo.save01_start = function(filepath) {
                   other.logger.debug('save01_start',filepath,fileinfo);
-                  if (fileinfo.file != filepath) {
-                    cb("Ungueltiger Pfad",undefined);
-                    return;
-                  }
                   other.sendGMCP(_id,"Files","OpenFile",{
                     "file":filepath,
                     "title":fileinfo.title,
                     "flag":1,// save flag!!!
                   });
-                  cb(undefined,filepath);
                 }
-                fileinfo.save03_saved = function(filepath,cb) {
+                fileinfo.save03_saved = function(filepath) {
                   other.logger.debug('save03_saved',filepath,fileinfo);
-                  if (fileinfo.file != filepath) {
-                    cb(undefined,"Ungueltiger Pfad");
-                    return;
-                  }
                   other.sendGMCP(_id,"Files","fileSaved",{
                     "file":filepath,
                     "title":fileinfo.title,
                     "flag":1,// save flag!!!
                   });
+                  if (fileinfo.temporary) {
+                    fileinfo.save04_closing(fileinfo.windowsId);
+                  } else {
+                    fileinfo.save06_success(fileinfo.save06_success);
+                  }
                 }
                 let fileSignal : MudSignals = {
                   signal: 'Files.URL',

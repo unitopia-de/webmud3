@@ -217,7 +217,7 @@ export class MudclientComponent implements AfterViewChecked,OnInit,OnDestroy {
                 } else {
                   newfile.save04_closing = function(windowsid) {
                     other.logger.debug('Files.URL-save04_closing',_id,windowsid);
-                    other.wincfg.CancelSave(windowsid,'');
+                    other.wincfg.SavedAndClose(windowsid);
                   }
                   newfile.save05_error = function(windowsid,error) {
                     other.logger.error('Files.URL-save05_error',_id,windowsid,error);

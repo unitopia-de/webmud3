@@ -175,7 +175,7 @@ public OnMenuAction(event:string) {
       case 'save':
         
         return;
-      case 'saved':
+      case 'savedAndClose':
       case 'cancel':
         this.deleteWindow(index);
         return;
@@ -195,13 +195,16 @@ public OnMenuAction(event:string) {
     return new Observable<string>(observer => {
       other.cmdQueue.subscribe(
         (x:string) => {
-          this.logger.debug('windowsService:getDownStream-x:',x);
+          other.logger.debug('windowsService:getDownStream-x:',x);
+          if (x.endsWith(':savedAndClose')) {
+            other.OnMenuAction(x);
+          }
           observer.next(x);
         },(err:any)=> {
-          this.logger.error('windowsService:getDownStream-error:',err);
+          other.logger.error('windowsService:getDownStream-error:',err);
           observer.error(err);
         } ,()=>{
-          this.logger.error('windowsService:getDownStream-coplete');
+          other.logger.error('windowsService:getDownStream-coplete');
           observer.complete()
         } )
     })
@@ -217,6 +220,10 @@ public OnMenuAction(event:string) {
 public CancelSave(winid:string,reason:string) {
   this.logger.debug('windowsService:CancelSave:',winid,reason);
   this.cmdQueue.emit(winid+":CancelSave:"+reason);
+}
+public SavedAndClose(winid:string) {
+  this.logger.debug('windowsService:SavedAndClose:',winid);
+  this.cmdQueue.emit(winid+":savedAndClose");
 }
 public WinError(winid:string,reason:string) {
   this.logger.debug('windowsService:WinError:',winid,reason);

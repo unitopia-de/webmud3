@@ -49,4 +49,7 @@ table {
 .mud-input {
     font-family: monospace;
     font-size: 14px;
+    border-style: solid;
+    border-color: rgb(59, 11, 231);
+    border-bottom-width: thick;
 }
