@@ -27,3 +27,5 @@
 27. Version 0.0.41: Docker-naming revisited
 28. Version 0.0.42: LocalEcho established with foreground colorchoice. TRansported Core.Browserinfo from Backend to UNItopia
 29. Version 0.0.43: Bugfixes,Enhancements and Code Beauitfying for Logging backend and frontend
+30. Version 0.0.44: ngx-logger inclusive logger backend, all console.logs rerouted through the new logger.
+31. Version 0.0.45: editor-save rewritten and debugged => working now.files module now mandatory. 

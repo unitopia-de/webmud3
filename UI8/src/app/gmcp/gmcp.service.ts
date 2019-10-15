@@ -3,6 +3,7 @@ import { GmcpMenu } from './gmcp-menu';
 import { GmcpConfig } from './gmcp-config';
 import { UnitopiaService } from '../mudconfig/unitopia.service';
 import { Observable } from 'rxjs';
+import { NGXLogger } from 'ngx-logger';
 
 @Injectable({
   providedIn: 'root'
@@ -22,6 +23,7 @@ export class GmcpService {
     if (typeof this.gmcpconn[mud_id][module_name] === 'undefined') {
       this.gmcpconn[mud_id][module_name] = {};
     }
+    this.logger.debug('GmcpService-add_mudConnAndModule',mud_id,module_name);
   }
 
   private find_menu(mud_id:string,actual_menu : GmcpMenu) : number {
@@ -38,6 +40,7 @@ export class GmcpService {
   }
 
   public menuAction(actual_menu : GmcpMenu) {
+    this.logger.trace('GmcpService-menuAction',actual_menu);
     const mud_id = actual_menu.cfg.mud_id;
     const index = this.find_menu(mud_id,actual_menu);
     var other = this;
@@ -47,21 +50,23 @@ export class GmcpService {
           if (index > -1) {
             other.gmcpmenus[mud_id][index].active = !other.gmcpmenus[mud_id][index].active;
             other.gmcpEvE[mud_id].emit(other.gmcpmenus[mud_id]);
-            console.log('G05: emit-toggle',mud_id,other.gmcpmenus[mud_id]);
+            other.logger.trace('GmcpService-G05: emit-toggle',mud_id,other.gmcpmenus[mud_id]);
           }
       }
     });
   }
 
   public GmcpObservableMenu(_id:string) : Observable<GmcpMenu[]> {
+    this.logger.debug('GmcpService-GmcpObservableMenu-1',_id);
     if (typeof this.gmcpOb[_id] ==='undefined') {
       this.gmcpmenus[_id] = [];
       var other = this;
       this.gmcpEvE[_id] = new EventEmitter();
       let observable = new Observable<GmcpMenu[]>(observer => {
+        other.logger.debug('GmcpService-G05: GmcpObservableMenu-2');
         observer.next(other.gmcpmenus[_id]);
         other.gmcpEvE[_id].subscribe(gmenu => {
-          // console.log('G05: GmcpObservableMenu',gmenu);
+          other.logger.trace('GmcpService-G05: GmcpObservableMenu-3',gmenu);
           observer.next(gmenu);
         })
       });
@@ -71,7 +76,7 @@ export class GmcpService {
   }
 
   public add_gmcp_module(gcfg : GmcpConfig) {
-    console.log("G05 add_gmcp_module:",gcfg);
+    this.logger.trace('GmcpService-add_gmcp_module-1',gcfg);
     gcfg.initial_menu.index = this.gmcpconfig.length;
     var actual_menu = Object.assign({},gcfg.initial_menu);
     this.gmcpconfig.push(gcfg);
@@ -88,7 +93,7 @@ export class GmcpService {
           let observable = new Observable<GmcpMenu[]>(observer => {
             observer.next(other.gmcpmenus[gcfg.mud_id]);
             other.gmcpEvE[gcfg.mud_id].subscribe(gmenu => {
-              console.log('G05 add_gmcp_module obs',gcfg.mud_id,gmenu);
+              other.logger.trace('GmcpService-add_gmcp_module-2',gcfg,gmenu);
               observer.next(gmenu);
             });
           });
@@ -97,11 +102,11 @@ export class GmcpService {
           actual_menu.index = other.gmcpmenus[gcfg.mud_id].length;
           other.gmcpmenus[gcfg.mud_id].push(actual_menu);
           other.gmcpEvE[gcfg.mud_id].emit(other.gmcpmenus[gcfg.mud_id]);
-          // console.log('G05 add_gmcp_module emit',gcfg.mud_id,other.gmcpmenus[gcfg.mud_id]);
+          other.logger.trace('GmcpService-add_gmcp_module-3',gcfg,actual_menu);
         }
       });
     } else {
-      console.error('G05 gcfg.callback not a function or menu not defined.',gcfg);
+      this.logger.trace('GmcpService-add_gmcp_module-4',gcfg);
     }
   }
 
@@ -162,5 +167,6 @@ export class GmcpService {
 
   constructor(
     private unitopiaSrv : UnitopiaService,
+    private logger:NGXLogger
   ) { }
 }

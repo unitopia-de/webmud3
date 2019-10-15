@@ -3,6 +3,7 @@ import { MyDynamicComponent } from '../window/my-dynamic.component';
 import { FileEntries } from '../file-entries';
 import { MudSignals } from 'src/app/mud/mud-signals';
 import { WindowsService } from '../windows.service';
+import { NGXLogger } from 'ngx-logger';
 
 @Component({
   selector: 'app-dirlist',
@@ -40,7 +41,6 @@ export class DirlistComponent extends MyDynamicComponent implements OnInit {
         "left": this.cposy+'px',
       };
     }
-    // console.log('myStyle',ret);
     return ret;
   } 
   
@@ -55,7 +55,7 @@ export class DirlistComponent extends MyDynamicComponent implements OnInit {
     this.cposy = posy;
   }
 
-  constructor(private winsrv:WindowsService) {
+  constructor(private winsrv:WindowsService,private logger:NGXLogger) {
     super();
    }
 
@@ -68,8 +68,7 @@ export class DirlistComponent extends MyDynamicComponent implements OnInit {
      }
     this.path = this.musi.filepath;
     this.entries = this.musi.entries;
-
-    console.log('updateDirList:',this.path);
+    this.logger.debug('DirlistComponent-updateDirList',this.path);
    }
 
    protected incommingMsg(msg : string) {
@@ -87,19 +86,21 @@ export class DirlistComponent extends MyDynamicComponent implements OnInit {
           return;
         }
         break;
-      case "endMove":         
+      case "endMove":   
+        this.logger.debug('DirlistComponent-incommingMsg',msg);      
         if (msgSplit.length == 3) {
           this.updateMyPosition(parseInt(msgSplit[1]),parseInt(msgSplit[2]),false);
           return;
         }
         break;
       case "updateDir":
+          this.logger.debug('DirlistComponent-incommingMsg',msg);
         this.updateDirList();
         return;
       default:
         break;
     }
-    console.log('dirlist-msg: ',msg);
+    this.logger.error('DirlistComponent-incommingMsg UNKNOWN',msg);
   }
 
   fileOpen(file:string) {

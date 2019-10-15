@@ -4,6 +4,7 @@ import { UUID } from 'angular2-uuid';
 import { WINDOW } from '../shared/WINDOW_PROVIDERS';
 import { Title } from '@angular/platform-browser';
 import { Observable } from 'rxjs';
+import { NGXLogger } from 'ngx-logger';
 
 @Injectable({
   providedIn: 'root'
@@ -51,6 +52,7 @@ export class WindowsService {
  * @memberof WindowsService
  */
 public closeAllWindows() {
+    this.logger.debug('WindowsService-closeAllWindows');
     this.windowsconfigurations = [];
   }
 /**
@@ -66,7 +68,8 @@ public newWindow(cfg : WindowConfig) : string {
     cfg.visible = true;
     this.windowsconfigurations.push(cfg);
     this.focus(maxindex,false);
-    console.log("newWindow",maxindex);
+    this.logger.debug('WindowsService-newWindow',maxindex,cfg.windowid);
+    this.logger.trace('WindowsService-newWindow',cfg);
     return cfg.windowid;
   }
 private findWindowByCfg(cfg:WindowConfig):boolean {
@@ -104,7 +107,7 @@ public findFilesWindow(cfg : WindowConfig,data:Object) : WindowConfig {
     cfg.dontCancel = false;
     cfg.visible = true;
     this.cmdQueue.emit(cfg.windowid+":updateDir");
-    console.log('findFilesWindow: ',data);
+    this.logger.trace('WindowsService-findFilesWindow',cfg);
     return cfg;
   }
 
@@ -156,11 +159,12 @@ public findFilesWindow(cfg : WindowConfig,data:Object) : WindowConfig {
 public OnMenuAction(event:string) {
     var esp : string[] = event.split(":");
     if (esp.length<2 || typeof this.wincfgIndex[esp[0]] === 'undefined') {
-      console.log('windowsService:OnMenuAction-Unknown Event: ',event);
+      this.logger.error('windowsService:OnMenuAction-Unknown Event-1:',event);
       return;
     }
     const index = this.wincfgIndex[esp[0]];
     let wincfg = this.windowsconfigurations[index];
+    this.logger.debug('windowsService:OnMenuAction-Event:',event);
     switch(esp[1]) {
       case 'lock':
         this.focus(index,true);
@@ -169,13 +173,14 @@ public OnMenuAction(event:string) {
         this.focus(index,false);
         return;
       case 'save':
+        
         return;
-      case 'saved':
+      case 'savedAndClose':
       case 'cancel':
         this.deleteWindow(index);
         return;
       default:
-        console.log('windowsService:OnMenuAction-Unknown Event-2: ',event);
+        this.logger.error('windowsService:OnMenuAction-Unknown Event-2:',event);
         return;
     }
   }
@@ -189,9 +194,19 @@ public OnMenuAction(event:string) {
     var other = this;
     return new Observable<string>(observer => {
       other.cmdQueue.subscribe(
-        (x:string) => observer.next(x), 
-        (err:any)=> observer.error(err) ,
-        ()=>observer.complete() )
+        (x:string) => {
+          other.logger.debug('windowsService:getDownStream-x:',x);
+          if (x.endsWith(':savedAndClose')) {
+            other.OnMenuAction(x);
+          }
+          observer.next(x);
+        },(err:any)=> {
+          other.logger.error('windowsService:getDownStream-error:',err);
+          observer.error(err);
+        } ,()=>{
+          other.logger.error('windowsService:getDownStream-coplete');
+          observer.complete()
+        } )
     })
   }
     
@@ -203,8 +218,17 @@ public OnMenuAction(event:string) {
  * @memberof WindowsService
  */
 public CancelSave(winid:string,reason:string) {
-    this.cmdQueue.emit(winid+":CancelSave:"+reason);
-  }
+  this.logger.debug('windowsService:CancelSave:',winid,reason);
+  this.cmdQueue.emit(winid+":CancelSave:"+reason);
+}
+public SavedAndClose(winid:string) {
+  this.logger.debug('windowsService:SavedAndClose:',winid);
+  this.cmdQueue.emit(winid+":savedAndClose");
+}
+public WinError(winid:string,reason:string) {
+  this.logger.debug('windowsService:WinError:',winid,reason);
+  this.cmdQueue.emit(winid+":WinError:"+reason);
+}
 
   /**
    *  indicate, that save was completed.
@@ -213,6 +237,7 @@ public CancelSave(winid:string,reason:string) {
    * @memberof WindowsService
    */
   public SaveComplete(winid:string) {
+    this.logger.debug('windowsService:SaveComplete:',winid);
     this.cmdQueue.emit(winid+":saved");
   }
 
@@ -227,5 +252,5 @@ public setTitle(tstr:string) {
   }
 
 
-  constructor(@Inject(WINDOW) private window:Window,private titleService:Title) { }
+  constructor(@Inject(WINDOW) private window:Window,private logger:NGXLogger,private titleService:Title) { }
 }

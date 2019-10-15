@@ -7,6 +7,7 @@ process.stdin.resume(); // Prevents the program from closing instantly
 var env = process.env.NODE_ENV || 'development'
   , cfg = require('./config/config.'+env);
 
+const logger = require('./ngxlogger/ngxlogger');
 const express = require('express');
 const app = express();
 const path = require('path');
@@ -35,9 +36,11 @@ if (cfg.tls) {
       };
     http = require('https').Server(options,app);
     console.log("INIT: https active");
+    logger.addAndShowLog('SRV://5000',"DEBUG",'INIT: https active',[]);
 } else {
     http = require('http').Server(app);
 }
+//const io = require('socket.io')(http,{'path':'/socket.io','transports': ['websocket']});
 const io = require('socket.io')(http,{'path':'%%MYSOCKETPATH%%','transports': ['websocket']});
 // io.set('origins', cfg.whitelist);
 const net = require('net');
@@ -52,7 +55,7 @@ app.use(bodyParser.urlencoded({
 
 app.get('/socket.io-client/dist/*', (req,res) => {
     var mypath = req.path.substr(0);
-    console.log('socket-path',mypath);
+    logger.addAndShowLog('SRV://5000',"DEBUG",'socket-Path:',[mypath]);
     res.sendFile(path.join(__dirname, 'node_modules'+mypath));
 });
 
@@ -60,25 +63,28 @@ app.use(express.static(path.join(__dirname, 'dist')));
 
 app.get("/ace/*", (req,res) => {
     var mypath = req.path.substr(5);
-    console.log('ace-path',mypath);
+    logger.addAndShowLog('SRV://5000',"DEBUG",'ace-Path:',[mypath]);
     res.sendFile(path.join(__dirname, 'node_modules/ace-builds/src-min-noconflict/'+mypath));
 });
 
 app.get('*', (req, res) => {
-    console.log('path:',req.path);
+    logger.addAndShowLog('SRV://5000',"DEBUG",'dist/index.html-Path:',[req.path]);
     res.sendFile(path.join(__dirname, 'dist/index.html'));
   });
 
 var MudConnections = {};
 var Socket2Mud = {};
 
+// io.of('/').on('connection', (socket) => { // nsp /mysocket.io/ instead of /
 io.of('%%MYSOCKET%%').on('connection', (socket) => { // nsp /mysocket.io/ instead of /
-    var real_ip = socket.handshake.headers['x-forwarded-for'];
+    const address = socket.handshake.address;
+    const real_ip = socket.handshake.headers['x-forwarded-for'] || address;
     console.log('S01-socket:'+socket.id+' user connected: ',real_ip);
+    logger.addAndShowLog('SRV:'+real_ip,"LOG",'S01-socket user connected',[socket.id]);
 
     socket.on('disconnect', function () {
         // TODO disconnect all mudclients...
-        console.log('S01-socket:'+socket.id+' user disconnected');
+        logger.addAndShowLog('SRV:'+real_ip,"INFO",'S01-socket user disconnected',[socket.id]);
         if (typeof Socket2Mud === 'undefined' || 
             typeof Socket2Mud[socket.id] === 'undefined') {
             return
@@ -93,7 +99,7 @@ io.of('%%MYSOCKET%%').on('connection', (socket) => { // nsp /mysocket.io/ instea
                 }
                 mudOb = mudConn.mudOb;
                 if (typeof mudOb !== 'undefined') {
-                    console.log('S01-socket:'+socket.id+' socket-disconnect-mudOb ',mudOb);
+                    logger.addAndShowLog('SRV:'+real_ip,"ERROR",'S01-socket socket-disconnect-mudOb',[socket.id,mudOb]);
                 }
             }
             delete MudConnections[id];
@@ -101,13 +107,13 @@ io.of('%%MYSOCKET%%').on('connection', (socket) => { // nsp /mysocket.io/ instea
         delete Socket2Mud[socket.id];
     });
     socket.on('error', function(error) {
-        console.log('S01-socket:'+socket.id+' error:'+error);
+        logger.addAndShowLog('SRV:'+real_ip,"ERROR",'S01-socket error',[socket.id,error]);
     });
     socket.on('disconnecting', function(reason) {
-        console.log('S01-socket:'+socket.id+' disconnecting:'+reason);
+        logger.addAndShowLog('SRV:'+real_ip,"INFO",'S01-socket disconnecting',[socket.id,reason]);
     });
     socket.on('reconnect_attempt', (attemptNumber) => {
-        console.log('S01-socket:'+socket.id+' reconnect_attempt:'+attemptNumber);
+        logger.addAndShowLog('SRV:'+real_ip,"INFO",'S01-socket reconnect_attempt',[socket.id,attemptNumber]);
     });
 
     socket.on('add-message', (message) => {
@@ -141,14 +147,14 @@ io.of('%%MYSOCKET%%').on('connection', (socket) => { // nsp /mysocket.io/ instea
         const id = uuidv4(); // random, unique id!
         var tsocket,mudcfg;
         if (typeof mudOb.mudname === 'undefined') {
+            logger.addAndShowLog('SRV:'+real_ip,"FATAL",'Undefined mudname',[socket.id,mudOb]);
             callback({error:'Missing mudname'});
             return;
         }
         if (cfg.muds.hasOwnProperty(mudOb.mudname)) {
             mudcfg = cfg.muds[mudOb.mudname];
-            console.log('S02-socket:'+socket.id+' Mud: '+mudOb.mudname);
         } else {
-            callback({error:'Unknown mudname: '+mudOb.mudname});
+            logger.addAndShowLog('SRV:'+real_ip,"FATAL",'Unknown mudnameUnknown mudname',[socket.id,mudOb]);
             return;
         }
         mudOb.real_ip = real_ip;
@@ -165,28 +171,27 @@ io.of('%%MYSOCKET%%').on('connection', (socket) => { // nsp /mysocket.io/ instea
             }
         }
         try {
+            logger.addAndShowLog('SRV:'+real_ip,"INFO",'S02-socket-open',[socket.id,mudcfg]);
             if (mudcfg.ssl === true) {
-                console.log('S02-socket:'+socket.id+' TRY SSL with reject='
-                       +mudcfg.rejectUnauthorized);
                 tsocket = tls.connect({
                     host:mudcfg.host,
                     port:mudcfg.port,
                     rejectUnauthorized :mudcfg.rejectUnauthorized});
             } else {
-                console.log('S02-socket:'+socket.id+' TRY w/o SSL:');
                 tsocket = net.createConnection({
                     host:mudcfg.host,
                     port:mudcfg.port});
             }
             const mudSocket = new MudSocket(tsocket,{bufferSize:65536},{debugflag:false,id:id,gmcp_support:gmcp_support,charset:charset},socket);
             mudSocket.on("close",function(){
-            socket.emit("mud-disconnected",id);
+                logger.addAndShowLog('SRV:'+real_ip,"DEBUG",'mud-disconnect=>close',[socket.id]);
+                socket.emit("mud-disconnected",id);
             });
             mudSocket.on("data", function(buffer){
-            socket.emit("mud-output",id,buffer.toString("utf8"));
+                socket.emit("mud-output",id,buffer.toString("utf8"));
             });
             mudSocket.on("debug", function(dbgOb){
-            socket.emit("mud-debug",id,dbgOb);
+                logger.addAndShowLog('SRV:'+real_ip,"DEBUG",'mud-debug',[socket.id,dbgOb]);
             });
             MudConnections[id] = { socket: mudSocket, mudOb: mudOb,socketID:socket.id};
             if (typeof Socket2Mud[socket.id] === 'undefined') {
@@ -194,17 +199,17 @@ io.of('%%MYSOCKET%%').on('connection', (socket) => { // nsp /mysocket.io/ instea
             } else {
                 Socket2Mud[socket.id].push[id];
             }
-            console.log('S02-socket:'+socket.id+' connect-mudOb: ',mudOb);
+            logger.addAndShowLog('SRV:'+real_ip,"INFO",'S02-socket mud-connect:',[socket.id,mudOb]);
             callback({id:id,socketID:socket.id});
         } catch (error) {
-            console.log('S02-socket:'+socket.id+' error: '+error.message);
+            logger.addAndShowLog('SRV:'+real_ip,"ERROR",'mud-connect catch',[socket.id,error]);
             callback({error:error.toString('utf8')});
         }
     });
 
     socket.on('mud-window-size', (id,height,width) => {
         if (typeof id !== 'string' || typeof MudConnections[id] === 'undefined') {
-            socket.emit("mud-error","Connection-id unknown");
+            logger.addAndShowLog('SRV:'+real_ip,"ERROR",'mud-window-size MudConn undefined',[id]);
             return;
         }
         const mudConn = MudConnections[id];
@@ -218,13 +223,13 @@ io.of('%%MYSOCKET%%').on('connection', (socket) => { // nsp /mysocket.io/ instea
             MudConnections[id].mudOb = mudOb;
         }
         var buf = mudSocket.sizeToBuffer(width,height);
-        // console.log('NAWS-buf:',buf,width,height);
+        logger.addAndShowLog('SRV:'+real_ip,"ERROR",'NAWS-buf',[buf,width,height]);
         mudSocket.writeSub(31 /*TELOPT_NAWS*/, buf);
     });
 
     socket.on('mud-disconnect', id => {
         if (typeof id !== 'string' || typeof MudConnections[id] === 'undefined') {
-            socket.emit("mud-error","Connection-id unknown");
+            logger.addAndShowLog('SRV:'+real_ip,"ERROR",'mud-disconnect MudConn undefined',[id]);
             return;
         }
         const mudConn = MudConnections[id];
@@ -235,13 +240,13 @@ io.of('%%MYSOCKET%%').on('connection', (socket) => { // nsp /mysocket.io/ instea
         if (Socket2Mud[socket.id].length == 0) {
             delete Socket2Mud[socket.id];
         }
-        console.log('S02-socket:'+socket.id+' mud-disconnect-mudOb: ',mudOb);
+        logger.addAndShowLog('SRV:'+real_ip,"INFO",'mud-disconnected',[socket.id,mudOb]);
         socket.emit("mud-disconnected",id);
         delete MudConnections[id];
     });
     socket.on('mud-input', (id,inpline) => {
         if (typeof id !== 'string' || typeof MudConnections[id] === 'undefined') {
-            socket.emit("mud-error","Connection-id unknown");
+            logger.addAndShowLog('SRV:'+real_ip,"ERROR",'mud-input MudConn undefined',[id]);
             return;
         }
         const mudConn = MudConnections[id];
@@ -252,11 +257,12 @@ io.of('%%MYSOCKET%%').on('connection', (socket) => { // nsp /mysocket.io/ instea
         // console.log('mudOptions: ',mudOptions);
         if (typeof inpline !== 'undefined' && inpline !== null) {
             mudSocket.write(inpline.toString(mudOptions.charset)+"\r\n");
+            logger.addAndShowLog('SRV:'+real_ip,"TRACE",'mud-input',[inpline]);
         }
     });
     socket.on('mud-gmcp-outgoing', (id,mod,msg,data) => {
         if (typeof id !== 'string' || typeof MudConnections[id] === 'undefined') {
-            socket.emit("mud-error","Connection-id unknown");
+            logger.addAndShowLog('SRV:'+real_ip,"ERROR",'mud-gmcp-outgoing MudConn undefined',[id]);
             return;
         }
         const mudConn = MudConnections[id];
@@ -273,12 +279,33 @@ io.of('%%MYSOCKET%%').on('connection', (socket) => { // nsp /mysocket.io/ instea
         let b1 = Buffer.from(gheader);
         let b2 = Buffer.from(jsdata);
         let buf = Buffer.concat([b1,b2],b1.length+b2.length);
-        // console.log('DMCP-socket:'+socket.id+' ',mod,msg,data);
+        logger.addAndShowLog('SRV:'+real_ip,"DEBUG",'mud-gmcp-outgoing',[socket.id,mod,msg,data]);
         mudSocket.writeSub(201 /*TELOPT_GMCP*/, buf);
     });
 
+    /*
+{ message: 'mud-output:',
+  additional:
+   [ '79c63aaf-8535-4c22-ae4d-b3ccd0593d47',
+     'Tip: Bei Einstellungen Untermenue Zauberstab kann man sich den zuletzt\r\n        gelesenen Fehler merken lassen. Hat man den Fehler untersucht oder\r\n        bearbeitet, kann man dort wieder einsteigen und Kommentare\r\n        absetzen, oder als erledigt loeschen bzw. ins zugehoerige Done\r\n        verschieben.\r\n' ],
+  level: 0,
+  timestamp: '2019-10-13T07:12:34.943Z',
+  fileName: './src/app/shared/socket.service.ts',
+  lineNumber: '480',
+  real_ip: '2003:c6:b707:9b00:a924:3e18:56b4:867' }
+2019-10-13T07:12:34.943Z TRACE [./src/app/shared/socket.service.ts:480] mud-output: 79c63aaf-8535-4c22-ae4d-b3ccd0593d47 Tip: Bei Einstellungen Untermenue Zauberstab kann man sich den zuletzt
+        gelesenen Fehler merken lassen. Hat man den Fehler untersucht oder
+        bearbeitet, kann man dort wieder einsteigen und Kommentare
+        absetzen, oder als erledigt loeschen bzw. ins zugehoerige Done
+        verschieben.
+ */
+    socket.on("ngx-log-producer", (log)=> {
+        log['real_ip'] = real_ip;
+        logger.addLogEntry(log);
+        logger.log2console(log);
+    });
     socket.emit('connected',socket.id,real_ip,function(action,oMudOb) {
-        console.log('S02-connected:',action,oMudOb);
+        logger.addAndShowLog('SRV:'+real_ip,"INFO",'S02-connected:',[action,oMudOb]);
     });
 });
 
@@ -300,5 +327,6 @@ function myCleanup() {
 }
 
 http.listen(5000, () => {
-    console.log('INIT: Server\'backend\' started on port 5000: '+new Date().toUTCString());
+    logger.addAndShowLog('SRV//:5000',"INFO",'INIT: Server\'backend\' started on port 5000:',[]);
 });
+

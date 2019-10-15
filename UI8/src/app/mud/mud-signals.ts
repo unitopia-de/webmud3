@@ -1,4 +1,5 @@
 import { FileEntries } from '../nonmodal/file-entries';
+import { FileInfo } from './file-info';
 
 export class MudSignals {
     signal : string;
@@ -6,5 +7,6 @@ export class MudSignals {
     wizard? : number;
     playSoundFile?: string;
     filepath?: string;
+    fileinfo? : FileInfo;
     entries?: FileEntries[];
 }

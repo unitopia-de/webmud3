@@ -3,6 +3,7 @@ import { SocketService } from '../shared/socket.service';
 import { GmcpConfig } from '../gmcp/gmcp-config';
 import { GmcpMenu } from '../gmcp/gmcp-menu';
 import { GmcpService } from '../gmcp/gmcp.service';
+import { NGXLogger } from 'ngx-logger';
 
 @Injectable({
   providedIn: 'root'
@@ -29,7 +30,7 @@ export class UnitopiaService {
     this.set_mudconf(_id,'cb_remove_gmcp_module',cb_remove_gmcp_module);
   }
 
-  constructor() { }
+  constructor(private logger:NGXLogger) { }
 
   private toggleSound(gcfg:GmcpConfig,gmen:GmcpMenu,_cb) {
     if (!gmen.active) {
@@ -41,16 +42,16 @@ export class UnitopiaService {
   }
 
   public menuAction(action :string,gcfg:GmcpConfig,gmen:GmcpMenu,index:number,_cb) {
+    this.logger.trace('UnitopiaService-menuAction',action,gcfg,gmen,index);
     switch(action) {
       case 'ToggleSound':
         this.toggleSound(gcfg,gmen,_cb);
         return;
       case 'add_gmcp_module':
-        // console.log("unitopia.service.menuAction: ",action,gcfg,gmen,index);
         _cb(action);
         return;
       default:
-        console.log("unitopia.service.menuAction: ",action,gcfg,gmen,index);
+          this.logger.error('UnitopiaService-menuAction-UNKNOWN',action,gcfg,gmen,index);
     }
   }
 

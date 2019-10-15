@@ -9,7 +9,7 @@
       <mat-icon *ngIf='lockDrag'>lock</mat-icon>
       <mat-icon *ngIf='!lockDrag'>lock_open</mat-icon>
     </button>
-    <span class="title-bar" #TitleHandle>&#x2588;&#x2588;&#x2588;</span>
+    <span class="title-bar" #TitleHandle>&#x2588;&#x2588;&#x2588;</span>&nbsp;
     <span class="title-bar" [title]="config.tooltip" #TitleBar>{{config.wtitle}}</span>
     <button class="window-menu" *ngIf='config.save' (click)="onMenuAction('save')" mat-button>
       <mat-icon>save</mat-icon>

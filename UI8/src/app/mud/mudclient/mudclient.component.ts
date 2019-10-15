@@ -10,8 +10,7 @@ import { WindowsService } from 'src/app/nonmodal/windows.service';
 import { WindowConfig } from 'src/app/nonmodal/window-config';
 import { FilesService } from '../files.service';
 import { FileInfo } from '../file-info';
-import { prepareSyntheticPropertyName } from '@angular/compiler/src/render3/util';
-import { MudListItem } from '../mud-list-item';
+import {NGXLogger} from 'ngx-logger';
 
 @Component({
   selector: 'app-mudclient',
@@ -73,11 +72,13 @@ export class MudclientComponent implements AfterViewChecked,OnInit,OnDestroy {
     private cdRef:ChangeDetectorRef,
     private wincfg:WindowsService,
     private filesrv: FilesService,
+    private logger:NGXLogger,
     private srvcfgService:ServerConfigService) { 
 
     }
 
     menuAction(act : string) {
+      this.logger.trace('mudclient-menuAction',this.mudc_id,this.mudName,act);
       var self = this;
       switch(act) {
         case 'connect':
@@ -106,7 +107,7 @@ export class MudclientComponent implements AfterViewChecked,OnInit,OnDestroy {
             var cfg = new WindowConfig();
             var mylogfile = new FileInfo();
             cfg.wtitle = "logfile";
-            this.wincfg.newWindow(cfg);
+            this.wincfg.newWindow(cfg);//displayLog
             return;
         case 'displayViewConfig=true': // TODO einmal-Screen.
             var cfg = new WindowConfig();
@@ -132,7 +133,7 @@ export class MudclientComponent implements AfterViewChecked,OnInit,OnDestroy {
                         self.localEchoBackground = xsplit[1];
                         return;
                       default:
-                        console.error("Unknown ConfigviewerMessage: ",x);
+                        self.logger.error('mudclient-menuAction-Unknown ConfigviewerMessage',x);
                         return;
                     }
               }
@@ -142,14 +143,14 @@ export class MudclientComponent implements AfterViewChecked,OnInit,OnDestroy {
                 self.stdbg = 'black';self.stdfg = 'white'; 
               }
             }, error => {
-              console.error(error);
+              self.logger.error('mudclient-menuAction-outGoingEvents.subscribe-error',this.mudc_id,this.mudName,error);
             }, ()=>{
 
             })
-            this.wincfg.newWindow(cfg);
+            this.wincfg.newWindow(cfg);//DisplayConfig
             return;
         default: 
-          console.error('unknown menuAction',act);
+          self.logger.error('mudclient-menuAction-unknown act',this.mudc_id,this.mudName,act);
           return;
       }
       if (this.blackOnWhite || this.colourInvert) {
@@ -162,6 +163,7 @@ export class MudclientComponent implements AfterViewChecked,OnInit,OnDestroy {
     private connect() {
     if (this.mudName.toLowerCase() == 'disconnect') {
       if (this.mudc_id) {
+        this.logger.info('mudclient-connect',this.mudc_id);
         if (this.obs_debug) this.obs_debug.unsubscribe();
         if (this.obs_data) this.obs_data.unsubscribe();
         if (this.obs_signals) this.obs_signals.unsubscribe();
@@ -183,6 +185,7 @@ export class MudclientComponent implements AfterViewChecked,OnInit,OnDestroy {
       if (_id == null) {
         other.connected = false;
         other.mudc_id = undefined;
+        other.logger.error('mudclient-socketService.mudConnect-failed',_id);
         return;
       }
       other.mudc_id = _id;
@@ -191,6 +194,8 @@ export class MudclientComponent implements AfterViewChecked,OnInit,OnDestroy {
         });
       other.obs_signals = other.socketService.mudReceiveSignals(_id).subscribe( 
           musi => {
+            other.logger.debug('mudclient-socketService.mudReceiveSignals',_id,musi.signal);
+            other.logger.trace('mudclient-socketService.mudReceiveSignals',_id,musi);
             switch (musi.signal) {
               case 'NOECHO-START': other.inpType = 'password'; break;
               case 'NOECHO-END':   other.inpType = 'text'; break;
@@ -200,48 +205,67 @@ export class MudclientComponent implements AfterViewChecked,OnInit,OnDestroy {
                 }
                 break;
               case 'Sound.Play.Once':
-                // console.log("Play: ",musi.playSoundFile);
                 let audio = new Audio();
                 audio.src = musi.playSoundFile;
                 audio.load();
                 audio.play();
                 break;
               case 'Files.URL':
-                let newfile = this.filesrv.processURL(musi.filepath);
-                if (typeof newfile === 'undefined') {
-                  break;
-                } else if (newfile.saveActive) {
-                  newfile.save(newfile.content,function(err,data){
-                    if (typeof err !== 'undefined') {
-                      other.wincfg.CancelSave(newfile.windowsId,'Fehler beim Speichern');
-                    } else {
-                      other.wincfg.SaveComplete(newfile.windowsId);
-                    }
-                  })
+                let newfile = this.filesrv.processFileInfo(musi.fileinfo);
+                if (newfile.alreadyLoaded) {
+                  other.logger.trace('Files.URL-alreadyLoaded',_id,newfile);
                 } else {
+                  newfile.save04_closing = function(windowsid) {
+                    other.logger.debug('Files.URL-save04_closing',_id,windowsid);
+                    other.wincfg.SavedAndClose(windowsid);
+                  }
+                  newfile.save05_error = function(windowsid,error) {
+                    other.logger.error('Files.URL-save05_error',_id,windowsid,error);
+                    other.wincfg.WinError(windowsid,error);
+                  }
+                  newfile.save06_success = function(windowsid) {
+                    other.logger.debug('Files.URL-save06_success',_id,windowsid);
+                    other.wincfg.SaveComplete(windowsid);
+                  }
+                  other.logger.trace('Files.URL-firstLoad',_id,newfile);
                   let filewincfg : WindowConfig = new WindowConfig();
                   filewincfg.component = 'EditorComponent';
                   filewincfg.data = newfile;
-                  filewincfg.wtitle = newfile.filename;
-                  filewincfg.tooltip = newfile.filepath;
-                  newfile.load(function(err,data) {
-                    if (typeof err !== 'undefined') {
-                    } else {
-                      newfile.content = data;
-                      filewincfg.save = true;
-                      const windowsid = other.wincfg.newWindow(filewincfg);
-                      newfile.relateWindow(windowsid);
-                    }
-                  })
-                  break;
+                  if (typeof newfile.title !== 'undefined' && newfile.title != '') {
+                    filewincfg.wtitle = newfile.title;
+                  } else {
+                    filewincfg.wtitle = newfile.filename;
+                    filewincfg.tooltip = newfile.file;
+                  }
+                  if (!newfile.newfile){
+                    newfile.load(function(err,data) {
+                      if (typeof err !== 'undefined') {
+                      } else {
+                        newfile.content = data;
+                        newfile.oldContent = data;
+                        filewincfg.data = newfile;
+                        filewincfg.save = true;
+                        const windowsid = other.wincfg.newWindow(filewincfg);
+                        newfile.relateWindow(windowsid);
+                      }
+                    })
+                  } else {
+                    newfile.content = '';
+                    newfile.oldContent = '';
+                    filewincfg.data = newfile;
+                    filewincfg.save = true;
+                    const windowsid = other.wincfg.newWindow(filewincfg);
+                    newfile.relateWindow(windowsid);
+                  }
                 }
+                return;
               case 'Files.Dir':
                   let nooldcfg = (typeof this.filesWindow === 'undefined');
                   let newcfg = other.wincfg.findFilesWindow(this.filesWindow,musi);
                   this.filesWindow = newcfg;
                   if (nooldcfg) {
                     this.filesWindow.outGoingEvents.subscribe((x:string) => {
-                      console.log("filesWindow-actions: ",x);
+                      other.logger.debug('Files.Dir-outGoingEvents',_id,x);
                       let xsplit = x.split(':');
                       switch(xsplit[0]) {
                         case 'FileOpen':
@@ -256,24 +280,26 @@ export class MudclientComponent implements AfterViewChecked,OnInit,OnDestroy {
                           }
                           break;
                       }
-                    }, err => {
-                      console.log("filesWindow.outGoingEvents-Error: ",err);
+                    }, err => {;
+                      other.logger.error('Files.Dir-outGoingEvents-Error',_id,err);
                     }, () => {
-                      console.log("filesWindow.outGoingEvents-complete");
+                      other.logger.debug('Files.Dir-outGoingEvents-complete',_id);
                     });
                   }
-                break;
+                return;
               case 'Core.Ping':
                 this.togglePing = !this.togglePing;
-                break;
-              case 'Core.GoodBye':
-              default:
-                console.log('mud-signal: ',musi);
+                return;
+              case 'Core.GoodBye': 
+              default: 
+                other.logger.info('mudclient-socketService.mudReceiveSignals UNKNOWN',_id,musi.signal);
+                return;
             }
           });
       other.obs_data = other.socketService.mudReceiveData(_id).subscribe(outline => {
           var outp = outline[0];
           var iecho = outline[1];
+          other.logger.trace('mudclient-mudReceiveData',_id,outline);
           if (typeof outp !== 'undefined') {
             const idx = outp.indexOf(other.ansiService.ESC_CLRSCR);
             if (idx >=0) {
@@ -287,7 +313,6 @@ export class MudclientComponent implements AfterViewChecked,OnInit,OnDestroy {
             other.ansiCurrent.ansi = '';
             other.ansiCurrent.mudEcho = iecho;
             other.messages.push({text:iecho});
-            console.error(new Error('mudecho in mudReceiveData'));
           }
           var ts = new Date();
           other.ansiCurrent.timeString = ((ts.getDate() < 10)?"0":"") + ts.getDate() +"."
@@ -296,24 +321,22 @@ export class MudclientComponent implements AfterViewChecked,OnInit,OnDestroy {
                                        +((ts.getHours() < 10)?"0":"") + ts.getHours() +":"
                                        + ((ts.getMinutes() < 10)?"0":"") + ts.getMinutes() +":"
                                        + ((ts.getSeconds() < 10)?"0":"") + ts.getSeconds();
+          other.logger.trace('mudclient-mudReceiveData-ansiCurrent-before',_id,other.ansiCurrent);
           const a2harr = other.ansiService.processAnsi(other.ansiCurrent);
+          other.logger.trace('mudclient-mudReceiveData-s2harr after',_id,a2harr);
           for (var ix=0;ix<a2harr.length;ix++) {
-            //console.log('main-'+ix+":"+JSON.stringify(a2harr[ix]));
             if (a2harr[ix].text!=''||typeof a2harr[ix].mudEcho !=='undefined') {
               other.mudlines = other.mudlines.concat(a2harr[ix]);
             }
           }
           other.ansiCurrent = a2harr[a2harr.length-1];
         });
-      other.obs_debug = other.socketService.mudReceiveDebug(_id).subscribe(debugdata => {
-          other.lastdbg = debugdata;
-        });
     });
   }
 
   ngOnInit() { 
     this.ansiCurrent = new AnsiData();
-    console.log('cfg:',JSON.stringify(this.cfg));
+    this.logger.trace('mudclient-ngOnInit',this.cfg);
     if (typeof this.cfg !== 'undefined' && typeof this.cfg.mudname !== 'undefined'
         && this.cfg.mudname !== '') {
       this.mudName = this.cfg.mudname;
@@ -335,7 +358,7 @@ export class MudclientComponent implements AfterViewChecked,OnInit,OnDestroy {
     });
     if (this.mudc_height != Math.floor(tmpheight/this.ref_height_ratio)) {
       this.mudc_height = Math.floor(tmpheight/(this.ref_height_ratio+1));
-      // console.log('MudSize: '+this.mudc_width+'x'+this.mudc_height+' <= '+ow+'x'+tmpheight);
+      this.logger.debug('MudSize ',''+this.mudc_width+'x'+this.mudc_height+' <= '+ow+'x'+tmpheight);
       this.startCnt++;
       if (this.startCnt == 1 && typeof this.mudc_id === 'undefined' && this.cfg.autoConnect) {
         this.connect();
@@ -383,9 +406,10 @@ export class MudclientComponent implements AfterViewChecked,OnInit,OnDestroy {
                                    +((ts.getHours() < 10)?"0":"") + ts.getHours() +":"
                                    + ((ts.getMinutes() < 10)?"0":"") + ts.getMinutes() +":"
                                    + ((ts.getSeconds() < 10)?"0":"") + ts.getSeconds();
+      other.logger.trace('mudclient-sendMessage-ansiCurrent-before',this.mudc_id,other.ansiCurrent);
       const a2harr = other.ansiService.processAnsi(other.ansiCurrent);
+      other.logger.trace('mudclient-sendMessage-s2harr after',this.mudc_id,a2harr);
       for (var ix=0;ix<a2harr.length;ix++) {
-        //console.log('main-'+ix+":"+JSON.stringify(a2harr[ix]));
         if (a2harr[ix].text!=''||typeof a2harr[ix].mudEcho !=='undefined') {
           other.mudlines = other.mudlines.concat(a2harr[ix]);
         }
@@ -412,7 +436,6 @@ export class MudclientComponent implements AfterViewChecked,OnInit,OnDestroy {
     if (this.inpType !='text') return;
     switch (event.key) {
       case "ArrowUp":
-        //console.log("INP-1:",this.inpPointer,this.inpHistory.length);
         if (this.inpHistory.length < this.inpPointer) {
           return; // at the end.....
         }
@@ -448,7 +471,6 @@ export class MudclientComponent implements AfterViewChecked,OnInit,OnDestroy {
         }
         return;
        case "ArrowDown":
-        //console.log("INP-2:",this.inpPointer,this.inpHistory.length);
         if (this.inpPointer < 0) {
           return; // at the beginning
         }
@@ -460,7 +482,6 @@ export class MudclientComponent implements AfterViewChecked,OnInit,OnDestroy {
         this.inpmessage = this.inpHistory[this.inpPointer];
         return;
       case "ArrowLeft":
-        //console.log("INP-3:",this.inpPointer,this.inpHistory.length);
         return;
       case "ArrowRight":
       case "Shift":

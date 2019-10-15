@@ -2,6 +2,7 @@ import { Injectable, Inject } from '@angular/core';
 import { WINDOW } from './WINDOW_PROVIDERS';
 import { DeviceDetectorService } from 'ngx-device-detector';
 import { UUID } from 'angular2-uuid';
+import {NGXLogger} from 'ngx-logger';
 
 @Injectable({
   providedIn: 'root'
@@ -81,7 +82,7 @@ export class ServerConfigService {
  * @memberof ServerConfigService
  */
   getWebmudVersion(): string {
-    return "v0.0.43";
+    return "v0.0.45";
   }
 /**
  * Returns the corresponding string out of the server configuration to identify unitopia.
@@ -147,10 +148,10 @@ export class ServerConfigService {
     this.browserInfo["isDesktop"] = isDesktopDevice;
     this.browserInfo["clientType"] = clientType;
     this.browserInfo["clientID"] = UUID.UUID();
-    console.log('Device_info: ', this.deviceInfo);
+    this.logger.trace('Browser and DeviceInfo: ',this.browserInfo,this.deviceInfo);
   }
 
-  constructor(@Inject(WINDOW) private window:Window,private deviceService: DeviceDetectorService) {
+  constructor(@Inject(WINDOW) private window:Window,private deviceService: DeviceDetectorService,private logger:NGXLogger) {
     this.displayBrowser();
    }
 }

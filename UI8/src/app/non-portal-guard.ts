@@ -8,7 +8,6 @@ export class NonPortalGuard implements CanActivate {
 
   }
 canActivate(route: ActivatedRouteSnapshot, state: RouterStateSnapshot): boolean  {
-  // console.log('NonPortalGuard#canActivate called');
   return this.checkLogOut();
 }
 

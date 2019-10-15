@@ -46,6 +46,6 @@ RUN sed -i 's=%%MYSOCKETPATH%%=/socket.io=' /app/server.js && sed -i 's=%%MYSOCK
 COPY --from=ng-build-stage /app/dist/out/ /app/dist/
 
 # and install all the dependencies.
-RUN mkdir /run/secrets && npm install
+RUN mkdir /run/secrets && npm install --only=prod
 
 CMD node server.js
