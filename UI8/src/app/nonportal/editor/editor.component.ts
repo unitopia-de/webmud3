@@ -2,16 +2,24 @@ import { Component, OnInit, ViewChild, AfterViewInit } from '@angular/core';
 import { NGXLogger } from 'ngx-logger';
 
 @Component({
-  selector: 'app-editor',
+  selector: 'app-editortest',
   templateUrl: './editor.component.html',
   styleUrls: ['./editor.component.css']
 })
-export class EditorComponent implements OnInit,AfterViewInit {
+export class EditorTestComponent implements OnInit,AfterViewInit {
   ngAfterViewInit(): void {
     throw new Error("Method not implemented.");
   }
   @ViewChild('editor', {static: false}) editor;
   public text : string = "";
+  public mode : string = "text";
+  public theme : string = "chrome";
+  public options :  Object = {};
+  public readOnly : boolean = false;
+
+  textChanged(event) {
+    this.logger.trace(event);
+  }
   
   constructor(private logger:NGXLogger) { }
 
@@ -19,3 +27,5 @@ export class EditorComponent implements OnInit,AfterViewInit {
   }
 
 }
+// https://ace.c9.io/
+// https://ace.c9.io/tool/mode_creator.html

@@ -1,1 +1,8 @@
-<ace-editor [(text)]="text" #editor [ngStyle]="myStyle()" class="ace-editor"></ace-editor>
+<ace-editor [(text)]="text" 
+    [mode]="mode"
+    [theme]="theme"
+    [options]="options"
+    [readOnly]="false"
+    (textChanged)="onChange($event)"
+    style="display:block; height: 80vh; width:100%">
+    #editor [ngStyle]="myStyle()" class="ace-editor"></ace-editor>

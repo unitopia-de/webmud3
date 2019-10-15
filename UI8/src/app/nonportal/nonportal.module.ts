@@ -5,14 +5,15 @@ import { UnitopiaComponent } from './unitopia/unitopia.component';
 import { OrbitComponent } from './orbit/orbit.component';
 import { MudModule } from '../mud/mud.module';
 import { Uni1993Component } from './uni1993/uni1993.component';
-import { EditorComponent } from './editor/editor.component';
+import { EditorTestComponent } from './editor/editor.component';
+import { AceEditorModule } from 'ng2-ace-editor';
 
 @NgModule({
   imports: [
-    MudModule,
+    MudModule,AceEditorModule,
     CommonModule
   ],
-  declarations: [LoginComponent, UnitopiaComponent, OrbitComponent, Uni1993Component, EditorComponent],
+  declarations: [LoginComponent, UnitopiaComponent, OrbitComponent, Uni1993Component, EditorTestComponent],
   exports:[LoginComponent, UnitopiaComponent, OrbitComponent]
 })
 export class NonportalModule { }

@@ -8,15 +8,15 @@ import { NGXLogger } from 'ngx-logger';
   templateUrl: './editor.component.html',
   styleUrls: ['./editor.component.css']
 })
-export class EditorComponent extends MyDynamicComponent implements AfterViewInit {
+export class EditorComponent extends MyDynamicComponent implements OnInit,AfterViewInit {
   @ViewChild('editor', {static: false}) editor;
   public text : string = "";
   private fileinfo : FileInfo;
 
   constructor(private logger:NGXLogger) { super(); }
 
-  private cwidth : number = 200;
-  private cheight : number = 200;
+  private cwidth : number = 400;
+  private cheight : number = 400;
   myStyle(): object {
     return {"width": this.cwidth+'px',"height":this.cheight+'px'};
   } 
