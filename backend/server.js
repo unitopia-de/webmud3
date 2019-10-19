@@ -67,6 +67,9 @@ app.get("/ace/*", (req,res) => {
     res.sendFile(path.join(__dirname, 'node_modules/ace-builds/src-min-noconflict/'+mypath));
 });
 
+const logRoutes = require("./ngxlogger/logRoutes")
+app.use("/api/debuglog",logRoutes);
+
 app.get('*', (req, res) => {
     logger.addAndShowLog('SRV://5000',"DEBUG",'dist/index.html-Path:',[req.path]);
     res.sendFile(path.join(__dirname, 'dist/index.html'));

@@ -1,9 +1,11 @@
 'use strict';
 
+var dbi = require('../data_access/sqlite');
+
 const dbglvl = ['TRACE','DEBUG','INFO','LOG','WARN','ERROR','FATAL','OFF'];
 var dbgbuffer = [];
-var storelevel =  7; // OFF
-var outputlevel = 0;
+var storelevel =  0; // OFF
+var outputlevel = 4; // warnings, Errors,Fatals...
 var buffersize = 1000;
 
 // var NGXLogger = class NGXLogger {
@@ -17,6 +19,7 @@ module.exports = {
             dbgbuffer.unshift();
         }
         dbgbuffer.push(log);
+        // dbi.InsertLogEntry(log);
     },
     createLogEntry : function (real_ip,lvl,msg,additional) {
         var isoDate = new Date().toISOString();
@@ -117,8 +120,15 @@ module.exports = {
         }
       },
 
-    insert : function(req,res) {
+    search : function(req,res) {
         if (req.body) {
+            var result = dbi.searchLogEntries(req.body.searchParam,req.body.limit,req.body.offset);
+            if (result.ok) {
+                res.status(201).send(result);
+            } else {
+                console.error("SEARCH",result.error);
+                res.status(500).send(result);
+            }
         }
     }
 };

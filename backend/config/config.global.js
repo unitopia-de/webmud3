@@ -2,6 +2,11 @@ var config = module.exports = {};
 
 config.env = 'development';
 
+config.db = {
+    db : 'sqlite',
+    path : '/run/db/webmud3backend.sqlite',
+};
+
 config.mudfamilies = {
     basistelnet : {
         charset: 'ascii',
