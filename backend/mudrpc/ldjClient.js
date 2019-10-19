@@ -12,16 +12,21 @@ class LDJClient extends EventEmitter {
   constructor(stream) {
     super();
     let buffer = '';
+    let other= this;
+    stream.on('connect', () => {
+      other.emit('connected');
+    })
     stream.on('data', data => {
       buffer += data;
       let boundary = buffer.indexOf('\n');
       while (boundary !== -1) {
         const input = buffer.substring(0, boundary);
         buffer = buffer.substring(boundary + 1);
-        this.emit('message', JSON.parse(input));
+        other.emit('message', JSON.parse(input));
         boundary = buffer.indexOf('\n');
       }
     });
+    stream.on('error', (error) => {this.emit('error',error);});
   }
 
   static connect(stream) {
