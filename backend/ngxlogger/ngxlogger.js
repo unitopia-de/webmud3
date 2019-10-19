@@ -115,5 +115,10 @@ module.exports = {
             return null;
           }
         }
-      }
+      },
+
+    insert : function(req,res) {
+        if (req.body) {
+        }
+    }
 };
