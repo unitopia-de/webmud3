@@ -3,6 +3,7 @@ var env = process.env.NODE_ENV || 'development'
 
 var options = {};
 
+console.log('dbpath: ',cfg.db.path);
 const db = require('better-sqlite3')(cfg.db.path, options);
  
 function database() {
@@ -34,7 +35,7 @@ function database() {
             id : row.id,
             timestamp : row.ts,
             ilvl : row.ilevel,
-            filename = row.filename,
+            filename : row.filename,
             line : row.line,
             real_ip : row.real_ip,
             message : row.message,

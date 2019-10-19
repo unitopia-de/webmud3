@@ -5,6 +5,8 @@ services:
     image: myonara/webmud3:unitopiatest
     environment: 
       NODE_ENV: 'production'
+    volumes:
+      - "/UNItopia/ftpwww/webmud3/run:/run"
     # command: --tls-cert=/run/secrets/cert.pem --tls-key=/run/secrets/privkey.pem
     deploy:
       replicas: 1
@@ -18,6 +20,9 @@ services:
         com.docker.lb.port: 2019
       restart_policy:
         condition: on-failure
+        delay: 20s
+        max_attempts: 2 
+        window: 3600s
     ports:
       - "2019:5000"
     networks:
