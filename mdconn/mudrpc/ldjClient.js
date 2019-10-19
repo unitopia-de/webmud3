@@ -27,6 +27,7 @@ class LDJClient extends EventEmitter {
         boundary = buffer.indexOf('\n');
       }
     });
+    stream.on('error', (error) => {this.emit('error',error);});
   }
 
   static connect(stream) {

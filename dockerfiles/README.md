@@ -49,7 +49,31 @@ docker container ls
 
 docker logs --follow <contaienrid>
 
+#### testing images:
 
+cd mdconn/test_ipc/
+
+docker build -f Dockerfile -t test/test-ipc .
+
+docker stack deploy -c docker-compose.yml testipc
+
+docker stack rm testipc
+
+cd mdconn/mudrpc
+
+docker build -t myonara/test-rpc .
+
+docker run -it myonara/test-rpc /bin/sh
+
+docker run --volume /UNItopia/ftpwww/webmud3/run/sockets/:/run/sockets -it myonara/test-rpc /bin/sh
+
+docker run --volume /UNItopia/ftpwww/webmud3/run/sockets/:/run/sockets -e SOCKETFILE=/run/sockets/mudfifo myonara/test-rpc node testclient.js
+
+ls -al /UNItopia/ftpwww/webmud3/run/sockets/
+
+docker stack deploy -c docker-test-rpc.yml testmudrpc
+
+docker stack rm testmudrpc
 
 ### Obsolete docker commands
 
@@ -63,4 +87,4 @@ docker stack deploy -c dockerfiles/w3mdc_docker_compose.yml mdconn
 
 docker attach <containerid>
 
-docker exec -ti <name> /bin/sh
+docker exec -ti node:alpine /bin/sh

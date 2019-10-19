@@ -1,0 +1,37 @@
+version: "3.3"
+services:
+  server:
+    image: myonara/test-rpc
+    environment:
+      - SOCKETFILE=/run/sockets/testintern2
+    volumes:
+      - "/UNItopia/ftpwww/webmud3/run:/run"
+    command: 'node testserver.js'
+    deploy:
+      resources:
+        limits:
+          cpus: "0.1"
+          memory: '50M'
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 1
+        window: 120s
+  client1:
+    image: myonara/test-rpc
+    environment:
+      - SOCKETFILE=/run/sockets/testintern2
+    depends_on:
+      - server
+    volumes:
+      - "/UNItopia/ftpwww/webmud3/run:/run"
+    deploy:
+      resources:
+        limits:
+          cpus: "0.1"
+          memory: '50M'
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 1
+        window: 120s
