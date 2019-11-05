@@ -18,6 +18,9 @@ services:
         com.docker.lb.port: 2018
       restart_policy:
         condition: on-failure
+        delay: 20s
+        max_attempts: 2 
+        window: 3600s
     ports:
       - "2018:5000"
     networks:

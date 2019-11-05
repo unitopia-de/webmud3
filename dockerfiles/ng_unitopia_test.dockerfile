@@ -41,7 +41,7 @@ COPY ./backend/ /app/
 #fetch the angular distribution for serving from node.js
 COPY --from=ng-build-stage /app/dist/out/ /app/dist/
 
-# exchange mysocket.io
+# change user, mkdir runs, install temporarily .gyp for sqlite 
 RUN deluser --remove-home node \
     && addgroup -S node -g 3002 \
     && adduser -S -G node -u 31116 node \
