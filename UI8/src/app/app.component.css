@@ -2,8 +2,8 @@
 .nonmodal-container {
     position: fixed;
     top : 50px;
-    left : 50px;
-    z-index: 20;
+    left : 700px;
+    z-index: 2000;
     display: block;
 }
 

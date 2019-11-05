@@ -66,6 +66,14 @@ export class ServerConfigService {
       default: return "/socket.io";
     }
   }
+  getApiUrl():string{
+    const l_origin = this.window.location.origin;
+    switch (this.getBackendCode()) {
+      case 1: return l_origin+'/webmud3/api/';
+      case 3: return l_origin+'/webmud3test/api/';
+      default: return l_origin+"/api/";
+    }
+  }
 /**
  * returns the current Webmud-Name.
  *
@@ -82,7 +90,7 @@ export class ServerConfigService {
  * @memberof ServerConfigService
  */
   getWebmudVersion(): string {
-    return "v0.0.45";
+    return "v0.0.46";
   }
 /**
  * Returns the corresponding string out of the server configuration to identify unitopia.

@@ -12,19 +12,17 @@ var MudRpc;
 // Antwort: [ Request, ID, Fehlertext bzw. Rueckgabewert ]
 // Fuer die Authentifizierung haben wir "mud", "password"
 
+
 MudRpc = class MudRpc extends LDJClient {
-    constructor(connectCfg) {
+    constructor(client) {
+      super(client);
         let i_id = 1000;
         let cache = {};
         let other = this;
-        const client = net.createConnection(connectCfg, () => {
-            //'connect' listener
-            console.log('MudRpc: connected to server!');
-          });
-          client.on('message', (data) => {
+          other.on('message', (data) => {
+              // console.log("rpc-message: ",data);
               const r_id = data[1];
               const r_req = data[0];
-              console.log('MudRpc',data.toString());
               let r_cb = undefined;
               if (typeof cache[r_id] !== 'undefined' && typeof cache[r_id].cb !== 'undefined' ) {
                 r_cb = cache[r_id].cb;
@@ -34,19 +32,22 @@ MudRpc = class MudRpc extends LDJClient {
               }
               if (r_req == 0) {
                 r_cb(data[2],null); // internal error from mudrpc...
-              } else if (r_req = 1) {
+              } else if (r_req == 1) {
                 r_cb(null,data[2]);
               }
           });
           other.on('request', (app,data,cb) => {
             i_id = i_id + 1;
             cache[i_id] = {cb:cb};
-            const s1 = "[ 2 "+i_id+" "+app+" "+JSON.stringify(data)+" ]\n";
+            const s2 = JSON.stringify(data);
+            const s1 = "[ 2, "+i_id+", \""+app+"\", "+s2.substr(1,s2.length-2)+" ]\n";
             const b1 = Buffer.from(s1);
             client.write(b1);
+            // console.log("rpc-request: ",s1);
           })
           client.on('end', () => {
             console.log('MudRpc: disconnected from server');
+            other.enit('disconnected');
           });
     }; // constructor
 

@@ -1,0 +1,27 @@
+version: "3.3"
+services:
+  server:
+    image: test/test-ipc
+    environment:
+      - "MODE=server"
+    volumes:
+      - "shared:/var/run"
+  client1:
+    image: test/test-ipc
+    depends_on:
+      - server
+    environment:
+      - "MODE=client"
+    volumes:
+      - "shared:/var/run"
+  client2:
+    image: test/test-ipc
+    depends_on:
+      - server
+    environment:
+      - "MODE=client"
+    volumes:
+      - "shared:/var/run"
+    command: "sh -c 'echo foo | node ux-pipeline.js'"
+volumes:
+  shared:

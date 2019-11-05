@@ -5,6 +5,10 @@ services:
     image: myonara/webmud3:unitopia
     environment: 
       NODE_ENV: 'production'
+      SECRET_CONFIG: '/run/webmud3.json'
+      SOCKETFILE: '/run/sockets/mudfifo'
+    volumes:
+      - "/UNItopia/ftpwww/webmud3/run:/run"
     # command: --tls-cert=/run/secrets/cert.pem --tls-key=/run/secrets/privkey.pem
     deploy:
       replicas: 1

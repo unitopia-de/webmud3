@@ -1,0 +1,26 @@
+<p>viewlog works!</p>
+<app-searchlog></app-searchlog>
+<button (click)="onRefresh()" mat-button>Aktualisieren</button>
+<mat-paginator [length]="logsrv.len"
+              [pageSize]="logsrv.pageSize"
+              [pageSizeOptions]="[5, 10, 25, 50]"
+              (page)="doPageEvent($event)">
+</mat-paginator>
+<mat-accordion>
+    <mat-expansion-panel *ngFor="let vlog of logsrv.viewlog" (opened)="onOpen(vlog.id)">
+      <mat-expansion-panel-header>
+          {{vlog.timestamp}}&nbsp;{{logsrv.debuglevel[vlog.ilvl]}}&nbsp;{{vlog.message}}
+      </mat-expansion-panel-header>
+        <div>Id:{{vlog.id}} Datei:{{vlog.filename}} Zeile:{{vlog.line}}</div>
+        <div>IP:{{vlog.real_ip}}</div>
+        <div *ngIf="vlog.additional == undefined">
+                (Zusatzinformationen laden...)
+        </div>
+        <div *ngIf="vlog.additional != undefined">
+            <div *ngFor="let addits of vlog.additional">
+                {{addits}}
+            </div>
+        </div>
+    </mat-expansion-panel>
+</mat-accordion>
+<!--logsrv.viewlog-->

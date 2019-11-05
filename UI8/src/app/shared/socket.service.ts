@@ -17,7 +17,7 @@ export class SocketService implements NGXLoggerMonitor{
     if (typeof this.socket !== 'undefined' ) {
       this.socket.emit("ngx-log-producer",logObject);
     } else {
-      this.logBuffer.push(logObject); 
+      this.logBuffer.push(logObject);
     }
   }
   private socket = undefined;
@@ -65,8 +65,7 @@ export class SocketService implements NGXLoggerMonitor{
      var other = this;
      var url = this.srvcfg.getBackend();
      var nsp = this.srvcfg.getSocketNamespace();
-     other.logger.trace('S01 socket-url: '+url);
-     other.logger.trace('S01 socket-nsp: '+nsp);
+     other.logger.trace('S01 socket-url/nsp: ',url,nsp);
      other.socket = io(url, {'path':nsp,'transports': ['websocket']});
 
     other.socket.on('error', function(error) {
@@ -87,11 +86,12 @@ export class SocketService implements NGXLoggerMonitor{
         }
         return;
     });
-
+    const sizeLog = other.logBuffer.length;
     while (other.logBuffer.length > 0) {
       const logObject = other.logBuffer.shift()
       this.socket.emit("ngx-log-producer",logObject);
     }
+    other.logger.trace("S01 socket:flush logbuffer: ",sizeLog);
   }
 
   // Internal registeration of all socket-consumers.
@@ -695,8 +695,8 @@ public mudReceiveSignals(_id: string) : Observable<MudSignals> {
       this.logger.fatal('mudSendData without socket!');
       return;
     }
-    this.logger.debug('mudSendData-id ',_id);
-    this.logger.trace('mudSendData-data',_id,data);
+    // this.logger.debug('mudSendData-id ',_id);
+    // this.logger.trace('mudSendData-data',_id,data);
     this.socket.emit('mud-input',_id,data);
   }
 /**

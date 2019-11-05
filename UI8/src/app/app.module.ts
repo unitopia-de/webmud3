@@ -51,8 +51,8 @@ import { LoggerModule, NgxLoggerLevel } from 'ngx-logger';
   ],
   providers: [
     WINDOW_PROVIDERS,
-    ServerConfigService,
-    SocketService,WindowsService,
+    SocketService,ServerConfigService,
+    WindowsService,
     NonPortalGuard,PortalGuard,
     AnsiService
   ],

@@ -20,7 +20,9 @@ export class EditorTestComponent implements OnInit,AfterViewInit {
   textChanged(event) {
     this.logger.trace(event);
   }
-  
+  onChange(event) {
+    
+  }
   constructor(private logger:NGXLogger) { }
 
   ngOnInit() {
