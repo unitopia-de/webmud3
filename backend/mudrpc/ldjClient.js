@@ -17,11 +17,13 @@ class LDJClient extends EventEmitter {
       other.emit('connected');
     })
     stream.on('data', data => {
-      buffer += data;
+      // console.log('data:',data.toString());
+      buffer += data.toString();
       let boundary = buffer.indexOf('\n');
       while (boundary !== -1) {
         const input = buffer.substring(0, boundary);
         buffer = buffer.substring(boundary + 1);
+        // console.log('input:',input);
         other.emit('message', JSON.parse(input));
         boundary = buffer.indexOf('\n');
       }

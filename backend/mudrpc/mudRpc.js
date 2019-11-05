@@ -19,7 +19,8 @@ MudRpc = class MudRpc extends LDJClient {
         let i_id = 1000;
         let cache = {};
         let other = this;
-          client.on('message', (data) => {
+          other.on('message', (data) => {
+              // console.log("rpc-message: ",data);
               const r_id = data[1];
               const r_req = data[0];
               let r_cb = undefined;
@@ -31,7 +32,7 @@ MudRpc = class MudRpc extends LDJClient {
               }
               if (r_req == 0) {
                 r_cb(data[2],null); // internal error from mudrpc...
-              } else if (r_req = 1) {
+              } else if (r_req == 1) {
                 r_cb(null,data[2]);
               }
           });
@@ -42,9 +43,11 @@ MudRpc = class MudRpc extends LDJClient {
             const s1 = "[ 2, "+i_id+", \""+app+"\", "+s2.substr(1,s2.length-2)+" ]\n";
             const b1 = Buffer.from(s1);
             client.write(b1);
+            // console.log("rpc-request: ",s1);
           })
           client.on('end', () => {
             console.log('MudRpc: disconnected from server');
+            other.enit('disconnected');
           });
     }; // constructor
 

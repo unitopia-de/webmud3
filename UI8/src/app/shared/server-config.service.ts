@@ -66,6 +66,14 @@ export class ServerConfigService {
       default: return "/socket.io";
     }
   }
+  getApiUrl():string{
+    const l_origin = this.window.location.origin;
+    switch (this.getBackendCode()) {
+      case 1: return l_origin+'/webmud3/api/';
+      case 3: return l_origin+'/webmud3test/api/';
+      default: return l_origin+"/api/";
+    }
+  }
 /**
  * returns the current Webmud-Name.
  *

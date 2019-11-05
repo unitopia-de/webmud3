@@ -42,9 +42,7 @@ COPY ./backend/ /app/
 COPY --from=ng-build-stage /app/dist/out/ /app/dist/
 
 # exchange mysocket.io
-RUN sed -i 's=%%MYSOCKETPATH%%=/mysocket-test.io=' /app/server.js \
-    && sed -i 's=%%MYSOCKET%%=/mysocket-test.io/=' /app/server.js \
-    && deluser --remove-home node \
+RUN deluser --remove-home node \
     && addgroup -S node -g 3002 \
     && adduser -S -G node -u 31116 node \
     && mkdir /run/secrets \

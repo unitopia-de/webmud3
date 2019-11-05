@@ -7,12 +7,33 @@ process.stdin.resume(); // Prevents the program from closing instantly
 var env = process.env.NODE_ENV || 'development'
   , cfg = require('./config/config.'+env);
 
+const fs = require('fs');
+var scfgfile = process.env.SECRET_CONFIG || '/run/secret_sauce.json',scfg;
+try {
+    scfg = JSON.parse(fs.readFileSync(scfgfile, 'utf8'));
+} catch (error) {
+    console.warn('secret config error',error);
+    scfg = {
+        env : 'local',
+        mySocketPath : '/socket.io',
+        mySocket : '/',
+        mySessionKey : "FyD32AnErszbmmU3sjTz",
+        myLogDB : undefined,
+    }
+}
+
+if (typeof scfg.myLogDB !== 'undefined') {
+    process.env.MY_LOG_DB = scfg.myLogDB;
+}
+
+
 const logger = require('./ngxlogger/ngxlogger');
 const express = require('express');
+const session = require('express-session');
 const app = express();
 const path = require('path');
 const bodyParser = require('body-parser');
-const fs = require('fs');
+
 /* const cors = require('cors');
 var corsOptions = {
     origin: function (origin, callback) {
@@ -41,7 +62,7 @@ if (cfg.tls) {
     http = require('http').Server(app);
 }
 //const io = require('socket.io')(http,{'path':'/socket.io','transports': ['websocket']});
-const io = require('socket.io')(http,{'path':'%%MYSOCKETPATH%%','transports': ['websocket']});
+const io = require('socket.io')(http,{'path':scfg.mySocketPath,'transports': ['websocket']});
 // io.set('origins', cfg.whitelist);
 const net = require('net');
 const tls = require("tls");
@@ -49,29 +70,48 @@ const uuidv4 = require('uuid/v4');
 
 const MudSocket = require("./mudSocket");
 
-app.use(bodyParser.urlencoded({
-    extended: true
-}));
+// For being able to read request bodies
+app.use(bodyParser.json());
+// app.use(bodyParser.urlencoded({ extended: true }));
+app.use(session({
+    secret: scfg.mySessionKey,
+    resave: false,
+    saveUninitialized: true
+  }));
 
 app.get('/socket.io-client/dist/*', (req,res) => {
     var mypath = req.path.substr(0);
-    logger.addAndShowLog('SRV://5000',"DEBUG",'socket-Path:',[mypath]);
+    var ip = req.headers['x-forwarded-for'] || 
+     req.connection.remoteAddress || 
+     req.socket.remoteAddress ||
+     (req.connection.socket ? req.connection.socket.remoteAddress : null);
+    logger.addAndShowLog('SRV:'+ip,"DEBUG",'socket-Path:',[mypath]);
     res.sendFile(path.join(__dirname, 'node_modules'+mypath));
 });
 
 app.use(express.static(path.join(__dirname, 'dist')));
 
 app.get("/ace/*", (req,res) => {
+    var ip = req.headers['x-forwarded-for'] || 
+     req.connection.remoteAddress || 
+     req.socket.remoteAddress ||
+     (req.connection.socket ? req.connection.socket.remoteAddress : null);
     var mypath = req.path.substr(5);
-    logger.addAndShowLog('SRV://5000',"DEBUG",'ace-Path:',[mypath]);
+    logger.addAndShowLog('SRV:'+ip,"DEBUG",'ace-Path:',[mypath]);
     res.sendFile(path.join(__dirname, 'node_modules/ace-builds/src-min-noconflict/'+mypath));
 });
 
+const authRoutes = require("./mudrpc/authRoutes");
+app.use("/api/auth",authRoutes);
 const logRoutes = require("./ngxlogger/logRoutes")
 app.use("/api/debuglog",logRoutes);
 
 app.get('*', (req, res) => {
-    logger.addAndShowLog('SRV://5000',"DEBUG",'dist/index.html-Path:',[req.path]);
+    var ip = req.headers['x-forwarded-for'] || 
+     req.connection.remoteAddress || 
+     req.socket.remoteAddress ||
+     (req.connection.socket ? req.connection.socket.remoteAddress : null);
+    logger.addAndShowLog('SRV:'+ip,"DEBUG",'dist/index.html-Path:',[req.path]);
     res.sendFile(path.join(__dirname, 'dist/index.html'));
   });
 
@@ -79,7 +119,7 @@ var MudConnections = {};
 var Socket2Mud = {};
 
 // io.of('/').on('connection', (socket) => { // nsp /mysocket.io/ instead of /
-io.of('%%MYSOCKET%%').on('connection', (socket) => { // nsp /mysocket.io/ instead of /
+io.of(scfg.mySocket).on('connection', (socket) => { // nsp /mysocket.io/ instead of /
     const address = socket.handshake.address;
     const real_ip = socket.handshake.headers['x-forwarded-for'] || address;
     console.log('S01-socket:'+socket.id+' user connected: ',real_ip);
@@ -226,7 +266,7 @@ io.of('%%MYSOCKET%%').on('connection', (socket) => { // nsp /mysocket.io/ instea
             MudConnections[id].mudOb = mudOb;
         }
         var buf = mudSocket.sizeToBuffer(width,height);
-        logger.addAndShowLog('SRV:'+real_ip,"ERROR",'NAWS-buf',[buf,width,height]);
+        logger.addAndShowLog('SRV:'+real_ip,"TRACE",'NAWS-buf',[buf,width,height]);
         mudSocket.writeSub(31 /*TELOPT_NAWS*/, buf);
     });
 
