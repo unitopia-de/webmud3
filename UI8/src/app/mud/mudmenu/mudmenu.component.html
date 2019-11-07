@@ -2,7 +2,6 @@
   <button class="main-menu" *ngIf='!connected' (click)="onClickMenu('connect')" mat-button>Verbinden</button>
   <button class="main-menu" *ngIf='connected' (click)="onClickMenu('disconnect')" mat-button>Trennen</button>
   <button class="main-menu" (click)="onClickMenu('displayViewConfig')" mat-button>Anzeige</button>
-
   <button class="main-menu" mat-button [matMenuTriggerFor]="gmcpMenuBlock" *ngIf="gmcpFlag">Module</button>
   <mat-menu #gmcpMenuBlock="matMenu">
     <button *ngFor="let gmen of gmcpMenu"(click)="onClickGmcpMenu(gmen)" mat-menu-item>
