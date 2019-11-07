@@ -45,7 +45,7 @@ import { LoggerModule, NgxLoggerLevel } from 'ngx-logger';
     DeviceDetectorModule.forRoot(),
     LoggerModule.forRoot({
       level: NgxLoggerLevel.TRACE, 
-      serverLogLevel: NgxLoggerLevel.TRACE,
+      serverLogLevel: NgxLoggerLevel.OFF,
       enableSourceMaps: true}),
     AppRoutingModule
   ],

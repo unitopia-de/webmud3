@@ -1,8 +1,6 @@
 import { Injectable } from '@angular/core';
-import { SocketService } from '../shared/socket.service';
 import { GmcpConfig } from '../gmcp/gmcp-config';
 import { GmcpMenu } from '../gmcp/gmcp-menu';
-import { GmcpService } from '../gmcp/gmcp.service';
 import { NGXLogger } from 'ngx-logger';
 
 @Injectable({

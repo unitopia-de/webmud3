@@ -2,27 +2,7 @@
   <button class="main-menu" *ngIf='!connected' (click)="onClickMenu('connect')" mat-button>Verbinden</button>
   <button class="main-menu" *ngIf='connected' (click)="onClickMenu('disconnect')" mat-button>Trennen</button>
   <button class="main-menu" (click)="onClickMenu('displayViewConfig')" mat-button>Anzeige</button>
- <!-- <button class="main-menu" mat-button [matMenuTriggerFor]="view">Anzeige</button>
-  <mat-menu #view="matMenu">
-    <button (click)="onClickMenu('colorOff')" mat-menu-item>
-      <mat-icon *ngIf='mudmcfg.colorOff'>check_box</mat-icon>
-      <mat-icon *ngIf='!mudmcfg.colorOff'>check_box_outline_blank</mat-icon>
-      <span>Farbe An/Aus</span>
-    </button>
-    <button (click)="onClickMenu('invert')" mat-menu-item>
-        <mat-icon *ngIf='mudmcfg.invert'>check_box</mat-icon>
-        <mat-icon *ngIf='!mudmcfg.invert'>check_box_outline_blank</mat-icon>
-        <span>Invertieren</span>
-    </button>
-    <button (click)="onClickMenu('blackOnWhite')" mat-menu-item>
-          <mat-icon *ngIf='mudmcfg.blackOnWhite'>check_box</mat-icon>
-          <mat-icon *ngIf='!mudmcfg.blackOnWhite'>check_box_outline_blank</mat-icon>
-          <span>Schwarz auf Weiss</span>
-    </button>
-    <button (click)="onClickMenu('displayLog')" mat-menu-item>
-      <span>Log anzeigen</span>
-    </button>
-</mat-menu>-->
+
   <button class="main-menu" mat-button [matMenuTriggerFor]="gmcpMenuBlock" *ngIf="gmcpFlag">Module</button>
   <mat-menu #gmcpMenuBlock="matMenu">
     <button *ngFor="let gmen of gmcpMenu"(click)="onClickGmcpMenu(gmen)" mat-menu-item>

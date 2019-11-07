@@ -82,7 +82,7 @@ export class SocketService implements NGXLoggerMonitor{
         other.logger.log('S01 socket:reconnect_attempt:'+attemptNumber+' '+other.getSocketID());
         if (attemptNumber == 1) {
           other.send2AllMuds('Verbindungsunterbrechung','disconnect');
-          other.logger.warn("S01 socket:reconnect: ",other.socket);
+          other.logger.warn("S01 socket:reconnect: ",other.getSocketID());
         }
         return;
     });

@@ -7,7 +7,7 @@ const creation = 'DROP TABLE IF EXISTS debugaddittionals;DROP TABLE IF EXISTS de
 
 var options = {};
 
-var db_filename = typeof process.env.MY_LOG_DB; // can be undefined, then module shouldn't be loaded...
+var db_filename = process.env.MY_LOG_DB; // can be undefined, then module shouldn't be loaded...
 console.log('dbpath: ',db_filename);
 var db = require('better-sqlite3')(db_filename, options);
  
@@ -29,17 +29,19 @@ function database() {
             }
         };
     }
-    function bootstrap(flag) {
+    function bootstrap_debuglog(flag) {
         if (flag) {
+            console.log('bootstrap_debuglog-true');
             db.exec(creation);
         }
         try {
             var getNextId = db.prepare("SELECT MAX(id)+1 AS newid FROM debuglog");
             getNextId.get();
-            var checkAdds = dp.prepare("SELECT COUNT(*) FROM debugaddittionals");
+            var checkAdds = db.prepare("SELECT COUNT(*) FROM debugaddittionals");
             checkAdds.get();
         } catch (error) {
             db.exec(creation);
+            console.log('bootstrap_debuglog-false:',error);
         }
     }
     // timestamp : isoDate,
@@ -50,7 +52,7 @@ function database() {
     // message:msg,
     // additional:additional, 
     this.InsertLogEntry = function(entry) {
-        bootstrap(false);
+        bootstrap_debuglog(false);
         // console.log('InsertLogEntry: ',entry);
         var insertAdd = db.prepare('INSERT INTO debugaddittionals (id, line,additionals) VALUES (?,?,?)');
         var insertDbg = db.prepare("INSERT INTO debuglog(id,ts,ilevel,filename,line,real_ip,message) VALUES (?,?,?,?,?,?,?)");

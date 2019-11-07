@@ -57,7 +57,7 @@ module.exports = {
     // function log2srting(log) {
         var outpline =log.timestamp+" "+dbglvl[log.level]+" ["+log.fileName+":"+log.lineNumber+']'+log.real_ip+'\r\n'+(log.message||'(####)')+' ';
         log.additional.forEach(function(val,idx,arr){
-            if (typeof val ==='object') {
+            if (typeof val !== 'string') {
                 outpline = outpline + JSON.stringify(val,undefined,"\r");
             } else {
                 outpline = outpline + val;
