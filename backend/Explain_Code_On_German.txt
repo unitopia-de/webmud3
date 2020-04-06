@@ -122,8 +122,6 @@ Du sagst: entwedder der client odder der server schickt was los und will
         eine Antwort vom PArtner
 Die Schuelerin sagt: ah
 Du sagst: Beispiel1
-Deine Freundin Ninu spricht zu Dir und ihren anderen Freunden: Hallo, meine
-        Freunde!
 Du sagst: der Server informiert den Client, dass er ein PRotokoll
         verwendden will, also schickt er eintweder ein DO fuer ich mach das
         jetzt oder ein WILL fuer der Client soll das machen..
