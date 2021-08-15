@@ -66,7 +66,7 @@ const io = require('socket.io')(http,{'path':scfg.mySocketPath,'transports': ['w
 // io.set('origins', cfg.whitelist);
 const net = require('net');
 const tls = require("tls");
-const uuidv4 = require('uuid/v4');
+const { v4: uuidv4 } = require('uuid');
 
 const MudSocket = require("./mudSocket");
 

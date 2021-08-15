@@ -1,6 +1,6 @@
 import { EventEmitter, Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
-import  * as io from 'socket.io-client';
+import { io } from "socket.io-client";
 import { GmcpService } from '../gmcp/gmcp.service';
 import { Logger, LoggerLevel } from '../logger';
 import { LoggerService } from '../logger.service';
