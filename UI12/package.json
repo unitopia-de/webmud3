@@ -26,7 +26,7 @@
     "ngx-device-detector": "^2.0.5",
     "primeflex": "^2.0.0",
     "primeicons": "^4.1.0",
-    "primeng": "^11.1.0",
+    "primeng": "^11.4.5",
     "rxjs": "~6.6.0",
     "socket.io-client": "^2.3.0",
     "tslib": "^2.1.0",
