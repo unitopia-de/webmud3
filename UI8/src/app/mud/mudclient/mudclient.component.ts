@@ -201,7 +201,7 @@ export class MudclientComponent implements AfterViewChecked,OnInit,OnDestroy {
               case 'NOECHO-END':   other.inpType = 'text'; break;
               case 'name@mud':
                 if (typeof musi.wizard !== 'undefined') {
-                  this.filesrv.startFilesModule();
+                  other.filesrv.startFilesModule();
                 }
                 break;
               case 'Sound.Play.Once':
@@ -211,7 +211,7 @@ export class MudclientComponent implements AfterViewChecked,OnInit,OnDestroy {
                 audio.play();
                 break;
               case 'Files.URL':
-                let newfile = this.filesrv.processFileInfo(musi.fileinfo);
+                let newfile = other.filesrv.processFileInfo(musi.fileinfo);
                 if (newfile.alreadyLoaded) {
                   other.logger.trace('Files.URL-alreadyLoaded',_id,newfile);
                 } else {

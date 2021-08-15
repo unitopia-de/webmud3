@@ -252,5 +252,8 @@ public setTitle(tstr:string) {
   }
 
 
-  constructor(@Inject(WINDOW) private window:Window,private logger:NGXLogger,private titleService:Title) { }
+  constructor(
+    @Inject(WINDOW) private window:Window,
+    private logger:NGXLogger,
+    private titleService:Title) { }
 }

@@ -5,7 +5,7 @@ FROM node:10-alpine AS ng-build-stage
 WORKDIR /app
 
 # fetching packages and...
-COPY UI8/package*.json /app/
+COPY UI11/package*.json /app/
 
 RUN echo https://alpine.mirror.wearetriple.com/v3.5/main > /etc/apk/repositories; \
     echo https://alpine.mirror.wearetriple.com/v3.5/community >> /etc/apk/repositories
@@ -17,7 +17,7 @@ RUN apk update && apk upgrade && \
     &&  npm install
 
 # fetch the angular sources and stuff
-COPY ./UI8/ /app/
+COPY ./UI11/ /app/
 
 # exchange webmud3 in baseref webmud3\UI8\src\index.html
 RUN sed -i 's-%%BASEREF%%-/webmud3test/-' /app/src/index.html \
@@ -47,12 +47,7 @@ RUN deluser --remove-home node \
     && adduser -S -G node -u 31116 node \
     && mkdir /run/secrets \
     && mkdir /run/db \
-    && apk add --no-cache --virtual .gyp \
-        python \
-        make \
-        g++ \
     && npm install --only=prod \
-    && apk del .gyp \
     && chown -R node:node /app
 
 USER node:node

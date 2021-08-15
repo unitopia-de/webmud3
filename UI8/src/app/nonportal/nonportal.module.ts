@@ -16,7 +16,12 @@ import { DebuglogModule } from '../debuglog/debuglog.module';
     MudModule,AceEditorModule,
     CommonModule,AuthModule,DebuglogModule,
   ],
-  declarations: [LoginComponent, UnitopiaComponent, OrbitComponent, Uni1993Component, EditorTestComponent, DebuglogComponent],
+  declarations: [LoginComponent, 
+    UnitopiaComponent, 
+    OrbitComponent, 
+    Uni1993Component, 
+    EditorTestComponent, 
+    DebuglogComponent],
   exports:[LoginComponent, UnitopiaComponent, OrbitComponent]
 })
 export class NonportalModule { }

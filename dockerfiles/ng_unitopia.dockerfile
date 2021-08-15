@@ -42,7 +42,8 @@ COPY ./backend/ /app/
 COPY --from=ng-build-stage /app/dist/out/ /app/dist/
 
 # change user, mkdir runs, install temporarily .gyp for sqlite
-RUN deluser --remove-home node \
+RUN npm install -g tick \
+    && deluser --remove-home node \
     && addgroup -S node -g 3002 \
     && adduser -S -G node -u 31116 node \
     && mkdir /run/secrets \
@@ -56,4 +57,4 @@ RUN deluser --remove-home node \
     && chown -R node:node /app
 
 USER node:node
-CMD node server.js
+CMD node --prof server.js

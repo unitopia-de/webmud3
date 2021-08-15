@@ -1,31 +1,14 @@
 'use strict';
 
-var dbi = undefined;
-if (typeof process.env.MY_LOG_DB !== 'undefined') {
-    dbi = require('../data_access/sqlite');
-}
 const url = require('url');
 
 const dbglvl = ['TRACE','DEBUG','INFO','LOG','WARN','ERROR','FATAL','OFF'];
-var dbgbuffer = [];
-var storelevel =  0; // all
-var outputlevel = 4; // warnings, Errors,Fatals...
-var buffersize = 1000;
+var outputlevel = 2; // Errors,Fatals...
 
 // var NGXLogger = class NGXLogger {
 module.exports = {
 
     addLogEntry : function(log) {
-        if (log.level < storelevel) {
-            return;
-        }
-        while (dbgbuffer.length>buffersize) {
-            dbgbuffer.unshift();
-        }
-        dbgbuffer.push(log);
-        if (typeof process.env.MY_LOG_DB !== 'undefined') {
-            dbi.InsertLogEntry(log);
-        }
     },
     createLogEntry : function (real_ip,lvl,msg,additional) {
         var isoDate = new Date().toISOString();
@@ -126,27 +109,4 @@ module.exports = {
         }
       },
 
-    getEntry : function(req,res) {
-        var url_parts = url.parse(req.url, true);
-        var query = url_parts.query;
-        if (query && query.logentryid && typeof process.env.MY_LOG_DB !== 'undefined') {
-            var result = dbi.GettLogEntry(query.logentryid);
-            res.status(201).send(result);
-        } else {
-            res.status(500).send("Invalid query without logentryid");
-        }
-    },
-
-    search : function(req,res) {
-        if (req.body && typeof process.env.MY_LOG_DB !== 'undefined') {
-            console.log('SEARCH: ',req.body);
-            var result = dbi.searchLogEntries(req.body.searchParam,req.body.limit,req.body.offset);
-            if (result.ok) {
-                res.status(201).send(result);
-            } else {
-                console.error("SEARCH",result.error);
-                res.status(500).send(result);
-            }
-        }
-    }
 };

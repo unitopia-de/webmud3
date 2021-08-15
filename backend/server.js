@@ -103,8 +103,6 @@ app.get("/ace/*", (req,res) => {
 
 const authRoutes = require("./mudrpc/authRoutes");
 app.use("/api/auth",authRoutes);
-const logRoutes = require("./ngxlogger/logRoutes")
-app.use("/api/debuglog",logRoutes);
 
 app.get('*', (req, res) => {
     var ip = req.headers['x-forwarded-for'] || 
@@ -122,7 +120,7 @@ var Socket2Mud = {};
 io.of(scfg.mySocket).on('connection', (socket) => { // nsp /mysocket.io/ instead of /
     const address = socket.handshake.address;
     const real_ip = socket.handshake.headers['x-forwarded-for'] || address;
-    console.log('S01-socket:'+socket.id+' user connected: ',real_ip);
+    //console.log('S01-socket:'+socket.id+' user connected: ',real_ip);
     logger.addAndShowLog('SRV:'+real_ip,"LOG",'S01-socket user connected',[socket.id]);
 
     socket.on('disconnect', function () {
@@ -157,6 +155,10 @@ io.of(scfg.mySocket).on('connection', (socket) => { // nsp /mysocket.io/ instead
     });
     socket.on('reconnect_attempt', (attemptNumber) => {
         logger.addAndShowLog('SRV:'+real_ip,"INFO",'S01-socket reconnect_attempt',[socket.id,attemptNumber]);
+    });
+    socket.on("keep-alive",function(level,callback){
+        logger.addAndShowLog('SRV:'+real_ip,"INFO",'S01-socket keep alive ',[socket.id,level]);
+        callback(level);
     });
 
     socket.on('add-message', (message) => {
@@ -225,7 +227,7 @@ io.of(scfg.mySocket).on('connection', (socket) => { // nsp /mysocket.io/ instead
                     host:mudcfg.host,
                     port:mudcfg.port});
             }
-            const mudSocket = new MudSocket(tsocket,{bufferSize:65536},{debugflag:false,id:id,gmcp_support:gmcp_support,charset:charset},socket);
+            const mudSocket = new MudSocket(tsocket,{bufferSize:65536},{debugflag:true,id:id,gmcp_support:gmcp_support,charset:charset},socket);
             mudSocket.on("close",function(){
                 logger.addAndShowLog('SRV:'+real_ip,"DEBUG",'mud-disconnect=>close',[socket.id]);
                 socket.emit("mud-disconnected",id);
@@ -370,6 +372,7 @@ function myCleanup() {
 }
 
 http.listen(5000, () => {
-    logger.addAndShowLog('SRV//:5000',"INFO",'INIT: Server\'backend\' started on port 5000:',[]);
+    // logger.addAndShowLog
+    console.log('SRV//:5000',"INFO",'INIT: Server\'backend\' started on port 5000:',[]);
 });
 

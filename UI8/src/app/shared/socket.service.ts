@@ -233,7 +233,7 @@ public mudList() : Observable<MudListItem[]> {
 /**
  * Initialization/connecting the mud according to the mudob, called by the mudclient component.
  *
- * @param {*} mudOb the mud cofniguration object
+ * @param {*} mudOb the mud configuration object
  * @returns {Observable<string>}
  * @memberof SocketService
  */
