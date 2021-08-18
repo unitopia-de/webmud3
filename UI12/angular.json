@@ -3,7 +3,7 @@
   "version": 1,
   "newProjectRoot": "projects",
   "projects": {
-    "UI11": {
+    "UI12": {
       "projectType": "application",
       "schematics": {},
       "root": "",
@@ -16,7 +16,7 @@
             "allowedCommonJsDependencies": [
                "socket.io-client"
             ],
-            "outputPath": "dist/UI11",
+            "outputPath": "dist/UI12",
             "index": "src/index.html",
             "main": "src/main.ts",
             "polyfills": "src/polyfills.ts",
@@ -68,18 +68,18 @@
         "serve": {
           "builder": "@angular-devkit/build-angular:dev-server",
           "options": {
-            "browserTarget": "UI11:build"
+            "browserTarget": "UI12:build"
           },
           "configurations": {
             "production": {
-              "browserTarget": "UI11:build:production"
+              "browserTarget": "UI12:build:production"
             }
           }
         },
         "extract-i18n": {
           "builder": "@angular-devkit/build-angular:extract-i18n",
           "options": {
-            "browserTarget": "UI11:build"
+            "browserTarget": "UI12:build"
           }
         },
         "test": {
@@ -116,16 +116,16 @@
           "builder": "@angular-devkit/build-angular:protractor",
           "options": {
             "protractorConfig": "e2e/protractor.conf.js",
-            "devServerTarget": "UI11:serve"
+            "devServerTarget": "UI12:serve"
           },
           "configurations": {
             "production": {
-              "devServerTarget": "UI11:serve:production"
+              "devServerTarget": "UI12:serve:production"
             }
           }
         }
       }
     }
   },
-  "defaultProject": "UI11"
+  "defaultProject": "UI12"
 }
