@@ -16,7 +16,8 @@ const routes: Routes = [
   imports: [
     RouterModule.forRoot(
       routes,
-      { enableTracing: false } // <-- debugging purposes only
+      { onSameUrlNavigation: 'reload',
+        enableTracing: false } // <-- debugging purposes only
     )
   ],
   exports: [RouterModule]

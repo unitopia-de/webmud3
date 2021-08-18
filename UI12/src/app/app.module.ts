@@ -11,13 +11,6 @@ import { PrimeModule } from './prime.module';
 import { HttpClientModule } from '@angular/common/http';
 import { ModelessModule } from './modeless/modeless.module';
 
-import { AceModule } from 'ngx-ace-wrapper';
-import { ACE_CONFIG } from 'ngx-ace-wrapper';
-import { AceConfigInterface } from 'ngx-ace-wrapper';
-
-const DEFAULT_ACE_CONFIG: AceConfigInterface = {
-};
-
 @NgModule({
   declarations: [
     AppComponent
@@ -26,17 +19,11 @@ const DEFAULT_ACE_CONFIG: AceConfigInterface = {
     BrowserModule,HttpClientModule,
     MudModule,NonportalModule,
     PrimeModule,ModelessModule,
-    AppRoutingModule,
-    AceModule
+    AppRoutingModule
   ],
   providers: [
     WINDOW_PROVIDERS,
     CookieService,
-    
-    {
-      provide: ACE_CONFIG,
-      useValue: DEFAULT_ACE_CONFIG
-    }
   ],
   bootstrap: [AppComponent]
 })

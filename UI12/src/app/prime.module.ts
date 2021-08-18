@@ -11,7 +11,11 @@ import {CheckboxModule} from 'primeng/checkbox';
 import {ColorPickerModule} from 'primeng/colorpicker';
 import {ToastModule} from 'primeng/toast';
 import { MessageService } from 'primeng/api';
+import {ConfirmationService} from 'primeng/api';
 import {TableModule} from 'primeng/table';
+import {ToolbarModule} from 'primeng/toolbar';
+import {ButtonModule} from 'primeng/button';
+import {ConfirmPopupModule} from 'primeng/confirmpopup';
 
 @NgModule({
   declarations: [],
@@ -22,12 +26,12 @@ import {TableModule} from 'primeng/table';
     CheckboxModule,
     ColorPickerModule,
     MenuModule,MenubarModule,
-    DynamicDialogModule,
+    DynamicDialogModule,ConfirmPopupModule,
     DialogModule,TableModule,
-    ToastModule
+    ToastModule,ToolbarModule,ButtonModule
   ],
   providers: [
-    DialogService,MessageService
+    DialogService,MessageService,ConfirmationService
   ],
   exports:[
     FocusTrapModule,
@@ -35,9 +39,10 @@ import {TableModule} from 'primeng/table';
     CheckboxModule,
     ColorPickerModule,
     MenuModule,MenubarModule,
-    DynamicDialogModule,
+    DynamicDialogModule,ConfirmPopupModule,
     DialogModule,TableModule,
-    ToastModule
+    ToastModule,ToolbarModule,
+    ButtonModule
   ]
 })
 export class PrimeModule { }

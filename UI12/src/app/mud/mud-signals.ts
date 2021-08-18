@@ -94,6 +94,7 @@ export class MudSignalHelpers {
               let filewincfg : WindowConfig = new WindowConfig();
               filewincfg.component = 'EditorComponent';
               filewincfg.data = newfile;
+              filewincfg.dontCancel = true;
               if (typeof newfile.title !== 'undefined' && newfile.title != '') {
                 filewincfg.wtitle = newfile.title;
               } else {

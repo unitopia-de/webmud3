@@ -23,5 +23,5 @@ export class AppComponent {
     this.wincfg.setWindowsSize(window.innerHeight, window.innerWidth);
   } 
 
-  title = 'UI11';
+  title = 'webmud3/UI12';
 }
