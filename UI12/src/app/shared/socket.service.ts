@@ -1,4 +1,5 @@
 import { EventEmitter, Injectable } from '@angular/core';
+import { Router } from '@angular/router';
 import { Observable } from 'rxjs';
 import { io } from "socket.io-client";
 import { GmcpService } from '../gmcp/gmcp.service';
@@ -25,6 +26,7 @@ export class SocketService {
   
   constructor(
     private loggerSrv:LoggerService,
+    private router: Router,
     private srvcfg:ServerConfigService,
     private gmcpsrv: GmcpService) { 
       this.logger = this.loggerSrv.addLogger("SockerService",LoggerLevel.ALL);
@@ -151,6 +153,7 @@ public mudConnect(mudOb : any) : Observable<string> {
           other.mudConnections[data.id] = {
             id: data.id,
             socketID: data.socketID,
+            serverID: data.serverID,
             connected: true,
             width: mudOb.width,
             height: mudOb.height,
@@ -162,6 +165,7 @@ public mudConnect(mudOb : any) : Observable<string> {
           other.mudConnections[data.id] = {
             id: data.id,
             socketID: data.socketID,
+            serverID: data.serverID,
             connected: true,
             width: mudOb.width,
             height: mudOb.height
@@ -175,11 +179,19 @@ public mudConnect(mudOb : any) : Observable<string> {
         observer.next(null);
       }
     });
-    other.socket.on('connected',function(id,real_ip,cb) {
+    other.socket.on('connected',function(id,real_ip,server_id,cb) {
       if (other.getSocketID() != id) {
         logger.error('S02: connected-unknown-id:',id);
         cb('unknown-id',mudOb);
         return;
+      }
+      logger.log("S02.serverID: ",[id,other.mudConnections]);
+      if (!other.mudConnections.hasOwnProperty(id) ||
+          other.mudConnections[id].serverID != server_id) {
+        other.socket.emit("mud-disconnect",id);
+        // other.mudConnections[id].connected = false;
+        logger.trace('S02: ServerID change: ',id,mudOb);
+        other.router.navigate([other.router.url]); // reload screen
       }
       logger.trace('S02: connected: ',id,mudOb);
       cb('ok',mudOb);
@@ -539,7 +551,7 @@ public mudReceiveSignals(_id: string) : Observable<MudSignals> {
                 if (fileinfo.temporary) {
                   fileinfo.save04_closing(fileinfo.windowsId);
                 } else {
-                  fileinfo.save06_success(fileinfo.save06_success);
+                  fileinfo.save06_success(fileinfo.windowsId);
                 }
               }
               let fileSignal : MudSignals = {

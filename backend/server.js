@@ -67,6 +67,7 @@ const io = require('socket.io')(http,{'path':scfg.mySocketPath,'transports': ['w
 const net = require('net');
 const tls = require("tls");
 const { v4: uuidv4 } = require('uuid');
+const UNIQUE_SERVER_ID = uuidv4(); // changes per install!
 
 const MudSocket = require("./mudSocket");
 
@@ -245,7 +246,7 @@ io.of(scfg.mySocket).on('connection', (socket) => { // nsp /mysocket.io/ instead
                 Socket2Mud[socket.id].push[id];
             }
             logger.addAndShowLog('SRV:'+real_ip,"INFO",'S02-socket mud-connect:',[socket.id,mudOb]);
-            callback({id:id,socketID:socket.id});
+            callback({id:id,socketID:socket.id,serverID:UNIQUE_SERVER_ID});
         } catch (error) {
             logger.addAndShowLog('SRV:'+real_ip,"ERROR",'mud-connect catch',[socket.id,error]);
             callback({error:error.toString('utf8')});
@@ -349,7 +350,7 @@ io.of(scfg.mySocket).on('connection', (socket) => { // nsp /mysocket.io/ instead
         logger.addLogEntry(log);
         logger.log2console(log);
     });
-    socket.emit('connected',socket.id,real_ip,function(action,oMudOb) {
+    socket.emit('connected',socket.id,real_ip,UNIQUE_SERVER_ID,function(action,oMudOb) {
         logger.addAndShowLog('SRV:'+real_ip,"INFO",'S02-connected:',[action,oMudOb]);
     });
 });
@@ -373,6 +374,6 @@ function myCleanup() {
 
 http.listen(5000, () => {
     // logger.addAndShowLog
-    console.log('SRV//:5000',"INFO",'INIT: Server\'backend\' started on port 5000:',[]);
+    console.log('SRV//:5000',"INFO",'INIT: Server\'backend\' started on port 5000:',UNIQUE_SERVER_ID);
 });
 
