@@ -25,7 +25,7 @@ export class WindowComponent implements OnInit {
     this.logger.log(actionType,event);
     switch(actionType){
       case 'resize_end':
-        this.config.inComingEvents.next("resize:0:0");
+        this.config.inComingEvents.next("resize:"+event.pageX+":"+event.pageY);
         return;
       case 'show':
       case 'hide':

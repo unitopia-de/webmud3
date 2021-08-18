@@ -10,6 +10,8 @@
     (onResizeEnd)="doWindowAction($event,'resize_end')"
     (onDragEnd)="doWindowAction($event,'drag_end')"
     (onMaximize)="doWindowAction($event,'maximize')"
+    position="right" [keepInViewport]="false"
+    appendTo="body"
     >
     <!--{{config.component}}-->
     <app-dirlist *ngIf="config.component=='DirlistComponent'" [config]="config"></app-dirlist>

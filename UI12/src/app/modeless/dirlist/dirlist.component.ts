@@ -51,6 +51,7 @@ export class DirlistComponent implements OnInit {
   ngOnInit(): void {
     this.logger.debug("inComingEvents-DirList");
     this.config.inComingEvents.subscribe((event:string)=>{
+      this.updateDirList();
       this.logger.log("inComingEvents-DirList",event);
     },(error)=>{
       this.logger.error('incomingEvents-DirList',error);

@@ -1,5 +1,5 @@
 <div class="noselect">
-    <div>{{path}}</div>
+    <div><b>{{path}}</b></div>
     <table>
       <ng-container *ngFor="let entry of entries">
         <tr *ngIf="entry.isdir==0">
@@ -9,7 +9,7 @@
           <td>{{entry.filetime}}</td>
         </tr>
         <tr *ngIf="entry.isdir!=0">
-          <td><a (click)="changeDir(entry.name)">{{entry.name}}</a></td>
+          <td><a (click)="changeDir(entry.name)">{{entry.name}}/</a></td>
           <td></td>
           <td>{{entry.filedate}}</td>
           <td>{{entry.filetime}}</td>
