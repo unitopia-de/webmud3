@@ -31,3 +31,4 @@
 31. Version 0.0.45: editor-save rewritten and debugged => working now.files module now mandatory. 
 32. Version 0.0.46: sqlite, nebuglog backend and frontend, start position of nonmodal windows changed, lots of bugfixes
 33. Version 0.0.47: start UI9: rewrite UI8 to primeng elements.
+34. Version 0.1.0: End of migration from UI8,UI9 to UI12
