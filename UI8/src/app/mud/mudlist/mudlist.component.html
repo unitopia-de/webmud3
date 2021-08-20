@@ -1,4 +1,0 @@
-<select (change)="onChange($event.target.value)">
-  <option *ngFor='let mudcfg of socketService.mudnames' [value]="mudcfg.key"> {{mudcfg.name}} </option>
-  <option value="disconnect">Disconnect</option>
-</select>

@@ -1,0 +1,11 @@
+<p-confirmPopup></p-confirmPopup>
+<p-toolbar>
+    <div class="p-toolbar-group-right">
+        <p-toast position="top-left"></p-toast>
+    </div> 
+    <div class="p-toolbar-group-right">
+        <p-button label="Speichern" icon="pi pi-upload" (click)="onSave($event)"styleClass="p-button-success"></p-button>
+        <p-button label="Abbrechen" icon="pi pi-times" (click)="onCancel($event)"styleClass="p-button-warning"></p-button>
+    </div> 
+</p-toolbar>
+<div class="app-ace-editor" #editor [style]="myStyle()"></div>

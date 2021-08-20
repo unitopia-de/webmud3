@@ -1,14 +1,14 @@
 # based on node 10, alpine for least resource requirements.
-FROM node:10-alpine AS ng-build-stage
+FROM node:14-alpine3.14 AS ng-build-stage
 
 # working dir in build stage
 WORKDIR /app
 
 # fetching packages and...
-COPY UI8/package*.json /app/
+COPY UI12/package*.json /app/
 
-RUN echo https://alpine.mirror.wearetriple.com/v3.5/main > /etc/apk/repositories; \
-    echo https://alpine.mirror.wearetriple.com/v3.5/community >> /etc/apk/repositories
+RUN echo https://alpine.mirror.wearetriple.com/v3.14/main > /etc/apk/repositories; \
+    echo https://alpine.mirror.wearetriple.com/v3.14/community >> /etc/apk/repositories
 
 # ... install them together with angular-cli, prequisite git included.
 RUN apk update && apk upgrade && \
@@ -17,11 +17,11 @@ RUN apk update && apk upgrade && \
     &&  npm install
 
 # fetch the angular sources and stuff
-COPY ./UI8/ /app/
+COPY ./UI12/ /app/
 
 # exchange webmud3 in baseref webmud3\UI8\src\index.html
-RUN sed -i 's-%%BASEREF%%-/-' /app/src/index.html \
-    && sed -i 's-%%ACEREF%%-http://localhost:2018/ace/-' /app/src/index.html 
+RUN sed -i 's-%%BASEREF%%-/-' /app/src/index.html 
+#     && sed -i 's-%%ACEREF%%-http://localhost:2018/ace/-' /app/src/index.html
 
 # ok may be we have to do more with the environment...
 ARG configuration=production
@@ -30,7 +30,7 @@ ARG configuration=production
 RUN ng build --output-path=dist/out
 
 # produces the final node.js immage.
-FROM node:10-alpine AS webmud3
+FROM node:14-alpine3.14 AS webmud3
 
 # again a working dir...
 WORKDIR /app
@@ -44,12 +44,7 @@ COPY --from=ng-build-stage /app/dist/out/ /app/dist/
 # change user, mkdir runs, install temporarily .gyp for sqlite
 RUN mkdir /run/secrets \
     && mkdir /run/db \
-    && apk add --no-cache --virtual .gyp \
-        python \
-        make \
-        g++ \
     && npm install --only=prod \
-    && apk del .gyp \
     && chown -R node:node /app
 
 USER node:node

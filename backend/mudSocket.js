@@ -221,10 +221,10 @@ MudSocket = class MudSocket extends TelnetSocket {
             }
             other.state[opt] = {server:'do',client:'wont'};
             switch (opt) {
-                case 'TELOPT_TM':
+                case 'TELOPT_TM':/* timing mark */
                     other.writeWill(chunkData);
                     break;
-                case 'TELOPT_NAWS': 
+                case 'TELOPT_NAWS': /* window size */
                     other.state[opt] = {server:'do',client:'will'};
                     other.writeWill(chunkData);
                     socket_io.emit('mud-get-naws',other._moptions.id,function(sizeOb){
@@ -238,7 +238,7 @@ MudSocket = class MudSocket extends TelnetSocket {
                         other.writeSub(chunkData,buf);
                     })
                     break; // TODO calc windows size and report...
-                case 'TELOPT_TTYPE':
+                case 'TELOPT_TTYPE':/* terminal type */
                     other.state[opt] = {server:'do',client:'will'};
                     other.writeWill(chunkData);
                 break;
@@ -266,14 +266,14 @@ MudSocket = class MudSocket extends TelnetSocket {
             }
             other.state[opt] = {server:'will',client:'dont'};
             switch (opt) {
-                case 'TELOPT_ECHO': 
+                case 'TELOPT_ECHO': /* echo */
                     other.writeDo(chunkData);
                     other.state[opt].client = 'do';
                     socket_io.emit('mud-signal',{signal:'NOECHO-START',id:other._moptions.id});
                     break;
-                case 'TELOPT_EOR': other.writeDont(chunkData);break;
-                case 'TELOPT_CHARSET': other.writeDo(chunkData);break;
-                case 'TELOPT_GMCP':
+                case 'TELOPT_EOR': other.writeDont(chunkData);break;/* end or record */
+                case 'TELOPT_CHARSET': other.writeDo(chunkData);break;/* charset */
+                case 'TELOPT_GMCP':/* Generic MUD Communication Protocol */
                 if (typeof other._moptions.gmcp_support !== 'undefined') {
                     other.writeDo(chunkData);
                     other.state[opt].client = 'do';
@@ -294,7 +294,7 @@ MudSocket = class MudSocket extends TelnetSocket {
             }
             other.state[opt] = {server:'wont',client:'dont'};
             switch (opt) {
-                case "TELOPT_ECHO": 
+                case "TELOPT_ECHO": /* echo */
                     other.writeDont(chunkData); 
                     socket_io.emit('mud-signal',{signal:'NOECHO-END',id:other._moptions.id});
                     break;                
@@ -308,7 +308,7 @@ MudSocket = class MudSocket extends TelnetSocket {
                 console.log('MUDSOCKET: sub:'+opt+"|"+subInput);
             }
             switch (opt) {
-                case 'TELOPT_TTYPE':
+                case 'TELOPT_TTYPE':/* terminal type */
                     if (subInput.length==1 && subInput[0] == 1) { // TELQUAL_SEND
                         var nullBuf = Buffer.alloc(1);
                         var sendBuf;
@@ -321,7 +321,7 @@ MudSocket = class MudSocket extends TelnetSocket {
                         other.writeSub(optin,sendBuf);
                     }
                     break;
-                case 'TELOPT_CHARSET':
+                case 'TELOPT_CHARSET':/* charset */
                     if (other.debugflag) {
                         console.log('MUDSOCKET: SB CHARSET:',chunkData.toString());
                     }
@@ -337,7 +337,7 @@ MudSocket = class MudSocket extends TelnetSocket {
                         other.writeSub(optin,sendBuf);
                     }
                     break;
-                case 'TELOPT_GMCP':
+                case 'TELOPT_GMCP':/* Generic MUD Communication Protocol */
                     let tmpstr = chunkData.toString();
                     let ix = tmpstr.indexOf(' ');
                     let jx = tmpstr.indexOf('.');

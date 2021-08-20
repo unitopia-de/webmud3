@@ -30,7 +30,7 @@ docker run -d -p 50000:80 --name helloplain -P nginxdemos/hello:plain-text
 
 
 ### docker commands for diagnosis:
-
+grep dockerd /var/log/daemon.log
 
 #### List services (stack deploys) and details:
 
