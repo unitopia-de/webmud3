@@ -64,21 +64,21 @@ export class WindowService {
       this.logger.debug('newWindow',maxindex,cfg.windowid);
       return cfg.windowid;
     }
-    private findWindowByCfg(cfg:WindowConfig):boolean {
+    private findWindowByCfg(cfg:WindowConfig):number {
       if (typeof cfg === 'undefined') {
-        return true;
+        return -2;
       }
       var i: number;
       for (i=0;i< this.windowsconfigurations.length;i++) {
         if (this.windowsconfigurations[i].windowid == cfg.windowid) {
-          return false;
+          return i;
         }
       }
-      return true;
+      return -1;
     }
 
     public findFilesWindow(cfg : WindowConfig,data:Object) : WindowConfig {
-      if (this.findWindowByCfg(cfg)) {
+      if (this.findWindowByCfg(cfg)<0) {
         cfg = new WindowConfig();
         cfg.component = "DirlistComponent";
         cfg.save = false;
@@ -105,35 +105,47 @@ export class WindowService {
       const cfg :WindowConfig = this.wincfg.get(winid);
       const exp :string[]= event.split(":");
       switch (exp[0]) {
+        case "do_focus":
+          this.focus(exp[1]);
+          return;
+        case "do_hide":
+          this.deleteWindow(winid);
         case "saved":
+          if (exp[1]=="false") break; // dont close!
+          cfg.visible = false;
+          break;
         case "Cancel":
           cfg.visible = false;
           break;
       }
       cfg.inComingEvents.emit(event);
     }
-
+  
+  private deleteWindow(index : number|string) {
+    if (typeof index === 'number') {
+      index = this.findWindowByCfg(this.wincfg.get(index as unknown as string));
+    }
+    var maxindex = this.windowsconfigurations.length-1;
+    var cwin = this.windowsconfigurations[index];
+    cwin.visible = false;
+    var zoffset;
+    for(var i : number = (index as number); i < maxindex; i++) {
+      var dwin = this.windowsconfigurations[i+1];
+      zoffset = (dwin.initalLock) ? 1000 : 100;
+      dwin.zIndex = zoffset + i;
+      this.windowsconfigurations[i] = dwin;
+    }
+    this.wincfg.clear();
+    this.windowsconfigurations.pop();
+    for (var j = 0;j < this.windowsconfigurations.length;j++) {
+      var id = this.windowsconfigurations[j].windowid;
+      this.wincfg.set(id,this.windowsconfigurations[j]);
+    }
+  } 
     setWindowsSize(innerHeight: number, innerWidth: number): any {
       // TODO propagate resizing...
     }
 
-  // public getDownStream() : Observable<string>{
-  //   var other = this;
-  //   return new Observable<string>(observer => {
-  //     other.cmdQueue.subscribe(
-  //       (x:string) => {
-  //         other.logger.debug('windowsService:getDownStream-x:',x);
-  //         other.OnMenuAction(x);
-  //         observer.next(x);
-  //       },(err:any)=> {
-  //         other.logger.error('windowsService:getDownStream-error:',err);
-  //         observer.error(err);
-  //       } ,()=>{
-  //         other.logger.error('windowsService:getDownStream-coplete');
-  //         observer.complete()
-  //       } )
-  //   })
-  // }
     
 /**
  * convert cancelSave to cmdqueue
@@ -159,9 +171,9 @@ public WinError(winid:string,reason:any) {
   this.logger.debug('WinError:',winid,reason.message);
   this.OnMenuAction("WinError",winid);
 }
-  public SaveComplete(winid:string) {
+  public SaveComplete(winid:string,closable:boolean) {
     this.logger.debug('SaveComplete:',winid);
-    this.OnMenuAction("saved",winid);
+    this.OnMenuAction("saved:"+closable,winid);
   }
   /**
  * view port height
@@ -182,6 +194,24 @@ getViewPortHeight():number {
 getViewPortWidth():number {
   return this.window.innerWidth;
 }
+
+private focus(winid:string) {
+  const cfg :WindowConfig = this.wincfg.get(winid);
+  this.logger.warn("focus-1",this.windowsconfigurations);
+  const index = this.findWindowByCfg(cfg);
+  var maxindex = this.windowsconfigurations.length-1;
+  var cwin = this.windowsconfigurations[index];
+  var zoffset=100;
+  for(var i = index; i < maxindex; i++) {
+    var dwin = this.windowsconfigurations[i+1];
+    dwin.zIndex = zoffset + i;
+    this.windowsconfigurations[i] = dwin;
+  }
+  cwin.zIndex = zoffset + maxindex;
+  this.windowsconfigurations[maxindex] = cwin;
+  this.logger.warn("focus-2",this.windowsconfigurations);
+}
+
 
   constructor(
     @Inject(WINDOW) private window:Window,

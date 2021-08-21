@@ -27,10 +27,14 @@ export class WindowComponent implements OnInit {
       case 'resize_end':
         this.config.inComingEvents.next("resize:"+event.pageX+":"+event.pageY);
         return;
-      case 'show':
-      case 'hide':
-      case 'resize_init':
       case 'drag_end':
+        this.config.outGoingEvents.next("do_focus:"+this.config.windowid);
+        return;
+      case 'hide':
+        this.config.outGoingEvents.next("do_hide:"+this.config.windowid);
+        return;
+      case 'show':
+      case 'resize_init':
       case 'maximize':
         break;
       default:

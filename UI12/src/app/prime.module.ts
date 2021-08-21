@@ -16,6 +16,8 @@ import {TableModule} from 'primeng/table';
 import {ToolbarModule} from 'primeng/toolbar';
 import {ButtonModule} from 'primeng/button';
 import {ConfirmPopupModule} from 'primeng/confirmpopup';
+import {DropdownModule} from 'primeng/dropdown';
+import {SlideMenuModule} from 'primeng/slidemenu'
 
 @NgModule({
   declarations: [],
@@ -24,10 +26,10 @@ import {ConfirmPopupModule} from 'primeng/confirmpopup';
     FocusTrapModule,
     InputTextModule,
     CheckboxModule,
-    ColorPickerModule,
+    ColorPickerModule,SlideMenuModule,
     MenuModule,MenubarModule,
     DynamicDialogModule,ConfirmPopupModule,
-    DialogModule,TableModule,
+    DialogModule,TableModule,DropdownModule,
     ToastModule,ToolbarModule,ButtonModule
   ],
   providers: [
@@ -37,10 +39,10 @@ import {ConfirmPopupModule} from 'primeng/confirmpopup';
     FocusTrapModule,
     InputTextModule,
     CheckboxModule,
-    ColorPickerModule,
+    ColorPickerModule,SlideMenuModule,
     MenuModule,MenubarModule,
     DynamicDialogModule,ConfirmPopupModule,
-    DialogModule,TableModule,
+    DialogModule,TableModule,DropdownModule,
     ToastModule,ToolbarModule,
     ButtonModule
   ]

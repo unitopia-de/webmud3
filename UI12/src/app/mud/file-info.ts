@@ -10,6 +10,7 @@ export class FileInfo {
     writeacl : boolean = false;
     temporary : boolean = false;
     saveActive : boolean = false;
+    closable : boolean = false;
     filesize : number = -1;
     title: string ='';
 

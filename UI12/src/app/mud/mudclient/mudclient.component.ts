@@ -101,7 +101,8 @@ export class MudclientComponent implements AfterViewChecked,OnInit,OnDestroy {
         const ref = this.dialogService.open(ColorSettingsComponent, {
           data: {
             cs: this.cs,
-            cb: this.menuAction
+            cb: this.menuAction,
+            v:this.v,
           },
           header: 'Change Colors',
           width: '40%'
@@ -109,6 +110,13 @@ export class MudclientComponent implements AfterViewChecked,OnInit,OnDestroy {
         return;
       case "MUD_VIEW:COLOR:RETURN":
         this.cs = act.item.cs;
+        if (this.cs.blackOnWhite) {
+          this.v.stdfg = 'black';
+          this.v.stdbg = 'white';
+        } else {
+          this.v.stdfg = 'white';
+          this.v.stdbg = 'black';
+        }
         return;
       default: break;
     }
@@ -317,6 +325,14 @@ export class MudclientComponent implements AfterViewChecked,OnInit,OnDestroy {
         // this.socketService.setMudOutputSize(this.mudc_id,this.mudc_height,this.mudc_width);
       }
     }
+  }
+
+  focusFunction() {
+    this.logger.log("get focus");
+  }
+
+  focusOutFunction() {
+    this.logger.log("out focus");
   }
 
   ngAfterViewChecked(): void {

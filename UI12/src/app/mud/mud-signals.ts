@@ -34,6 +34,7 @@ export class FileInfo {
     writeacl : boolean = false;
     temporary : boolean = false;
     saveActive : boolean = false;
+    closable : boolean = false;
     filesize : number = -1;
     title: string ='';
 
@@ -63,6 +64,7 @@ export class MudSignalHelpers {
           case 'NOECHO-START': other.v.inpType = 'password'; break;
           case 'NOECHO-END':   other.v.inpType = 'text'; break;
           case 'name@mud':
+            other.titleService.setTitle(musi.id);
             if (typeof musi.wizard !== 'undefined') {
               other.filesrv.startFilesModule();
             }
@@ -88,7 +90,7 @@ export class MudSignalHelpers {
               }
               newfile.save06_success = function(windowsid) {
                 other.logger.debug('Files.URL-save06_success',_id,windowsid);
-                other.wincfg.SaveComplete(windowsid);
+                other.wincfg.SaveComplete(windowsid,newfile.closable);
               }
               other.logger.trace('Files.URL-firstLoad',_id,newfile);
               let filewincfg : WindowConfig = new WindowConfig();
