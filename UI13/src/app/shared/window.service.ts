@@ -90,7 +90,7 @@ export class WindowService {
       cfg.visible = true;
       // this.OnMenuAction(cfg.windowid+":updateDir",this);
       cfg.inComingEvents.emit('updateDir');
-      console.trace('findFilesWindow',cfg);
+      console.debug('findFilesWindow',cfg);
       return cfg;
     }
 
@@ -120,13 +120,11 @@ export class WindowService {
     }
   
   private deleteWindow(index : number|string,other:any) {
-    if (typeof index === 'number') {
+    if (typeof index !== 'number') {
       index = other.findWindowByCfg(other.wincfg.get(index as unknown as string));
     }
     console.log('deleteWindow',index,other.windowsconfigurations);
     var maxindex = other.windowsconfigurations.length-1;
-    var cwin = other.windowsconfigurations[index];
-    cwin.visible = false;
     var zoffset;
     for(var i : number = (index as number); i < maxindex; i++) {
       var dwin = other.windowsconfigurations[i+1];

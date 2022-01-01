@@ -29,7 +29,7 @@ if (typeof scfg.myLogDB !== 'undefined') {
 
 const logger = require('./ngxlogger/ngxlogger');
 const express = require('express');
-const session = require('express-session');
+const session = require('cookie-session');
 const app = express();
 const path = require('path');
 const bodyParser = require('body-parser');
@@ -123,7 +123,16 @@ io.of(scfg.mySocket).on('connection', (socket) => { // nsp /mysocket.io/ instead
     const real_ip = socket.handshake.headers['x-forwarded-for'] || address;
     //console.log('S01-socket:'+socket.id+' user connected: ',real_ip);
     logger.addAndShowLog('SRV:'+real_ip,"LOG",'S01-socket user connected',[socket.id]);
-
+    if (typeof Socket2Mud === 'undefined' || typeof Socket2Mud[socket.id] === 'undefined') {
+        socket.emit('connecting',socket.id,real_ip,UNIQUE_SERVER_ID,function(action,oMudOb) {
+            logger.addAndShowLog('SRV:'+real_ip,"INFO",'S02-connecting:',[action,oMudOb]);
+        });
+    } else {
+        socket.emit('disconnecting',socket.id,real_ip,UNIQUE_SERVER_ID,function(action) {
+            logger.addAndShowLog('SRV:'+real_ip,"INFO",'S02-disconnecting:',[action]);
+        });
+    }
+    
     socket.on('disconnect', function () {
         // TODO disconnect all mudclients...
         logger.addAndShowLog('SRV:'+real_ip,"INFO",'S01-socket user disconnected',[socket.id]);
@@ -179,9 +188,9 @@ io.of(scfg.mySocket).on('connection', (socket) => { // nsp /mysocket.io/ instead
             text: msgOb.text,
             date: timeStamp
         };
-        if (cfg.other.storage.active) {
-            dbsocket.emit('chat-message', chatOB);
-        }
+        // if (cfg.other.storage.active) {
+        //     dbsocket.emit('chat-message', chatOB);
+        // }
         socket.emit('chat-message', chatOB);
     });
 
@@ -273,9 +282,10 @@ io.of(scfg.mySocket).on('connection', (socket) => { // nsp /mysocket.io/ instead
         mudSocket.writeSub(31 /*TELOPT_NAWS*/, buf);
     });
 
-    socket.on('mud-disconnect', id => {
+    socket.on('mud-disconnect', (id,cb) => {
         if (typeof id !== 'string' || typeof MudConnections[id] === 'undefined') {
             logger.addAndShowLog('SRV:'+real_ip,"ERROR",'mud-disconnect MudConn undefined',[id]);
+            cb('error',id);
             return;
         }
         const mudConn = MudConnections[id];
@@ -289,6 +299,7 @@ io.of(scfg.mySocket).on('connection', (socket) => { // nsp /mysocket.io/ instead
         logger.addAndShowLog('SRV:'+real_ip,"INFO",'mud-disconnected',[socket.id,mudOb]);
         socket.emit("mud-disconnected",id);
         delete MudConnections[id];
+        cb(undefined,id);
     });
     socket.on('mud-input', (id,inpline) => {
         if (typeof id !== 'string' || typeof MudConnections[id] === 'undefined') {
@@ -363,10 +374,10 @@ function myCleanup() {
             if (!MudConnections.hasOwnProperty(key)) continue;
             // get object.
             var obj = MudConnections[key];
-            // disconnect gracefully.
-            obj.socket.end();
             // message to all frontends...
             io.emit("mud-disconnected",key);
+            // disconnect gracefully.
+            obj.socket.end();
         }
     }
     console.log("Cleanup ends.");

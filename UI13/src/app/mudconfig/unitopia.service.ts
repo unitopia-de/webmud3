@@ -39,7 +39,7 @@ export class UnitopiaService {
   }
 
   public menuAction(action :string,gcfg:GmcpConfig,gmen:GmcpMenu,index:number,_cb) {
-    console.trace('UnitopiaService-menuAction',action,gcfg,gmen,index);
+    console.debug('UnitopiaService-menuAction',action,gcfg,gmen,index);
     switch(action) {
       case 'ToggleSound':
         this.toggleSound(gcfg,gmen,_cb);

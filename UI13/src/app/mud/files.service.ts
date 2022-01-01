@@ -18,13 +18,13 @@ export class FilesService {
   processFileInfo( fileinfo : FileInfo) : FileInfo {
     const url = fileinfo.lasturl;
     const filepath = fileinfo.file;
-    console.trace('FilesService-processFileInfo-start',fileinfo);
+    console.debug('FilesService-processFileInfo-start',fileinfo);
     if (this.filemap.hasOwnProperty(filepath)&& fileinfo.saveActive) {
       var cfileinfo : FileInfo = this.filemap[filepath];
       cfileinfo.save02_url(url);
       cfileinfo.alreadyLoaded = true;
       cfileinfo.saveActive = true;
-      console.trace('FilesService-processFileInfo-alreadyLoaded',cfileinfo);
+      console.debug('FilesService-processFileInfo-alreadyLoaded',cfileinfo);
       return cfileinfo;
     } else {
       fileinfo.saveActive = false;

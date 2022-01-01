@@ -165,9 +165,9 @@ export class MudclientComponent implements AfterViewChecked,OnInit,OnDestroy {
                                    +((ts.getHours() < 10)?"0":"") + ts.getHours() +":"
                                    + ((ts.getMinutes() < 10)?"0":"") + ts.getMinutes() +":"
                                    + ((ts.getSeconds() < 10)?"0":"") + ts.getSeconds();
-      //console.trace('mudclient-sendMessage-ansiCurrent-before',this.mudc_id,other.ansiCurrent);
+      //console.debug('mudclient-sendMessage-ansiCurrent-before',this.mudc_id,other.ansiCurrent);
       const a2harr = other.ansiService.processAnsi(other.ansiCurrent);
-      //console.trace('mudclient-sendMessage-s2harr after',this.mudc_id,a2harr);
+      //console.debug('mudclient-sendMessage-s2harr after',this.mudc_id,a2harr);
       for (var ix=0;ix<a2harr.length;ix++) {
         if (a2harr[ix].text!=''||typeof a2harr[ix].mudEcho !=='undefined') {
           other.mudlines = other.mudlines.concat(a2harr[ix]);
@@ -254,6 +254,7 @@ export class MudclientComponent implements AfterViewChecked,OnInit,OnDestroy {
   }
 
   private connect() {
+    console.log("S05-mudclient-connecting-1",this.mudName);
     if (this.mudName.toLowerCase() == 'disconnect') {
       if (this.mudc_id) {
         console.info('mudclient-connect',this.mudc_id);
@@ -274,7 +275,9 @@ export class MudclientComponent implements AfterViewChecked,OnInit,OnDestroy {
       mudOb['token'] = this.cfg.autoToken;
       mudOb['password'] = this.cfg.autoPw || '';
     }
+    console.log("S05-mudclient-connecting-2",mudOb);
     this.obs_connect = this.socketService.mudConnect(mudOb).subscribe(_id => {
+      console.log("S05-mudclient-connecting-3",_id);
       if (_id == null) {
         other.v.connected = false;
         other.mudc_id = undefined;
@@ -284,6 +287,7 @@ export class MudclientComponent implements AfterViewChecked,OnInit,OnDestroy {
       other.mudc_id = _id;
       other.obs_connected = other.socketService.mudConnectStatus(_id).subscribe(
           flag => {other.v.connected = flag;
+          console.log("S05-mudclient-connecting-4",_id,flag);
         });
       other.obs_signals = other.socketService.mudReceiveSignals(_id).subscribe( 
           musi => { 
@@ -334,11 +338,11 @@ export class MudclientComponent implements AfterViewChecked,OnInit,OnDestroy {
   }
 
   focusFunction() {
-    console.log("get focus");
+    // console.log("get focus");
   }
 
   focusOutFunction() {
-    console.log("out focus");
+    // console.log("out focus");
   }
 
   ngAfterViewChecked(): void {
@@ -390,7 +394,7 @@ export class MudclientComponent implements AfterViewChecked,OnInit,OnDestroy {
     this.mudc_id = "one";
     
         const ncs = this.cookieService.get('mudcolors');
-        console.log("mudcolors '"+ncs+"'");
+        // console.log("mudcolors '"+ncs+"'");
         if (ncs != '') {
           this.cs = JSON.parse(ansiService.fromBinaryBase64(ncs));
         }

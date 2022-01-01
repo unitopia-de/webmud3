@@ -59,7 +59,7 @@ export class MudSignalHelpers {
     public static mudProecessSignals(other:any,musi:MudSignals,_id:string) {
         
         console.debug('mudclient-socketService.mudReceiveSignals',_id,musi.signal);
-        console.trace('mudclient-socketService.mudReceiveSignals',_id,musi);
+        // console.debug('mudclient-socketService.mudReceiveSignals',_id,musi);
         switch (musi.signal) {
           case 'NOECHO-START': other.v.inpType = 'password'; break;
           case 'NOECHO-END':   other.v.inpType = 'text'; break;
@@ -78,7 +78,7 @@ export class MudSignalHelpers {
           case 'Files.URL':
             let newfile = other.filesrv.processFileInfo(musi.fileinfo);
             if (newfile.alreadyLoaded) {
-              console.trace('Files.URL-alreadyLoaded',_id,newfile);
+              console.log('Files.URL-alreadyLoaded',_id,newfile);
             } else {
               newfile.save04_closing = function(windowsid) {
                 console.debug('Files.URL-save04_closing',_id,windowsid);
@@ -92,7 +92,7 @@ export class MudSignalHelpers {
                 console.debug('Files.URL-save06_success',_id,windowsid);
                 other.wincfg.SaveComplete(windowsid,newfile.closable);
               }
-              console.trace('Files.URL-firstLoad',_id,newfile);
+              console.log('Files.URL-firstLoad',_id,newfile);
               let filewincfg : WindowConfig = new WindowConfig();
               filewincfg.component = 'EditorComponent';
               filewincfg.data = newfile;
@@ -165,7 +165,7 @@ export class MudSignalHelpers {
     public static mudProcessData(other:any,_id:string,outline:string[]) {
         var outp = outline[0];
           var iecho = outline[1];
-          console.trace('mudclient-mudReceiveData',_id,outline);
+          // console.log('mudclient-mudReceiveData',_id,outline);
           if (typeof outp !== 'undefined') {
             const idx = outp.indexOf(other.ansiService.ESC_CLRSCR);
             if (idx >=0) {
@@ -187,9 +187,9 @@ export class MudSignalHelpers {
                                        +((ts.getHours() < 10)?"0":"") + ts.getHours() +":"
                                        + ((ts.getMinutes() < 10)?"0":"") + ts.getMinutes() +":"
                                        + ((ts.getSeconds() < 10)?"0":"") + ts.getSeconds();
-          console.trace('mudclient-mudReceiveData-ansiCurrent-before',_id,other.ansiCurrent);
+          // console.log('mudclient-mudReceiveData-ansiCurrent-before',_id,other.ansiCurrent);
           const a2harr = other.ansiService.processAnsi(other.ansiCurrent);
-          console.trace('mudclient-mudReceiveData-s2harr after',_id,a2harr);
+          // console.log('mudclient-mudReceiveData-s2harr after',_id,a2harr);
           for (var ix=0;ix<a2harr.length;ix++) {
             if (a2harr[ix].text!=''||typeof a2harr[ix].mudEcho !=='undefined') {
               other.mudlines = other.mudlines.concat(a2harr[ix]);

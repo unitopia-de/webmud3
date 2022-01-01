@@ -317,7 +317,7 @@ export class AnsiService {
       data.ansi = data.lastEscape + data.ansi;
       data.lastEscape = undefined;
     }
-    console.trace('AnsiService:processAnsi',data);
+    console.debug('AnsiService:processAnsi',data);
     while (data.ansiPos < data.ansi.length) { // <=???
       var code :number = data.ansi.charCodeAt(data.ansiPos); //  & 0xff;
       data.ansiPos += 1;

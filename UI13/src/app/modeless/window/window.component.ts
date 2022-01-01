@@ -17,7 +17,7 @@ export class WindowComponent implements OnInit {
     }
 
   doWindowAction(event:any,actionType:string){
-    console.log(actionType,event);
+    //console.log(actionType,event);
     switch(actionType){
       case 'resize_end':
         this.config.inComingEvents.next("resize:"+event.pageX+":"+event.pageY);
