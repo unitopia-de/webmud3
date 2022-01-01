@@ -1,7 +1,6 @@
 import { Injectable } from '@angular/core';
 import { Ansi256Colors } from './ansi256colors';
 import { AnsiData } from './ansi-data';
-import { LoggerService } from '../logger.service';
 
 @Injectable({
   providedIn: 'root'
@@ -16,7 +15,7 @@ export class AnsiService {
   public ESC_VALID = /^[0-9;A-Za-z]$/;
   public ESC_ENDCHAR = /^[A-Za-z]$/;
 
-  constructor(private logger:LoggerService) { }
+  constructor() { }
 
   private toHex2(val:number) {
     var result = val.toString(16);
@@ -135,7 +134,7 @@ export class AnsiService {
         stop = this.ESC_ENDCHAR.test(char);
       } while (data.ansiPos < data.ansi.length-1 && this.ESC_VALID.test(char) && !stop);
       if (!stop) {
-        this.logger.debug('AnsiService:ansiCode:','ESC['+escape);
+        console.debug('AnsiService:ansiCode:','ESC['+escape);
         data.lastEscape = String.fromCharCode(27)+'['+escape;
         data.ansiPos += 1;
         return data;
@@ -156,7 +155,7 @@ export class AnsiService {
         escape += char;
         stop = this.ESC_ENDCHAR.test(char);
       } while (this.ESC_VALID.test(char) && !stop);
-      this.logger.error('AnsiService:ansiCode missing-ESC:','ESC['+escape);
+      console.error('AnsiService:ansiCode missing-ESC:','ESC['+escape);
       data.ansiPos += 1;
       return data; // hide unknown escapes...
     }
@@ -172,7 +171,7 @@ export class AnsiService {
       case 's': // Save position
       case 'u': // Restore position
       default:
-        this.logger.error('AnsiService:ansiCode unsupported-ESC:','ESC['+escape);
+        console.error('AnsiService:ansiCode unsupported-ESC:','ESC['+escape);
         break; // no action?
       case 'r': //  scroll screen
         break; // no action!
@@ -231,7 +230,7 @@ export class AnsiService {
                     i += 4;
                     break;
                   } else {
-                    this.logger.error('AnsiService:ansiCode unknown fgcolor-ESC:','ESC['+escape);
+                    console.error('AnsiService:ansiCode unknown fgcolor-ESC:','ESC['+escape);
                     break;
                   }
                 case '39': data.fgcolor = 'white';break;
@@ -254,7 +253,7 @@ export class AnsiService {
                     i += 4;
                     break;
                   } else {
-                    this.logger.error('AnsiService:ansiCode unknown bgcolor-ESC:','ESC['+escape);
+                    console.error('AnsiService:ansiCode unknown bgcolor-ESC:','ESC['+escape);
                     break;
                   }
                 case '49': data.bgcolor = 'black';break;
@@ -275,7 +274,7 @@ export class AnsiService {
                 case '106': setcolor256bg = '06'; break;
                 case '107': setcolor256bg = '07'; break;
                 default:
-                    this.logger.error('AnsiService:ansiCode unknown attribute/color-ESC:','ESC['+escape);
+                    console.error('AnsiService:ansiCode unknown attribute/color-ESC:','ESC['+escape);
                     break;
             }
             if (setcolor256fg!='') {
@@ -314,11 +313,11 @@ export class AnsiService {
       return result;
     }
     if (typeof data.lastEscape !== 'undefined') {
-      this.logger.info('AnsiService:processAnsi esc-pad',data.lastEscape,data.ansi.substr(0,30));
+      console.info('AnsiService:processAnsi esc-pad',data.lastEscape,data.ansi.substr(0,30));
       data.ansi = data.lastEscape + data.ansi;
       data.lastEscape = undefined;
     }
-    this.logger.trace('AnsiService:processAnsi',data);
+    console.trace('AnsiService:processAnsi',data);
     while (data.ansiPos < data.ansi.length) { // <=???
       var code :number = data.ansi.charCodeAt(data.ansiPos); //  & 0xff;
       data.ansiPos += 1;

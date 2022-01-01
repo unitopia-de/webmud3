@@ -2,10 +2,8 @@ import { EventEmitter, Inject, Injectable } from '@angular/core';
 import { Title } from '@angular/platform-browser';
 import { CookieService } from 'ngx-cookie-service';
 import { UUID } from 'angular2-uuid';
-import { LoggerService } from '../logger.service';
 import { WindowConfig } from './window-config';
 import { WINDOW } from './WINDOW_PROVIDERS';
-import { Logger, LoggerLevel } from '../logger';
 import {MessageService} from 'primeng/api';
 
 @Injectable({
@@ -17,10 +15,9 @@ export class WindowService {
   private wincfg : Map<string,WindowConfig> = new Map<string,WindowConfig>();
   // private cmdQueue = new EventEmitter<string>();
   private last_zindex = 100;
-  private logger : Logger;
 
   public closeAllWindows() {
-    this.logger.debug('WindowsService-closeAllWindows');
+    console.debug('WindowsService-closeAllWindows');
     this.windowsconfigurations = [];
     this.wincfg.clear();
     this.last_zindex = 100;
@@ -55,13 +52,14 @@ export class WindowService {
       cfg.windowid = UUID.UUID();
       cfg.zIndex = ++this.last_zindex;
       cfg.visible = true;
+      cfg.winService = this;
       this.windowsconfigurations.push(cfg);
       this.wincfg.set(cfg.windowid,cfg);
       var other = this;
       cfg.outGoingEvents.subscribe(n => {
-        other.OnMenuAction(n,cfg.windowid);
+        other.OnMenuAction(n,cfg.windowid,other);
       })
-      this.logger.debug('newWindow',maxindex,cfg.windowid);
+      console.debug('newWindow',maxindex,cfg.windowid);
       return cfg.windowid;
     }
     private findWindowByCfg(cfg:WindowConfig):number {
@@ -90,26 +88,26 @@ export class WindowService {
       }
       cfg.dontCancel = false;
       cfg.visible = true;
-      // this.OnMenuAction(cfg.windowid+":updateDir");
+      // this.OnMenuAction(cfg.windowid+":updateDir",this);
       cfg.inComingEvents.emit('updateDir');
-      this.logger.trace('findFilesWindow',cfg);
+      console.trace('findFilesWindow',cfg);
       return cfg;
     }
 
-    public OnMenuAction(event:string,winid:string) {
-      if (!this.wincfg.has(winid)) {
-        this.logger.error("OnMenuAction-error:",[event,winid,this.wincfg]);
+    public OnMenuAction(event:string,winid:string,other:any) {
+      if (!other.wincfg.has(winid)) {
+        console.error("OnMenuAction-error:",[event,winid,other.wincfg]);
         return;
       }
-      this.logger.log("OnMenuAction:",[event,winid]);
-      const cfg :WindowConfig = this.wincfg.get(winid);
+      console.log("OnMenuAction:",[event,winid]);
+      const cfg :WindowConfig = other.wincfg.get(winid);
       const exp :string[]= event.split(":");
       switch (exp[0]) {
         case "do_focus":
-          this.focus(exp[1]);
+          other.focus(exp[1]);
           return;
         case "do_hide":
-          this.deleteWindow(winid);
+          other.deleteWindow(winid,other);
         case "saved":
           if (exp[1]=="false") break; // dont close!
           cfg.visible = false;
@@ -121,25 +119,26 @@ export class WindowService {
       cfg.inComingEvents.emit(event);
     }
   
-  private deleteWindow(index : number|string) {
+  private deleteWindow(index : number|string,other:any) {
     if (typeof index === 'number') {
-      index = this.findWindowByCfg(this.wincfg.get(index as unknown as string));
+      index = other.findWindowByCfg(other.wincfg.get(index as unknown as string));
     }
-    var maxindex = this.windowsconfigurations.length-1;
-    var cwin = this.windowsconfigurations[index];
+    console.log('deleteWindow',index,other.windowsconfigurations);
+    var maxindex = other.windowsconfigurations.length-1;
+    var cwin = other.windowsconfigurations[index];
     cwin.visible = false;
     var zoffset;
     for(var i : number = (index as number); i < maxindex; i++) {
-      var dwin = this.windowsconfigurations[i+1];
+      var dwin = other.windowsconfigurations[i+1];
       zoffset = (dwin.initalLock) ? 1000 : 100;
       dwin.zIndex = zoffset + i;
-      this.windowsconfigurations[i] = dwin;
+      other.windowsconfigurations[i] = dwin;
     }
-    this.wincfg.clear();
-    this.windowsconfigurations.pop();
-    for (var j = 0;j < this.windowsconfigurations.length;j++) {
-      var id = this.windowsconfigurations[j].windowid;
-      this.wincfg.set(id,this.windowsconfigurations[j]);
+    other.wincfg.clear();
+    other.windowsconfigurations.pop();
+    for (var j = 0;j < other.windowsconfigurations.length;j++) {
+      var id = other.windowsconfigurations[j].windowid;
+      other.wincfg.set(id,other.windowsconfigurations[j]);
     }
   } 
     setWindowsSize(innerHeight: number, innerWidth: number): any {
@@ -155,25 +154,25 @@ export class WindowService {
  * @memberof WindowsService
  */
 public Cancelled(winid:string) {
-  this.logger.debug('Cancelled:',winid);
-  this.OnMenuAction("cancelled:",winid);
+  console.debug('Cancelled:',winid);
+  this.OnMenuAction("cancelled:",winid,this);
 }
 public CancelSave(winid:string,reason:string) {
-  this.logger.debug('CancelSave:',winid,reason);
-  this.OnMenuAction("CancelSave:"+reason,winid);
+  console.debug('CancelSave:',winid,reason);
+  this.OnMenuAction("CancelSave:"+reason,winid,this);
 }
 public SavedAndClose(winid:string) {
-  this.logger.debug('SavedAndClose:',winid);
-  this.OnMenuAction("savedAndClose",winid);
+  console.debug('SavedAndClose:',winid);
+  this.OnMenuAction("savedAndClose",winid,this);
 }
 public WinError(winid:string,reason:any) {
   this.messageService.add({severity:'error', summary:'Speichern fehlgeschlagen'});
-  this.logger.debug('WinError:',winid,reason.message);
-  this.OnMenuAction("WinError",winid);
+  console.debug('WinError:',winid,reason.message);
+  this.OnMenuAction("WinError",winid,this);
 }
   public SaveComplete(winid:string,closable:boolean) {
-    this.logger.debug('SaveComplete:',winid);
-    this.OnMenuAction("saved:"+closable,winid);
+    console.debug('SaveComplete:',winid);
+    this.OnMenuAction("saved:"+closable,winid,this);
   }
   /**
  * view port height
@@ -197,7 +196,7 @@ getViewPortWidth():number {
 
 private focus(winid:string) {
   const cfg :WindowConfig = this.wincfg.get(winid);
-  this.logger.warn("focus-1",this.windowsconfigurations);
+  console.warn("focus-1",this.windowsconfigurations);
   const index = this.findWindowByCfg(cfg);
   var maxindex = this.windowsconfigurations.length-1;
   var cwin = this.windowsconfigurations[index];
@@ -209,17 +208,16 @@ private focus(winid:string) {
   }
   cwin.zIndex = zoffset + maxindex;
   this.windowsconfigurations[maxindex] = cwin;
-  this.logger.warn("focus-2",this.windowsconfigurations);
+  console.warn("focus-2",this.windowsconfigurations);
 }
 
 
   constructor(
     @Inject(WINDOW) private window:Window,
     private cookieService : CookieService,
-    private loggerSrv : LoggerService,
     private titleService:Title,
     private messageService:MessageService
     ) {
-      this.logger = this.loggerSrv.addLogger("WindowService",LoggerLevel.ALL);
+      
      }
 }

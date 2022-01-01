@@ -58,8 +58,8 @@ export class FileInfo {
 export class MudSignalHelpers {
     public static mudProecessSignals(other:any,musi:MudSignals,_id:string) {
         
-        other.logger.debug('mudclient-socketService.mudReceiveSignals',_id,musi.signal);
-        other.logger.trace('mudclient-socketService.mudReceiveSignals',_id,musi);
+        console.debug('mudclient-socketService.mudReceiveSignals',_id,musi.signal);
+        console.trace('mudclient-socketService.mudReceiveSignals',_id,musi);
         switch (musi.signal) {
           case 'NOECHO-START': other.v.inpType = 'password'; break;
           case 'NOECHO-END':   other.v.inpType = 'text'; break;
@@ -78,21 +78,21 @@ export class MudSignalHelpers {
           case 'Files.URL':
             let newfile = other.filesrv.processFileInfo(musi.fileinfo);
             if (newfile.alreadyLoaded) {
-              other.logger.trace('Files.URL-alreadyLoaded',_id,newfile);
+              console.trace('Files.URL-alreadyLoaded',_id,newfile);
             } else {
               newfile.save04_closing = function(windowsid) {
-                other.logger.debug('Files.URL-save04_closing',_id,windowsid);
+                console.debug('Files.URL-save04_closing',_id,windowsid);
                 other.wincfg.SavedAndClose(windowsid);
               }
               newfile.save05_error = function(windowsid,error) {
-                other.logger.error('Files.URL-save05_error',_id,windowsid,error);
+                console.error('Files.URL-save05_error',_id,windowsid,error);
                 other.wincfg.WinError(windowsid,error);
               }
               newfile.save06_success = function(windowsid) {
-                other.logger.debug('Files.URL-save06_success',_id,windowsid);
+                console.debug('Files.URL-save06_success',_id,windowsid);
                 other.wincfg.SaveComplete(windowsid,newfile.closable);
               }
-              other.logger.trace('Files.URL-firstLoad',_id,newfile);
+              console.trace('Files.URL-firstLoad',_id,newfile);
               let filewincfg : WindowConfig = new WindowConfig();
               filewincfg.component = 'EditorComponent';
               filewincfg.data = newfile;
@@ -131,7 +131,7 @@ export class MudSignalHelpers {
               other.filesWindow = newcfg;
               if (nooldcfg) {
                 other.filesWindow.outGoingEvents.subscribe((x:string) => {
-                  other.logger.debug('Files.Dir-outGoingEvents',_id,x);
+                  console.debug('Files.Dir-outGoingEvents',_id,x);
                   let xsplit = x.split(':');
                   switch(xsplit[0]) {
                     case 'FileOpen':
@@ -147,9 +147,9 @@ export class MudSignalHelpers {
                       break;
                   }
                 }, err => {;
-                  other.logger.error('Files.Dir-outGoingEvents-Error',_id,err);
+                  console.error('Files.Dir-outGoingEvents-Error',_id,err);
                 }, () => {
-                  other.logger.debug('Files.Dir-outGoingEvents-complete',_id);
+                  console.debug('Files.Dir-outGoingEvents-complete',_id);
                 });
               }
             return;
@@ -158,14 +158,14 @@ export class MudSignalHelpers {
             return;
           case 'Core.GoodBye': 
           default: 
-            other.logger.info('mudclient-socketService.mudReceiveSignals UNKNOWN',_id,musi.signal);
+            console.info('mudclient-socketService.mudReceiveSignals UNKNOWN',_id,musi.signal);
             return;
         }
     }
     public static mudProcessData(other:any,_id:string,outline:string[]) {
         var outp = outline[0];
           var iecho = outline[1];
-          other.logger.trace('mudclient-mudReceiveData',_id,outline);
+          console.trace('mudclient-mudReceiveData',_id,outline);
           if (typeof outp !== 'undefined') {
             const idx = outp.indexOf(other.ansiService.ESC_CLRSCR);
             if (idx >=0) {
@@ -187,9 +187,9 @@ export class MudSignalHelpers {
                                        +((ts.getHours() < 10)?"0":"") + ts.getHours() +":"
                                        + ((ts.getMinutes() < 10)?"0":"") + ts.getMinutes() +":"
                                        + ((ts.getSeconds() < 10)?"0":"") + ts.getSeconds();
-          other.logger.trace('mudclient-mudReceiveData-ansiCurrent-before',_id,other.ansiCurrent);
+          console.trace('mudclient-mudReceiveData-ansiCurrent-before',_id,other.ansiCurrent);
           const a2harr = other.ansiService.processAnsi(other.ansiCurrent);
-          other.logger.trace('mudclient-mudReceiveData-s2harr after',_id,a2harr);
+          console.trace('mudclient-mudReceiveData-s2harr after',_id,a2harr);
           for (var ix=0;ix<a2harr.length;ix++) {
             if (a2harr[ix].text!=''||typeof a2harr[ix].mudEcho !=='undefined') {
               other.mudlines = other.mudlines.concat(a2harr[ix]);

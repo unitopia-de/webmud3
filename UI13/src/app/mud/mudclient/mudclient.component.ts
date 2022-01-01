@@ -2,7 +2,6 @@ import { AfterViewChecked, ChangeDetectorRef, Component, ElementRef, Inject, Inp
 import {DialogService} from 'primeng/dynamicdialog';
 import { AnsiData } from '../ansi-data';
 import { WINDOW } from '../../shared/WINDOW_PROVIDERS';
-import { LoggerService } from 'src/app/logger.service';
 import { AnsiService } from '../ansi.service';
 import { ColorSettings } from '../color-settings';
 import { ColorSettingsComponent } from 'src/app/settings/color-settings/color-settings.component';
@@ -68,11 +67,11 @@ export class MudclientComponent implements AfterViewChecked,OnInit,OnDestroy {
   public messages : MudMessage[] = [];
   public filesWindow: WindowConfig;
 
-  private obs_connect;
-  private obs_connected;
-  private obs_data;
-  private obs_debug;
-  private obs_signals;
+  private obs_connect:any;
+  private obs_connected:any;
+  private obs_data:any;
+  private obs_debug:any;
+  private obs_signals:any;
 
   scroll() {
     this.mudBlock.nativeElement.scrollTo(this.scroller.nativeElement.scrollLeft,0);
@@ -166,9 +165,9 @@ export class MudclientComponent implements AfterViewChecked,OnInit,OnDestroy {
                                    +((ts.getHours() < 10)?"0":"") + ts.getHours() +":"
                                    + ((ts.getMinutes() < 10)?"0":"") + ts.getMinutes() +":"
                                    + ((ts.getSeconds() < 10)?"0":"") + ts.getSeconds();
-      //other.logger.trace('mudclient-sendMessage-ansiCurrent-before',this.mudc_id,other.ansiCurrent);
+      //console.trace('mudclient-sendMessage-ansiCurrent-before',this.mudc_id,other.ansiCurrent);
       const a2harr = other.ansiService.processAnsi(other.ansiCurrent);
-      //other.logger.trace('mudclient-sendMessage-s2harr after',this.mudc_id,a2harr);
+      //console.trace('mudclient-sendMessage-s2harr after',this.mudc_id,a2harr);
       for (var ix=0;ix<a2harr.length;ix++) {
         if (a2harr[ix].text!=''||typeof a2harr[ix].mudEcho !=='undefined') {
           other.mudlines = other.mudlines.concat(a2harr[ix]);
@@ -257,7 +256,7 @@ export class MudclientComponent implements AfterViewChecked,OnInit,OnDestroy {
   private connect() {
     if (this.mudName.toLowerCase() == 'disconnect') {
       if (this.mudc_id) {
-        this.logger.info('mudclient-connect',this.mudc_id);
+        console.info('mudclient-connect',this.mudc_id);
         if (this.obs_debug) this.obs_debug.unsubscribe();
         if (this.obs_data) this.obs_data.unsubscribe();
         if (this.obs_signals) this.obs_signals.unsubscribe();
@@ -279,7 +278,7 @@ export class MudclientComponent implements AfterViewChecked,OnInit,OnDestroy {
       if (_id == null) {
         other.v.connected = false;
         other.mudc_id = undefined;
-        other.logger.error('mudclient-socketService.mudConnect-failed',_id);
+        console.error('mudclient-socketService.mudConnect-failed',_id);
         return;
       }
       other.mudc_id = _id;
@@ -323,7 +322,7 @@ export class MudclientComponent implements AfterViewChecked,OnInit,OnDestroy {
     });
     if (this.d.mudc_height != Math.floor(tmpheight/this.d.ref_height_ratio)) {
       this.d.mudc_height = Math.floor(tmpheight/(this.d.ref_height_ratio+1));
-      this.logger.debug('MudSize ',''+this.d.mudc_width+'x'+this.d.mudc_height+' <= '+ow+'x'+tmpheight);
+      console.debug('MudSize ',''+this.d.mudc_width+'x'+this.d.mudc_height+' <= '+ow+'x'+tmpheight);
       this.d.startCnt++;
       if (this.d.startCnt == 1 && typeof this.mudc_id === 'undefined' && this.cfg.autoConnect) {
         this.connect();
@@ -335,11 +334,11 @@ export class MudclientComponent implements AfterViewChecked,OnInit,OnDestroy {
   }
 
   focusFunction() {
-    this.logger.log("get focus");
+    console.log("get focus");
   }
 
   focusOutFunction() {
-    this.logger.log("out focus");
+    console.log("out focus");
   }
 
   ngAfterViewChecked(): void {
@@ -382,7 +381,6 @@ export class MudclientComponent implements AfterViewChecked,OnInit,OnDestroy {
     private socketService: SocketService,
     public filesrv: FilesService,
     public wincfg:WindowService,
-    private logger:LoggerService,
     private srvcfgService:ServerConfigService,
     private titleService:Title,
     private cookieService: CookieService

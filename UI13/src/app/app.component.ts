@@ -1,5 +1,4 @@
 import { Component, HostListener } from '@angular/core';
-import { LoggerService } from './logger.service';
 import { WindowService } from './shared/window.service';
 
 @Component({
@@ -9,13 +8,13 @@ import { WindowService } from './shared/window.service';
 })
 export class AppComponent {
 
-  constructor(public wincfg : WindowService,private logger:LoggerService) {
+  constructor(public wincfg : WindowService) {
     this.onResize();
   }
 
-  OnMenuAction(event:string,winid:string) {
-    this.logger.debug('appComponent-OnMenuAction',event,winid);
-    this.wincfg.OnMenuAction(event,winid);
+  OnMenuAction(event:string,winid:string,other:any) {
+    console.debug('appComponent-OnMenuAction',event,winid);
+    this.wincfg.OnMenuAction(event,winid,other);
   }
 
   @HostListener('window:resize', ['$event'])

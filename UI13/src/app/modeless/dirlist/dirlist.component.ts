@@ -1,6 +1,4 @@
 import { Component, Input, OnInit } from '@angular/core';
-import { Logger, LoggerLevel } from 'src/app/logger';
-import { LoggerService } from 'src/app/logger.service';
 import { FileEntries, MudSignals } from 'src/app/mud/mud-signals';
 import { WindowConfig } from 'src/app/shared/window-config';
 import { WindowService } from 'src/app/shared/window.service';
@@ -14,7 +12,7 @@ export class DirlistComponent implements OnInit {
 
   @Input() set config(cfg:WindowConfig) {
     this._config = cfg;
-    this.logger.log("config:",cfg);
+    console.log("config:",cfg);
     this.updateDirList();
   } get config():WindowConfig {return this._config};
   private _config:WindowConfig;
@@ -22,13 +20,10 @@ export class DirlistComponent implements OnInit {
   public path : string = '';
   public entries : FileEntries[] = [];
   private musi : MudSignals;
-  private logger : Logger;
 
   constructor(
-    private winsrv:WindowService,
-    private loggerSrv:LoggerService
+    private winsrv:WindowService
   ) { 
-    this.logger = loggerSrv.addLogger("DirlistComponent",LoggerLevel.ALL);
   }
 
   updateDirList() {
@@ -40,7 +35,7 @@ export class DirlistComponent implements OnInit {
      }
     this.path = this.musi.filepath;
     this.entries = this.musi.entries;
-    this.logger.debug('DirlistComponent-updateDirList',this.path);
+    console.debug('DirlistComponent-updateDirList',this.path);
    }
    fileOpen(file:string) {
     this.config.outGoingEvents.next("FileOpen:"+this.path+":"+file);
@@ -49,12 +44,12 @@ export class DirlistComponent implements OnInit {
     this.config.outGoingEvents.next("ChangeDir:"+this.path+":"+dir);
   }
   ngOnInit(): void {
-    this.logger.debug("inComingEvents-DirList");
+    console.debug("inComingEvents-DirList");
     this.config.inComingEvents.subscribe((event:string)=>{
       this.updateDirList();
-      this.logger.log("inComingEvents-DirList",event);
+      console.log("inComingEvents-DirList",event);
     },(error)=>{
-      this.logger.error('incomingEvents-DirList',error);
+      console.error('incomingEvents-DirList',error);
     },() => {
       this.config.visible = false;
     })

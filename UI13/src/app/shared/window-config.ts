@@ -16,6 +16,7 @@ export class WindowConfig {
     posx : number = 0;
     posy : number = 0;
     data?: any = undefined;
+    winService: any = undefined;
     outGoingEvents : EventEmitter<string> = new EventEmitter<string>();
     inComingEvents : EventEmitter<string> = new EventEmitter<string>();
 }

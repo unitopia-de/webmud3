@@ -3,8 +3,6 @@ import { Router } from '@angular/router';
 import { Observable } from 'rxjs';
 import { io } from "socket.io-client";
 import { GmcpService } from '../gmcp/gmcp.service';
-import { Logger, LoggerLevel } from '../logger';
-import { LoggerService } from '../logger.service';
 import { MudListItem } from '../mud/mud-list-item';
 import { FileInfo, MudSignals } from '../mud/mud-signals';
 import { ServerConfigService } from './server-config.service';
@@ -17,7 +15,6 @@ export class SocketService {
   private socket = undefined;
   private mudConnections = {};
   public mudnames : MudListItem[] = [];
-  private logger:Logger;
   private socketEvents : EventEmitter<string[]> = new EventEmitter<string[]>();
   
   private getSocketID() : string {
@@ -25,50 +22,47 @@ export class SocketService {
   }
   
   constructor(
-    private loggerSrv:LoggerService,
     private router: Router,
     private srvcfg:ServerConfigService,
     private gmcpsrv: GmcpService) { 
-      this.logger = this.loggerSrv.addLogger("SockerService",LoggerLevel.ALL);
       if (this.socket === undefined) {
         this.socketConnect();
-        this.logger.info('S00: socket connected:',this.getSocketID());
+        console.info('S00: socket connected:',this.getSocketID());
       }
     }
   // Internal Socket-Connect:
   private socketConnect() {
     var other = this;
-    var logger = this.logger.addLogger("Connect",LoggerLevel.ALL);
     var url = this.srvcfg.getBackend();
     var nsp = this.srvcfg.getSocketNamespace();
-    logger.log('S01 socket-url/nsp: ',url,nsp);
+    console.log('S01 socket-url/nsp: ',url,nsp);
     other.socket = io(url, {'path':nsp,'transports': ['websocket']});
     other.socket.emit('keep-alive','1',function(level){
-      logger.log("S02 keep alive 1");
+      console.log("S02 keep alive 1");
     });
 
     other.socket.on('error', function(error) {
-    logger.error('S01 socket:'+other.getSocketID()+' error:'+error);
+    console.error('S01 socket:'+other.getSocketID()+' error:'+error);
   });
   other.socket.on('disconnecting', function(reason) {
-    logger.info('S01 socket:'+other.getSocketID()+' disconnecting:'+reason);
+    console.info('S01 socket:'+other.getSocketID()+' disconnecting:'+reason);
   });
   other.socket.on('reconnect_attempt', (attemptNumber) => {
       if (typeof other.socket === 'undefined') {
-        logger.fatal('S01 undefined socket reconnect');
+        console.error('S01 undefined socket reconnect');
         return;
       }
-      logger.log('S01 socket:reconnect_attempt:'+attemptNumber+' '+other.getSocketID());
+      console.log('S01 socket:reconnect_attempt:'+attemptNumber+' '+other.getSocketID());
       if (attemptNumber == 1) {
         other.send2AllMuds('Verbindungsunterbrechung','disconnect');
-        logger.warn("S01 socket:reconnect: ",other.getSocketID());
+        console.warn("S01 socket:reconnect: ",other.getSocketID());
       }
       return;
     });
   other.socket.emit('keep-alive','2',function(level){
-    logger.log("S02 keep alive 2");
+    console.log("S02 keep alive 2");
   });
-  logger.log("S01 socket:",other.getSocketID());
+  console.log("S01 socket:",other.getSocketID());
   }
 
   private send2AllMuds(msg : string,action:string) {
@@ -94,11 +88,11 @@ export class SocketService {
    */
   public mudList() : Observable<MudListItem[]> {
     let other = this;
-    var logger = this.logger.addLogger("mudList",LoggerLevel.OFF);
+    
     let observable = new Observable<MudListItem[]>(observer => {
       if (other.socket === undefined) {
         other.socketConnect(); 
-        logger.info('socket connected');
+        console.info('socket connected');
       }
       other.socket.emit('mud-list', true, function(data){
         other.mudnames = [];
@@ -117,10 +111,10 @@ export class SocketService {
           other.mudnames.push(item);
       });
         observer.next(other.mudnames);
-        logger.trace('chattmudList: ',other.mudnames);
+        console.trace('chattmudList: ',other.mudnames);
       });
       return () => {
-        logger.trace('mud-list observer-complete');
+        console.trace('mud-list observer-complete');
       }
     });
     return observable;
@@ -135,13 +129,12 @@ export class SocketService {
  */
 public mudConnect(mudOb : any) : Observable<string> {
   let other = this;
-  var logger = this.logger.addLogger("MudConnect",LoggerLevel.ALL);
   let observable = new Observable<string>(observer => {
     if (other.socket === undefined) {
       other.socketConnect();
-      logger.info('S02: socket connected: '+other.getSocketID());
+      console.info('S02: socket connected: '+other.getSocketID());
     } else {
-      logger.info('S02: socket reconnected: '+other.getSocketID());
+      console.info('S02: socket reconnected: '+other.getSocketID());
     }
     mudOb['browser'] = other.srvcfg.getBrowserInfo();
     mudOb['client'] =  other.srvcfg.getWebmudName();
@@ -171,44 +164,44 @@ public mudConnect(mudOb : any) : Observable<string> {
             height: mudOb.height
           }  
         }
-        logger.info('S02: mud-connect: '+data.id+' socket: '+data.socketID);
-        logger.trace('S02: mud-connect: ',data,'mudconn',other.mudConnections[data.id]);
+        console.info('S02: mud-connect: '+data.id+' socket: '+data.socketID);
+        console.trace('S02: mud-connect: ',data,'mudconn',other.mudConnections[data.id]);
         observer.next(data.id);
       } else {
-        logger.fatal('S02: mud-connect-error: ',data);
+        console.error('S02: mud-connect-error: ',data);
         observer.next(null);
       }
     });
     other.socket.on('connected',function(id,real_ip,server_id,cb) {
       if (other.getSocketID() != id) {
-        logger.error('S02: connected-unknown-id:',id);
+        console.error('S02: connected-unknown-id:',id);
         cb('unknown-id',mudOb);
         return;
       }
-      logger.log("S02.serverID: ",[id,other.mudConnections]);
+      console.log("S02.serverID: ",[id,other.mudConnections]);
       if (!other.mudConnections.hasOwnProperty(id) ||
           other.mudConnections[id].serverID != server_id) {
         other.socket.emit("mud-disconnect",id);
         // other.mudConnections[id].connected = false;
-        logger.trace('S02: ServerID change: ',id,mudOb);
+        console.trace('S02: ServerID change: ',id,mudOb);
         other.router.navigate([other.router.url]); // reload screen
       }
-      logger.trace('S02: connected: ',id,mudOb);
+      console.trace('S02: connected: ',id,mudOb);
       cb('ok',mudOb);
       // observer.next(id);
     });
     other.socket.on('mud-disconnected', function(id) {
       if (typeof other.mudConnections[id] === 'undefined') {
-        logger.error('S02: mud-disconnected:',id);
+        console.error('S02: mud-disconnected:',id);
         observer.next(null);
         return;
       }
       other.mudConnections[id].connected = false;
-      logger.info('S02: mud-client disconnected-server');
+      console.info('S02: mud-client disconnected-server');
       observer.next(null);
     });
 
-    logger.info('S02: socket connecting-2');
+    console.info('S02: socket connecting-2');
     return () => {
         observer.next(null);
     }; // disconnect
@@ -225,11 +218,10 @@ public mudConnect(mudOb : any) : Observable<string> {
    * @memberof SocketService
    */
   public setMudOutputSize(_id : string,height:number,width : number) {
-    var logger = this.logger.addLogger("setMudOutputSize",LoggerLevel.ALL);
     if (this.socket === undefined) {
       return;
     }
-    logger.trace('S05: resize', _id,height,width);
+    console.trace('S05: resize', _id,height,width);
     this.socket.emit('mud-window-size',_id,height,width);
   }
   /**
@@ -241,24 +233,23 @@ public mudConnect(mudOb : any) : Observable<string> {
    */
   public mudDisconnect(_id : string) : Observable<string> {
     let other = this;
-    var logger = this.logger.addLogger("mudDisconnect",LoggerLevel.ALL);
     let observable = new Observable<string>(observer => {
       if (other.socket === undefined) {
-        logger.fatal('mudDisconnect without socket!');
+        console.error('mudDisconnect without socket!');
         return;
       }
-      logger.info('mudDisconnect starting!');
+      console.info('mudDisconnect starting!');
       other.socket.emit('mud.disconnect', _id);
       other.socket.on('mud-disconnected', function(id) {
         if (id !== _id) {
-          logger.trace('mud-disconnected unknown id.');
+          console.trace('mud-disconnected unknown id.');
           return;
         }
         other.mudConnections[id].connected = false;
-        logger.info('mud-client disconnected-client');
+        console.info('mud-client disconnected-client');
         observer.next(_id);
         return () => {
-          logger.info('mudDisconnect ending!');
+          console.info('mudDisconnect ending!');
         }; // disconnect
       });
     });
@@ -274,13 +265,12 @@ public mudConnect(mudOb : any) : Observable<string> {
  */
 public mudConnectStatus(_id:string) : Observable<boolean> {
   let other = this;
-  var logger = this.logger.addLogger("mudConnectStatus",LoggerLevel.ALL);
   let observable = new Observable<boolean>(observer => {
     if (typeof other.mudConnections[_id] !== 'undefined') {
       observer.next(other.mudConnections[_id].connected);
-      logger.trace('mudConnectStatus',_id, other.mudConnections[_id].connected);
+      console.trace('mudConnectStatus',_id, other.mudConnections[_id].connected);
     } else {
-      logger.warn('mudConnectStatus-w/o mudConnection',_id);
+      console.warn('mudConnectStatus-w/o mudConnection',_id);
     }
   });
   return observable;
@@ -297,18 +287,17 @@ public mudConnectStatus(_id:string) : Observable<boolean> {
  * @memberof SocketService
  */
 public sendGMCP(id:string,mod:string,msg:string,data:any) {
-  var logger = this.logger.addLogger("sendGMCP",LoggerLevel.ALL);
   if (typeof this.mudConnections[id] === 'undefined') {
-    logger.warn('G01: failed[GMCP_Send_packet].mudconn='+id);
+    console.warn('G01: failed[GMCP_Send_packet].mudconn='+id);
     return;
   }
-  logger.debug('G01: GMCP-send:',id,mod,msg,data);
+  console.debug('G01: GMCP-send:',id,mod,msg,data);
   this.socket.emit('mud-gmcp-outgoing',id,mod,msg,data);
 }
 
 public sendPing(_id : string) {
   if (this.socket === undefined) {
-    this.logger.warn('G01: Ping without socket='+_id);
+    console.warn('G01: Ping without socket='+_id);
     return;
   }
   this.sendGMCP(_id,'Core','Ping','');
@@ -322,55 +311,54 @@ public sendPing(_id : string) {
  */
 public mudReceiveData(_id: string) : Observable<string[]> {
   let other = this;
-  var logger = this.logger.addLogger("mudReceiveData",LoggerLevel.OFF);
   let observable = new Observable<string[]>(observer => {
     if (other.socket === undefined) {
-      logger.fatal('S05: mudReceiveData without socket!');
+      console.error('S05: mudReceiveData without socket!');
       return;
     }
-    // logger.trace('S05: mudReceiveData starting!');
+    // console.trace('S05: mudReceiveData starting!');
     other.socket.on('mud-get-naws', function(id,cb) {
       if (typeof other.mudConnections[id] === 'undefined') {
-        logger.fatal('failed[mud-get-naws].mudconn='+id);
+        console.error('failed[mud-get-naws].mudconn='+id);
         cb(false);
         return;
       }
       if (_id !== id) {
         cb(false);
-        logger.info('mud-get-naws: unknown id',_id,id);
+        console.info('mud-get-naws: unknown id',_id,id);
         return;
       }
       let mySize = {
         height : other.mudConnections[id].height,
         width : other.mudConnections[id].width,
       }
-      logger.debug('mud-get-naws: ',_id,mySize);
+      console.debug('mud-get-naws: ',_id,mySize);
       cb(mySize);
     })
     other.socketEvents.subscribe(soeve => {
-      logger.debug('socketEvents',_id,soeve);
+      console.debug('socketEvents',_id,soeve);
       if (_id == soeve[0]) {
         observer.next(['\r\n('+soeve[1]+')\r\n',undefined]);
       }
     })
     other.socket.on('mud-disconnected', function(id) {
       if (_id !== id) {
-        logger.info('mud-disconnected: unknown id',_id,id);
+        console.info('mud-disconnected: unknown id',_id,id);
         return;
       }
-      logger.info('mud-disconnected: (Verbindung getrennt)',id);
+      console.info('mud-disconnected: (Verbindung getrennt)',id);
       observer.next(['\r\n(Verbindung getrennt)\r\n',undefined]);
     });
     other.socket.on('mud-output', function(id,buffer) {
       if (_id !== id) {
-        logger.info('mud-output: unknown id',_id,id);
+        console.info('mud-output: unknown id',_id,id);
         return;
       }
-      logger.trace('mud-output:',id,buffer);
+      console.trace('mud-output:',id,buffer);
       observer.next([buffer,undefined]);
     }); // mud-output
     return () => {
-      logger.info('S05: mudReceiveData ending!');
+      console.info('S05: mudReceiveData ending!');
     }; // mudReceiveData ending
   }); // observable
   return observable;
@@ -384,13 +372,12 @@ public mudReceiveData(_id: string) : Observable<string[]> {
 */
 public mudReceiveSignals(_id: string) : Observable<MudSignals> {
   let other = this;
-  var logger = this.logger.addLogger("mudReceiveSignals",LoggerLevel.ALL);
   let observable = new Observable<MudSignals>(observer => {
     if (other.socket === undefined) {
-      logger.fatal('mudReceiveSignals without socket!');
+      console.error('mudReceiveSignals without socket!');
       return;
     }
-    // logger.info('mudReceiveSignals starting!');
+    // console.info('mudReceiveSignals starting!');
     other.socket.on('mud-signal',function(sdata){
       if (sdata.id !== _id) {
         return;
@@ -399,16 +386,16 @@ public mudReceiveSignals(_id: string) : Observable<MudSignals> {
         signal : sdata.signal,
         id : sdata.id,
       }
-      logger.trace('mudReceiveSignals',musi);
+      console.trace('mudReceiveSignals',musi);
       observer.next(musi);
     })
     other.socket.on('mud-gmcp-start', function(id,gmcp_support){
       if (typeof other.mudConnections[id] === 'undefined') {
-        logger.fatal('failed[mud-gmcp-incoming].mudconn='+id);
+        console.error('failed[mud-gmcp-incoming].mudconn='+id);
         return;
       }
       if (_id !== id) {
-        logger.log('mud-gmcp-start Different Ids',_id,id);
+        console.log('mud-gmcp-start Different Ids',_id,id);
         return;
       }
       other.sendGMCP(_id,'Core','Hello',{
@@ -416,7 +403,7 @@ public mudReceiveSignals(_id: string) : Observable<MudSignals> {
         'version':other.srvcfg.getWebmudVersion()});
         other.sendGMCP(_id,'Core','BrowserInfo', {}); // Will be filled from backend, as we don't trust here...
       other.gmcpsrv.set_gmcp_support(id,gmcp_support,function (_id:string,mod:string,onoff:boolean) {
-        logger.trace('other.gmcpsrv.set_gmcp_support',_id,mod,onoff);
+        console.trace('other.gmcpsrv.set_gmcp_support',_id,mod,onoff);
         other.mudSwitchGmcpModule(_id,mod,onoff);
       });
       // other.sendGMCP(_id,'Core','Supports.Set',['Char 1','Char.Items 1','Comm 1','Playermap 1','Sound 1']);
@@ -429,16 +416,16 @@ public mudReceiveSignals(_id: string) : Observable<MudSignals> {
       }
     })
     other.socket.on('mud-gmcp-incoming',function(id,mod,msg,data){
-      logger.info("GMCP-incoming debug: ",mod,msg);
+      console.info("GMCP-incoming debug: ",mod,msg);
       if (typeof other.mudConnections[id] === 'undefined') {
-        logger.fatal('failed[mud-gmcp-incoming].mudconn='+id);
+        console.error('failed[mud-gmcp-incoming].mudconn='+id);
         return;
       }
       if (_id !== id) {
-        logger.log('mud-gmcp-incoming Different Ids',_id,id);
+        console.log('mud-gmcp-incoming Different Ids',_id,id);
         return;
       }
-      logger.info("GMCP-incoming trace: ",data);
+      console.info("GMCP-incoming trace: ",data);
       switch (mod.toLowerCase().trim()) {
         case 'core':
           switch (msg.toLowerCase().trim()) {
@@ -483,7 +470,7 @@ public mudReceiveSignals(_id: string) : Observable<MudSignals> {
                 id: data.name + '@' + other.mudConnections[_id]['gmcp-mudname'],
               }
             }
-            // logger.debug('GMCP-char-name-signal: ',titleSignal);
+            // console.debug('GMCP-char-name-signal: ',titleSignal);
             observer.next(titleSignal);
             return;
           case 'statusvars':
@@ -501,7 +488,7 @@ public mudReceiveSignals(_id: string) : Observable<MudSignals> {
               + other.mudConnections[_id]['race-varname']+"="+data.race+"|"
               + other.mudConnections[_id]['rank-varname']+"="+data.rank+"|"
             };
-            logger.debug('GMCP-char-status-signal: ',statusSignal);
+            console.debug('GMCP-char-status-signal: ',statusSignal);
             observer.next(statusSignal);
             return;
           case 'vitals':
@@ -509,7 +496,7 @@ public mudReceiveSignals(_id: string) : Observable<MudSignals> {
               signal:'vitals',
               id:data.string+'|'+data.hp+'|'+data.maxhp+'|'+data.sp+'|'+data.maxsp
             };
-            logger.debug('GMCP-char-vitals-signal: ',vitalSignal);
+            console.debug('GMCP-char-vitals-signal: ',vitalSignal);
             observer.next(vitalSignal);
             return;
           case 'stats':
@@ -517,7 +504,7 @@ public mudReceiveSignals(_id: string) : Observable<MudSignals> {
               signal:'stats',
               id:'con='+data.con+'|dex='+data.dex+'|int='+data.int+'|str='+data.str
             };
-            logger.debug('GMCP-char-stats-signal: ',statsSignal);
+            console.debug('GMCP-char-stats-signal: ',statsSignal);
             observer.next(statsSignal);
             return;
             default:break;
@@ -534,7 +521,7 @@ public mudReceiveSignals(_id: string) : Observable<MudSignals> {
                 id: data.file,
                 playSoundFile: other.mudConnections[_id]['sound-url']+'/'+data.file,
               }
-              // logger.debug('soundSignal',soundSignal);
+              // console.debug('soundSignal',soundSignal);
               observer.next(soundSignal);
               return;
             default:
@@ -569,7 +556,7 @@ public mudReceiveSignals(_id: string) : Observable<MudSignals> {
                   break;
               }
               fileinfo.save01_start = function(filepath) {
-                logger.debug('save01_start',filepath,fileinfo);
+                console.debug('save01_start',filepath,fileinfo);
                 other.sendGMCP(_id,"Files","OpenFile",{
                   "file":filepath,
                   "title":fileinfo.title,
@@ -577,7 +564,7 @@ public mudReceiveSignals(_id: string) : Observable<MudSignals> {
                 });
               }
               fileinfo.save03_saved = function(filepath) {
-                logger.debug('save03_saved',filepath,fileinfo);
+                console.debug('save03_saved',filepath,fileinfo);
                 other.sendGMCP(_id,"Files","fileSaved",{
                   "file":filepath,
                   "title":fileinfo.title,
@@ -594,7 +581,7 @@ public mudReceiveSignals(_id: string) : Observable<MudSignals> {
                 id: _id,
                 fileinfo: fileinfo,
               }
-              // logger.trace('fileSignal-1',fileSignal);
+              // console.trace('fileSignal-1',fileSignal);
               observer.next(fileSignal);
               return;
             case 'directorylist':
@@ -606,27 +593,27 @@ public mudReceiveSignals(_id: string) : Observable<MudSignals> {
                 filepath: data.path,
                 entries: data.entries,
               }
-              // logger.trace('dirSignal-1',dirSignal);
+              // console.trace('dirSignal-1',dirSignal);
               observer.next(dirSignal);
               return;
             default: break;
           }
         default: break;
       }
-      logger.warn('GMCP-unknown:',mod,msg,data);return;
+      console.warn('GMCP-unknown:',mod,msg,data);return;
     });
-    // logger.info('mudReceiveSignals finsihed!');
+    // console.info('mudReceiveSignals finsihed!');
   });
   return observable;
 }
 
 public mudSendData(_id:string,data:string) {
   if (this.socket === undefined) {
-    this.logger.fatal('mudSendData without socket!');
+    console.error('mudSendData without socket!');
     return;
   }
-  // this.logger.debug('mudSendData-id ',_id);
-  // this.logger.trace('mudSendData-data',_id,data);
+  // console.debug('mudSendData-id ',_id);
+  // console.trace('mudSendData-data',_id,data);
   this.socket.emit('mud-input',_id,data);
 }
 /**

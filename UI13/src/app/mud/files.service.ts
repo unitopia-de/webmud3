@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { FileInfo } from './file-info';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { LoggerService } from '../logger.service';
+
 @Injectable({
   providedIn: 'root'
 })
@@ -18,13 +18,13 @@ export class FilesService {
   processFileInfo( fileinfo : FileInfo) : FileInfo {
     const url = fileinfo.lasturl;
     const filepath = fileinfo.file;
-    this.logger.trace('FilesService-processFileInfo-start',fileinfo);
+    console.trace('FilesService-processFileInfo-start',fileinfo);
     if (this.filemap.hasOwnProperty(filepath)&& fileinfo.saveActive) {
       var cfileinfo : FileInfo = this.filemap[filepath];
       cfileinfo.save02_url(url);
       cfileinfo.alreadyLoaded = true;
       cfileinfo.saveActive = true;
-      this.logger.trace('FilesService-processFileInfo-alreadyLoaded',cfileinfo);
+      console.trace('FilesService-processFileInfo-alreadyLoaded',cfileinfo);
       return cfileinfo;
     } else {
       fileinfo.saveActive = false;
@@ -33,28 +33,28 @@ export class FilesService {
     }
     var other = this;
     fileinfo.relateWindow = function(winid : string) {
-      other.logger.debug('FilesService-relaeWindow',winid);
+      console.debug('FilesService-relaeWindow',winid);
       this.windowsId = winid;
       other.filemap[filepath] = this;
     };
     fileinfo.save02_url = function(url2) {
       fileinfo.lasturl = url2;
-      other.logger.debug('FilesService-save02_url',fileinfo);
+      console.debug('FilesService-save02_url',fileinfo);
       other.http.put(url2,fileinfo.content,{ responseType: 'text'}).subscribe((value:string) => {
         fileinfo.oldContent = fileinfo.content;
         fileinfo.saveActive = false;
         fileinfo.save03_saved(filepath);
       },(err:any) => {
-        other.logger.error('FilesService-save02_url-rrror',fileinfo,err);
+        console.error('FilesService-save02_url-rrror',fileinfo,err);
         fileinfo.save05_error(fileinfo.windowsId,err);
       });
     }
     fileinfo.load = function(cb) {
         other.http.get(url,{ responseType: 'text'}).subscribe((value:string) => {
-          other.logger.debug('FilesService-load',filepath);
+          console.debug('FilesService-load',filepath);
           cb(undefined,value);
         },(err:any) => {
-          other.logger.debug('FilesService-load-failed',filepath,err);
+          console.debug('FilesService-load-failed',filepath,err);
           cb (err,undefined);
         });
       };
@@ -62,5 +62,5 @@ export class FilesService {
   }
 
   constructor(
-    private logger:LoggerService,private http: HttpClient) { }
+    private http: HttpClient) { }
 }

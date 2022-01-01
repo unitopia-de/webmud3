@@ -1,6 +1,4 @@
 import { AfterViewInit, Component, ElementRef, EventEmitter, Input, OnInit, Output, ViewChild } from '@angular/core';
-import { Logger, LoggerLevel } from 'src/app/logger';
-import { LoggerService } from 'src/app/logger.service';
 import { WindowConfig } from 'src/app/shared/window-config';
 import {ConfirmationService,MenuItem} from 'primeng/api';
 
@@ -35,7 +33,7 @@ export class EditorComponent implements OnInit,AfterViewInit  {
       this.aceSession.setValue(this.text);
       this.aceSession.setMode('ace/mode/'+cfg.data['edditortype']);
     }
-    this.logger.log("config:",cfg);
+    console.log("config:",cfg);
   } get config():WindowConfig {return this._config};
   private _config:WindowConfig;
   @Output('menuAction') menuAction= new EventEmitter<string>();
@@ -55,17 +53,16 @@ export class EditorComponent implements OnInit,AfterViewInit  {
   private fileinfo:FileInfo;
   public disabled : boolean = false;
   public readonly: boolean = false;
-  private logger : Logger;
   private cwidth : number = 0;
   private cheight : number = 0;
 
   onChange(code) {
-    this.logger.log("new code", code);
+    console.log("new code", code);
   }
   onSave(event:any,closeable:boolean) {
     if (this.readonly) return;
     const itext = this.aceEditor.getValue();
-    this.logger.log("save-text", itext);
+    console.log("save-text", itext);
     this.fileinfo.content = itext;
     this.fileinfo.closable = closeable;
     this.fileinfo.save01_start(this.fileinfo.file);
@@ -148,56 +145,41 @@ export class EditorComponent implements OnInit,AfterViewInit  {
   private updateMenu() {
     this.items = [
       {
-         label:'Suchen/Ersetzen',
-         icon:'pi pi-fw pi-filter',
-         items:[
+        label:'Editor',
+        icon:'pi pi-fw pi-bars',
+          items:[
             {
-               label:'Suchen',
-               icon:'pi pi-fw pi-filter',
-               command: (event)=>{this.searchWindow(event)},
+              label:'LeseModus',
+              icon:this.readonly?'pi pi-fw pi-plus-circle':'pi pi-fw pi-minus-circle',
+              command: (event)=>{this.toggleReadonly(event);}
             },
             {
-               label:'Ersetzen',
-               icon:'pi pi-fw pi-filter',
-               disabled:this.readonly,
-               command: (event)=>{this.replaceWindow(event)}
+              label:'Speichern&Schliessen',
+              icon:'pi pi-fw pi-upload',
+              disabled:this.readonly,
+              command: (event)=>{this.onSave(event,true)}
             },
-         ]
-      },
-      {
-         separator:true
-      },
-      {
-        label:'LeseModus',
-        icon:this.readonly?'pi pi-fw pi-plus-circle':'pi pi-fw pi-minus-circle',
-        command: (event)=>{this.toggleReadonly(event);}
-      },
-      {
-        label:'Speichern&Schliessen',
-        icon:'pi pi-fw pi-upload',
-        disabled:this.readonly,
-        command: (event)=>{this.onSave(event,true)}
-      },
-      {
-        label:'Zwischenpeichern',
-        icon:'pi pi-fw pi-upload',
-        disabled:this.readonly,
-        command: (event)=>{this.onSave(event,false)}
-      },
-      {
-         label:'Schliessen',
-         icon:'pi pi-fw pi-power-off',
-         command: (event)=>{this.onCancel(event)}
-        }
+            {
+              label:'Zwischenpeichern',
+              icon:'pi pi-fw pi-upload',
+              disabled:this.readonly,
+              command: (event)=>{this.onSave(event,false)}
+            },
+            {
+               label:'Schliessen',
+               icon:'pi pi-fw pi-power-off',
+               command: (event)=>{this.onCancel(event)}
+            }
+        ]
+      }
     ];
   }
 
   ngOnInit(): void {
-    var logger = this.logger.addLogger('Incoming',LoggerLevel.ALL);
     this.updateMenu();
     this._config.inComingEvents.subscribe((event)=>{
       var msgSplit = event.split(":");
-      logger.log("event:",event);
+      console.log("event:",event);
       switch (msgSplit[0]) {
         case "resize":
         case "resize_init":
@@ -208,9 +190,9 @@ export class EditorComponent implements OnInit,AfterViewInit  {
           break;
         }
     },(error)=>{
-      logger.error('error:',error);
+      console.error('error:',error);
     },()=>{
-      logger.debug('Complete');
+      console.debug('Complete');
     })
   }
   ngAfterViewInit(): void {
@@ -241,11 +223,9 @@ export class EditorComponent implements OnInit,AfterViewInit  {
   }
   
   constructor(
-    private loggerSrv : LoggerService,
     private windowService: WindowService,
     private confirmationService: ConfirmationService,
     private cookieService: CookieService
     ) { 
-      this.logger = loggerSrv.addLogger("EditorComponent",LoggerLevel.ALL);
     }
 }
