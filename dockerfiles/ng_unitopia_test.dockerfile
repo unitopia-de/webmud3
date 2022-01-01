@@ -27,7 +27,7 @@ RUN sed -i 's-%%BASEREF%%-/webmud3test/-' /app/src/index.html
 ARG configuration=production
 
 # create the output of the angular app
-RUN ng build --output-path=dist/out
+RUN ng build -c development --output-path=dist/out
 
 # produces the final node.js immage.
 FROM node:14-alpine3.14 AS webmud3
