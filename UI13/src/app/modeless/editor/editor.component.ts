@@ -9,6 +9,15 @@ import { DialogService } from 'primeng/dynamicdialog';
 import { EditorSearchComponent } from 'src/app/settings/editor-search/editor-search.component';
 import { FileInfo } from 'src/app/mud/mud-signals';
 import { WindowService } from 'src/app/shared/window.service';
+import { CookieService } from 'ngx-cookie-service';
+
+const ithemes : string[] = ['ambiance','chaos','chrome','clouds','clouds_midnight',
+  'cobalt','crimson_editor','dawn','dracula','dreamweaver','eclipse','github','gob',
+  'gruvbox','idle_fingers','iplastic','katzenmilch','kr_theme','kuroir','merbivore',
+  'merbivore_soft','mono_industrial','mokokai','nord_dark','one_dark','pastel_on_dark',
+  'solarized_dark','solarized_light','sqlserver','terminal','textmate','tomorrow',
+  'tomorrow_night_blue','tomorrow_night_bright','tomorrow_night',
+  'tomorrow_night_eighties','twilight','vibrant_ink','xcode'];
 
 @Component({
   selector: 'app-editor',
@@ -35,7 +44,7 @@ export class EditorComponent implements OnInit,AfterViewInit  {
   private aceEditor:ace.Ace.Editor;
   private aceSession:ace.Ace.EditSession;
   public themes:any[]=[];
-  public currentTheme:string="";
+  public currentTheme:any={};
   zinSearch:number = 100;
   items: MenuItem[];
   searchOptions:any={
@@ -112,7 +121,8 @@ export class EditorComponent implements OnInit,AfterViewInit  {
   }
 
   public changeTheme() {
-    this.aceEditor.setTheme('ace/theme/'+this.currentTheme);
+    this.aceEditor.setTheme('ace/theme/'+this.currentTheme.code);
+    this.cookieService.set('editortheme', this.currentTheme.code);
   }
 
   searchWindow(event:any,replaceFlag:boolean=false) {
@@ -210,24 +220,31 @@ export class EditorComponent implements OnInit,AfterViewInit  {
       this.aceEditor = ace.edit(this.editor.nativeElement);
     }
     this.aceEditor.setAutoScrollEditorIntoView(true);
-    this.aceEditor.setTheme('ace/theme/twilight');
+    var themeNow = this.cookieService.get('editortheme');
+    if (themeNow=='') {
+      themeNow = 'twilight';
+    }
+    this.aceEditor.setTheme('ace/theme/'+themeNow);
     this.aceSession = new ace.EditSession(this.text);
     this.aceSession.setMode('ace/mode/'+this._config.data['edditortype']);
     this.aceEditor.setSession(this.aceSession);
     var themelist = ace.require("ace/ext/themelist"); // delivers undefined!!!
     console.log("themelist",themelist);
     this.themes = [];
-    var themeOb :any = themelist.themesByName // error reference undefined
-    themeOb.keys().forEach(themeName => {
+    // var themeOb :any = themelist.themesByName // error reference undefined
+    // themeOb.keys().forEach(themeName => {
+    //   this.themes.push({name:themeName,code:themeName});
+    // })
+    ithemes.forEach( themeName => {
       this.themes.push({name:themeName,code:themeName});
     })
-
   }
   
   constructor(
     private loggerSrv : LoggerService,
     private windowService: WindowService,
-    private confirmationService: ConfirmationService
+    private confirmationService: ConfirmationService,
+    private cookieService: CookieService
     ) { 
       this.logger = loggerSrv.addLogger("EditorComponent",LoggerLevel.ALL);
     }
