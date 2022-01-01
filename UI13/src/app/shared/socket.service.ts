@@ -495,12 +495,12 @@ public mudReceiveSignals(_id: string) : Observable<MudSignals> {
             other.mudConnections[_id]['guild'] = data.guild;
             other.mudConnections[_id]['race'] = data.race;
             other.mudConnections[_id]['rank'] = data.rank;
-            let statusSignal : MudSignals;
-            statusSignal.signal="status";
-            statusSignal.id = 
-              other.mudConnections[_id]['guild-varname']+"="+data.guild+"|"
+            let statusSignal : MudSignals = {
+              signal:'status',
+              id: other.mudConnections[_id]['guild-varname']+"="+data.guild+"|"
               + other.mudConnections[_id]['race-varname']+"="+data.race+"|"
-              + other.mudConnections[_id]['rank-varname']+"="+data.rank+"|";
+              + other.mudConnections[_id]['rank-varname']+"="+data.rank+"|"
+            };
             logger.debug('GMCP-char-status-signal: ',statusSignal);
             observer.next(statusSignal);
             return;
