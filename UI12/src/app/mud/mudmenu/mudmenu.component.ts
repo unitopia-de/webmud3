@@ -76,7 +76,7 @@ export class MudmenuComponent implements OnInit {
       this.menuID,
       1,
       'MUD:CONNECT',
-      this.i18n.get('Connect'),// TODO connect TO menu of muds
+      this.i18n.get('Verbinden'),// TODO connect TO menu of muds
       'pi pi-sign-in',
       this._connected,true
     );
@@ -84,7 +84,7 @@ export class MudmenuComponent implements OnInit {
       this.menuID,
       1,
       'MUD:DISCONNECT',
-      this.i18n.get('Disconnect'),
+      this.i18n.get('Trennen'),
       'pi pi-sign-out',
       !this._connected,true
     );
@@ -92,7 +92,7 @@ export class MudmenuComponent implements OnInit {
       this.menuID,
       0,
       'MUD:VIEW',
-      this.i18n.get('View'),
+      this.i18n.get('Farben'),
       'pi pi-eye'
     );
     this.menuSrv.add_menu_item(
@@ -109,3 +109,4 @@ export class MudmenuComponent implements OnInit {
   }
 
 }
+// TODO help: pi-question-circle webmud3 hilfe, befehle spieler und goetter und enzy.

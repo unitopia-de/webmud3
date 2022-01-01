@@ -2,8 +2,13 @@ import { AfterViewInit, Component, ElementRef, EventEmitter, Input, OnInit, Outp
 import { Logger, LoggerLevel } from 'src/app/logger';
 import { LoggerService } from 'src/app/logger.service';
 import { WindowConfig } from 'src/app/shared/window-config';
-import {ConfirmationService} from 'primeng/api';
+import {ConfirmationService,MenuItem} from 'primeng/api';
+
 import * as ace from "ace-builds";
+import { DialogService } from 'primeng/dynamicdialog';
+import { EditorSearchComponent } from 'src/app/settings/editor-search/editor-search.component';
+import { FileInfo } from 'src/app/mud/mud-signals';
+import { WindowService } from 'src/app/shared/window.service';
 
 @Component({
   selector: 'app-editor',
@@ -14,8 +19,9 @@ export class EditorComponent implements OnInit,AfterViewInit  {
 
   @Input() set config(cfg:WindowConfig) {
     this._config = cfg;
+    this.zinSearch = cfg.zIndex+100;
     this.text = cfg.data['content'];
-    this.fileinfo = cfg.data;
+    this.fileinfo = cfg.data as FileInfo;
     if (typeof this.aceSession !== 'undefined') {
       this.aceSession.setValue(this.text);
       this.aceSession.setMode('ace/mode/'+cfg.data['edditortype']);
@@ -28,29 +34,33 @@ export class EditorComponent implements OnInit,AfterViewInit  {
   @ViewChild("editor") private editor: ElementRef<HTMLElement>;
   private aceEditor:ace.Ace.Editor;
   private aceSession:ace.Ace.EditSession;
+  public themes:any[]=[];
+  public currentTheme:string="";
+  zinSearch:number = 100;
+  items: MenuItem[];
+  searchOptions:any={
+    regex : false,
+  };
 
   public text:string = "";
-  private fileinfo:any;
+  private fileinfo:FileInfo;
   public disabled : boolean = false;
+  public readonly: boolean = false;
   private logger : Logger;
   private cwidth : number = 0;
   private cheight : number = 0;
-  constructor(
-    private loggerSrv : LoggerService,
-    private confirmationService: ConfirmationService
-    ) { 
-      this.logger = loggerSrv.addLogger("EditorComponent",LoggerLevel.ALL);
-    }
 
   onChange(code) {
     this.logger.log("new code", code);
   }
-  onSave(event) {
+  onSave(event:any,closeable:boolean) {
+    if (this.readonly) return;
     const itext = this.aceEditor.getValue();
     this.logger.log("save-text", itext);
     this.fileinfo.content = itext;
+    this.fileinfo.closable = closeable;
     this.fileinfo.save01_start(this.fileinfo.file);
-    this.config.outGoingEvents.next("Save:");
+    this.config.outGoingEvents.next("Save:"+closeable);
   }
   onCancel(event) {
     var other = this;
@@ -101,8 +111,80 @@ export class EditorComponent implements OnInit,AfterViewInit  {
     this.aceEditor.renderer.updateFull();
   }
 
+  public changeTheme() {
+    this.aceEditor.setTheme('ace/theme/'+this.currentTheme);
+  }
+
+  searchWindow(event:any,replaceFlag:boolean=false) {
+    var cfg = new WindowConfig();
+        cfg.component = "EditorSearchComponent";
+        cfg.save = false;
+        cfg.parentWindow = this.config.windowid;
+        cfg.wtitle = (replaceFlag?'Ersetzen: ':'Suchen: ')+this.fileinfo.filename;
+        cfg.data = {
+          aceEditor:this.aceEditor,
+          replaceFlag:replaceFlag
+        };
+        cfg.windowid = this.windowService.newWindow(cfg);
+  }
+  replaceWindow(event:any) {
+    this.searchWindow(Event,true);
+  }
+  toggleReadonly(event) {
+    this.readonly=!this.readonly
+    this.updateMenu();
+  }
+
+  private updateMenu() {
+    this.items = [
+      {
+         label:'Suchen/Ersetzen',
+         icon:'pi pi-fw pi-filter',
+         items:[
+            {
+               label:'Suchen',
+               icon:'pi pi-fw pi-filter',
+               command: (event)=>{this.searchWindow(event)},
+            },
+            {
+               label:'Ersetzen',
+               icon:'pi pi-fw pi-filter',
+               disabled:this.readonly,
+               command: (event)=>{this.replaceWindow(event)}
+            },
+         ]
+      },
+      {
+         separator:true
+      },
+      {
+        label:'LeseModus',
+        icon:this.readonly?'pi pi-fw pi-plus-circle':'pi pi-fw pi-minus-circle',
+        command: (event)=>{this.toggleReadonly(event);}
+      },
+      {
+        label:'Speichern&Schliessen',
+        icon:'pi pi-fw pi-upload',
+        disabled:this.readonly,
+        command: (event)=>{this.onSave(event,true)}
+      },
+      {
+        label:'Zwischenpeichern',
+        icon:'pi pi-fw pi-upload',
+        disabled:this.readonly,
+        command: (event)=>{this.onSave(event,false)}
+      },
+      {
+         label:'Schliessen',
+         icon:'pi pi-fw pi-power-off',
+         command: (event)=>{this.onCancel(event)}
+        }
+    ];
+  }
+
   ngOnInit(): void {
     var logger = this.logger.addLogger('Incoming',LoggerLevel.ALL);
+    this.updateMenu();
     this._config.inComingEvents.subscribe((event)=>{
       var msgSplit = event.split(":");
       logger.log("event:",event);
@@ -132,6 +214,21 @@ export class EditorComponent implements OnInit,AfterViewInit  {
     this.aceSession = new ace.EditSession(this.text);
     this.aceSession.setMode('ace/mode/'+this._config.data['edditortype']);
     this.aceEditor.setSession(this.aceSession);
+    var themelist = ace.require("ace/ext/themelist"); // delivers undefined!!!
+    console.log("themelist",themelist);
+    this.themes = [];
+    var themeOb :any = themelist.themesByName // error reference undefined
+    themeOb.keys().forEach(themeName => {
+      this.themes.push({name:themeName,code:themeName});
+    })
 
   }
+  
+  constructor(
+    private loggerSrv : LoggerService,
+    private windowService: WindowService,
+    private confirmationService: ConfirmationService
+    ) { 
+      this.logger = loggerSrv.addLogger("EditorComponent",LoggerLevel.ALL);
+    }
 }

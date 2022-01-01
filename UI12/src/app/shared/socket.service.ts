@@ -390,7 +390,7 @@ public mudReceiveSignals(_id: string) : Observable<MudSignals> {
       logger.fatal('mudReceiveSignals without socket!');
       return;
     }
-    logger.info('mudReceiveSignals starting!');
+    // logger.info('mudReceiveSignals starting!');
     other.socket.on('mud-signal',function(sdata){
       if (sdata.id !== _id) {
         return;
@@ -483,10 +483,44 @@ public mudReceiveSignals(_id: string) : Observable<MudSignals> {
                 id: data.name + '@' + other.mudConnections[_id]['gmcp-mudname'],
               }
             }
-            logger.debug('GMCP-char-name-signal: ',titleSignal);
+            // logger.debug('GMCP-char-name-signal: ',titleSignal);
             observer.next(titleSignal);
             return;
-          default:break;
+          case 'statusvars':
+            other.mudConnections[_id]['guild-varname'] = data.guild;
+            other.mudConnections[_id]['race-varname'] = data.race;
+            other.mudConnections[_id]['rank-varname'] = data.rank;
+            return;
+          case 'status':
+            other.mudConnections[_id]['guild'] = data.guild;
+            other.mudConnections[_id]['race'] = data.race;
+            other.mudConnections[_id]['rank'] = data.rank;
+            let statusSignal : MudSignals;
+            statusSignal.signal="status";
+            statusSignal.id = 
+              other.mudConnections[_id]['guild-varname']+"="+data.guild+"|"
+              + other.mudConnections[_id]['race-varname']+"="+data.race+"|"
+              + other.mudConnections[_id]['rank-varname']+"="+data.rank+"|";
+            logger.debug('GMCP-char-status-signal: ',statusSignal);
+            observer.next(statusSignal);
+            return;
+          case 'vitals':
+            let vitalSignal : MudSignals= {
+              signal:'vitals',
+              id:data.string+'|'+data.hp+'|'+data.maxhp+'|'+data.sp+'|'+data.maxsp
+            };
+            logger.debug('GMCP-char-vitals-signal: ',vitalSignal);
+            observer.next(vitalSignal);
+            return;
+          case 'stats':
+            let statsSignal : MudSignals= {
+              signal:'stats',
+              id:'con='+data.con+'|dex='+data.dex+'|int='+data.int+'|str='+data.str
+            };
+            logger.debug('GMCP-char-stats-signal: ',statsSignal);
+            observer.next(statsSignal);
+            return;
+            default:break;
         }
         break;
         case 'sound':
@@ -500,7 +534,7 @@ public mudReceiveSignals(_id: string) : Observable<MudSignals> {
                 id: data.file,
                 playSoundFile: other.mudConnections[_id]['sound-url']+'/'+data.file,
               }
-              logger.debug('soundSignal',soundSignal);
+              // logger.debug('soundSignal',soundSignal);
               observer.next(soundSignal);
               return;
             default:
@@ -517,6 +551,7 @@ public mudReceiveSignals(_id: string) : Observable<MudSignals> {
                 temporary : data.temporary,
                 saveActive : data.saveactive,
                 filesize : data.filesize,
+                closable: data.closable,
                 title: data.title,
                 file:data.file,
                 path:data.path,
@@ -559,7 +594,7 @@ public mudReceiveSignals(_id: string) : Observable<MudSignals> {
                 id: _id,
                 fileinfo: fileinfo,
               }
-              logger.trace('fileSignal-1',fileSignal);
+              // logger.trace('fileSignal-1',fileSignal);
               observer.next(fileSignal);
               return;
             case 'directorylist':
@@ -571,7 +606,7 @@ public mudReceiveSignals(_id: string) : Observable<MudSignals> {
                 filepath: data.path,
                 entries: data.entries,
               }
-              logger.trace('dirSignal-1',dirSignal);
+              // logger.trace('dirSignal-1',dirSignal);
               observer.next(dirSignal);
               return;
             default: break;
@@ -580,7 +615,7 @@ public mudReceiveSignals(_id: string) : Observable<MudSignals> {
       }
       logger.warn('GMCP-unknown:',mod,msg,data);return;
     });
-    logger.info('mudReceiveSignals finsihed!');
+    // logger.info('mudReceiveSignals finsihed!');
   });
   return observable;
 }

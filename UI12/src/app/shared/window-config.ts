@@ -1,4 +1,5 @@
 import { EventEmitter } from '@angular/core';
+import { FileInfo } from '../mud/mud-signals';
 
 export class WindowConfig {
     windowid : string = ''; // unique id
@@ -14,7 +15,7 @@ export class WindowConfig {
     tabID : string = '';
     posx : number = 0;
     posy : number = 0;
-    data?: Object = undefined;
+    data?: any = undefined;
     outGoingEvents : EventEmitter<string> = new EventEmitter<string>();
     inComingEvents : EventEmitter<string> = new EventEmitter<string>();
 }
