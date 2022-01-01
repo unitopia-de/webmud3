@@ -14,6 +14,7 @@ import { MudMessage, MudSignalHelpers } from '../mud-signals';
 import { WindowConfig } from 'src/app/shared/window-config';
 import { WindowService } from 'src/app/shared/window.service';
 import { FilesService } from '../files.service';
+import { CookieService } from 'ngx-cookie-service';
 
 @Component({
   selector: 'app-mudclient',
@@ -103,6 +104,7 @@ export class MudclientComponent implements AfterViewChecked,OnInit,OnDestroy {
             cs: this.cs,
             cb: this.menuAction,
             v:this.v,
+            cbThis:this,
           },
           header: 'Change Colors',
           width: '40%'
@@ -110,6 +112,7 @@ export class MudclientComponent implements AfterViewChecked,OnInit,OnDestroy {
         return;
       case "MUD_VIEW:COLOR:RETURN":
         this.cs = act.item.cs;
+        const other = act.item.cbThis;
         if (this.cs.blackOnWhite) {
           this.v.stdfg = 'black';
           this.v.stdbg = 'white';
@@ -117,6 +120,10 @@ export class MudclientComponent implements AfterViewChecked,OnInit,OnDestroy {
           this.v.stdfg = 'white';
           this.v.stdbg = 'black';
         }
+        const tmpJson = JSON.stringify(this.cs);
+        const tmp64 = other.ansiService.toBinaryBase64(tmpJson);
+        // console.log('cs=',other.cs,tmpJson,tmp64);
+        other.cookieService.set('mudcolors', tmp64);
         return;
       default: break;
     }
@@ -377,11 +384,25 @@ export class MudclientComponent implements AfterViewChecked,OnInit,OnDestroy {
     public wincfg:WindowService,
     private logger:LoggerService,
     private srvcfgService:ServerConfigService,
-    private titleService:Title
+    private titleService:Title,
+    private cookieService: CookieService
   ) { 
     
     this.ansiCurrent = new AnsiData();
     this.mudc_id = "one";
+    
+        const ncs = this.cookieService.get('mudcolors');
+        console.log("mudcolors '"+ncs+"'");
+        if (ncs != '') {
+          this.cs = JSON.parse(ansiService.fromBinaryBase64(ncs));
+        }
+        if (this.cs.blackOnWhite) {
+          this.v.stdfg = 'black';
+          this.v.stdbg = 'white';
+        } else {
+          this.v.stdfg = 'white';
+          this.v.stdbg = 'black';
+        }
     // this.connect();
   }
 

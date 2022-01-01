@@ -14,6 +14,7 @@ export class ColorSettingsComponent implements OnInit {
   cs : ColorSettings = new ColorSettings();
   cb: Function;
   v:any;// pass through to MenuAction cb!
+  cbThis:any;// paththrough
 
   constructor(
     public i18n: ReadLanguageService,
@@ -25,6 +26,7 @@ export class ColorSettingsComponent implements OnInit {
     this.cs = this.config.data['cs'];
     this.cb = this.config.data['cb'];
     this.v = this.config.data['v'];
+    this.cbThis = this.config.data['cbThis'];
   }
   onClick(event) {
     const newev = {
@@ -32,6 +34,7 @@ export class ColorSettingsComponent implements OnInit {
         id: 'MUD_VIEW:COLOR:RETURN',
         cs: this.cs,
         v:this.v,
+        cbThis:this.cbThis,
       }
     }
     this.cb(newev);
