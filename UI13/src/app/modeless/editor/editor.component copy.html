@@ -1,0 +1,10 @@
+<div ace-editor #editor
+       [(text)]="text"
+       [mode]="'c_cpp'" 
+       [theme]="'eclipse'"
+       [readOnly]="false"
+       [autoUpdateContent]="true" 
+       [durationBeforeCallback]="1000" 
+       (textChanged)="onChange($event)"
+       [style]="myStyle()"
+       ></div>
