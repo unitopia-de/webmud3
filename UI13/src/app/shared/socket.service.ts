@@ -42,8 +42,8 @@ export class SocketService {
     });
 
     other.socket.on('error', function(error) {
-    console.error('S01 socket:'+other.getSocketID()+' error:'+error);
-  });
+      console.error('S01 socket:'+other.getSocketID()+' error:'+error);
+    });
   other.socket.on('disconnecting', function(id,real_ip,server_id,cb) {
       console.info('S01 socket:'+other.getSocketID()+' disconnecting');
       other.send2AllMuds('Verbindungsabbruch durch Serverneustart (Fenster aktualisieren!)','disconnect');
@@ -139,7 +139,7 @@ export class SocketService {
     let other = this;
     
     let observable = new Observable<MudListItem[]>(observer => {
-      if (other.socket === undefined) {
+      if (typeof other.socket === 'undefined') {
         other.socketConnect(); 
         console.info('socket connected');
       }
