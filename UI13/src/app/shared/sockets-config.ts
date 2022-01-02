@@ -5,6 +5,7 @@ import { EventEmitter } from '@angular/core';
 import { MudSignals, FileInfo } from '../mud/mud-signals';
 import { ServerConfigService } from './server-config.service';
 import { GmcpService } from '../gmcp/gmcp.service';
+import { MudListItem } from '../mud/mud-list-item';
 
 export interface HashTable<T> {
    [key: string]: T;
@@ -17,6 +18,7 @@ export class IoResult {
     ErrorType:string;
     Data:any;
     musi?:MudSignals;
+    mudlist?:MudListItem[];
     constructor(type:string,id:string,msgType:string,error:string,data:any) {
         this.IdType = type;
         this.Id = id;
@@ -337,6 +339,10 @@ export class IoMud {
       // console.debug('mudSendData-data',id,data);
       this.uplink.socket.emit('mud-input',id,data);
     }
+    public setMudOutputSize(height:number,width : number) {
+      console.log('S05: resize', this.MudId,height,width);
+      this.uplink.socket.emit('mud-window-size',this.MudId,height,width);
+    }
 }
 
 export class IoSocket {
@@ -454,6 +460,40 @@ export class IoSocket {
         }
         return true;
     }
+    public mudList() : Observable<IoResult> {
+      let other = this;
+      const r = IoResult.getResult('IoSocket',other.SocketId,'mud-list',null,other);
+          
+      let observable = new Observable<IoResult>(observer => {
+        if (typeof other.socket === 'undefined') {
+          
+        }
+        other.socket.emit('mud-list', true, function(data){
+          r.mudlist = [];
+          Object.keys(data).forEach(function(key) {
+            var item : MudListItem = {
+              key : key,
+              name: data[key].name,
+              host: data[key].host,
+              port: data[key].port,
+              ssl: data[key].ssl,
+              rejectUnauthorized: data[key].rejectUnauthorized,
+              description: data[key].description,
+              playerlevel: data[key].playerlevel,
+              mudfamily: data[key].mudfamily,
+            };
+            r.mudlist.push(item);
+        });
+          observer.next(r);
+          console.log('chattmudList: ',r.mudlist);
+        });
+        return () => {
+          console.log('mud-list observer-complete');
+        }
+      });
+      return observable;
+    }
+
 }
 
 export class IoManager {
@@ -464,7 +504,7 @@ export class IoManager {
     uplink: IoPlatform;
     serverID?:string;
     constructor(myUrl:string) {
-        this.url = myUrl;
+        this.ManagerId = this.url = myUrl;
         this.manager = new Manager(this.url);
         this.manager.reconnection(true);
         this.manager.reconnectionAttempts(10);
@@ -486,6 +526,7 @@ export class IoManager {
         this.manager.on('ping',() => {
             console.error('S22 manager ping');
         });
+        this.reportId("IoManager",this.ManagerId,this);
     }
     public send2AllMuds(msg:string,action:string) { // TODO implement
         Object.values(this.socketList).forEach(sock => {
@@ -516,14 +557,23 @@ export class IoManager {
         }
         return true;
     }
+    public openSocket(nsp:string) :IoSocket {
+      const ioSocket = new IoSocket(nsp,this);
+      ioSocket.socketConnect(nsp);
+      return ioSocket;
+    }
 }
 
 export class IoPlatform {
     private idLookup : HashTable<IoMud|IoSocket|IoManager|IoPlatform> = {};
+    private managerList : HashTable<IoManager> = {};
     constructor(public srvcfg:ServerConfigService,public gmcpsrv:GmcpService) {
         
     }
     public reportId(type:string,id:string,ob:any){
+      if (type == 'IoManager') {
+        this.managerList[id] = ob;
+      }
         if (ob == null) {
             delete this.idLookup[type+':'+id];
         }
@@ -534,6 +584,11 @@ export class IoPlatform {
     }
     public querIdObject(type:string,id:string):IoMud|IoSocket|IoManager|IoPlatform {
         return this.idLookup[type+":"+id];
+    }
+    
+    public connectSocket(url:string,nsp:string) {
+      const mngr = new IoManager(url);
+      return mngr.openSocket(nsp);
     }
     
     public sendGMCP(id:string,mod:string,msg:string,data:any):boolean {
@@ -547,5 +602,10 @@ export class IoPlatform {
     
     public sendPing(_id : string):boolean {
       return this.sendGMCP(_id,'Core','Ping','');
+    }
+    public send2AllMuds(msg:string,action:string) { // TODO implement
+        Object.values(this.managerList).forEach(mngr => {
+            mngr.send2AllMuds(msg,action);
+        })
     }
 }
