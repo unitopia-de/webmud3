@@ -1,0 +1,343 @@
+Du sagst: schoen, dann schauen wir mal, ob ich Dir die Grundprinzipien de
+        webmmud3 beibringen kann, Du das vlt in php umsetzen kannst, was
+        Dir gefaellt. Und vlt hast Du ja auch Impulse fuer das Webmud3
+        Projekt
+Die Schuelerin sagt: also optische Sachen kann ich leider
+        gar nicht, aber sonst schau ich mal was ich machen kann
+Du sagst: wenn es eine reines webmud fuer Blinde dabei rausspringt, ist das
+        ok fueer mich
+Du sagst: erst etwas ueber den Hauptordner des Projektes, ok?
+Die Schuelerin nickt zustimmend.
+Du sagst: also es gibt vier Unterordner: backend,UI8, dockerfiles und
+        mdconn
+Du sagst: in der Datei README.md steht der Text, der auf der HAuptseite des
+        Projekes angezeigt wird
+Du sagst: kennst Du schon Docker?
+Die Schuelerin sagt: noch nicht, hab nur davon gehoert bis
+        jetzt
+Du sagst: dann geb ich eine Erklaerung zu Docker und warum ich es nutze
+Die Schuelerin sagt: ok
+Du sagst: ddocker verpackt die Programme in fertige Images, die als
+        Container dann sehr flexibel un dportabel einsetzbar ist
+Du denkst: sind
+Du sagst: ich nutze docker gleich dreimal fuer mein Projekt
+Du sagst: um ein solches Docker-Image zu erstellen, gibtt es Rezepte, die
+        sogenannten Dockerfiles.
+Du sagst: im Hauptverzeichnis ist das Ddockerfile, um das Projekt auf einem
+        beliebigen Rechner auszufuehren
+Du sagst: meine Dockerfiles sind recht kompiziert gewordden, werde sie aber
+        auch wieder vereinfachen. Du brauchst nur zu wissen, dass sind
+        Rezepte um fertige Images zu erzeugen.
+Die Schuelerin sagt: ok
+Du sagst: im  Unterverzeichnis sind dann noch verschiedene Docker
+        Anweisungen fuer den Betrieb vom webmud3 auf ddem UNItopia-Server.
+        auch erstmal uninteressant
+Die Schuelerin sagt: ok
+Du sagst: interessanter sind backend und UI8. UI8 ist das angular frontend
+        in der Version 8. das backend ist in node.js.
+Du sagst: wir schauen uns als erstes das backend an, wenn Du keine Fragen
+        bis hierher hast...
+Die Schuelerin sagt: bis jetzt ist alles klar
+Du sagst: super
+Du sagst: das webmud3 setzt auf den Protokollen telnet und gmcp auf, kennst
+        Du diese Protokolle schon?
+Die Schuelerin sagt: telnet ja
+Du sagst: ok
+Du sagst: ich hab folgendes gemacht: ich habe ein bestehendes telnet-Modul
+        genommen und zu einem Mudprotokoll erweitert und gmcp mit
+        eingebaut.
+Die Schuelerin fragt: gmcp ist das fuer die sounds, oder?
+Du sagst: zu finden ist das Protokoll-Herzstueck in der Datei
+        backend/mudSocket.js
+Du sagst: gmcp kann sounds aber auch viele andere Erweiterungen fuer muds
+Du sagst: gmcp heisst ausgeschrieben: Generic MUD Communication Protocol
+Die Schuelerin sagt: ah
+Du sagst: der Leisstungsumfang ist also von dem Mud als server und zb dem
+        webmud als Client abhaengig, was es alles implementtiert und
+        abonniert
+Du sagst: wir gucken mal in die Datei backend/mudSocket.js rein, ok?
+Die Schuelerin nickt.
+Du sagst: Sind Zeilennummern hilfreeich fr Dich?
+Die Schuelerin sagt: ja die kann ich direkt anspringen
+Du sagst: super
+Du sagst: Zeile 4 definiert erstmal Variablen
+Du sagst: stoppe mich, wenn ich zu schnell oder zu unklar bin, ok?
+Du sagst: in Zeile 6 lade ich das Modul telnet-stream
+Die Schuelerin sagt: ok mach ich
+Du sagst: Zeile 8 erweitere ich die Klasse TelnetSocket und nenne sie
+        MudSocker
+Du sagst: von Zeile 10 bis 39 sind rei Hilfsfunktionen, die mir die Arbeit
+        mit Buffern erleichtern ssoll
+Du denkst: drei Funktionen
+Du sagst: interessant wirds ab ZEile 43, dem constructor
+Du sagst: ich habe da ier PArameter
+Du denkst: vier
+Du sagst: Erstens den Socket, der in Richtung Mud geoeffnet wurde.
+Du sagst: zweitens die Optionen fuer Telnet.
+Du sagst: drittens die Optionen fuer das HAnding mit dem Mud (mopt)
+Du sagst: und viertens die VErbindung zum Frontent ueber Socket_io. Kennst
+        Du Socket_io schon?
+Die Schuelerin sagt: noch nicht
+Du sagst: das ist eine websocketverbindung auf http-BAsis, was eine fast
+        synchrone Kommunikation zwischen BRowser und BAckend ermoeglicht
+Die Schuelerin sagt: ah cool
+Du sagst: gibts in vielen sprachen, infos zu finden auf https://socket.io/
+Du sagst: in Zeile 44 uebergebe ich den mud socket und die telnetoptionen
+        an den Constructor des TelnetSockets via super-Aufruf
+Du sagst: console.log in 45 ist zur Debugaausgabe....
+Du sagst: und dann initalisiere ich ein paar Variablen. Telnet ist ja eine
+        State-MAchine, sprich ein Zustandsautomat.
+Du sagst: dass heisst, die Telnetverbindung zwischen client und server
+        handelt staendig Daten und Zustaende miteinander aus.
+Du sagst: ich hab von Zeile 47 bis 116 die Zuorndung von Strings zu Code
+        abgebildet
+Die Schuelerin sagt: ok
+Du sagst: Zeile 117 bis 186 die Kommentierung nach offiziellem
+        Telnetstandard gemacht, dass man einfacher debuggen kann, was was
+        ist
+Die Schuelerin sagt: das ist gut
+Du sagst: ja, man braucht viel Debuginfos um zu kapieren wie das
+        funktioniertt ! :-)
+Du sagst: Zeile 189 bis 193 baut die inverse Zuordnung von code zu String
+        auf, die wir in Zeile 117 bis 186 hatten. auch zu debug und
+        Uebersichtlichkeit im Code
+Die Schuelerin sagt: ah ok
+Du sagst: in den zeile 194 bis 199 initialisiere ich weitere Variablen, wie
+        ide UEbernahme der mudoptionen und pruefung, ob das debugflag aktiv
+        ist, sprich, ob der viele debugausgaben machen darf
+Du sagst: ab zeile 200 kommen events vom telnet stream
+Du sagst: zeile 200 ff wird der event close behandelt, nur als
+        debugausgabe, falls debugging aktiv
+Du sagst: zeile 206 ff wird das command event abgefangen, auch nur zu
+        debugzwecken...
+Du sagst: interessant wird es fuer telnet ab der Zeile 213. Kennst Du die
+        Funktionsweise von do/dontt/will/wont im telnet?
+Die Schuelerin sagt: nee
+Du sagst: dann hol ich ein bisschen aus, sonst fehlt Dir zuviel
+        Informationen
+Die Schuelerin sagt: ok
+Du sagst: Telnet hat vier Kommandos, um Faehigkeiten miteinander zu
+        verhandeln
+Du sagst: entwedder der client odder der server schickt was los und will
+        eine Antwort vom PArtner
+Die Schuelerin sagt: ah
+Du sagst: Beispiel1
+Du sagst: der Server informiert den Client, dass er ein PRotokoll
+        verwendden will, also schickt er eintweder ein DO fuer ich mach das
+        jetzt oder ein WILL fuer der Client soll das machen..
+Du sagst: Beispiel 2: Der Server informiert den Client, dass er was niccht
+        machen will: das ist ein DONT. wenn er will, dass der Client etwas
+        nicht machen soll, ist es ein WONT
+Du sagst: auf DO kann der Partner also mitt WILL oder WONT antworten
+Du sagst: auf DONT ebeneso
+Du sagst: auf WILL oder WONT kann der Partner ein DO oder ein DONT
+        schicken.
+Du sagst: ist das soweit klar?
+Die Schuelerin sagt: ja
+Du denkst: vorher standen wir am abgrund, jetzt sind wir den entscheidenden
+        SChritt weiter :-)
+Die Schuelerin sagt: abgrund, das klingt duester
+Die Schuelerin grinst.
+Du sagst: also Zeile 213 reagiert also auf ein DO, dass vom Mud kommt.
+Die Schuelerin sagt: ah
+Du sagst: zeile 214 kodiert das zeichen in einen String, damit wir mit
+        Klartext weiterarbeiten koennen
+Du sagst: das debugflag if lasse ich jetzt erstmal weg
+Die Schuelerin sagt: ok
+Du sagst: in Zeile 222 merke ich mir den Status fuer das aktuelle
+        Unterprotokoll
+Du sagst: ich sage, der client hat ein do, und vorerst ist die Antwort ein
+        wont
+Du sagst: falsc
+Du sagst: der server hat ein DO gesendet, und der client (dieser Code)
+        sschickt wahrscheinlich ein WONT
+Die Schuelerin sagt: ok
+Du sagst: dann haben wir ein switch auf den namen des Unterprotokolls
+Du sagst: Zeile 224 behandelt die Timing Mark (TELOPT_TM) und antwortet
+        einfach mit den gleichen Daten als will => 
+        other.writeWill(chunkData);
+Du sagst: die Timing Mark braucht kein Zustand, das ist nur ein Livemeldung
+        vom Server, heh, ich bin noch da, du auch?
+Die Schuelerin sagt: ah
+Du sagst: ab zeile 227 wirds wieder interessanter, das MUD fragt nach
+        TELOPT_NAWS, dass heisst: wie gross ist Dein Fenster?
+Du sagst: in 228 setzen wir erstmal den Status und saagen damit, JA, ich
+        kann die Fenstergroesse
+Du sagst: und sende das n zeile 229 sofort ans mud zurueck
+Du sagst: In Zeile 230 folgendee mache ich mir das socket-io zu nutze
+Du sagst: ich schicke eine anfrage mit callback an den Client, der mir
+        sagen soll, wie gross ist denn das aktuelle Fenster?
+Du sagst: der callback ist dann die function(sizeOb) {}
+Du sagst: der Callback kommt nach kurzeer Ruecksprachee mit dem
+        WEbmud3-Frontend (hier UI8) zurueck und meldet in Zeile 238 die
+        enspreechende Groesse ans Mud
+Du sagst: soweit so klar?
+Die Schuelerin nickt zustimmend.
+Du sagst: super.
+Du sagst: zeile 241 bis 243: Kuemmert sich um die Option (wir sind ja im do
+        Block), das unser Programm Auskunft ueber den TErminaltypen geben
+        wird.
+Du sagst: zeile 245 sorgt dafuer, dass alles ueberige was als DO kommt, mit
+        WONT beantwortet wird.
+Du sagst: das war der DO - Block
+Du sagst: als naechstes folgt der DONT Block ab Zeile 248 bis 259
+Du sagst: wennd as Mud sagt, was es nicht macht, sagen wir zu allem ok,
+        werden wir auch nicht erwarten WONT
+Du sagst: soweit so klar?
+Die Schuelerin sagt: ja
+Du sagst: jetzt kommt der will Block, alsso alles was das MUD meint, wir
+        als Mudclient muessen das koennen....
+Du sagst: in zeile 267 erstmal die standardantwort in den internen Zustand:
+        other.state[opt] = {server:'will',client:'dont'};
+Du sagst: wir koennen also erstmal gar nix und machen jetzt die Ausnahmen
+Die Schuelerin sagt: ok
+Du sagst: Zeile 269 folgende behandelt das TELOPT_ECHO. das macht spaeter
+        die umschaltung von password eingabe auf normale eingabe und
+        zurueck
+Die Schuelerin sagt: ah
+Du sagst: zeile 274 TELOPT_EOR: End of REcord unterstuetzen wir nicht und
+        schicken ein WONT
+Du sagst: aeh ein DONT sorry
+Du sagst: bei TELOPT_CHARSET in Zeile 275 senden wir ein DO...
+Du sagst: und bei der anfrage nach TELOPT_GMCP in Zeile 276 frage ich
+        erstmal meine mudoptionen ab, ob das GMCP bei dieser Verbindung
+        erwuenscht ist. WEnn ja, geht ein DO zurueck ansonsten ein DONT
+Du sagst: und in zeile 285 schicke ich das allgemeine DONT, ich kann das
+        nicht, zurueck
+Die Schuelerin nickt.
+Du sagst: im WONT Block ab Zeile 288  behandle ich nur das TELOPT_ECHO als
+        umschaltung wieder zum normalmodus (vom passwordmodus weg)
+Die Schuelerin sagt: ok
+Du sagst: so das waren erstmal die vier verhandlungsoptionen DO DONT WILL
+        WONT. soweit noch Fragen?
+Die Schuelerin sagt: soweit alles klar
+Du nickst anerkennend.
+Du sagst: jetzt hat Telnet ausgehandelt, was die beiden auf beiden Seiten
+        erwarten koennen
+Du sagst: und es hat noch ein freies unterprotokoll, den sogenannten
+        SUB-Event
+Du sagst: Sub faengt an in ZEile 304
+Du sagst: in ZEile 311 folgende beantworten wir das TELOPT_TTYPE terminal
+        tpye sub protokoll, was wir weiter oben versprochen haben
+Du sagst: in dem Fall kommt dann Webmud3a, beim Mushclient kommt natuerlic
+        MushClient usw.
+Du sagst: dann komme ich zu Zeile 324 folgende mit dem TELOPT_CHARSET
+Du sagst: hier sagen wir dem Mud, dass das Webmud UTF-8 sprechen kann. was
+        UNItopia zum Beispiel gut kann.
+Du denkst: seid letztem Jahr
+Die Schuelerin sagt: ah
+Du sagst: und ab Zeile 340 kommt das TELOPT_GMCP unterprotokoll, was wir
+        ueber socket.io (Zeile 352) an das Frontend nur durchreichen.
+Die Schuelerin sagt: ok
+Du sagst: und das ist alles, was ich ueber diesee Datei sagen kann
+Du sagst: wie fandest Du es soweit?
+Die Schuelerin sagt: soweit gut
+Die Schuelerin laechelt.
+Du sagst: ich weiss es war ssehr detailliert, aber beim telnet-Protokoll
+        ist es wichtig, es im Detail verstanden zu haben
+Die Schuelerin sagt: ich fand das gut so, dann weiss ich
+        auch was ich da mache
+Du nickst.
+Du sagst: der naechste wichtige Teil ist die Behandlung des socket.io in
+        der datei server.js
+Du sagst: dads ist also die aktive Kommunikation zwischen frontend und
+        backend
+Du sagst: geht los in Zeile 122 in der Datei backend/server.js
+Du sagst: bereit?
+Die Schuelerin sagt: ja
+Du sagst: Zeile 122: es wird im namespace, der durch scfg.mySocket
+        konfigurierbar gehalten wird, eine connection abgefangen und einem
+        socket zugewiesen
+Du sagst: in Zeiel 123 bis 125 finde ich erstmal die IP dess Frotends raus
+Du sagst: der socket.io basiert auf events, mit on warte ich auf ein
+        einkommenden event mit emit schick ich was los.
+Die Schuelerin sagt: ah
+Du sagst: das emit und on kann als letzten PArameter Funnktionen/callbacks
+        haben
+Du sagst: dann funktioniert das wie ein remote procedure call auf der
+        jeweils anderen seite
+Du sagst: zeile 128 bis 151 behandelt das disconnect fuer meine interne
+        Logik.ist zum Aufraeumen gedacht
+Die Schuelerin sagt: ok
+Du sagst: interessant wird es erst wieder ab zeile 185
+Du sagst: da sschicke ich abhaengig von der Konfiguration die Liste der
+        Muds ans Frontend, die diese Client aktuell unterstuetzt.
+Du sagst: in Zeile 186 sieht man schoen den Aufruf der callback Funktion
+Du sagst: der PArameter wird also an socket.io uebergeben, umgewandelt, an
+        den Partner weitergeleitet und in dem Fall an die Funktion im
+        Frontend uebergeben
+Die Schuelerin sagt: ah ok
+Du sagst: in ZEile 198 fuelle ich die Variable mudcfg, das ist die
+        Konfiguration, die fuer diese Verbindung zu dem MUD passt, zu dem
+        wir gerade verbinden wollen
+Du sagst: ich ueberspring die unwichtigen Fehlerbehandlungen, die sollten
+        slebsterklrend sein
+Du sagst: in zeile 210 bis 213 initialisiere icd en GMCP Support falls
+        vorhanden und as charset ungeleich utf-8, wenn ok
+Du sagst: in Zeile 218 bis 227 initialisiere ich den telnetsocket, entweder
+        mit SSL oder ohne.
+Du sagst: und in Zeile 228 kommt endlich der Aufruf zum MudSocket, den wir
+        in der vorherigen Datei angschaut hatten
+Du sagst: 229 bis 238 sind wieder allgemeines Signalhandling
+Du sagst: und danach noch bisschen Variablenveerwaltung
+Die Schuelerin sagt: ok
+Du sagst: Zeile 253 kuemmert sich darum, wenn das Frontend eine
+        Groessenaenderung des Fensters hat, das ans Mud weiter, wir hatten
+        uns ja verpflichtet, ueber Groessenveraenderungen das Mud zu
+        informieren
+Die Schuelerin nickt.
+Du sagst: in Zeile 270  schicken wir dann das TELOPT_NAWS
+Du sagst: ab Zeile 273 kuemmern wir um das Aufraeumen der Variablen,w enn
+        ein Disconnect vom Frontend kommt
+Du sagst: in zeile 290 und folgende kuemmern wir um den eigentlichen
+        MUD-Input. also den Text, den wir unten in der Zeile mit RETURN ans
+        Mud schicken wollten
+Die Schuelerin sagt: ok
+Du sagst: und in Zeile 302 wird dieser Text ans Mud geschickt
+Du sagst: und Zeile 306 und folgende kuemmert sich um
+        GMCP-Protokollanfragen vom Frontend
+Du sagst: das ist ersstmal alles aus der server.js
+Die Schuelerin sagt: ok
+Du nickst.
+Du sagst: diese beiden Teile sind die Basis der Verbindung zwischen BAckend
+        und Mud.
+Du sagst: und die hab ich auch zuerst programmiert und getestet bzw
+        rangetastet
+Die Schuelerin sagt: wow
+Die Schuelerin sagt: ich glaube ich haette inzwischen
+        einiges kaputtgemacht haette ich das alles umschreiben wollen oder
+        den server zum absturz gebracht.
+Du sagst: oh mein backend ist am anfang auch oft abgeschmiert
+Du kicherst irre.
+Die Schuelerin sagt: aber ich trau mir zu den armen
+        unitreiber mit wegzuhauen wenns ganz doof laeuft
+Du sagst: nein, das geht nicht
+Die Schuelerin sagt: gut zu wissen
+Du sagst: das telnet protokkoll i driver ist rech robust seid einigen
+        jahren
+Die Schuelerin sagt: das waere so meine groesste angst
+Du sagst: ah eine wichtige datei im backend muss ich dir noch zeigen
+Die Schuelerin sagt: ok
+Du sagst: backend/config/config.production.js
+Du sagst: da sind die 3 muds, die wir auf dem uniserver anbieten
+Du sagst: zeile 7 folgende unitopia ueber sichre verbindung
+Die Schuelerin sagt: ah
+Du sagst: zeile 18 orbit, das kannst du verwenden fuer webmud tests, wenn
+        du uni nicht belasten willst. anmelden kannst Du Dich aber da erst,
+        wenn Du Gott in UNItopia waerst....
+Die Schuelerin sagt: ah ok
+Du sagst: oder uni1993 ab zeile 29
+Die Schuelerin sagt: ah da hab ich sogar einen account
+        gemacht, als ich es mir mal anschauen wollte
+Du nickst.
+Du sagst: so, das ist erstmal der erste Schwung, das Frontend ist nicht so
+        aufgeraeumt, das koennen wir ein andermal machen, wenn Du soweit
+        bist. Falls Du also experementieren willst, hast Du erstmal genug
+        Futter, oder?
+Die Schuelerin sagt: denke ja, muss eh schauen wie sich
+        das alles in php umsetzten laesst
+Du sagst: genau, dafuer ist das das richtige fundament
+Die Schuelerin sagt: so eine kleine ausgabe damit ich
+        testen kann hab ich auch schnell zusammengebastelt
+Du sagst: ein und ausgabe brauchstt du
+Die Schuelerin sagt: ja
