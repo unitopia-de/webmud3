@@ -3,7 +3,7 @@
 const url = require('url');
 
 const dbglvl = ['TRACE','DEBUG','INFO','LOG','WARN','ERROR','FATAL','OFF'];
-var outputlevel = 2; // Errors,Fatals...
+var outputlevel = 0; // Errors,Fatals...
 
 // var NGXLogger = class NGXLogger {
 module.exports = {
