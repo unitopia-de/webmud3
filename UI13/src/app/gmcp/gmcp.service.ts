@@ -105,7 +105,7 @@ export class GmcpService {
         }
       });
     } else {
-      console.log('GmcpService-add_gmcp_module-4',gcfg);
+      // console.log('GmcpService-add_gmcp_module-4',gcfg);
     }
   }
 

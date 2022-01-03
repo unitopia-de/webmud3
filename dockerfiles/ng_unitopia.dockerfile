@@ -23,9 +23,6 @@ COPY ./UI13/ /app/
 RUN sed -i 's-%%BASEREF%%-/webmud3/-' /app/src/index.html
 #    && sed -i 's-%%ACEREF%%-https://www.unitopia.de/webmud3/ace/-' /app/src/index.html
 
-# ok may be we have to do more with the environment...
-ARG configuration=production
-
 # create the output of the angular app
 RUN ng build --configuration production --output-path=dist/out
 

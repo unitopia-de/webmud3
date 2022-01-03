@@ -1,13 +1,13 @@
 export class MudConfig {
     mudname:string;
-    height:string;
-    width:string;
+    height:number;
+    width:number;
 
     user?:string;
     token?:string;
     password?:string;
 
-    browser?:string;
+    browser?:any;
     client?:string;
     version?:string;
     

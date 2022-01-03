@@ -39,7 +39,7 @@ export class WindowComponent implements OnInit {
 
 
   ngOnInit(): void {
-    console.log("config",this.config);
+    // console.log("config",this.config);
   }
 
 }

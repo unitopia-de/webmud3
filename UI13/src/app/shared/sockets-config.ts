@@ -46,12 +46,20 @@ export class IoMud {
         const ioPlatform = (up.getIdObject('IoPlatform')as IoPlatform);
         const socket = ioSocket.socket;
         const other = this;
+        cfg['browser'] = ioPlatform.srvcfg.getBrowserInfo();
+        cfg['client'] =  ioPlatform.srvcfg.getWebmudName();
+        cfg['version']=  ioPlatform.srvcfg.getWebmudVersion();
+        console.log("S09 connect-init");
+        
         socket.emit('mud-connect', cfg, function(data){
           if (typeof data.id !== 'undefined') {
             other.MudId = data.id;
             up.reportId('IoMud',data.id,other);
-            ioManager.compareServerID(data.serverID);
-            ioSocket.compareSocketId(data.socketID);
+            const notChanged = ioManager.compareServerID(data.serverID)
+                            && ioSocket.compareSocketId(data.socketID);
+            if (!notChanged) {
+              
+            }
             other.connected = true;
             console.info('S10: mud-connect: '+data.id+' socket: '+data.socketID);
             observer.next(IoResult.getResult('IoMud',data.id,'mud-connect',null,other));
@@ -60,6 +68,9 @@ export class IoMud {
             observer.next(IoResult.getResult('IoMud',null,null,'mud-connect-error',other));
           }
         });
+        this.eventBus.subscribe(fr => {
+          observer.next(fr);
+        })
         socket.on('mud-disconnected', function(id) {
           if (id != other.MudId) {
             console.error('S11: mud-disconnected:',id,other.MudId);
@@ -68,7 +79,7 @@ export class IoMud {
           }
           other.connected = false;
           console.info('S11: mud-client disconnected-server');
-          observer.next(IoResult.getResult('IoMud',other.MudId,'mud-disconnect','\r\n(Verbindung getrennt)\r\n',other));
+          observer.next(IoResult.getResult('IoMud',other.MudId,'mud-disconnect','\r\n [Verbindung getrennt]\r\n',other));
         });
         socket.on('mud-output', function(id,buffer) {
           if (other.MudId !== id) {
@@ -100,7 +111,7 @@ export class IoMud {
             signal : sdata.signal,
             id : sdata.id,
           }
-          console.log('S28:mudReceiveSignals',musi);
+          // console.log('S28:mudReceiveSignals',musi);
           const r = IoResult.getResult('IoMud',other.MudId,'mud-signal',null,other);
           r.musi = musi;
           observer.next(r);
@@ -129,7 +140,7 @@ export class IoMud {
           }
         })
         socket.on('mud-gmcp-incoming',function(id,mod,msg,data){
-          console.info("G20: GMCP-incoming trace: ",id,mod,msg,data);
+          // console.info("G20: GMCP-incoming trace: ",id,mod,msg,data);
           if (other.MudId !== id) {
             console.log('G20: mud-gmcp-incoming Different Ids',other.MudId,id);
             return;
@@ -343,6 +354,14 @@ export class IoMud {
       console.log('S05: resize', this.MudId,height,width);
       this.uplink.socket.emit('mud-window-size',this.MudId,height,width);
     }
+    public disconnectFromMudClient(id:string) {
+      if (this.MudId == id) {
+        this.connected = false;
+        this.uplink.reportId('IoMud',id,null);
+      } else {
+        console.log("S06: disconnectFromMudClient different ids:",id,this.MudId);
+      }
+    }
 }
 
 export class IoSocket {
@@ -367,7 +386,8 @@ export class IoSocket {
               console.info('S12: socket reconnected: ',other.SocketId,nsp);
             } else {
               console.info('S12: socket error: ',other.SocketId,other.nsp,nsp);
-                observer.next(IoResult.getResult('IoSocket:nsp',nsp,null,null,other));
+              observer.next(IoResult.getResult('IoSocket:nsp',nsp,null,null,other));
+              return;
             }
             const myMud : IoMud = new IoMud(this,cfg,observer);
         });
@@ -384,17 +404,50 @@ export class IoSocket {
             return;
         }
         this.reportId('IoSocket:nsp',nsp,this);
-        this.socket = manager.socket(nsp);
+        this.socket = manager.socket('/');
+        const engine = this.socket.io.engine;
         const other = this;
+        engine.once("upgrade", () => {
+          // called when the transport is upgraded (i.e. from HTTP long-polling to WebSocket)
+          console.log(engine.transport.name); // in most cases, prints "websocket"
+        });
+      
+        engine.on("packet", ({ type, data }) => {
+          // called for each packet received
+          // console.log("packet",type,data);
+          // console.log("packet",type);
+        });
+      
+        engine.on("packetCreate", ({ type, data }) => {
+          // called for each packet sent
+          // console.log("packetCreate",type,data);
+          // console.log("packetCreate",type);
+        });
+      
+        engine.on("drain", () => {
+          // called when the write buffer is drained
+          // console.log("drain");
+        });
+      
+        engine.on("close", (reason) => {
+          // called when the underlying connection is closed
+          console.log("close",reason);
+        });
         other.socket.on('connect', () => {
             console.log('S13 socket-Connected',other.socket.id);
-            other.compareSocketId(other.socket.id);
+            if (!other.compareSocketId(other.socket.id)) {
+              other.send2AllMuds('\r\n [Verbindungsabbruch durch Serverneustart-1 (Fenster aktualisieren!)]\r\n','disconnect');
+            }
         });
         other.socket.on('disconnect', (reason) => {
             console.log('S23 socket-disconnect',other.socket.id,reason);
         });
         other.socket.on('connect_error', (error) => {
-            console.log('S24 socket-connect error',other.socket.id,error);
+        if (error.message=='websocket error') {
+            // console.warn('S24 websocket error')
+          } else {
+            console.error('S24 socket-connect error',other.socket.id,error);
+          }
         });
         other.socket.emit('keep-alive','1',function(level){
           console.log("S14 keep alive 1",other.socket.id,level);
@@ -404,14 +457,19 @@ export class IoSocket {
         });
         other.socket.on('disconnecting', function(id,real_ip,server_id,cb) {
           console.info('S16 socket disconnecting',other.socket.id,' ');
-          other.send2AllMuds('Verbindungsabbruch durch Serverneustart (Fenster aktualisieren!)','disconnect');
+          // other.send2AllMuds('\r\n [Verbindungsabbruch durch Serverneustart-2 (Fenster aktualisieren!)]\r\n','disconnect');
           cb('disconnected');
         });
         other.socket.on('connecting',function(id,real_ip,server_id,cb) {
-            console.log("S02.connecting.socketID/serverID: ",id,server_id);
-            other.compareSocketId(id);
-            ioManager.compareServerID(server_id);
-            cb('ok',undefined);
+            // console.log("S02.connecting.socketID/serverID: ",id,server_id);
+            const notChanged = other.compareSocketId(id)
+                &&  ioManager.compareServerID(server_id);
+            if (notChanged) {
+              cb('ok',undefined);
+            } else {
+              // other.send2AllMuds('\r\n [Verbindungsabbruch durch Serverneustart-3 (Fenster aktualisieren!)]\r\n','disconnect');
+              cb(undefined, 'disconnected');
+            }
         });
         other.socket.on('connected',function(id,real_ip,server_id,cb) {
             console.log("S02.connected.socketID/serverID: ",id,server_id);
@@ -437,8 +495,10 @@ export class IoSocket {
         })
     }
     public reportId(type:string,id:string,ob:any){
-        if (type == 'IoMud') {
-            this.MudIndex[id] = ob;
+        if (ob == null && type == 'IoMud' && this.MudIndex.hasOwnProperty(id)) {
+          delete this.MudIndex[id];
+        } else if (ob!=null && type == 'IoMud') {
+          this.MudIndex[id] = ob;
         }
         this.uplink.reportId(type,id,ob);
     }
@@ -457,6 +517,7 @@ export class IoSocket {
             this.reportId('IoSocket',this.SocketId,null);
             this.SocketId = id;
             this.reportId('IoSocket',this.SocketId,this);
+            return false;
         }
         return true;
     }
@@ -466,7 +527,8 @@ export class IoSocket {
           
       let observable = new Observable<IoResult>(observer => {
         if (typeof other.socket === 'undefined') {
-          
+          console.trace('mudList empty socket');
+          return;
         }
         other.socket.emit('mud-list', true, function(data){
           r.mudlist = [];
@@ -485,7 +547,7 @@ export class IoSocket {
             r.mudlist.push(item);
         });
           observer.next(r);
-          console.log('chattmudList: ',r.mudlist);
+          console.log('mudList: ',r.mudlist);
         });
         return () => {
           console.log('mud-list observer-complete');
@@ -503,34 +565,56 @@ export class IoManager {
     url:string;
     uplink: IoPlatform;
     serverID?:string;
-    constructor(myUrl:string) {
+    constructor(myUrl:string,nsp:string,up:IoPlatform) {
+        const other :IoManager = this;
         this.ManagerId = this.url = myUrl;
-        this.manager = new Manager(this.url);
+        this.uplink = up;
+        this.manager = new Manager(this.url,{'path':nsp,'transports': ['websocket']});
         this.manager.reconnection(true);
         this.manager.reconnectionAttempts(10);
         this.manager.on('error',(error) => {
+          if (error.message=='websocket error') {
+            console.warn('S17 websocket error')
+          } else {
             console.error('S17 manager error',error);
+          }
         });
         this.manager.on('reconnect',(attempt) => {
+            other.send2AllMuds('\r\n [Verbindung wiederhergestellt!]\r\n','reconnected',other);
             console.error('S18 manager reconnect',attempt);
         });
         this.manager.on('reconnect_attempt',(attempt) => {
+          if (attempt == 1) {
+            other.send2AllMuds('\r\n [Verbindungswiederherstellung in Arbeit]\r\n','reconnecting',other);//<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+          }
             console.error('S19 manager reconnect-attempt',attempt);
         });
         this.manager.on('reconnect_error',(error) => {
+          if (error.message=='websocket error') {
+            // console.warn('S20 websocket error')
+          } else {
             console.error('S20 manager reconnect_error',error);
+          }
         });
         this.manager.on('reconnect_failed',() => {
             console.error('S21 manager reconnect_failed');
         });
         this.manager.on('ping',() => {
-            console.error('S22 manager ping');
+            // console.error('S22 manager ping');
         });
         this.reportId("IoManager",this.ManagerId,this);
     }
-    public send2AllMuds(msg:string,action:string) { // TODO implement
-        Object.values(this.socketList).forEach(sock => {
-            sock.send2AllMuds(msg,action);
+    public send2AllMuds(msg:string,action:string,other:IoManager) { // TODO implement
+        console.trace('IoManager:send2AllMuds',other,action,msg);
+        if (typeof other === 'undefined') {
+          return;
+        }
+        Object.values(other.socketList).forEach( (sock:IoSocket) => {
+            if (typeof sock !== 'undefined' && sock != null) {
+              sock.send2AllMuds(msg,action);
+            } else {
+              console.trace('send2AllMuds with empty sock',action,msg);
+            }
         })
     }
     public reportId(type:string,id:string,ob:any){
@@ -554,6 +638,7 @@ export class IoManager {
             this.reportId('IoManager',this.serverID,null);
             this.serverID = id;
             this.reportId('IoManager',this.serverID,this);
+            return false;
         }
         return true;
     }
@@ -587,7 +672,7 @@ export class IoPlatform {
     }
     
     public connectSocket(url:string,nsp:string) {
-      const mngr = new IoManager(url);
+      const mngr = new IoManager(url,nsp,this);
       return mngr.openSocket(nsp);
     }
     
@@ -599,13 +684,21 @@ export class IoPlatform {
         }
         return ioMud.sendGMCP(id,mod,msg,data);
     }
+    public mudSendData(id:string,data:string) {
+      const ioMud = this.querIdObject('IoMud',id) as IoMud;
+        if (typeof ioMud === 'undefined') {
+            console.warn("G11: Unknown Mud-Id",id);
+            return false;
+        }
+        return ioMud.mudSendData(id,data);
+    }
     
     public sendPing(_id : string):boolean {
       return this.sendGMCP(_id,'Core','Ping','');
     }
     public send2AllMuds(msg:string,action:string) { // TODO implement
         Object.values(this.managerList).forEach(mngr => {
-            mngr.send2AllMuds(msg,action);
+            mngr.send2AllMuds(msg,action,mngr);
         })
     }
 }

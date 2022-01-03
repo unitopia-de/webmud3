@@ -21,10 +21,11 @@ export class SocketsService {
     private srvcfg:ServerConfigService,
     private gmcpsrv: GmcpService) { 
       this.platform = new IoPlatform(srvcfg,gmcpsrv);
-    }
-    private socketConnect() {
       this.socketUrl = this.srvcfg.getBackend();
       this.socketNsp = this.srvcfg.getSocketNamespace();
+      this.socketConnect();
+    }
+    private socketConnect() {
       this.ioSocket = this.platform.connectSocket(this.socketUrl,this.socketNsp);
       const other = this;
       this.ioSocket.mudList().toPromise()
@@ -40,5 +41,11 @@ export class SocketsService {
       if (typeof mud !== 'undefined') {
         mud.setMudOutputSize(height,width);
       }
+    }
+    public mudSendData(id:string,data:string) {
+      this.platform.mudSendData(id,data);
+    }
+    public sendGMCP(id:string,mod:string,msg:string,data:any):boolean {
+      return this.platform.sendGMCP(id,mod,msg,data);
     }
 }

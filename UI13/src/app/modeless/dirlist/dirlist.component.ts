@@ -12,7 +12,7 @@ export class DirlistComponent implements OnInit {
 
   @Input() set config(cfg:WindowConfig) {
     this._config = cfg;
-    console.log("config:",cfg);
+    // console.log("config:",cfg);
     this.updateDirList();
   } get config():WindowConfig {return this._config};
   private _config:WindowConfig;

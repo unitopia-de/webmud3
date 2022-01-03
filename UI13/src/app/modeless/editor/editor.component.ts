@@ -1,4 +1,4 @@
-import { AfterViewInit, Component, ElementRef, EventEmitter, Input, OnInit, Output, ViewChild } from '@angular/core';
+import { Component, ElementRef, EventEmitter, Input, OnInit, Output, ViewChild, AfterViewInit, ChangeDetectorRef } from '@angular/core';
 import { WindowConfig } from 'src/app/shared/window-config';
 import {ConfirmationService,MenuItem} from 'primeng/api';
 
@@ -62,7 +62,7 @@ export class EditorComponent implements OnInit,AfterViewInit  {
   onSave(event:any,closeable:boolean) {
     if (this.readonly) return;
     const itext = this.aceEditor.getValue();
-    console.log("save-text", itext);
+    // console.log("save-text", itext);
     this.fileinfo.content = itext;
     this.fileinfo.closable = closeable;
     this.fileinfo.save01_start(this.fileinfo.file);
@@ -220,12 +220,14 @@ export class EditorComponent implements OnInit,AfterViewInit  {
     ithemes.forEach( themeName => {
       this.themes.push({name:themeName,code:themeName});
     })
+    this.cd.detectChanges();
   }
   
   constructor(
     private windowService: WindowService,
     private confirmationService: ConfirmationService,
-    private cookieService: CookieService
+    private cookieService: CookieService,
+    private cd: ChangeDetectorRef
     ) { 
     }
 }

@@ -117,8 +117,8 @@ app.get('*', (req, res) => {
 var MudConnections = {};
 var Socket2Mud = {};
 
-// io.of('/').on('connection', (socket) => { // nsp /mysocket.io/ instead of /
-io.of(scfg.mySocket).on('connection', (socket) => { // nsp /mysocket.io/ instead of /
+io.on('connection', (socket) => { // nsp /mysocket.io/ instead of /
+// io.of(scfg.mySocket).on('connection', (socket) => { // nsp /mysocket.io/ instead of /
     const address = socket.handshake.address;
     const real_ip = socket.handshake.headers['x-forwarded-for'] || address;
     //console.log('S01-socket:'+socket.id+' user connected: ',real_ip);
@@ -201,6 +201,7 @@ io.of(scfg.mySocket).on('connection', (socket) => { // nsp /mysocket.io/ instead
     socket.on('mud-connect', function(mudOb,callback)  {
         const id = uuidv4(); // random, unique id!
         var tsocket,mudcfg;
+        logger.addAndShowLog('SRV:'+real_ip,"INFO",'mud-connect',[socket.id,mudOb]);
         if (typeof mudOb.mudname === 'undefined') {
             logger.addAndShowLog('SRV:'+real_ip,"FATAL",'Undefined mudname',[socket.id,mudOb]);
             callback({error:'Missing mudname'});

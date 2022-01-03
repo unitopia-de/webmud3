@@ -20,6 +20,8 @@ docker stack deploy -c dockerfiles/w3_docker_compose.yml webmud3a
 
 docker stack deploy -c dockerfiles/w3_docker_compose_test.yml webmud3atest
 
+docker stack rm webmud3atest
+
 ### Test docker containers as standalone
 
 docker run -d -p 2018:5000 --name webmud3local myonara/webmud3:latest

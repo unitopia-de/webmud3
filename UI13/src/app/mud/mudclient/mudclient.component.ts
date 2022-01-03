@@ -6,7 +6,8 @@ import { AnsiService } from '../ansi.service';
 import { ColorSettings } from '../color-settings';
 import { ColorSettingsComponent } from 'src/app/settings/color-settings/color-settings.component';
 import { WebmudConfig } from '../webmud-config';
-import { SocketService } from 'src/app/shared/socket.service';
+// import { SocketService } from 'src/app/shared/socket.service';
+import { SocketsService } from 'src/app/shared/sockets.service';
 import { ServerConfigService } from 'src/app/shared/server-config.service';
 import { Title } from '@angular/platform-browser';
 import { MudMessage, MudSignalHelpers } from '../mud-signals';
@@ -14,6 +15,8 @@ import { WindowConfig } from 'src/app/shared/window-config';
 import { WindowService } from 'src/app/shared/window.service';
 import { FilesService } from '../files.service';
 import { CookieService } from 'ngx-cookie-service';
+import { MudConfig } from 'src/app/mudconfig/mud-config';
+import { IoMud } from 'src/app/shared/sockets-config';
 
 @Component({
   selector: 'app-mudclient',
@@ -58,6 +61,7 @@ export class MudclientComponent implements AfterViewChecked,OnInit,OnDestroy {
   }
   private mudName : string = 'disconnect';
   public mudc_id : string;
+  private ioMud : IoMud;
   public mudlines : AnsiData[] = [];
   private ansiCurrent: AnsiData;
   public inpmessage : string;
@@ -153,7 +157,7 @@ export class MudclientComponent implements AfterViewChecked,OnInit,OnDestroy {
   
   sendMessage() {
     var other = this;
-    this.socketService.mudSendData(this.mudc_id,this.inpmessage);
+    this.socketsService.mudSendData(this.mudc_id,this.inpmessage);
     if (this.v.inpType == 'text' && this.inpmessage != '') {
       other.ansiCurrent.ansi = '';
       other.ansiCurrent.mudEcho = other.wordWrap(this.inpmessage,75);
@@ -254,10 +258,14 @@ export class MudclientComponent implements AfterViewChecked,OnInit,OnDestroy {
   }
 
   private connect() {
-    console.log("S05-mudclient-connecting-1",this.mudName);
+    console.log("S95-mudclient-connecting-1",this.mudName);
     if (this.mudName.toLowerCase() == 'disconnect') {
       if (this.mudc_id) {
-        console.info('mudclient-connect',this.mudc_id);
+        if (typeof this.ioMud !== undefined) {
+          this.ioMud.disconnectFromMudClient(this.mudc_id);
+          this.ioMud = undefined;
+        }
+        console.info('S95-mudclient-disconnect',this.mudc_id);
         if (this.obs_debug) this.obs_debug.unsubscribe();
         if (this.obs_data) this.obs_data.unsubscribe();
         if (this.obs_signals) this.obs_signals.unsubscribe();
@@ -268,35 +276,68 @@ export class MudclientComponent implements AfterViewChecked,OnInit,OnDestroy {
       }
     }
     const other = this;
-    const mudOb = {mudname:this.mudName,height:this.d.mudc_height,width:this.d.mudc_width}; // TODO options???
+    const mudOb : MudConfig = {mudname:this.mudName,height:this.d.mudc_height,width:this.d.mudc_width}; // TODO options???
     this.titleService.setTitle(this.srvcfgService.getWebmudName()+" "+this.mudName);// TODO portal!!!
     if (this.cfg.autoUser != '') {
       mudOb['user'] = this.cfg.autoUser;
       mudOb['token'] = this.cfg.autoToken;
       mudOb['password'] = this.cfg.autoPw || '';
     }
-    console.log("S05-mudclient-connecting-2",mudOb);
-    this.obs_connect = this.socketService.mudConnect(mudOb).subscribe(_id => {
-      console.log("S05-mudclient-connecting-3",_id);
-      if (_id == null) {
-        other.v.connected = false;
-        other.mudc_id = undefined;
-        console.error('mudclient-socketService.mudConnect-failed',_id);
-        return;
+    console.log("S95-mudclient-connecting-2",mudOb);
+    this.obs_connect = this.socketsService.mudConnect(mudOb).subscribe(ioResult => {
+      switch (ioResult.IdType) {
+        case 'IoMud:SendToAllMuds':
+          MudSignalHelpers.mudProcessData(other,other.ioMud.MudId,[ioResult.MsgType,undefined]);
+          // console.warn("S96-check SendToAllMuds",ioResult);
+          return;
+        case 'IoMud':
+          other.ioMud = (ioResult.Data as IoMud);
+          switch (ioResult.MsgType) {
+            case 'mud-connect':
+              other.mudc_id = other.ioMud.MudId;
+              other.v.connected = true;
+              return;
+            case 'mud-signal':
+              MudSignalHelpers.mudProecessSignals(other,ioResult.musi,other.ioMud.MudId);
+              return;
+            case 'mud-output':
+              MudSignalHelpers.mudProcessData(other,other.ioMud.MudId,[ioResult.ErrorType,undefined]);
+              return;
+            case 'mud-disconnect':
+              MudSignalHelpers.mudProcessData(other,other.ioMud.MudId,[ioResult.ErrorType,undefined]);
+              return;
+            default:
+              console.warn("S96-unknown MsgType with IoMud",ioResult);
+          }
+          break;
+        default:
+          console.warn("S96-unknown idType",ioResult);
       }
-      other.mudc_id = _id;
-      other.obs_connected = other.socketService.mudConnectStatus(_id).subscribe(
-          flag => {other.v.connected = flag;
-          console.log("S05-mudclient-connecting-4",_id,flag);
-        });
-      other.obs_signals = other.socketService.mudReceiveSignals(_id).subscribe( 
-          musi => { 
-            MudSignalHelpers.mudProecessSignals(other,musi,_id);
-      });
-      other.obs_data = other.socketService.mudReceiveData(_id).subscribe(outline => {
-        MudSignalHelpers.mudProcessData(other,_id,outline);
-      });
-    });
+    },error=>{
+      console.error(error);
+    })
+    return;
+    // this.obs_connect = this.socketService.mudConnect(mudOb).subscribe(_id => {
+    //   console.log("S05-mudclient-connecting-3",_id);
+    //   if (_id == null) {
+    //     other.v.connected = false;
+    //     other.mudc_id = undefined;
+    //     console.error('mudclient-socketService.mudConnect-failed',_id);
+    //     return;
+    //   }
+    //   other.mudc_id = _id;
+    //   other.obs_connected = other.socketService.mudConnectStatus(_id).subscribe(
+    //       flag => {other.v.connected = flag;
+    //       console.log("S05-mudclient-connecting-4",_id,flag);
+    //     });
+    //   other.obs_signals = other.socketService.mudReceiveSignals(_id).subscribe( 
+    //       musi => { 
+    //         MudSignalHelpers.mudProecessSignals(other,musi,_id);
+    //   });
+    //   other.obs_data = other.socketService.mudReceiveData(_id).subscribe(outline => {
+    //     MudSignalHelpers.mudProcessData(other,_id,outline);
+    //   });
+    // });
   }
     
 
@@ -382,7 +423,8 @@ export class MudclientComponent implements AfterViewChecked,OnInit,OnDestroy {
     private cdRef:ChangeDetectorRef,
     private ansiService:AnsiService,
     private dialogService:DialogService,
-    private socketService: SocketService,
+    // private socketService: SocketService,
+    private socketsService: SocketsService,
     public filesrv: FilesService,
     public wincfg:WindowService,
     private srvcfgService:ServerConfigService,

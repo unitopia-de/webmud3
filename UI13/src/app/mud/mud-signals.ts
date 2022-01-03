@@ -136,13 +136,13 @@ export class MudSignalHelpers {
                   switch(xsplit[0]) {
                     case 'FileOpen':
                       // Files.OpenFile { "file": "/w/myonara/ed.tmp" }
-                      other.socketService.sendGMCP(_id,"Files","OpenFile",{"file":xsplit[1]+xsplit[2]});
+                      other.socketsService.sendGMCP(_id,"Files","OpenFile",{"file":xsplit[1]+xsplit[2]});
                       break;
                     case 'ChangeDir':
                       if (xsplit[2]=="../") {
-                        other.socketService.sendGMCP(_id,"Files","ChDir",{"dir":xsplit[2]});
+                        other.socketsService.sendGMCP(_id,"Files","ChDir",{"dir":xsplit[2]});
                       } else {
-                        other.socketService.sendGMCP(_id,"Files","ChDir",{"dir":xsplit[1]+xsplit[2]});
+                        other.socketsService.sendGMCP(_id,"Files","ChDir",{"dir":xsplit[1]+xsplit[2]});
                       }
                       break;
                   }
