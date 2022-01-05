@@ -1,4 +1,4 @@
-<div #mudMenu [style.width.px]='v.ref_width'><app-mudmenu [connected]="v.connected" [scrollLock]="v.scrollLock" [mud_id]="mudc_id"  (menuAction)="menuAction($event)"></app-mudmenu></div>
+<div #mudMenu [style.width.px]='v.ref_width'><app-mudmenu [connected]="v.connected" [scrollLock]="v.scrollLock" [mud_id]="mudc_id"  [mud_name]="cfg.mudname" (menuAction)="menuAction($event)"></app-mudmenu></div>
 <div class='mud-heigth'>
 <div class="above-scroller" *ngIf='v.sizeCalculated2' #scroller (scroll)="scroll()" [style.width.px]='v.ref_width'>
     <div class="scroller" [style.min-width.px]='mudBlock.nativeElement.scrollWidth'></div>
