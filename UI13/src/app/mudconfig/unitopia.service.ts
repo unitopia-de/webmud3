@@ -72,6 +72,12 @@ export class UnitopiaService {
         gmcpcfg.initial_menu.name = 'Vertonung';
         cb_add_gmcp_module(gmcpcfg);
         return;
+      case 'input':
+      case 'input 1':
+        gmcpcfg.module_name = 'Input';
+        gmcpcfg.version = '1';
+        cb_add_gmcp_module(gmcpcfg);
+        return;
       case 'files':
       case 'files 1':
         gmcpcfg.module_name = 'Files';
@@ -119,6 +125,9 @@ export class UnitopiaService {
       case 'files':
       case 'files 1':
           cb_switch(_id,'Files 1',true);
+          return;
+      case 'input':
+      case 'input 1':
           return;
       case 'char.items':
       case 'char.items 1':

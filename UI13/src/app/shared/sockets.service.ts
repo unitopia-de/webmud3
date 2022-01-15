@@ -31,6 +31,7 @@ export class SocketsService {
       this.ioSocket.mudList().toPromise()
       .then(data => {
         other.mudlist = data.mudlist;
+        console.log("S42: mudlist:",other.mudlist);
       })
     }
     public mudConnect(mudOb:MudConfig):Observable<IoResult> {

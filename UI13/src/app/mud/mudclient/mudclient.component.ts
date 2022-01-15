@@ -82,7 +82,20 @@ export class MudclientComponent implements AfterViewChecked,OnInit,OnDestroy {
   }
   menuAction(act : any) {
     switch(act.item.id) {
-      case "MUD:MENU": return; // no action/with submenu!
+      case "MUD:MENU": 
+        return; // no action/with submenu!
+      default: 
+        if (act.item.id.startsWith('MUD:CONNECT:')) {
+          const mudkey = act.item.id.split(':')[2];
+          console.log(act.item.id);
+          this.mudName = mudkey;
+          this.connect();
+          const FirstFocus = this.mudInput.nativeElement;
+          if (FirstFocus) {
+            FirstFocus.focus();
+          }
+          return;
+        }
       case "MUD:CONNECT":
         if (typeof this.cfg !== 'undefined' && typeof this.cfg.mudname !== 'undefined'
               && this.cfg.mudname !== '') {
@@ -128,7 +141,6 @@ export class MudclientComponent implements AfterViewChecked,OnInit,OnDestroy {
         // console.log('cs=',other.cs,tmpJson,tmp64);
         other.cookieService.set('mudcolors', tmp64);
         return;
-      default: break;
     }
     console.log("mudclient-menuaction:",act);
   }  
@@ -153,6 +165,30 @@ export class MudclientComponent implements AfterViewChecked,OnInit,OnDestroy {
       }
       formatedString += fstr+'\r\n';
       return formatedString;
+  }
+  public tableOutput(words:string[],screen:number):string {
+    var width:number = 1;
+    words.forEach(word => {
+      if (word.length > width) {
+        width = word.length;
+      }
+    })
+    width++;
+    var cols:number = Math.max(1,Math.floor((screen+1) / (width+1)));
+    var lines:number = Math.floor( (words.length + cols - 1) / cols);
+    width = Math.max(width+1, Math.floor((screen + 1) / cols));
+    var r:string[] = [];
+    for(var line=0;line<lines;line++) {
+      var s="";
+      var colMin = Math.min(cols,Math.floor((words.length - line + lines - 1) / lines));
+      for (var col=0;col<colMin;col++) {
+        var word = words[line+col*lines];
+        var len = width - word.length;
+        s += word + " ".repeat(len);
+      }
+      r.push(s);
+    }
+    return "\r\n"+r.join('\r\n');
   }
   
   sendMessage() {
@@ -251,6 +287,9 @@ export class MudclientComponent implements AfterViewChecked,OnInit,OnDestroy {
         a2h.text = "\r\n";
         this.mudlines.push(a2h);
         return;
+      case "Tab":
+        this.socketsService.sendGMCP(this.ioMud.MudId,"Input","Complete",this.inpmessage);
+        return;
       default:
         this.inpPointer = -1;
         return;
@@ -292,6 +331,7 @@ export class MudclientComponent implements AfterViewChecked,OnInit,OnDestroy {
           return;
         case 'IoMud':
           other.ioMud = (ioResult.Data as IoMud);
+          other.v.connected = this.ioMud.connected;
           switch (ioResult.MsgType) {
             case 'mud-connect':
               other.mudc_id = other.ioMud.MudId;
@@ -304,6 +344,7 @@ export class MudclientComponent implements AfterViewChecked,OnInit,OnDestroy {
               MudSignalHelpers.mudProcessData(other,other.ioMud.MudId,[ioResult.ErrorType,undefined]);
               return;
             case 'mud-disconnect':
+              other.v.connected = false;
               MudSignalHelpers.mudProcessData(other,other.ioMud.MudId,[ioResult.ErrorType,undefined]);
               return;
             default:

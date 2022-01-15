@@ -74,12 +74,13 @@ export class IoMud {
         socket.on('mud-disconnected', function(id) {
           if (id != other.MudId) {
             console.error('S11: mud-disconnected:',id,other.MudId);
-            observer.next(IoResult.getResult('IoMud',id,null,'mud-disconnect-error',other));
+            other.disconnectFromMudClient(id);
             return;
           }
           other.connected = false;
           console.info('S11: mud-client disconnected-server');
           observer.next(IoResult.getResult('IoMud',other.MudId,'mud-disconnect','\r\n [Verbindung getrennt]\r\n',other));
+          other.disconnectFromMudClient(id);
         });
         socket.on('mud-output', function(id,buffer) {
           if (other.MudId !== id) {
@@ -169,6 +170,32 @@ export class IoMud {
                 default:break;
               }
               break;
+            case 'input':
+              switch (msg.toLowerCase().trim()) {
+                case 'completetext':
+                  r.musi = {
+                    signal: 'Input.CompleteText',
+                    id: data,
+                  }
+                  observer.next(r);
+                  return;
+                case 'completechoice':
+                  r.musi = {
+                    signal: 'Input.CompleteChoice',
+                    id: data,
+                  }
+                  observer.next(r);
+                  return;
+                case 'completenone':
+                  r.musi = {
+                    signal: 'Input.CompleteNone',
+                    id: '',
+                  }
+                  observer.next(r);
+                  return;
+                default: break;
+              }
+              break;
             case 'char':
             switch (msg.toLowerCase().trim()) {
               case 'name':
@@ -183,11 +210,13 @@ export class IoMud {
                     wizard: data.wizard,
                   }
                   other.mudSwitchGmcpModule(id,"Files 1",true);
+                  other.mudSwitchGmcpModule(id,"Input 1",true);
                 } else {
                   r.musi = {
                     signal: 'name@mud',
                     id: data.name + '@' + other.mudConfig['gmcp-mudname'],
                   }
+                  other.mudSwitchGmcpModule(id,"Input 1",true);
                 }
                 // console.debug('GMCP-char-name-signal: ',titleSignal);
                 observer.next(r);
@@ -357,8 +386,12 @@ export class IoMud {
     public disconnectFromMudClient(id:string) {
       if (this.MudId == id) {
         this.connected = false;
+        const r = IoResult.getResult('IoMud',id,'mud-disconnect','\r\n [Verbindung getrennt]\r\n',this);
+        this.eventBus.emit(r);
         this.uplink.reportId('IoMud',id,null);
+        console.log("S06: disconnectFromMudClient known ids:",id);
       } else {
+        this.uplink.reportId('IoMud',id,null);
         console.log("S06: disconnectFromMudClient different ids:",id,this.MudId);
       }
     }
@@ -497,6 +530,7 @@ export class IoSocket {
     public reportId(type:string,id:string,ob:any){
         if (ob == null && type == 'IoMud' && this.MudIndex.hasOwnProperty(id)) {
           delete this.MudIndex[id];
+          console.log("Count IoMuds:",this.MudIndex.length,id);
         } else if (ob!=null && type == 'IoMud') {
           this.MudIndex[id] = ob;
         }

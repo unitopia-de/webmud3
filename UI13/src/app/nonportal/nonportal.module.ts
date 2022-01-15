@@ -5,12 +5,13 @@ import { OrbitComponent } from './orbit/orbit.component';
 import { Uni1993Component } from './uni1993/uni1993.component';
 import { UnitopiaComponent } from './unitopia/unitopia.component';
 import { PrimeModule } from '../prime.module';
+import { DualComponent } from './dual/dual.component';
 
 @NgModule({
   declarations: [
     UnitopiaComponent, 
     OrbitComponent, 
-    Uni1993Component
+    Uni1993Component, DualComponent
     
   ],
   imports: [
@@ -21,7 +22,8 @@ import { PrimeModule } from '../prime.module';
   exports:[
     UnitopiaComponent, 
     OrbitComponent, 
-    Uni1993Component
+    Uni1993Component,
+    DualComponent
     ]
 })
 export class NonportalModule { }

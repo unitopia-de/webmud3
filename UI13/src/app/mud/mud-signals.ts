@@ -69,6 +69,14 @@ export class MudSignalHelpers {
               other.filesrv.startFilesModule();
             }
             break;
+          case 'Input.CompleteText':
+            other.inpmessage = musi.id;
+            return;
+          case 'Input.CompleteChoice':
+            this.mudProcessData(other,_id,[undefined,other.tableOutput(musi.id,78)]);
+            return;
+          case 'Input.CompleteNone': // TODO beep??
+            return;
           case 'Sound.Play.Once':
             let audio = new Audio();
             audio.src = musi.playSoundFile;
