@@ -176,17 +176,23 @@ export class EditorComponent implements OnInit,AfterViewInit  {
   }
 
   ngOnInit(): void {
+    const other = this;
     this.updateMenu();
     this._config.inComingEvents.subscribe((event)=>{
       var msgSplit = event.split(":");
-      console.log("event:",event);
+      console.log("editor.inComingEvents.event:",event);
       switch (msgSplit[0]) {
         case "resize":
         case "resize_init":
         case 'resize_end':
           if (msgSplit.length == 3) {
-            this.updateMyStyle(parseInt(msgSplit[1]),parseInt(msgSplit[2]));
+            other.updateMyStyle(parseInt(msgSplit[1]),parseInt(msgSplit[2]));
           }
+          break;
+        case 'saved:false':
+        case 'saved:true':
+          other.text = this.aceEditor.getValue();
+          other._config.data['content'] = other.text;
           break;
         }
     },(error)=>{

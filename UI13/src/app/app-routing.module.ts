@@ -8,7 +8,7 @@ import { DualComponent } from './nonportal/dual/dual.component';
 const routes: Routes = [
   { path: 'orbit',   /* canActivate: [NonPortalGuard], */component: OrbitComponent },
   { path: 'uni1993',   /* canActivate: [NonPortalGuard], */component: Uni1993Component },
-  { path: 'dual',   /* canActivate: [NonPortalGuard], */component: DualComponent },
+  // { path: 'dual',   /* canActivate: [NonPortalGuard], */component: DualComponent },
   /*{ path: 'portal',  canActivate: [PortalGuard],component: UnitopiaComponent },*/
   { path: '',       /* canActivate: [NonPortalGuard], */component: UnitopiaComponent,  pathMatch: 'full' },
   { path: '**', redirectTo: '/'}
