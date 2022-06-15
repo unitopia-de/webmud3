@@ -1,23 +1,23 @@
 # based on node 10, alpine for least resource requirements.
-FROM node:14-alpine3.14 AS ng-build-stage
+FROM node:16-alpine3.16 AS ng-build-stage
 
 # working dir in build stage
 WORKDIR /app
 
 # fetching packages and...
-COPY UI14/package*.json /app/
+COPY UI13/package*.json /app/
 
-RUN echo https://alpine.mirror.wearetriple.com/v3.14/main > /etc/apk/repositories; \
-    echo https://alpine.mirror.wearetriple.com/v3.14/community >> /etc/apk/repositories
+RUN echo https://alpine.mirror.wearetriple.com/v3.16/main > /etc/apk/repositories; \
+    echo https://alpine.mirror.wearetriple.com/v3.16/community >> /etc/apk/repositories
 
 # ... install them together with angular-cli, prequisite git included.
 RUN apk update && apk upgrade && \
     apk add --no-cache bash git openssh \
-    && npm install -g @angular/cli \
-    &&  npm install
+    && npm install --location=global @angular/cli \
+    && npm install
 
 # fetch the angular sources and stuff
-COPY ./UI14/ /app/
+COPY ./UI13/ /app/
 
 # exchange webmud3 in baseref webmud3\UI8\src\index.html
 RUN sed -i 's-%%BASEREF%%-/webmud3test/-' /app/src/index.html 
@@ -27,7 +27,7 @@ RUN sed -i 's-%%BASEREF%%-/webmud3test/-' /app/src/index.html
 RUN ng build -c development --output-path=dist/out
 
 # produces the final node.js immage.
-FROM node:14-alpine3.14 AS webmud3
+FROM node:16-alpine3.16 AS webmud3
 
 # again a working dir...
 WORKDIR /app
