@@ -33,4 +33,9 @@
   <div class="mud-message" display="inline" *ngFor="let a2hMudline of mudlines"><app-mudspan [colorOff]='cs.colorOff' [blackToWhite]='cs.blackOnWhite' [invertFlag]="cs.invert" [ansi2html]="a2hMudline" [localEchoColor]="cs.localEchoColor" [localEchoBackground]="cs.localEchoBackground" [localEchoActive]="cs.localEchoActive"></app-mudspan></div>
 </div>
 </div>
-<input pFocusTrap pInputText [(type)]="v.inpType" (focus)="focusFunction()" (focusout)="focusOutFunction()" class="mud-input" [style.width.px]='v.ref_width' #mudInput (keyup.enter)="sendMessage()" (keyup)="onKeyUp($event)" [(ngModel)]="inpmessage" />
+<ng-template *ngIf="v.inpType=='text'">
+  <textarea pFocusTrap pInputTextarea (focus)="focusFunction()" (focusout)="focusOutFunction()" class="mud-input" [style.width.px]='v.ref_width' #mudInput (keydown)="onKeyDown($event)" (keyup)="onKeyUp($event)" [(ngModel)]="inpmessage" />
+</ng-template>
+<ng-template *ngIf="v.inpType!='text'">
+  <input pFocusTrap pInputText [(type)]="v.inpType" (focus)="focusFunction()" (focusout)="focusOutFunction()" class="mud-input" [style.width.px]='v.ref_width' #mudInput (keyup.enter)="sendMessage()" (keyup)="onKeyUp($event)" [(ngModel)]="inpmessage" />
+</ng-template>

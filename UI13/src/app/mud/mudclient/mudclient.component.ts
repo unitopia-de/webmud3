@@ -220,6 +220,10 @@ export class MudclientComponent implements AfterViewChecked,OnInit,OnDestroy {
     }
     this.inpmessage = '';
   }
+  
+  onKeyDown(event:KeyboardEvent) {
+    console.log('keydown',event);
+  }
 
   onKeyUp(event:KeyboardEvent) {
     
