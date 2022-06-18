@@ -1,0 +1,23 @@
+<div class="grid" *ngIf="keypad ; else loading">
+    <div class="col-3">-</div>
+    <div class="col-3"><app-keyone [prefix]="keypad.prefix" key="/" [value]="keypad.keys['NumpadDivide']" (keyAction)="valAction($event)"></app-keyone></div>
+    <div class="col-3"><app-keyone [prefix]="keypad.prefix" key="*" [value]="keypad.keys['NumpadMultiply']" (keyAction)="valAction($event)"></app-keyone></div>
+    <div class="col-3"><app-keyone [prefix]="keypad.prefix" key="-" [value]="keypad.keys['NumpadSubstract']" (keyAction)="valAction($event)"></app-keyone></div>
+            <div class="col-3"><app-keyone [prefix]="keypad.prefix" key="7" [value]="keypad.keys['Numpad7']" (keyAction)="valAction($event)"></app-keyone></div>
+            <div class="col-3"><app-keyone [prefix]="keypad.prefix" key="8" [value]="keypad.keys['Numpad8']" (keyAction)="valAction($event)"></app-keyone></div>
+            <div class="col-3"><app-keyone [prefix]="keypad.prefix" key="9" [value]="keypad.keys['Numpad9']" (keyAction)="valAction($event)"></app-keyone></div>
+            <div class="col-3"><app-keyone [prefix]="keypad.prefix" key="+" [value]="keypad.keys['NumpadAdd']" (keyAction)="valAction($event)"></app-keyone></div>
+    <div class="col-3"><app-keyone [prefix]="keypad.prefix" key="4" [value]="keypad.keys['Numpad4']" (keyAction)="valAction($event)"></app-keyone></div>
+    <div class="col-3"><app-keyone [prefix]="keypad.prefix" key="5" [value]="keypad.keys['Numpad5']" (keyAction)="valAction($event)"></app-keyone></div>
+    <div class="col-3"><app-keyone [prefix]="keypad.prefix" key="6" [value]="keypad.keys['Numpad6']" (keyAction)="valAction($event)"></app-keyone></div>
+    <div class="col-3"></div>
+            <div class="col-3"><app-keyone [prefix]="keypad.prefix" key="1" [value]="keypad.keys['Numpad1']" (keyAction)="valAction($event)"></app-keyone></div>
+            <div class="col-3"><app-keyone [prefix]="keypad.prefix" key="2" [value]="keypad.keys['Numpad2']" (keyAction)="valAction($event)"></app-keyone></div>
+            <div class="col-3"><app-keyone [prefix]="keypad.prefix" key="3" [value]="keypad.keys['Numpad3']" (keyAction)="valAction($event)"></app-keyone></div>
+            <div class="col-3"></div>
+    <div class="col-3"></div>
+    <div class="col-3"><app-keyone [prefix]="keypad.prefix" key="0" [value]="keypad.keys['Numpad0']" (keyAction)="valAction($event)"></app-keyone></div>
+    <div class="col-3"><app-keyone [prefix]="keypad.prefix" key="," [value]="keypad.keys['NumpadDecimal']" (keyAction)="valAction($event)"></app-keyone></div>
+    <div class="col-3"></div>
+</div>
+<ng-template #loading>Daten werden geladen!</ng-template>

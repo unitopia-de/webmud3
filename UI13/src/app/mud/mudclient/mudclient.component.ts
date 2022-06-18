@@ -17,6 +17,8 @@ import { FilesService } from '../files.service';
 import { CookieService } from 'ngx-cookie-service';
 import { MudConfig } from 'src/app/mudconfig/mud-config';
 import { IoMud } from 'src/app/shared/sockets-config';
+import { KeypadConfigComponent } from 'src/app/modeless/keypad-config/keypad-config.component';
+import { KeypadData } from 'src/app/shared/keypad-data';
 
 @Component({
   selector: 'app-mudclient',
@@ -28,7 +30,8 @@ export class MudclientComponent implements AfterViewChecked,OnInit,OnDestroy {
   
   @Input() cfg : WebmudConfig;
   @ViewChild('mudBlock', {static: false}) mudBlock : ElementRef;
-  @ViewChild('mudInput', {static: false}) mudInput: ElementRef;
+  @ViewChild('mudInputLine', {static: false}) mudInputLine: ElementRef;
+  @ViewChild('mudInputArea', {static: false}) mudInputArea: ElementRef;
   @ViewChild('mudTest', {static: false}) mudTest: ElementRef;
   @ViewChild('mudMenu', {static: false}) mudMenu : ElementRef;
   @ViewChild('scroller', {static: false}) scroller: ElementRef; 
@@ -53,6 +56,7 @@ export class MudclientComponent implements AfterViewChecked,OnInit,OnDestroy {
     localEchoBackground: '#000000',
     localEchoActive:true
   }
+  public keySetters : KeypadData = new KeypadData();
   private d = {
     ref_height_ratio:1,
     mudc_height:90,
@@ -72,13 +76,24 @@ export class MudclientComponent implements AfterViewChecked,OnInit,OnDestroy {
   public filesWindow: WindowConfig;
 
   private obs_connect:any;
-  private obs_connected:any;
+//   private obs_connected:any;
   private obs_data:any;
   private obs_debug:any;
   private obs_signals:any;
 
   scroll() {
     this.mudBlock.nativeElement.scrollTo(this.scroller.nativeElement.scrollLeft,0);
+  }
+  doFocus() {
+    var FirstFocus=undefined;
+    if (this.v.inpType != 'text' && typeof this.mudInputLine !== 'undefined') {
+      FirstFocus = this.mudInputLine.nativeElement;
+    } else if (typeof this.mudInputArea !== 'undefined') {
+      FirstFocus = this.mudInputArea.nativeElement;
+    }
+    if (FirstFocus) {
+      FirstFocus.focus();
+    }
   }
   menuAction(act : any) {
     switch(act.item.id) {
@@ -90,10 +105,7 @@ export class MudclientComponent implements AfterViewChecked,OnInit,OnDestroy {
           console.log(act.item.id);
           this.mudName = mudkey;
           this.connect();
-          const FirstFocus = this.mudInput.nativeElement;
-          if (FirstFocus) {
-            FirstFocus.focus();
-          }
+          this.doFocus();
           return;
         }
       case "MUD:CONNECT":
@@ -101,10 +113,7 @@ export class MudclientComponent implements AfterViewChecked,OnInit,OnDestroy {
               && this.cfg.mudname !== '') {
           this.mudName = this.cfg.mudname;
           this.connect();
-          const FirstFocus = this.mudInput.nativeElement;
-          if (FirstFocus) {
-            FirstFocus.focus();
-          }
+          this.doFocus();
         }  
         return;
       case "MUD:DISCONNECT":
@@ -114,8 +123,15 @@ export class MudclientComponent implements AfterViewChecked,OnInit,OnDestroy {
       case 'MUD:SCROLL':
         this.v.scrollLock = !this.v.scrollLock;
         return;
+      case "MUD:NUMPAD":
+        this.dialogService.open(KeypadConfigComponent, {
+              data: this.keySetters,
+              header: 'NumPad-Belegung',
+              width: '90%'
+          });
+        return;
       case "MUD:VIEW":
-        const ref = this.dialogService.open(ColorSettingsComponent, {
+        this.dialogService.open(ColorSettingsComponent, {
           data: {
             cs: this.cs,
             cb: this.menuAction,
@@ -142,7 +158,7 @@ export class MudclientComponent implements AfterViewChecked,OnInit,OnDestroy {
         other.cookieService.set('mudcolors', tmp64);
         return;
     }
-    console.log("mudclient-menuaction:",act);
+    
   }  
 
   private wordWrap(str:string, cols:number):string {
@@ -222,7 +238,44 @@ export class MudclientComponent implements AfterViewChecked,OnInit,OnDestroy {
   }
   
   onKeyDown(event:KeyboardEvent) {
-    console.log('keydown',event);
+    if (this.v.inpType!='text') return;
+    var modifiers = '';
+    if (event.shiftKey) {
+      modifiers += 'Shift';
+    }
+    if (event.ctrlKey) {
+      modifiers += 'Ctrl';
+    }
+    if (event.altKey) {
+      modifiers += 'Alt';
+    }
+    if (event.metaKey) {
+      modifiers += 'Meta';
+    }
+    if (modifiers == 'CtrlAlt') return;
+    if (modifiers == '' && event.key == "Enter") {
+      event.returnValue = false;
+      event.preventDefault();
+      this.sendMessage()
+      return;
+    }
+    if (typeof this.keySetters === 'undefined'){
+      console.log('keydown-1',modifiers,event.code);
+      return;
+    }
+    if (event.code.startsWith("Numpad") || event.code.startsWith("F")) {
+      modifiers += '|'+event.code;
+      if (typeof this.keySetters.getCompoundKey(modifiers) !== 'undefined') {
+        const inp = this.keySetters.getCompoundKey(modifiers);
+        this.socketsService.mudSendData(this.mudc_id,inp);
+        event.returnValue = false;
+        event.preventDefault();
+        return;
+      } else {
+        console.log('keydown-2',modifiers,event.code);
+      }
+    }
+    
   }
 
   onKeyUp(event:KeyboardEvent) {
@@ -402,7 +455,7 @@ export class MudclientComponent implements AfterViewChecked,OnInit,OnDestroy {
     var ow = this.mudBlock.nativeElement.offsetWidth;
     var tmpheight = this.getViewPortHeight();
     tmpheight -= this.mudMenu.nativeElement.offsetHeight;
-    tmpheight -= 2*this.mudInput.nativeElement.offsetHeight;
+    tmpheight -= 2*this.mudInputArea.nativeElement.offsetHeight;
     tmpheight = Math.floor(Math.floor(tmpheight/(this.d.ref_height_ratio))*this.d.ref_height_ratio+0.5);
     var other = this;
     setTimeout(function(){
@@ -443,11 +496,7 @@ export class MudclientComponent implements AfterViewChecked,OnInit,OnDestroy {
 
     var tmpwidth = this.getViewPortWidth()/1.0125;
     if (!this.v.sizeCalculated) {
-      const FirstFocus = this.mudInput.nativeElement;
-
-      if (FirstFocus) {
-        FirstFocus.focus();
-      }
+      this.doFocus();
         tmpwidth = this.mudTest.nativeElement.offsetWidth * 1.0125;
       this.d.ref_height_ratio = this.mudTest.nativeElement.offsetHeight/25.0;
       setTimeout(function(){

@@ -61,8 +61,8 @@ export class MudSignalHelpers {
         console.debug('mudclient-socketService.mudReceiveSignals',_id,musi.signal);
         // console.debug('mudclient-socketService.mudReceiveSignals',_id,musi);
         switch (musi.signal) {
-          case 'NOECHO-START': other.v.inpType = 'password'; break;
-          case 'NOECHO-END':   other.v.inpType = 'text'; break;
+          case 'NOECHO-START': other.v.inpType = 'password'; other.doFocus(); break;
+          case 'NOECHO-END':   other.v.inpType = 'text'; other.doFocus(); break;
           case 'name@mud':
             other.titleService.setTitle(musi.id);
             if (typeof musi.wizard !== 'undefined') {

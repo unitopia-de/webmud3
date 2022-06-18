@@ -123,6 +123,14 @@ export class MudmenuComponent implements OnInit {
     );
     this.menuSrv.add_menu_item(
       this.menuID,
+      1,
+      'MUD:NUMPAD',
+      this.i18n.get('Numpad'),
+      'pi pi-key',
+      !this._connected,true
+    );
+    this.menuSrv.add_menu_item(
+      this.menuID,
       0,
       'MUD:VIEW',
       this.i18n.get('Farben'),
