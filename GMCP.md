@@ -1,5 +1,7 @@
 # GMCP support of WEbmud3 (to be snychronized with project)
 
+* UNItopia support: https://github.com/unitopia-de/client-plugins/wiki/GMCP
+
 In UNItopia there is now more modules and messages supported, here now following the status:
 ### Module Core, MUD => Client
 - [x]  Core.Ping: Fully Implemented with a button for GMCP-Ping.
