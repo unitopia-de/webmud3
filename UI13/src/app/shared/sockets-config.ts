@@ -6,6 +6,7 @@ import { MudSignals, FileInfo } from '../mud/mud-signals';
 import { ServerConfigService } from './server-config.service';
 import { GmcpService } from '../gmcp/gmcp.service';
 import { MudListItem } from '../mud/mud-list-item';
+import { OneKeypadData } from './keypad-data';
 
 export interface HashTable<T> {
    [key: string]: T;
@@ -211,13 +212,15 @@ export class IoMud {
                   }
                   other.mudSwitchGmcpModule(id,"Files 1",true);
                   other.mudSwitchGmcpModule(id,"Input 1",true);
+                  other.mudSwitchGmcpModule(id,"Numpad 1",true);
                 } else {
                   r.musi = {
                     signal: 'name@mud',
                     id: data.name + '@' + other.mudConfig['gmcp-mudname'],
                   }
                   other.mudSwitchGmcpModule(id,"Input 1",true);
-                }
+                  other.mudSwitchGmcpModule(id,"Numpad 1",true);
+              }
                 // console.debug('GMCP-char-name-signal: ',titleSignal);
                 observer.next(r);
                 return;
@@ -346,6 +349,22 @@ export class IoMud {
                   return;
                 default: break;
               }
+              break;
+            case "numpad":
+              switch(msg.toLowerCase().trim()) {
+                case 'sendlevel': 
+                  const num = new OneKeypadData(data.prefix);
+                  num.keys = data.keys;
+                  r.musi = {
+                    signal: 'Numpad.SendLevel',
+                    id:id,
+                    numpadLevel: num,
+                  }
+                  console.debug('Numpad.SendLevel-1',r);
+                  observer.next(r);
+                  return;
+              }
+              break;
             default: break;
           }
           console.warn('G20: GMCP-unknown:',mod,msg,data);return;
@@ -362,8 +381,10 @@ export class IoMud {
       }
       console.debug('G01: GMCP-send:',id,mod,msg,data);
       this.uplink.socket.emit('mud-gmcp-outgoing',id,mod,msg,data);
+      return true;
     }
     public mudSwitchGmcpModule(_id:string,mod:string,onoff:boolean):boolean {
+      console.log("mudSwitchGmcpModule-",mod,onoff);
       if (onoff) {
         return this.sendGMCP(_id,'Core','Supports.Add',[mod]);
       } else {
@@ -378,6 +399,7 @@ export class IoMud {
       // console.debug('mudSendData-id ',id);
       // console.debug('mudSendData-data',id,data);
       this.uplink.socket.emit('mud-input',id,data);
+      return true;
     }
     public setMudOutputSize(height:number,width : number) {
       console.log('S05: resize', this.MudId,height,width);
