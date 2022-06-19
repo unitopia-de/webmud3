@@ -11,7 +11,7 @@ export class KeypadComponent implements OnInit {
     @Input() set keypad(one:OneKeypadData) {
     if (typeof  one !== 'undefined') this._keypad = one;
   } get config():OneKeypadData {return this._keypad};
-  private _keypad:OneKeypadData=new OneKeypadData();
+  _keypad:OneKeypadData=new OneKeypadData('');
   
   @Output('keyAction') keyAction= new EventEmitter<string>();
   

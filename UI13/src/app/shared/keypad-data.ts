@@ -8,13 +8,16 @@ export class OneKeypadData {
     public getKey(key:string):string {
         return this.keys[key]||'';
     }
+    constructor(p:string) {
+        this.prefix = p;
+    }
 }
 
 export class KeypadData {
     public levels : any = {};
     public addKey(prefix:string,key:string,value:string) {
         if (typeof this.levels[prefix] === 'undefined') {
-            var level = new OneKeypadData();
+            var level = new OneKeypadData(prefix);
             level.addKey(key,value);
             this.levels[prefix] = level;
         } else {
@@ -22,11 +25,18 @@ export class KeypadData {
         }
     }
     public getLevel(prefix:string):OneKeypadData {
-        return this.levels[prefix]||new OneKeypadData();
+        if (typeof this.levels[prefix]=='undefined') {
+            var level = new OneKeypadData(prefix);
+            this.levels[prefix] = level;
+        }
+        return this.levels[prefix];
     }
     public getCompoundKey(modifiers:string):string {
         const msplit = modifiers.split("|");
         const lvl = this.getLevel(msplit[0]);
         return lvl.getKey(msplit[1]);
+    }
+    public setLevel(numpad:OneKeypadData) {
+         this.levels[numpad.prefix] = numpad;
     }
 }

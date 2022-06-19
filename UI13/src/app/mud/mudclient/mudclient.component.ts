@@ -125,10 +125,30 @@ export class MudclientComponent implements AfterViewChecked,OnInit,OnDestroy {
         return;
       case "MUD:NUMPAD":
         this.dialogService.open(KeypadConfigComponent, {
-              data: this.keySetters,
+              data: {
+                keypad:this.keySetters,
+                cb: this.menuAction,
+                cbThis:this,
+              },
               header: 'NumPad-Belegung',
               width: '90%'
           });
+        return;
+      case "MUD:NUMPAD:RETURN":
+        const numpadOther = act.item.cbThis;
+        numpadOther.keySetters = act.item.keypad;
+        console.log("MUD:NUMPAD:RETURN",act.item.event);
+        var numpadSplit = act.item.event.split(":");
+        if (numpadSplit[2]=='undefined') {
+          numpadSplit[2] = '';
+        }
+        numpadOther.keySetters.addKey(numpadSplit[0],numpadSplit[1],numpadSplit.slice(2).join(":"));
+        numpadOther.socketsService.sendGMCP(numpadOther.mudc_id,"Numpad","Update",{
+          "prefix":numpadSplit[0],
+          "key": numpadSplit[1],
+          "value":numpadSplit.slice(2).join(":"),
+        })
+        // doEvent: act.item.event
         return;
       case "MUD:VIEW":
         this.dialogService.open(ColorSettingsComponent, {
@@ -517,7 +537,6 @@ export class MudclientComponent implements AfterViewChecked,OnInit,OnDestroy {
     private cdRef:ChangeDetectorRef,
     private ansiService:AnsiService,
     private dialogService:DialogService,
-    // private socketService: SocketService,
     private socketsService: SocketsService,
     public filesrv: FilesService,
     public wincfg:WindowService,

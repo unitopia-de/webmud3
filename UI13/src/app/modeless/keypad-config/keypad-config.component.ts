@@ -1,5 +1,8 @@
 import { Component, OnInit, Input, AfterContentInit } from '@angular/core';
 import { WindowConfig } from 'src/app/shared/window-config';
+import {DynamicDialogRef} from 'primeng/dynamicdialog';
+import {DynamicDialogConfig} from 'primeng/dynamicdialog';
+import { ReadLanguageService } from 'src/app/read-language.service';
 import { KeypadData } from 'src/app/shared/keypad-data';
 
 @Component({
@@ -7,32 +10,35 @@ import { KeypadData } from 'src/app/shared/keypad-data';
   templateUrl: './keypad-config.component.html',
   styleUrls: ['./keypad-config.component.css']
 })
-export class KeypadConfigComponent implements OnInit,AfterContentInit {
+export class KeypadConfigComponent implements OnInit {
 
-  @Input() set config(cfg:WindowConfig) {
-    this._config = cfg;
-    console.log("KeypadConfigComponent-config:",cfg);
-    if (typeof cfg.data !== undefined) {
-      this.levels = <KeypadData> cfg.data;
-    }
-  } get config():WindowConfig {return this._config};
-  private _config:WindowConfig;
-  
-  public levels : KeypadData = new KeypadData();
+  public keypad : KeypadData = new KeypadData();
+  cb: Function;
+  cbThis:any;// paththrough
   
   public keyAction(event:string) {
-    this.config.outGoingEvents.next(event);
+    const newev = {
+      item: {
+        id: 'MUD:NUMPAD:RETURN',
+        cbThis:this.cbThis,
+        keypad:this.keypad,
+        event:event,
+      }
+    }
+    this.cb(newev);
   }
 
-  constructor() { }
+  constructor(
+    public i18n: ReadLanguageService,
+    public ref: DynamicDialogRef, 
+    public config: DynamicDialogConfig
+  ) { }
 
   ngOnInit(): void {
-    console.log('KeypadConfigComponent-1',this._config,this.levels)
+    this.keypad = <KeypadData> this.config.data.keypad;
+    this.cb = this.config.data['cb'];
+    this.cbThis = this.config.data['cbThis'];
+    console.log('KeypadConfigComponent-1',this.keypad)
   }
-
-  ngAfterContentInit(): void {
-    console.log('KeypadConfigComponent-2',this._config,this.levels)
-  }
-
 
 }

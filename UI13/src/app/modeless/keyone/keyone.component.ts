@@ -17,7 +17,7 @@ export class KeyoneComponent implements OnInit {
   public keyinp : string = '';
   
   submit() {
-    this.keyAction.emit(this.prefix+':'+this.key+'.'+this.keyinp);
+    this.keyAction.emit(this.prefix+':'+this.key+':'+this.keyinp);
   }
 
   constructor() { }

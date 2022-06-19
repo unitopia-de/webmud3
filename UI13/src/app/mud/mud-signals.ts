@@ -1,4 +1,5 @@
 import { WindowConfig } from "../shared/window-config";
+import { OneKeypadData } from '../shared/keypad-data';
 
 export class MudMessage {
   text: string;
@@ -12,6 +13,7 @@ export class MudSignals {
     filepath?: string;
     fileinfo? : FileInfo;
     entries?: FileEntries[];
+    numpadLevel?:OneKeypadData;
 }
 
 export class FileEntries {
@@ -163,6 +165,9 @@ export class MudSignalHelpers {
             return;
           case 'Core.Ping':
             other.togglePing = !other.togglePing;
+            return;
+          case 'Numpad.SendLevel':
+            other.keySetters.setLevel(musi.numpadLevel);
             return;
           case 'Core.GoodBye': 
           default: 
