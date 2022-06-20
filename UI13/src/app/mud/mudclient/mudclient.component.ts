@@ -227,12 +227,9 @@ export class MudclientComponent implements AfterViewChecked,OnInit,OnDestroy {
     return "\r\n"+r.join('\r\n');
   }
   
-  sendMessage() {
-    var other = this;
-    this.socketsService.mudSendData(this.mudc_id,this.inpmessage);
-    if (this.v.inpType == 'text' && this.inpmessage != '') {
+  private localEcho(other:any,inp:string) {
       other.ansiCurrent.ansi = '';
-      other.ansiCurrent.mudEcho = other.wordWrap(this.inpmessage,75);
+      other.ansiCurrent.mudEcho = other.wordWrap(inp,75);
       // other.messages.push({text:this.inpmessage+'\r\n'});
       var ts = new Date();
       other.ansiCurrent.timeString = ((ts.getDate() < 10)?"0":"") + ts.getDate() +"."
@@ -250,6 +247,14 @@ export class MudclientComponent implements AfterViewChecked,OnInit,OnDestroy {
         }
       }
       other.ansiCurrent = a2harr[a2harr.length-1];
+    
+  }
+  
+  sendMessage() {
+    var other = this;
+    this.socketsService.mudSendData(this.mudc_id,this.inpmessage);
+    if (this.v.inpType == 'text' && this.inpmessage != '') {
+      this.localEcho(other,this.inpmessage);
       if ((this.inpHistory.length==0 || (this.inpHistory.length >0 && this.inpHistory[0] != this.inpmessage))) {
         this.inpHistory.unshift(this.inpmessage);
       }
@@ -288,6 +293,7 @@ export class MudclientComponent implements AfterViewChecked,OnInit,OnDestroy {
       if (typeof this.keySetters.getCompoundKey(modifiers) !== 'undefined') {
         const inp = this.keySetters.getCompoundKey(modifiers);
         this.socketsService.mudSendData(this.mudc_id,inp);
+        this.localEcho(this,inp);// TODO abschaltbar
         event.returnValue = false;
         event.preventDefault();
         return;
