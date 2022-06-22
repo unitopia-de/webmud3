@@ -34,7 +34,11 @@ export class KeypadData {
     public getCompoundKey(modifiers:string):string {
         const msplit = modifiers.split("|");
         const lvl = this.getLevel(msplit[0]);
-        return lvl.getKey(msplit[1]);
+        const val = lvl.getKey(msplit[1]);
+        if (val == '') {
+            console.log("CompondKey Empty:", modifiers);
+        }
+        return val;
     }
     public setLevel(numpad:OneKeypadData) {
          this.levels[numpad.prefix] = numpad;

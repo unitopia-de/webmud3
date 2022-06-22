@@ -94,6 +94,25 @@ export class WindowService {
       return cfg;
     }
 
+    public findCharStatWindow(cfg : WindowConfig,data:Object) : WindowConfig {
+      if (this.findWindowByCfg(cfg)<0) {
+        cfg = new WindowConfig();
+        cfg.component = "CharStatComponent";
+        cfg.save = false;
+        cfg.wtitle = 'Charakter-Info';
+        cfg.data = data;
+        cfg.windowid = this.newWindow(cfg);
+      } else {
+        cfg.data = data;
+      }
+      cfg.dontCancel = false;
+      cfg.visible = true;
+      // this.OnMenuAction(cfg.windowid+":updateDir",this);
+      cfg.inComingEvents.emit('updateStats');
+      console.debug('findCharStatWindow',cfg);
+      return cfg;
+    }
+
     public OnMenuAction(event:string,winid:string,other:any) {
       if (!other.wincfg.has(winid)) {
         console.error("OnMenuAction-error:",[event,winid,other.wincfg]);
