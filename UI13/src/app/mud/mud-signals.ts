@@ -91,15 +91,15 @@ export class MudSignalHelpers {
             return;
           case 'status':
             other.charData.setStatus(musi.id);
-            this.updateCharStats(other,musi,_id);
+            this.updateCharStats(other,other.charData,_id);
             return;
           case 'vitals':
             other.charData.setVitals(musi.id);
-            this.updateCharStats(other,musi,_id);
+            this.updateCharStats(other,other.charData,_id);
             return;
           case 'stats':
             other.charData.setStats(musi.id);
-            this.updateCharStats(other,musi,_id);
+            this.updateCharStats(other,other.charData,_id);
             return;
           case 'Input.CompleteText':
             other.inpmessage = musi.id;

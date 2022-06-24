@@ -17,7 +17,7 @@ export class CharacterData {
     }
     public setStats(inp:string) {
         const csplit = inp.split('|');
-        const csArr = ['str','int','con','dex'];
+        const csArr : string[] = ['str','int','con','dex'];
         var i=0;
         var tmpOb:any = {};
         for(i=0;i<csplit.length;i++) {
@@ -40,6 +40,7 @@ export class CharacterData {
         for (i=0;i<csArr.length;i++) {
             this.cStats.push(tmpOb[csArr[i]]);
         }
+        console.log("setStats",this.cStats,csArr,tmpOb)
     }
     
     // con=34,2|dex=59,7|int=130|str=59,8

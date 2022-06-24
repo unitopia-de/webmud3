@@ -11,9 +11,12 @@ export class CharStatComponent implements OnInit {
 
   @Input() set config(cfg:WindowConfig) {
     this._config = cfg;
-    // console.log("config:",cfg);
+    console.log("CharStat-config:",cfg);
+    this.charData = <CharacterData> cfg.data;
   } get config():WindowConfig {return this._config};
   private _config:WindowConfig;
+
+  public charData : CharacterData;
 
   constructor(
   ) { 
@@ -22,7 +25,7 @@ export class CharStatComponent implements OnInit {
   ngOnInit(): void {
     console.debug("inComingEvents-CharStat-1");
     this.config.inComingEvents.subscribe((event:string)=>{
-      console.log("inComingEvents-CharStat-2",event);
+      console.log("inComingEvents-CharStat-2",event,this.charData);
     },(error)=>{
       console.error('incomingEvents-CharStat-3',error);
     },() => {
