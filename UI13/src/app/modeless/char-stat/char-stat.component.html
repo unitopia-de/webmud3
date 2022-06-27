@@ -5,9 +5,11 @@
     <div class="col-6">{{charData.cStatus}}</div>
     <div class="col-6">Vitals:</div>
     <div class="col-6">{{charData.cVitals}}</div>
-    <span *ngFor="let stat of charData.cStats">
-        <div class="col-6">{{stat.name}}</div>
-        <div class="col-6">{{stat.value}}</div>
-    </span>
 </div>
 <ng-template #loading>Daten werden geladen!</ng-template>
+<div *ngIf="charData!=undefined">
+    <div class="grid" *ngFor="let stat of charData.cStats">
+        <div class="col-6">{{stat.name}}</div>
+        <div class="col-6">{{stat.value}}</div>
+    </div>
+</div>
