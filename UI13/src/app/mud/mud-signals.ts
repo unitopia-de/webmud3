@@ -61,6 +61,7 @@ export class FileInfo {
 export class MudSignalHelpers {
   
     public static updateCharStats(other:any,musi:MudSignals,_id:string) {
+      return;
       let nooldcfg = (typeof other.charStatsWindow === 'undefined');
       let newcfg = other.wincfg.findCharStatWindow(other.charStatsWindow,musi);
       other.charStatsWindow = newcfg;
