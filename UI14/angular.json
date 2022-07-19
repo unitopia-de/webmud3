@@ -14,6 +14,8 @@
           "builder": "@angular-devkit/build-angular:browser",
           "options": {
             "allowedCommonJsDependencies": [
+               "ace-builds",
+               "angular2-uuid",
                "socket.io-client"
             ],
             "outputPath": "dist/UI14",
@@ -135,5 +137,7 @@
       }
     }
   },
-  "defaultProject": "UI14"
+  "cli": {
+    "analytics": "8bdb3947-8e70-4f9f-8c2b-d60a8684624b"
+  }
 }
