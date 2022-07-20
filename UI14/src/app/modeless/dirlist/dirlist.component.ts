@@ -22,7 +22,6 @@ export class DirlistComponent implements OnInit {
   private musi : MudSignals;
 
   constructor(
-    private winsrv:WindowService
   ) { 
   }
 

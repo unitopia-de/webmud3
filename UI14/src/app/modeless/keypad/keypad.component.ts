@@ -20,7 +20,7 @@ export class KeypadComponent implements OnInit {
     switch (evs[1]) {
       case "/": evs[1] = 'NumpadDivide'; break;
       case "*": evs[1] = 'NumpadMultiply'; break;
-      case '-': evs[1] = 'NumpadSubstract'; break;
+      case '-': evs[1] = 'NumpadSubtract'; break;
       case '+': evs[1] = 'NumpadAdd'; break;
       case ',': evs[1] = 'NumpadDecimal'; break;
       case '0':

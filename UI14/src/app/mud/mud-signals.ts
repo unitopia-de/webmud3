@@ -1,5 +1,6 @@
 import { WindowConfig } from "../shared/window-config";
 import { OneKeypadData } from '../shared/keypad-data';
+import { CharacterData } from '../shared/char-data';
 
 export class MudMessage {
   text: string;
@@ -58,6 +59,23 @@ export class FileInfo {
 }
 
 export class MudSignalHelpers {
+  
+    public static updateCharStats(other:any,musi:MudSignals,_id:string) {
+      return;
+      let nooldcfg = (typeof other.charStatsWindow === 'undefined');
+      let newcfg = other.wincfg.findCharStatWindow(other.charStatsWindow,musi);
+      other.charStatsWindow = newcfg;
+      if (nooldcfg) {
+        other.charStatsWindow.outGoingEvents.subscribe((x:string) => {
+          console.debug('updateCharStats-outGoingEvents',_id,x);
+        }, err => {;
+          console.error('updateCharStats-outGoingEvents-Error',_id,err);
+        }, () => {
+          console.debug('updateCharStats-outGoingEvents-complete',_id);
+        });
+      }
+    }
+  
     public static mudProecessSignals(other:any,musi:MudSignals,_id:string) {
         
         console.debug('mudclient-socketService.mudReceiveSignals',_id,musi.signal);
@@ -67,10 +85,23 @@ export class MudSignalHelpers {
           case 'NOECHO-END':   other.v.inpType = 'text'; other.doFocus(); break;
           case 'name@mud':
             other.titleService.setTitle(musi.id);
+            other.charData = new CharacterData(musi.id);
             if (typeof musi.wizard !== 'undefined') {
               other.filesrv.startFilesModule();
             }
-            break;
+            return;
+          case 'status':
+            other.charData.setStatus(musi.id);
+            this.updateCharStats(other,other.charData,_id);
+            return;
+          case 'vitals':
+            other.charData.setVitals(musi.id);
+            this.updateCharStats(other,other.charData,_id);
+            return;
+          case 'stats':
+            other.charData.setStats(musi.id);
+            this.updateCharStats(other,other.charData,_id);
+            return;
           case 'Input.CompleteText':
             other.inpmessage = musi.id;
             return;
@@ -170,6 +201,8 @@ export class MudSignalHelpers {
             other.keySetters.setLevel(musi.numpadLevel);
             return;
           case 'Core.GoodBye': 
+            console.log("mudclient-socketService.mudReceiveSignals: new stuff-",musi);
+            return;
           default: 
             console.info('mudclient-socketService.mudReceiveSignals UNKNOWN',_id,musi.signal);
             return;

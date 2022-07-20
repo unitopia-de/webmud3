@@ -141,7 +141,7 @@ export class MudmenuComponent implements OnInit {
       0,
       'MUD:SCROLL',
       this.i18n.get('Scroll'),
-      this._scroll ? 'pi pi-arrow-circle-down' : 'pi pi-arrow-circle-up'
+      this._scroll ? 'pi pi-play' : 'pi pi-pause'
     );
     this.items = this.menuSrv.get_menu_items(this.menuID);
   }

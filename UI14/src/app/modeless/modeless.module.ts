@@ -10,6 +10,7 @@ import { EditorComponent } from './editor/editor.component';
 import { KeypadComponent } from './keypad/keypad.component';
 import { KeypadConfigComponent } from './keypad-config/keypad-config.component';
 import { KeyoneComponent } from './keyone/keyone.component';
+import { CharStatComponent } from './char-stat/char-stat.component';
 
 @NgModule({
   declarations: [
@@ -17,7 +18,7 @@ import { KeyoneComponent } from './keyone/keyone.component';
     FlexibleAreaComponent, 
     WindowComponent, 
     DirlistComponent, 
-    EditorComponent, KeypadComponent, KeypadConfigComponent, KeyoneComponent,
+    EditorComponent, KeypadComponent, KeypadConfigComponent, KeyoneComponent, CharStatComponent,
   ],
   imports: [
     CommonModule,

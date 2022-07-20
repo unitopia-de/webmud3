@@ -379,7 +379,7 @@ export class IoMud {
         console.warn('G01: not connected[GMCP_Send_packet].mudconn=',id);
         return false;
       }
-      console.debug('G01: GMCP-send:',id,mod,msg,data);
+      console.log('G01: GMCP-send:',id,mod,msg,data);
       this.uplink.socket.emit('mud-gmcp-outgoing',id,mod,msg,data);
       return true;
     }

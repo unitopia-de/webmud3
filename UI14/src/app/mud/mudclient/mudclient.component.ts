@@ -74,6 +74,8 @@ export class MudclientComponent implements AfterViewChecked,OnInit,OnDestroy {
   private inpPointer:number = -1;
   public messages : MudMessage[] = [];
   public filesWindow: WindowConfig;
+  public charStatsWindow: WindowConfig;
+  public charData: CharacterData;
 
   private obs_connect:any;
 //   private obs_connected:any;
@@ -290,10 +292,12 @@ export class MudclientComponent implements AfterViewChecked,OnInit,OnDestroy {
     }
     if (event.code.startsWith("Numpad") || event.code.startsWith("F")) {
       modifiers += '|'+event.code;
-      if (typeof this.keySetters.getCompoundKey(modifiers) !== 'undefined') {
-        const inp = this.keySetters.getCompoundKey(modifiers);
-        this.socketsService.mudSendData(this.mudc_id,inp);
-        this.localEcho(this,inp);// TODO abschaltbar
+      const inp = this.keySetters.getCompoundKey(modifiers); 
+      if (typeof inp!== 'undefined') {
+        if (inp !== '') {
+          this.socketsService.mudSendData(this.mudc_id,inp);
+          this.localEcho(this,inp);// TODO abschaltbar
+        }
         event.returnValue = false;
         event.preventDefault();
         return;

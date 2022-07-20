@@ -328,7 +328,7 @@ MudSocket = class MudSocket extends TelnetSocket {
                     if (subInput.length>=1 && subInput[0] == 1) { // TELQUAL_SEND
                         var nullBuf = Buffer.alloc(1);
                         var sendBuf;
-                        nullBuf[0] = 2; // TELQUAL_INFO
+                        nullBuf[0] = 2; // ACCEPTED
                         buf = Buffer.from('UTF-8');
                         sendBuf = Buffer.concat([nullBuf,buf],buf.length+1);
                         if (other.debugflag) {
