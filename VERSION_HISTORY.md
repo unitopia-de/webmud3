@@ -32,3 +32,5 @@
 32. Version 0.0.46: sqlite, nebuglog backend and frontend, start position of nonmodal windows changed, lots of bugfixes
 33. Version 0.0.47: start UI9: rewrite UI8 to primeng elements.
 34. Version 0.1.0: End of migration from UI8,UI9 to UI12
+35. Version 0.2.0: End of migration from UI12 to UI13
+36. Version 0.2.1: End of migration from UI13 to UI14, final implementation of numpad
