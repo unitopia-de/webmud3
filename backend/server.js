@@ -120,7 +120,11 @@ var Socket2Mud = {};
 io.on('connection', (socket) => { // nsp /mysocket.io/ instead of /
 // io.of(scfg.mySocket).on('connection', (socket) => { // nsp /mysocket.io/ instead of /
     const address = socket.handshake.address;
-    const real_ip = socket.handshake.headers['x-forwarded-for'] || address;
+    var real_ip = socket.handshake.headers['x-forwarded-for'] || address;
+    const real_index = real_ip.indexOf(",");
+    if (real_index > -1) {
+        real_ip = real_ip.slice(0,real_index);
+    }
     //console.log('S01-socket:'+socket.id+' user connected: ',real_ip);
     logger.addAndShowLog('SRV:'+real_ip,"LOG",'S01-socket user connected',[socket.id]);
     if (typeof Socket2Mud === 'undefined' || typeof Socket2Mud[socket.id] === 'undefined') {

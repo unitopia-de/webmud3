@@ -70,4 +70,28 @@ config.muds.orbit3 = {
     mudfamily : 'unitopia',
 };
 
+config.muds.uni1993 = {
+    name : 'Uni1993',
+    host : 'unitopia.de',
+    port : 1993, 
+    ssl  : false,
+    rejectUnauthorized: false,
+    description: 'Unitopia 1993',
+    playerlevel : 'all',
+    mudfamily : 'basistelnet',
+};
+
+config.muds.seifenblase = {
+    name : 'Seifenblase',
+    host : '217.11.52.247',
+    port : 3333, 
+    ssl  : false,
+    rejectUnauthorized: false,
+    description: 'Seifenblase',
+    playerlevel : 'all',
+    mudfamily : 'basistelnet',
+};
+
+
+
 module.exports = config;

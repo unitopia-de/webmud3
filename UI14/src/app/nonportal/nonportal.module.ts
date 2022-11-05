@@ -6,12 +6,15 @@ import { Uni1993Component } from './uni1993/uni1993.component';
 import { UnitopiaComponent } from './unitopia/unitopia.component';
 import { PrimeModule } from '../prime.module';
 import { DualComponent } from './dual/dual.component';
+import { SeifenblaseComponent } from './seifenblase/seifenblase.component';
 
 @NgModule({
   declarations: [
     UnitopiaComponent, 
     OrbitComponent, 
-    Uni1993Component, DualComponent
+    Uni1993Component, 
+    SeifenblaseComponent,
+    DualComponent
     
   ],
   imports: [
@@ -23,6 +26,7 @@ import { DualComponent } from './dual/dual.component';
     UnitopiaComponent, 
     OrbitComponent, 
     Uni1993Component,
+    SeifenblaseComponent,
     DualComponent
     ]
 })

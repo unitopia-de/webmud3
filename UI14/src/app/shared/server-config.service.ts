@@ -89,7 +89,7 @@ export class ServerConfigService {
  * @memberof ServerConfigService
  */
   getWebmudVersion(): string {
-    return "v0.1.2";
+    return "v0.3.0";
   }
 /**
  * Returns the corresponding string out of the server configuration to identify unitopia.
@@ -119,6 +119,15 @@ export class ServerConfigService {
  */
   getUni1993Name():string {
     return 'uni1993';
+  }
+/**
+ * Returns the corresponding string out of the server configuration to identify uni1993.
+ *
+ * @returns {string} string 'uni1993'
+ * @memberof ServerConfigService
+ */
+  getSeifenblase():string {
+    return 'seifenblase';
   }
 /**
  * returns some browserinformation...

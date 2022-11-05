@@ -44,7 +44,7 @@ RUN deluser --remove-home node \
     && adduser -S -G node -u 31116 node \
     && mkdir /run/secrets \
     && mkdir /run/db \
-    && npm install --only=prod \
+    && npm install --omit=dev \
     && chown -R node:node /app
 
 USER node:node

@@ -37,6 +37,17 @@ config.muds.uni1993 = {
     mudfamily : 'basistelnet',
 };
 
+config.muds.seifenblase = {
+    name : 'Seifenblase',
+    host : '217.11.52.247',
+    port : 3333, 
+    ssl  : false,
+    rejectUnauthorized: false,
+    description: 'Seifenblase',
+    playerlevel : 'all',
+    mudfamily : 'basistelnet',
+};
+
 config.tls = false;
 
 module.exports = config;
