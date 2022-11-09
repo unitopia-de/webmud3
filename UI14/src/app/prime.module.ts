@@ -1,7 +1,9 @@
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {FocusTrapModule} from 'primeng/focustrap';
+import {AutoFocusModule} from 'primeng/autofocus';
 import {InputTextModule} from 'primeng/inputtext';
+import {DividerModule} from 'primeng/divider';
 import {MenuModule} from 'primeng/menu';
 import {MenubarModule} from 'primeng/menubar';
 import {DialogModule} from 'primeng/dialog';
@@ -20,14 +22,15 @@ import {DropdownModule} from 'primeng/dropdown';
 import {SlideMenuModule} from 'primeng/slidemenu';
 import {TabViewModule} from 'primeng/tabview';
 import {InputTextareaModule} from 'primeng/inputtextarea';
+import {ScrollPanelModule} from 'primeng/scrollpanel';
 
 @NgModule({
   declarations: [],
   imports: [
     CommonModule,
-    FocusTrapModule,
-    InputTextModule,
-    CheckboxModule,
+    FocusTrapModule,AutoFocusModule,
+    InputTextModule,DividerModule,
+    CheckboxModule,ScrollPanelModule,
     ColorPickerModule,SlideMenuModule,
     MenuModule,MenubarModule,
     TabViewModule,InputTextareaModule,
@@ -39,9 +42,9 @@ import {InputTextareaModule} from 'primeng/inputtextarea';
     DialogService,MessageService,ConfirmationService
   ],
   exports:[
-    FocusTrapModule,
-    InputTextModule,
-    CheckboxModule,
+    FocusTrapModule,AutoFocusModule,
+    InputTextModule,DividerModule,
+    CheckboxModule,ScrollPanelModule,
     ColorPickerModule,SlideMenuModule,
     MenuModule,MenubarModule,
     TabViewModule,InputTextareaModule,

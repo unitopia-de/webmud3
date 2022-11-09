@@ -131,6 +131,8 @@ export class UnitopiaService {
           return;
       case 'char.items':
       case 'char.items 1':
+          cb_switch(_id,'Char.Items 1',true);
+          return;
       case 'comm':
       case 'comm 1':
       case 'playermap':

@@ -258,7 +258,34 @@ export class IoMud {
                 console.debug('GMCP-char-stats-signal: ',r.musi);
                 observer.next(r);
                 return;
-                default:break;
+              case 'items.list':
+                r.musi = {
+                  signal:'Char.Items.List',
+                  id:'none',
+                  invEntries:data.items,
+                }
+                console.debug('GMCP-char-items-list-signal: ',r.musi);
+                observer.next(r);
+                return;
+              case 'items.add':
+                r.musi = {
+                  signal:'Char.Items.Add',
+                  id:'none',
+                  invEntry:data.item,
+                }
+                console.debug('GMCP-char-items-list-signal: ',r.musi);
+                observer.next(r);
+                return;
+              case 'items.remove':
+                r.musi = {
+                  signal:'Char.Items.Remove',
+                  id:'none',
+                  invEntry:data.item,
+                }
+                console.debug('GMCP-char-items-list-signal: ',r.musi);
+                observer.next(r);
+                return;
+              default:break;
             }
             break;
             case 'sound':

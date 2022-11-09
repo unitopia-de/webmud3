@@ -1,0 +1,34 @@
+.invcategoryname {
+    font-weight: bold;
+}
+
+ul.inventory {
+    padding: 0;
+}
+
+ul.inventory li {
+    list-style-type: none;
+}
+
+.invcategory {
+    padding-left: 2em;
+}
+
+
+.p-scrollpanel {
+    &.custombar1 {
+        .p-scrollpanel-wrapper {
+            border-right: 9px solid var(--layer-1);
+        }
+
+        .p-scrollpanel-bar {
+            background-color: var(--primary-color) !important;
+            opacity: 1;
+            transition: background-color .2s;
+
+            &:hover {
+                background-color: #007ad9 !important;
+            }
+        }
+    }
+}
