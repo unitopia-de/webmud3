@@ -23,11 +23,12 @@ ul.inventory li {
 
         .p-scrollpanel-bar {
             background-color: var(--primary-color) !important;
-            opacity: 1;
-            transition: background-color .2s;
+            opacity: 1  !important;
+            transition: 0 !important;
 
             &:hover {
                 background-color: #007ad9 !important;
+                opacity: 1 !important;
             }
         }
     }
