@@ -7,7 +7,7 @@ import { ReadLanguageService } from 'src/app/read-language.service';
 @Component({
   selector: 'app-color-settings',
   templateUrl: './color-settings.component.html',
-  styleUrls: ['./color-settings.component.css']
+  styleUrls: ['./color-settings.component.scss']
 })
 export class ColorSettingsComponent implements OnInit {
 

@@ -9,7 +9,7 @@ const enum Status {
 @Component({
   selector: 'app-resizable-draggable',
   templateUrl: './resizable-draggable.component.html',
-  styleUrls: ['./resizable-draggable.component.css']
+  styleUrls: ['./resizable-draggable.component.scss']
 })
 export class ResizableDraggableComponent implements OnInit, AfterViewInit {
   @Input('width') public width: number;

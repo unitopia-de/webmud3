@@ -10,7 +10,7 @@ import { WebmudConfig } from '../webmud-config';
 import { SocketsService } from 'src/app/shared/sockets.service';
 import { ServerConfigService } from 'src/app/shared/server-config.service';
 import { Title } from '@angular/platform-browser';
-import { MudMessage, MudSignalHelpers } from '../mud-signals';
+import { MudMessage, MudSignalHelpers, InventoryList } from '../mud-signals';
 import { WindowConfig } from 'src/app/shared/window-config';
 import { WindowService } from 'src/app/shared/window.service';
 import { FilesService } from '../files.service';
@@ -23,7 +23,7 @@ import { KeypadData } from 'src/app/shared/keypad-data';
 @Component({
   selector: 'app-mudclient',
   templateUrl: './mudclient.component.html',
-  styleUrls: ['./mudclient.component.css']
+  styleUrls: ['./mudclient.component.scss']
 })
 export class MudclientComponent implements AfterViewChecked,OnInit,OnDestroy {
 
@@ -76,6 +76,7 @@ export class MudclientComponent implements AfterViewChecked,OnInit,OnDestroy {
   public filesWindow: WindowConfig;
   public charStatsWindow: WindowConfig;
   public charData: CharacterData;
+  public invlist: InventoryList;
 
   private obs_connect:any;
 //   private obs_connected:any;
@@ -554,7 +555,7 @@ export class MudclientComponent implements AfterViewChecked,OnInit,OnDestroy {
     private titleService:Title,
     private cookieService: CookieService
   ) { 
-    
+    this.invlist = new InventoryList();
     this.ansiCurrent = new AnsiData();
     this.mudc_id = "one";
     

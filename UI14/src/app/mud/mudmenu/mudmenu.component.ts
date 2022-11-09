@@ -8,7 +8,7 @@ import { SocketsService } from 'src/app/shared/sockets.service';
 @Component({
   selector: 'app-mudmenu',
   templateUrl: './mudmenu.component.html',
-  styleUrls: ['./mudmenu.component.css']
+  styleUrls: ['./mudmenu.component.scss']
 })
 export class MudmenuComponent implements OnInit {
 

@@ -8,7 +8,7 @@ import { KeypadData } from 'src/app/shared/keypad-data';
 @Component({
   selector: 'app-keypad-config',
   templateUrl: './keypad-config.component.html',
-  styleUrls: ['./keypad-config.component.css']
+  styleUrls: ['./keypad-config.component.scss']
 })
 export class KeypadConfigComponent implements OnInit {
 

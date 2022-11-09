@@ -5,7 +5,7 @@ import { MudSignals } from 'src/app/mud/mud-signals';
 @Component({
   selector: 'app-char-stat',
   templateUrl: './char-stat.component.html',
-  styleUrls: ['./char-stat.component.css']
+  styleUrls: ['./char-stat.component.scss']
 })
 export class CharStatComponent implements OnInit {
 

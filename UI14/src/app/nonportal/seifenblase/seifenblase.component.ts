@@ -5,7 +5,7 @@ import { ServerConfigService } from '../../shared/server-config.service';
 @Component({
   selector: 'app-seifenblase',
   templateUrl: './seifenblase.component.html',
-  styleUrls: ['./seifenblase.component.css']
+  styleUrls: ['./seifenblase.component.scss']
 })
 export class SeifenblaseComponent implements OnInit {
 

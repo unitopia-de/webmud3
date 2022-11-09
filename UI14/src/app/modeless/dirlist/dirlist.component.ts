@@ -6,7 +6,7 @@ import { WindowService } from 'src/app/shared/window.service';
 @Component({
   selector: 'app-dirlist',
   templateUrl: './dirlist.component.html',
-  styleUrls: ['./dirlist.component.css']
+  styleUrls: ['./dirlist.component.scss']
 })
 export class DirlistComponent implements OnInit {
 

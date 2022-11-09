@@ -3,7 +3,7 @@ import { Component, OnInit, ViewChild, ElementRef, Input, Output, EventEmitter }
 @Component({
   selector: 'app-keyone',
   templateUrl: './keyone.component.html',
-  styleUrls: ['./keyone.component.css']
+  styleUrls: ['./keyone.component.scss']
 })
 export class KeyoneComponent implements OnInit {
   

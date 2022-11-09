@@ -6,7 +6,7 @@ import { AnsiService } from '../ansi.service';
   selector: 'app-mudspan',
   template:'<span display="inline" [ngClass]="myclasses" [style.color]="fg" [style.background]="bg">{{txt}}</span>',
   // templateUrl: './mudspan.component.html',
-  styleUrls: ['./mudspan.component.css']
+  styleUrls: ['./mudspan.component.scss']
 })
 export class MudspanComponent implements OnInit {
 
