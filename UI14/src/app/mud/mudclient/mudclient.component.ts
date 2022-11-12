@@ -77,6 +77,8 @@ export class MudclientComponent implements AfterViewChecked,OnInit,OnDestroy {
   public charStatsWindow: WindowConfig;
   public charData: CharacterData;
   public invlist: InventoryList;
+  public changeFocus:number = 1;
+  public previousFoxus:number = 1;
 
   private obs_connect:any;
 //   private obs_connected:any;
@@ -89,16 +91,29 @@ export class MudclientComponent implements AfterViewChecked,OnInit,OnDestroy {
   }
   doFocus() {
     var FirstFocus=undefined;
+    this.previousFoxus = this.changeFocus;
     if (this.v.inpType != 'text' && typeof this.mudInputLine !== 'undefined') {
       FirstFocus = this.mudInputLine.nativeElement;
-    } else if (typeof this.mudInputArea !== 'undefined') {
+      this.changeFocus = 1;
+      console.log("doFocus-2-inputline",this.changeFocus,this.previousFoxus);
+    } else if (this.v.inpType == "text" && typeof this.mudInputArea !== 'undefined') {
       FirstFocus = this.mudInputArea.nativeElement;
+      // this.changeFocus = -1;
+      console.log("doFocus-1-inputarea",this.changeFocus,this.previousFoxus);
+    } else if (this.v.inpType != 'text') {
+      this.changeFocus = 2;
+      return;
+    } else if (this.v.inpType == 'text') {
+      this.changeFocus = -2;
+      return;
     }
     if (FirstFocus) {
       FirstFocus.focus();
+      FirstFocus.select();
     }
   }
   menuAction(act : any) {
+    console.log("menuAction",act);
     switch(act.item.id) {
       case "MUD:MENU": 
         return; // no action/with submenu!
@@ -108,7 +123,7 @@ export class MudclientComponent implements AfterViewChecked,OnInit,OnDestroy {
           console.log(act.item.id);
           this.mudName = mudkey;
           this.connect();
-          this.doFocus();
+          this.changeFocus = -3;
           return;
         }
       case "MUD:CONNECT":
@@ -116,7 +131,7 @@ export class MudclientComponent implements AfterViewChecked,OnInit,OnDestroy {
               && this.cfg.mudname !== '') {
           this.mudName = this.cfg.mudname;
           this.connect();
-          this.doFocus();
+          this.changeFocus = -4;
         }  
         return;
       case "MUD:DISCONNECT":
@@ -507,12 +522,12 @@ export class MudclientComponent implements AfterViewChecked,OnInit,OnDestroy {
     }
   }
 
-  focusFunction() {
-    // console.log("get focus");
+  focusFunction(what:string) {
+    console.log("get focus",what);
   }
 
-  focusOutFunction() {
-    // console.log("out focus");
+  focusOutFunction(what:string) {
+    console.log("out focus",what);
   }
 
   ngAfterViewChecked(): void {
@@ -537,6 +552,9 @@ export class MudclientComponent implements AfterViewChecked,OnInit,OnDestroy {
       });
     } else if (this.d.startCnt <= 0) {
       this.calculateSizing();
+    }
+    if (this.changeFocus != this.previousFoxus) {
+      this.doFocus();
     }
   }
 

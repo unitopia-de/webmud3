@@ -67,7 +67,7 @@ export class MudmenuComponent implements OnInit {
       this.refreshMenu(false);
     } else {
       console.log("menu-event-2",event,this.mudName);
-      this.menuAction.next(event); // pass through to parent node.
+      this.menuAction.emit(event); // pass through to parent node.
     }
   }
 

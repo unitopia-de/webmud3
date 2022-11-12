@@ -32,8 +32,8 @@ export class WindowService {
     this.windowsconfigurations.forEach(cfg => {
       if (cfg.parentWindow == parentId) {
         count++;
-        cfg.inComingEvents.next("CLOSE_PARENT");
-        cfg.inComingEvents.complete();
+        cfg.inComingEvents.emit("CLOSE_PARENT");
+        // cfg.inComingEvents.complete();
         this.wincfg.delete(cfg.windowid);
       }
       else
