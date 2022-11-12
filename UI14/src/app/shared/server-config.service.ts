@@ -50,6 +50,9 @@ export class ServerConfigService {
     if (l_origin == 'https://www.unitopia.de' && l_path.startsWith('/webmud3test/')) {
       return 3;
     }
+    if (l_origin == 'https://seife.mud.de' && l_path.startsWith('/webmud3/')) {
+      return 4;
+    }
     return 0;
   }
 /**
@@ -62,6 +65,7 @@ export class ServerConfigService {
     switch (this.getBackendCode()) {
       case 1: return '/mysocket.io';
       case 3: return '/mysocket-test.io';
+      case 4: return '/sbsocket.io';
       default: return "/socket.io";
     }
   }
@@ -70,6 +74,7 @@ export class ServerConfigService {
     switch (this.getBackendCode()) {
       case 1: return l_origin+'/webmud3/api/';
       case 3: return l_origin+'/webmud3test/api/';
+      case 4: return l_origin+'/webmud3/api/';
       default: return l_origin+"/api/";
     }
   }

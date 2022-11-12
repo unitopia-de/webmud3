@@ -5,11 +5,15 @@ import { Uni1993Component } from './nonportal/uni1993/uni1993.component';
 import { UnitopiaComponent } from './nonportal/unitopia/unitopia.component';
 import { DualComponent } from './nonportal/dual/dual.component';
 import { SeifenblaseComponent } from './nonportal/seifenblase/seifenblase.component';
+import { environment } from '../environments/environment'
 
-const routes: Routes = [
+const routes: Routes = (environment.webmud3home == 'seifenblase') ? [
+  { path: '',       /* canActivate: [NonPortalGuard], */component: SeifenblaseComponent,  pathMatch: 'full' },
+  { path: '**', redirectTo: '/'}
+] : [
   { path: 'orbit',   /* canActivate: [NonPortalGuard], */component: OrbitComponent },
   { path: 'uni1993',   /* canActivate: [NonPortalGuard], */component: Uni1993Component },
-  { path: 'seifenblase',   /* canActivate: [NonPortalGuard], */component: SeifenblaseComponent },
+  // { path: 'seifenblase',   /* canActivate: [NonPortalGuard], */component: SeifenblaseComponent },
   // { path: 'dual',   /* canActivate: [NonPortalGuard], */component: DualComponent },
   /*{ path: 'portal',  canActivate: [PortalGuard],component: UnitopiaComponent },*/
   { path: '',       /* canActivate: [NonPortalGuard], */component: UnitopiaComponent,  pathMatch: 'full' },
