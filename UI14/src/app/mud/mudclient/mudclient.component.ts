@@ -124,8 +124,8 @@ export class MudclientComponent implements AfterViewChecked,OnInit,OnDestroy {
           this.mudName = mudkey;
           this.connect();
           this.changeFocus = -3;
-          return;
         }
+        return;
       case "MUD:CONNECT":
         if (typeof this.cfg !== 'undefined' && typeof this.cfg.mudname !== 'undefined'
               && this.cfg.mudname !== '') {

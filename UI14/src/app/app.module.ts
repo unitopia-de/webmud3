@@ -10,6 +10,8 @@ import { NonportalModule } from './nonportal/nonportal.module';
 import { PrimeModule } from './prime.module';
 import { HttpClientModule } from '@angular/common/http';
 import { ModelessModule } from './modeless/modeless.module';
+import { ServiceWorkerModule } from '@angular/service-worker';
+import { environment } from '../environments/environment';
 
 @NgModule({
   declarations: [
@@ -19,7 +21,13 @@ import { ModelessModule } from './modeless/modeless.module';
     BrowserModule,HttpClientModule,
     MudModule,NonportalModule,
     PrimeModule,ModelessModule,
-    AppRoutingModule
+    AppRoutingModule,
+    ServiceWorkerModule.register('ngsw-worker.js', {
+      enabled: environment.production,
+      // Register the ServiceWorker as soon as the application is stable
+      // or after 30 seconds (whichever comes first).
+      registrationStrategy: 'registerWhenStable:30000'
+    })
   ],
   providers: [
     WINDOW_PROVIDERS,
