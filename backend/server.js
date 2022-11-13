@@ -96,17 +96,19 @@ app.get("/manifest.webmanifest", function(req, res) {
      req.connection.remoteAddress || 
      req.socket.remoteAddress ||
      (req.connection.socket ? req.connection.socket.remoteAddress : null);
-    var ref = req.headers["referer"];
     var manif = "manifest.webmanifest";
-    if (ref.startsWith("https://www.unitopia.de/webmud3test/")) {
-        manif = "manifest.unitopia-test.webmanifest";
-    } else if (ref.startsWith("https://www.unitopia.de/webmud3/")) {
-        manif = "manifest.unitopia.webmanifest";
-    } else if (ref.startsWith("https://seife.mud.de/webmud3/")) {
-        manif = "manifest.seifenblase.webmanifest";
-    } else if (ref.startsWith("https://seifenblase.mud.de/webmud3/")) {
-        manif = "manifest.seifenblase.webmanifest";
-    }
+     switch (process.env.WEBMUD3_DISTRIBUTION_TYPE) {
+         case "unitopia-prod":
+            manif = "manifest.unitopia.webmanifest";
+            break;
+         case "unitopia-test":
+            manif = "manifest.unitopia-test.webmanifest";
+            break;
+         case "seifenblase":
+            manif = "manifest.seifenblase.webmanifest";
+            break;
+         default:
+     }
     logger.addAndShowLog('SRV:'+ip,"DEBUG",'manifest:',[manif]);
     fs.readFile(path.join(__dirname, "dist",manif), function(err, data) {
         if (err) {
