@@ -1,4 +1,4 @@
-# webmud3 V0.2.1
+# webmud3 V0.3.0
 
 Webmud3: third generation of the UNItopia Webmud as open source project.
 

@@ -155,7 +155,7 @@
               "fileReplacements": [
                 {
                   "replace": "src/manifest.webmanifest",
-                  "with": "src/manifest.unitopia.webmanifest"
+                  "with": "src/manifest.unitopia-test.webmanifest"
                 }
               ],
               "optimization": false,
