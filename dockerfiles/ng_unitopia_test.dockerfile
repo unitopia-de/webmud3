@@ -20,7 +20,7 @@ RUN apk update && apk upgrade && \
 COPY ./UI14/ /app/
 
 # exchange webmud3 in baseref webmud3\UI8\src\index.html
-RUN sed -i 's-%%BASEREF%%-/webmud3test/-' /app/src/index.html 
+RUN sed -i 's-%%BASEREF%%-/webmud3test/-' /app/src/index.html
 #    && sed -i 's-%%ACEREF%%-https://www.unitopia.de/webmud3test/ace/-' /app/src/index.html
 
 # create the output of the angular app

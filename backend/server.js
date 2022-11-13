@@ -90,6 +90,35 @@ app.get('/socket.io-client/dist/*', (req,res) => {
     res.sendFile(path.join(__dirname, 'node_modules'+mypath));
 });
 
+
+app.get("/manifest.webmanifest", function(req, res) {
+    var ip = req.headers['x-forwarded-for'] || 
+     req.connection.remoteAddress || 
+     req.socket.remoteAddress ||
+     (req.connection.socket ? req.connection.socket.remoteAddress : null);
+    // logger.addAndShowLog('SRV:'+ip,"DEBUG",'mainfest:',JSON.stringify(req.headers));
+    var ref = req.headers["referer"];
+    var manif = "manifest.webmanifest";
+    if (ref.startsWith("https://www.unitopia.de/webmud3test/")) {
+        manif = "manifest.unitopia-test.webmanifest";
+    } else if (ref.startsWith("https://www.unitopia.de/webmud3/")) {
+        manif = "manifest.unitopia.webmanifest";
+    } else if (ref.startsWith("https://seife.mud.de/webmud3/")) {
+        manif = "manifest.seifenblase.webmanifest";
+    } else if (ref.startsWith("https://seifenblase.mud.de/webmud3/")) {
+        manif = "manifest.seifenblase.webmanifest";
+    }
+    console.log("ip-manifest",ip,"manif",manif,JSON.stringify(req.headers));
+    fs.readFile(path.join(__dirname, "dist",manif), function(err, data) {
+        if (err) {
+            res.sendStatus(404);
+        } else {
+            // modify the data here, then send it
+            res.send(data);
+        }
+    });
+});
+
 app.use(express.static(path.join(__dirname, 'dist')));
 
 app.get("/ace/*", (req,res) => {

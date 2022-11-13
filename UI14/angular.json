@@ -27,7 +27,10 @@
             "assets": [
               "src/favicon.ico",
               "src/assets",
-              "src/manifest.webmanifest"
+              "src/manifest.webmanifest",
+              "src/manifest.unitopia.webmanifest",
+              "src/manifest.unitopia-test.webmanifest",
+              "src/manifest.seifenblase.webmanifest",
             ],
             "styles": [
               "src/styles.scss",
@@ -73,10 +76,6 @@
                 {
                   "replace": "src/environments/environment.ts",
                   "with": "src/environments/environment.prod.ts"
-                },
-                {
-                  "replace": "src/manifest.webmanifest",
-                  "with": "src/manifest.unitopia.webmanifest"
                 }
               ],
               "optimization": true,
@@ -104,10 +103,6 @@
                 {
                   "replace": "src/environments/environment.ts",
                   "with": "src/environments/environment.prod.sb.ts"
-                },
-                {
-                  "replace": "src/manifest.webmanifest",
-                  "with": "src/manifest.seifenblase.webmanifest"
                 }
               ],
               "optimization": true,
@@ -152,12 +147,6 @@
               ]
             },
             "development-unitopia": {
-              "fileReplacements": [
-                {
-                  "replace": "src/manifest.webmanifest",
-                  "with": "src/manifest.unitopia-test.webmanifest"
-                }
-              ],
               "optimization": false,
               "outputHashing": "all",
               "sourceMap": true,
