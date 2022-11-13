@@ -50,6 +50,9 @@ export class ServerConfigService {
     if (l_origin == 'https://www.unitopia.de' && l_path.startsWith('/webmud3test/')) {
       return 3;
     }
+    if (l_origin == 'https://seifenblase.mud.de' && l_path.startsWith('/webmud3/')) {
+      return 4;
+    }
     if (l_origin == 'https://seife.mud.de' && l_path.startsWith('/webmud3/')) {
       return 4;
     }
