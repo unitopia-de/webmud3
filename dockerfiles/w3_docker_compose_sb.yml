@@ -6,6 +6,7 @@ services:
     environment: 
       NODE_ENV: 'production'
       SECRET_CONFIG: '/run/webmud3sb.json'
+      WEBMUD3_DISTRIBUTION_TYPE: 'seifenblase'
     volumes:
       - "/UNItopia/ftpwww/webmud3/run:/run"
     deploy:
