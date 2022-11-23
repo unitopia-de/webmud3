@@ -90,6 +90,36 @@ app.get('/socket.io-client/dist/*', (req,res) => {
     res.sendFile(path.join(__dirname, 'node_modules'+mypath));
 });
 
+
+app.get("/manifest.webmanifest", function(req, res) {
+    var ip = req.headers['x-forwarded-for'] || 
+     req.connection.remoteAddress || 
+     req.socket.remoteAddress ||
+     (req.connection.socket ? req.connection.socket.remoteAddress : null);
+    var manif = "manifest.webmanifest";
+     switch (process.env.WEBMUD3_DISTRIBUTION_TYPE) {
+         case "unitopia-prod":
+            manif = "manifest.unitopia.webmanifest";
+            break;
+         case "unitopia-test":
+            manif = "manifest.unitopia-test.webmanifest";
+            break;
+         case "seifenblase":
+            manif = "manifest.seifenblase.webmanifest";
+            break;
+         default:
+     }
+    logger.addAndShowLog('SRV:'+ip,"DEBUG",'manifest:',[manif]);
+    fs.readFile(path.join(__dirname, "dist",manif), function(err, data) {
+        if (err) {
+            res.sendStatus(404);
+        } else {
+            // modify the data here, then send it
+            res.send(data);
+        }
+    });
+});
+
 app.use(express.static(path.join(__dirname, 'dist')));
 
 app.get("/ace/*", (req,res) => {
