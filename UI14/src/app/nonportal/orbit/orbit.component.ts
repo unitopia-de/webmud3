@@ -5,7 +5,7 @@ import { ServerConfigService } from '../../shared/server-config.service';
 @Component({
   selector: 'app-orbit',
   templateUrl: './orbit.component.html',
-  styleUrls: ['./orbit.component.css']
+  styleUrls: ['./orbit.component.scss']
 })
 export class OrbitComponent implements OnInit {
 

@@ -5,7 +5,7 @@ import { WebmudConfig } from 'src/app/mud/webmud-config';
 @Component({
   selector: 'app-dual',
   templateUrl: './dual.component.html',
-  styleUrls: ['./dual.component.css']
+  styleUrls: ['./dual.component.scss']
 })
 export class DualComponent implements OnInit {
 

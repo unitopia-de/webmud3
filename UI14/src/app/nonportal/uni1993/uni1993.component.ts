@@ -5,7 +5,7 @@ import { ServerConfigService } from '../../shared/server-config.service';
 @Component({
   selector: 'app-uni1993',
   templateUrl: './uni1993.component.html',
-  styleUrls: ['./uni1993.component.css']
+  styleUrls: ['./uni1993.component.scss']
 })
 export class Uni1993Component implements OnInit {
 

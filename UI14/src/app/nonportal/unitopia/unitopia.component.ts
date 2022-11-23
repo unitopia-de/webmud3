@@ -5,7 +5,7 @@ import { ServerConfigService } from '../../shared/server-config.service';
 @Component({
   selector: 'app-unitopia',
   templateUrl: './unitopia.component.html',
-  styleUrls: ['./unitopia.component.css']
+  styleUrls: ['./unitopia.component.scss']
 })
 export class UnitopiaComponent implements OnInit {
 

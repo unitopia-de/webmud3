@@ -121,7 +121,9 @@ export class GmcpService {
       cb_mudSwitchGmcpModule,
       function (gcfg:GmcpConfig) { other.add_gmcp_module(gcfg);},
       function (mud_id:string,module_name:string) { return other.remove_gmcp_module(mud_id,module_name)});
+    // console.log("gmcp_support",gmcp_support);
     Object.getOwnPropertyNames(gmcp_support).forEach(element => {
+      // console.log("gmcp_support-element-1",element);
       if (gmcp_support.hasOwnProperty(element)) {
         var modver = element + ' ' + gmcp_support[element].version;
         // TODO pre configered modules...
@@ -129,6 +131,7 @@ export class GmcpService {
           if (gmcp_support['mudfamily'] =='unitopia' &&
               gmcp_support[element].standard) {
             // TODO dynamic mud-service
+            // console.log("gmcp_support-modver-1",modver);
             other.unitopiaSrv.init_module(mud_id,modver);
             other.unitopiaSrv.init_module_config(mud_id,modver);
             other.gmcpconn[mud_id][element] = other.find(mud_id,element);

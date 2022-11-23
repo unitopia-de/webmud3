@@ -8,6 +8,7 @@ import { MudmenuComponent } from './mudmenu/mudmenu.component';
 import { MudspanComponent } from './mudspan/mudspan.component';
 import { PrimeModule } from '../prime.module';
 import { SettingsModule } from '../settings/settings.module';
+import { WidgetsModule } from '../widgets/widgets.module';
 
 
 @NgModule({
@@ -16,7 +17,7 @@ import { SettingsModule } from '../settings/settings.module';
     CommonModule,BrowserModule,
     PrimeModule,
     BrowserAnimationsModule,
-    FormsModule,SettingsModule
+    FormsModule,SettingsModule,WidgetsModule
   ],
   exports: [
     MudclientComponent

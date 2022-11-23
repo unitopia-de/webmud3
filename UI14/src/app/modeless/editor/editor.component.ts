@@ -20,7 +20,7 @@ const ithemes : string[] = ['ambiance','chaos','chrome','clouds','clouds_midnigh
 @Component({
   selector: 'app-editor',
   templateUrl: './editor.component.html',
-  styleUrls: ['./editor.component.css']
+  styleUrls: ['./editor.component.scss']
 })
 export class EditorComponent implements OnInit,AfterViewInit  {
 

@@ -4,7 +4,7 @@ import { WindowConfig } from 'src/app/shared/window-config';
 @Component({
   selector: 'app-window',
   templateUrl: './window.component.html',
-  styleUrls: ['./window.component.css']
+  styleUrls: ['./window.component.scss']
 })
 export class WindowComponent implements OnInit {
 

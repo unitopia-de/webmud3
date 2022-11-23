@@ -10,7 +10,7 @@ import { WebmudConfig } from '../webmud-config';
 import { SocketsService } from 'src/app/shared/sockets.service';
 import { ServerConfigService } from 'src/app/shared/server-config.service';
 import { Title } from '@angular/platform-browser';
-import { MudMessage, MudSignalHelpers } from '../mud-signals';
+import { MudMessage, MudSignalHelpers, InventoryList } from '../mud-signals';
 import { WindowConfig } from 'src/app/shared/window-config';
 import { WindowService } from 'src/app/shared/window.service';
 import { FilesService } from '../files.service';
@@ -23,7 +23,7 @@ import { KeypadData } from 'src/app/shared/keypad-data';
 @Component({
   selector: 'app-mudclient',
   templateUrl: './mudclient.component.html',
-  styleUrls: ['./mudclient.component.css']
+  styleUrls: ['./mudclient.component.scss']
 })
 export class MudclientComponent implements AfterViewChecked,OnInit,OnDestroy {
 
@@ -76,6 +76,9 @@ export class MudclientComponent implements AfterViewChecked,OnInit,OnDestroy {
   public filesWindow: WindowConfig;
   public charStatsWindow: WindowConfig;
   public charData: CharacterData;
+  public invlist: InventoryList;
+  public changeFocus:number = 1;
+  public previousFoxus:number = 1;
 
   private obs_connect:any;
 //   private obs_connected:any;
@@ -88,16 +91,29 @@ export class MudclientComponent implements AfterViewChecked,OnInit,OnDestroy {
   }
   doFocus() {
     var FirstFocus=undefined;
+    this.previousFoxus = this.changeFocus;
     if (this.v.inpType != 'text' && typeof this.mudInputLine !== 'undefined') {
       FirstFocus = this.mudInputLine.nativeElement;
-    } else if (typeof this.mudInputArea !== 'undefined') {
+      this.changeFocus = 1;
+      console.log("doFocus-2-inputline",this.changeFocus,this.previousFoxus);
+    } else if (this.v.inpType == "text" && typeof this.mudInputArea !== 'undefined') {
       FirstFocus = this.mudInputArea.nativeElement;
+      // this.changeFocus = -1;
+      console.log("doFocus-1-inputarea",this.changeFocus,this.previousFoxus);
+    } else if (this.v.inpType != 'text') {
+      this.changeFocus = 2;
+      return;
+    } else if (this.v.inpType == 'text') {
+      this.changeFocus = -2;
+      return;
     }
     if (FirstFocus) {
       FirstFocus.focus();
+      FirstFocus.select();
     }
   }
   menuAction(act : any) {
+    console.log("menuAction",act);
     switch(act.item.id) {
       case "MUD:MENU": 
         return; // no action/with submenu!
@@ -107,15 +123,15 @@ export class MudclientComponent implements AfterViewChecked,OnInit,OnDestroy {
           console.log(act.item.id);
           this.mudName = mudkey;
           this.connect();
-          this.doFocus();
-          return;
+          this.changeFocus = -3;
         }
+        return;
       case "MUD:CONNECT":
         if (typeof this.cfg !== 'undefined' && typeof this.cfg.mudname !== 'undefined'
               && this.cfg.mudname !== '') {
           this.mudName = this.cfg.mudname;
           this.connect();
-          this.doFocus();
+          this.changeFocus = -4;
         }  
         return;
       case "MUD:DISCONNECT":
@@ -506,12 +522,12 @@ export class MudclientComponent implements AfterViewChecked,OnInit,OnDestroy {
     }
   }
 
-  focusFunction() {
-    // console.log("get focus");
+  focusFunction(what:string) {
+    console.log("get focus",what);
   }
 
-  focusOutFunction() {
-    // console.log("out focus");
+  focusOutFunction(what:string) {
+    console.log("out focus",what);
   }
 
   ngAfterViewChecked(): void {
@@ -537,6 +553,9 @@ export class MudclientComponent implements AfterViewChecked,OnInit,OnDestroy {
     } else if (this.d.startCnt <= 0) {
       this.calculateSizing();
     }
+    if (this.changeFocus != this.previousFoxus) {
+      this.doFocus();
+    }
   }
 
   ngOnInit(): void {
@@ -554,7 +573,7 @@ export class MudclientComponent implements AfterViewChecked,OnInit,OnDestroy {
     private titleService:Title,
     private cookieService: CookieService
   ) { 
-    
+    this.invlist = new InventoryList();
     this.ansiCurrent = new AnsiData();
     this.mudc_id = "one";
     
