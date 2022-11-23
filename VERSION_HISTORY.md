@@ -34,4 +34,4 @@
 34. Version 0.1.0: End of migration from UI8,UI9 to UI12
 35. Version 0.2.0: End of migration from UI12 to UI13
 36. Version 0.2.1: End of migration from UI13 to UI14, final implementation of numpad
-37. Version 0.3.0: Lots of Bugfixes, minor version upgrades, Inventory Display and PWA.
+37. Version 0.3.0: Lots of Bugfixes, minor version upgrades, Inventory Display. no PWA yet!
