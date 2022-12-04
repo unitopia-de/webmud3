@@ -19,6 +19,7 @@ export class ServerConfigService {
  *
  * @returns {string} the socket-Connection string.
  * @memberof ServerConfigService
+ * @depreceated not valid, see full source code
  */
   getBackend(): string {
     const l_origin = this.window.location.origin;
@@ -49,6 +50,15 @@ export class ServerConfigService {
     }
     if (l_origin == 'https://www.unitopia.de' && l_path.startsWith('/webmud3test/')) {
       return 3;
+    }
+    if (l_origin == 'https://www.seifenblase.de' && l_path.startsWith('/webmud3/')) {
+      return 4;
+    }
+    if (l_origin == 'https://seifenblase.de' && l_path.startsWith('/webmud3/')) {
+      return 4;
+    }
+    if (l_origin == 'https://mud.seifenblase.de' && l_path.startsWith('/webmud3/')) {
+      return 4;
     }
     if (l_origin == 'https://seifenblase.mud.de' && l_path.startsWith('/webmud3/')) {
       return 4;
