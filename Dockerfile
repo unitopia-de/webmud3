@@ -5,7 +5,7 @@ FROM node:16-alpine3.16 AS ng-build-stage
 WORKDIR /app
 
 # fetching packages and...
-COPY UI14/package*.json /app/
+COPY UI16/package*.json /app/
 
 RUN echo https://alpine.mirror.wearetriple.com/v3.16/main > /etc/apk/repositories; \
     echo https://alpine.mirror.wearetriple.com/v3.16/community >> /etc/apk/repositories
@@ -17,7 +17,7 @@ RUN apk update && apk upgrade && \
     && npm install
 
 # fetch the angular sources and stuff
-COPY ./UI14/ /app/
+COPY ./UI16/ /app/
 
 # exchange webmud3 in baseref webmud3\UI8\src\index.html
 RUN sed -i 's-%%BASEREF%%-/-' /app/src/index.html 
