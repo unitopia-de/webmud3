@@ -83,7 +83,7 @@ config.muds.uni1993 = {
 
 config.muds.seifenblase = {
     name : 'Seifenblase',
-    host : '217.11.52.247',
+    host : 'seifenblase.de',
     port : 3333, 
     ssl  : false,
     rejectUnauthorized: false,
