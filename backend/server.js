@@ -26,6 +26,90 @@ if (typeof scfg.myLogDB !== 'undefined') {
     process.env.MY_LOG_DB = scfg.myLogDB;
 }
 
+var mudcfgfile = process.env.MUD_CONFIG || '/run/mud_config.json',mcfg;
+try {
+    mcfg = JSON.parse(fs.readFileSync(mudcfgfile, 'utf8'));
+} catch (error) {
+    console.warn('mud config error',error);
+    mcfg = { 
+        "scope":"server-default",
+        "href": "/",
+        "mudfamilies": {
+          "basistelnet": {
+            "charset": "ascii",
+            "MXP": false,
+            "GMCP": false,
+            "GMCP_Support": {}
+          },
+          "unitopia": {
+            "charset": "utf8",
+            "MXP": true,
+            "GMCP": true,
+            "GMCP_Support": {
+              "Sound": {
+                "version": "1",
+                "standard": true,
+                "optional": false
+              },
+              "Char": {
+                "version": "1",
+                "standard": true,
+                "optional": false
+              },
+              "Char.Items": {
+                "version": "1",
+                "standard": true,
+                "optional": false
+              },
+              "Comm": {
+                "version": "1",
+                "standard": true,
+                "optional": false
+              },
+              "Playermap": {
+                "version": "1",
+                "standard": false,
+                "optional": true
+              },
+              "Files": {
+                "version": "1",
+                "standard": true,
+                "optional": false
+              }
+            }
+          }
+        },
+        "muds": {
+            "unitopia": {
+              "name": "UNItopia",
+              "host": "unitopia.de",
+              "port": 992,
+              "ssl": true,
+              "rejectUnauthorized": true,
+              "description": "UNItopia via SSL",
+              "playerlevel": "all",
+              "mudfamily": "unitopia"
+            },
+          "seifenblase": {
+            "name": "Seifenblase",
+            "host": "seifenblase.de",
+            "port": 3333,
+            "ssl": false,
+            "rejectUnauthorized": false,
+            "description": "Seifenblase",
+            "playerlevel": "all",
+            "mudfamily": "basistelnet"
+          }
+        },
+        "routes": {
+            "/": "unitopia",
+            "seifenblase": "seifenblase"
+        }
+      };
+}
+
+console.log("central config file",JSON.stringify(cfg,undefined,2));
+console.log("mud config file",JSON.stringify(mcfg,undefined,2));
 
 const logger = require('./ngxlogger/ngxlogger');
 const express = require('express');
@@ -133,7 +217,18 @@ app.get("/ace/*", (req,res) => {
 });
 
 const authRoutes = require("./mudrpc/authRoutes");
+const { stringify } = require('querystring');
 app.use("/api/auth",authRoutes);
+
+app.get("/config/mud_config.json", (req,res) => {
+    var ip = req.headers['x-forwarded-for'] || 
+     req.connection.remoteAddress || 
+     req.socket.remoteAddress ||
+     (req.connection.socket ? req.connection.socket.remoteAddress : null);
+    logger.addAndShowLog('SRV:'+ip,"DEBUG",'mud_config.json',[]);
+    res.json(mcfg);
+    res.status(200);
+});
 
 app.get('*', (req, res) => {
     var ip = req.headers['x-forwarded-for'] || 
@@ -143,6 +238,7 @@ app.get('*', (req, res) => {
     logger.addAndShowLog('SRV:'+ip,"DEBUG",'dist/index.html-Path:',[req.path]);
     res.sendFile(path.join(__dirname, 'dist/index.html'));
   });
+
 
 var MudConnections = {};
 var Socket2Mud = {};
@@ -229,7 +325,7 @@ io.on('connection', (socket) => { // nsp /mysocket.io/ instead of /
     });
 
     socket.on("mud-list", function(data,callback) {
-        callback(cfg.muds);
+        callback(mcfg.muds);
     });
 
     socket.on('mud-connect', function(mudOb,callback)  {
@@ -241,8 +337,8 @@ io.on('connection', (socket) => { // nsp /mysocket.io/ instead of /
             callback({error:'Missing mudname'});
             return;
         }
-        if (cfg.muds.hasOwnProperty(mudOb.mudname)) {
-            mudcfg = cfg.muds[mudOb.mudname];
+        if (mcfg.muds.hasOwnProperty(mudOb.mudname)) {
+            mudcfg = mcfg.muds[mudOb.mudname];
         } else {
             logger.addAndShowLog('SRV:'+real_ip,"FATAL",'Unknown mudnameUnknown mudname',[socket.id,mudOb]);
             return;
@@ -251,8 +347,8 @@ io.on('connection', (socket) => { // nsp /mysocket.io/ instead of /
         var gmcp_support = undefined;
         var charset = 'ascii';
         if (mudcfg.hasOwnProperty('mudfamily')) {
-            if (cfg.hasOwnProperty('mudfamilies') && typeof cfg.mudfamilies[mudcfg.mudfamily] !== 'undefined') {
-                var fam = cfg.mudfamilies[mudcfg.mudfamily];
+            if (mcfg.hasOwnProperty('mudfamilies') && typeof mcfg.mudfamilies[mudcfg.mudfamily] !== 'undefined') {
+                var fam = mcfg.mudfamilies[mudcfg.mudfamily];
                 if (typeof fam.GMCP !== 'undefined' && fam.GMCP === true && typeof fam.GMCP_Support !== 'undefined') {
                     gmcp_support = fam.GMCP_Support;
                     gmcp_support['mudfamily'] = mudcfg.mudfamily;

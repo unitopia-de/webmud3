@@ -1,11 +1,12 @@
-# webmud3 V0.3.0
+# webmud3 V0.5.0
 
 Webmud3: third generation of the UNItopia Webmud as open source project.
 
-Is up and running o the UNItopia server for testers only.
+Is up and running:
+* https://www.unitopia.de/webmud3/
+* https://seifenblase.de/webmud3/
 
-With version 0.0.40 there are three dockerfiles for creating docker images,
-two of them are reserved for unitopia purposes (see dockerfiles/README).
+With Version 0.5.0 all dockerfiles were condensed into one 'latest' image.
 
 
 For own testing please use the following docker command to create the docker image:

@@ -35,3 +35,5 @@
 35. Version 0.2.0: End of migration from UI12 to UI13
 36. Version 0.2.1: End of migration from UI13 to UI14, final implementation of numpad
 37. Version 0.3.0: Lots of Bugfixes, minor version upgrades, Inventory Display. no PWA yet!
+38. Version 0.4.0: Lots of Bugfixes, minor version upgrades
+39. Version 0.5.0: Comndensed configuration into one docker image and into main Dockerfile

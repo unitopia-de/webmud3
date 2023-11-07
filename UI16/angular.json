@@ -26,7 +26,8 @@
             "aot": true,
             "assets": [
               "src/favicon.ico",
-              "src/assets"
+              "src/assets",
+              "src/mud_config.json"
             ],
             "styles": [
               "src/styles.scss",
