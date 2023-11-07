@@ -28,6 +28,8 @@
               "src/favicon.ico",
               "src/assets",
               "src/mud_config.json"
+              "src/assets",
+              "src/mud_config.json"
             ],
             "styles": [
               "src/styles.scss",
