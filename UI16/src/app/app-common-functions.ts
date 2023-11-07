@@ -1,3 +1,4 @@
+
 export function getBaseLocation():string {
   let paths: string[] = location.pathname.split('/').splice(1, 1);
   // console.log("paths:",location.pathname);
