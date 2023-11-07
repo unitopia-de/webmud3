@@ -17,20 +17,21 @@ import { MudConfigService } from './mud-config.service';
 import { getBaseLocation } from './app-common-functions';
 
 export function setupAppConfigServiceFactory(
-  service: MudConfigService
-): Function { 
+  service: MudConfigService,
+): Function {
   // console.log("LOADING Config");
   return () => service.load();
 }
 
 @NgModule({
-  declarations: [
-    AppComponent
-  ],
+  declarations: [AppComponent],
   imports: [
-    BrowserModule,HttpClientModule,
-    MudModule,NonportalModule,
-    PrimeModule,ModelessModule,
+    BrowserModule,
+    HttpClientModule,
+    MudModule,
+    NonportalModule,
+    PrimeModule,
+    ModelessModule,
     AppRoutingModule,
     // ServiceWorkerModule.register('ngsw-worker.js', {
     //   enabled: environment.production,
@@ -39,18 +40,18 @@ export function setupAppConfigServiceFactory(
   ],
   providers: [
     WINDOW_PROVIDERS,
-    CookieService,{
+    CookieService,
+    {
       provide: APP_INITIALIZER,
       useFactory: setupAppConfigServiceFactory,
-      deps: [
-          MudConfigService
-      ],
-      multi: true
-  },{
-    provide: APP_BASE_HREF,
-    useFactory: getBaseLocation
-  }
+      deps: [MudConfigService],
+      multi: true,
+    },
+    {
+      provide: APP_BASE_HREF,
+      useFactory: getBaseLocation,
+    },
   ],
-  bootstrap: [AppComponent]
+  bootstrap: [AppComponent],
 })
-export class AppModule { }
+export class AppModule {}

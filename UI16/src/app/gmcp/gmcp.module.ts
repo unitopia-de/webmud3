@@ -2,11 +2,8 @@ import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
 @NgModule({
-  imports: [
-    CommonModule
-  ],
+  imports: [CommonModule],
   declarations: [],
-  exports: [
-  ]
+  exports: [],
 })
-export class GmcpModule { }
+export class GmcpModule {}

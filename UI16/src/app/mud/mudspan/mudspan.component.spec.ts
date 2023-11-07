@@ -8,9 +8,8 @@ describe('MudspanComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      declarations: [ MudspanComponent ]
-    })
-    .compileComponents();
+      declarations: [MudspanComponent],
+    }).compileComponents();
   });
 
   beforeEach(() => {

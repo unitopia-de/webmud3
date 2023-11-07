@@ -8,9 +8,8 @@ describe('CharStatComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      declarations: [ CharStatComponent ]
-    })
-    .compileComponents();
+      declarations: [CharStatComponent],
+    }).compileComponents();
   });
 
   beforeEach(() => {

@@ -8,9 +8,8 @@ describe('FlexibleAreaComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      declarations: [ FlexibleAreaComponent ]
-    })
-    .compileComponents();
+      declarations: [FlexibleAreaComponent],
+    }).compileComponents();
   });
 
   beforeEach(() => {

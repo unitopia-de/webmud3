@@ -8,9 +8,8 @@ describe('EditorSearchComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      declarations: [ EditorSearchComponent ]
-    })
-    .compileComponents();
+      declarations: [EditorSearchComponent],
+    }).compileComponents();
   });
 
   beforeEach(() => {

@@ -14,22 +14,22 @@ import { CharStatComponent } from './char-stat/char-stat.component';
 
 @NgModule({
   declarations: [
-    ResizableDraggableComponent, 
-    FlexibleAreaComponent, 
-    WindowComponent, 
-    DirlistComponent, 
-    EditorComponent, KeypadComponent, KeypadConfigComponent, KeyoneComponent, CharStatComponent,
+    ResizableDraggableComponent,
+    FlexibleAreaComponent,
+    WindowComponent,
+    DirlistComponent,
+    EditorComponent,
+    KeypadComponent,
+    KeypadConfigComponent,
+    KeyoneComponent,
+    CharStatComponent,
   ],
-  imports: [
-    CommonModule,
-    FormsModule,
-    PrimeModule
-  ],
-  providers:[
-  ],
+  imports: [CommonModule, FormsModule, PrimeModule],
+  providers: [],
   exports: [
-    ResizableDraggableComponent, 
-    FlexibleAreaComponent,WindowComponent
+    ResizableDraggableComponent,
+    FlexibleAreaComponent,
+    WindowComponent,
   ],
 })
-export class ModelessModule { }
+export class ModelessModule {}

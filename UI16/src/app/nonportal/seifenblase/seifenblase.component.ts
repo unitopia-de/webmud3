@@ -5,22 +5,19 @@ import { ServerConfigService } from '../../shared/server-config.service';
 @Component({
   selector: 'app-seifenblase',
   templateUrl: './seifenblase.component.html',
-  styleUrls: ['./seifenblase.component.scss']
+  styleUrls: ['./seifenblase.component.scss'],
 })
 export class SeifenblaseComponent implements OnInit {
+  public mudcfg: WebmudConfig = {
+    mudname: this.srvcfg.getSeifenblase(),
+    autoConnect: true,
+    autoLogin: false,
+    autoUser: '',
+    autoToken: '',
+    localEcho: true,
+  };
 
-  public mudcfg : WebmudConfig = {
-    mudname : this.srvcfg.getSeifenblase(),
-    autoConnect : true,
-    autoLogin : false,
-    autoUser : '',
-    autoToken:'',
-    localEcho : true
-  }
+  constructor(public srvcfg: ServerConfigService) {}
 
-  constructor(public srvcfg:ServerConfigService) { }
-
-  ngOnInit() {
-  }
-
+  ngOnInit() {}
 }

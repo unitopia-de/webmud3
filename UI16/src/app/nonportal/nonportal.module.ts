@@ -10,24 +10,19 @@ import { SeifenblaseComponent } from './seifenblase/seifenblase.component';
 
 @NgModule({
   declarations: [
-    UnitopiaComponent, 
-    OrbitComponent, 
-    Uni1993Component, 
-    SeifenblaseComponent,
-    DualComponent
-    
-  ],
-  imports: [
-    CommonModule,
-    MudModule,
-    PrimeModule
-  ],
-  exports:[
-    UnitopiaComponent, 
-    OrbitComponent, 
+    UnitopiaComponent,
+    OrbitComponent,
     Uni1993Component,
     SeifenblaseComponent,
-    DualComponent
-    ]
+    DualComponent,
+  ],
+  imports: [CommonModule, MudModule, PrimeModule],
+  exports: [
+    UnitopiaComponent,
+    OrbitComponent,
+    Uni1993Component,
+    SeifenblaseComponent,
+    DualComponent,
+  ],
 })
-export class NonportalModule { }
+export class NonportalModule {}

@@ -1,5 +1,15 @@
-import { AfterViewChecked, ChangeDetectorRef, Component, ElementRef, Inject, Input, OnDestroy, OnInit, ViewChild } from '@angular/core';
-import {DialogService} from 'primeng/dynamicdialog';
+import {
+  AfterViewChecked,
+  ChangeDetectorRef,
+  Component,
+  ElementRef,
+  Inject,
+  Input,
+  OnDestroy,
+  OnInit,
+  ViewChild,
+} from '@angular/core';
+import { DialogService } from 'primeng/dynamicdialog';
 import { AnsiData } from '../ansi-data';
 import { WINDOW } from '../../shared/WINDOW_PROVIDERS';
 import { AnsiService } from '../ansi.service';
@@ -23,83 +33,88 @@ import { KeypadData } from 'src/app/shared/keypad-data';
 @Component({
   selector: 'app-mudclient',
   templateUrl: './mudclient.component.html',
-  styleUrls: ['./mudclient.component.scss']
+  styleUrls: ['./mudclient.component.scss'],
 })
-export class MudclientComponent implements AfterViewChecked,OnInit,OnDestroy {
+export class MudclientComponent implements AfterViewChecked, OnInit, OnDestroy {
+  @Input() cfg: WebmudConfig;
+  @ViewChild('mudBlock', { static: false }) mudBlock: ElementRef;
+  @ViewChild('mudInputLine', { static: false }) mudInputLine: ElementRef;
+  @ViewChild('mudInputArea', { static: false }) mudInputArea: ElementRef;
+  @ViewChild('mudTest', { static: false }) mudTest: ElementRef;
+  @ViewChild('mudMenu', { static: false }) mudMenu: ElementRef;
+  @ViewChild('scroller', { static: false }) scroller: ElementRef;
 
-  
-  @Input() cfg : WebmudConfig;
-  @ViewChild('mudBlock', {static: false}) mudBlock : ElementRef;
-  @ViewChild('mudInputLine', {static: false}) mudInputLine: ElementRef;
-  @ViewChild('mudInputArea', {static: false}) mudInputArea: ElementRef;
-  @ViewChild('mudTest', {static: false}) mudTest: ElementRef;
-  @ViewChild('mudMenu', {static: false}) mudMenu : ElementRef;
-  @ViewChild('scroller', {static: false}) scroller: ElementRef; 
-
-  public v = { // visualize-parameters
-    connected : false,
-    scrollLock:true,
+  public v = {
+    // visualize-parameters
+    connected: false,
+    scrollLock: true,
     sizeCalculated: false,
     sizeCalculated2: false,
-    inpType :'text',
-    ref_width:615,
-    ref_height:320,
-    stdfg:'white',
-    stdbg:'black',
-    scrolltop:0,
-  }
-  public cs : ColorSettings = { 
+    inpType: 'text',
+    ref_width: 615,
+    ref_height: 320,
+    stdfg: 'white',
+    stdbg: 'black',
+    scrolltop: 0,
+  };
+  public cs: ColorSettings = {
     invert: false,
-    blackOnWhite:false,
-    colorOff:false,
-    localEchoColor:'#a8ff00',
+    blackOnWhite: false,
+    colorOff: false,
+    localEchoColor: '#a8ff00',
     localEchoBackground: '#000000',
-    localEchoActive:true
-  }
-  public keySetters : KeypadData = new KeypadData();
+    localEchoActive: true,
+  };
+  public keySetters: KeypadData = new KeypadData();
   private d = {
-    ref_height_ratio:1,
-    mudc_height:90,
-    mudc_width:80,
-    startCnt:0,
-  }
-  private mudName : string = 'disconnect';
-  public mudc_id : string;
-  private ioMud : IoMud;
-  public mudlines : AnsiData[] = [];
+    ref_height_ratio: 1,
+    mudc_height: 90,
+    mudc_width: 80,
+    startCnt: 0,
+  };
+  private mudName: string = 'disconnect';
+  public mudc_id: string;
+  private ioMud: IoMud;
+  public mudlines: AnsiData[] = [];
   private ansiCurrent: AnsiData;
-  public inpmessage : string;
-  private inpHistory : string[] = [];
-  public togglePing:boolean=false;
-  private inpPointer:number = -1;
-  public messages : MudMessage[] = [];
+  public inpmessage: string;
+  private inpHistory: string[] = [];
+  public togglePing: boolean = false;
+  private inpPointer: number = -1;
+  public messages: MudMessage[] = [];
   public filesWindow: WindowConfig;
   public charStatsWindow: WindowConfig;
   public charData: CharacterData;
   public invlist: InventoryList;
-  public changeFocus:number = 1;
-  public previousFoxus:number = 1;
+  public changeFocus: number = 1;
+  public previousFoxus: number = 1;
 
-  private obs_connect:any;
-//   private obs_connected:any;
-  private obs_data:any;
-  private obs_debug:any;
-  private obs_signals:any;
+  private obs_connect: any;
+  //   private obs_connected:any;
+  private obs_data: any;
+  private obs_debug: any;
+  private obs_signals: any;
 
   scroll() {
-    this.mudBlock.nativeElement.scrollTo(this.scroller.nativeElement.scrollLeft,0);
+    this.mudBlock.nativeElement.scrollTo(
+      this.scroller.nativeElement.scrollLeft,
+      0,
+    );
   }
   doFocus() {
-    var FirstFocus=undefined;
+    var FirstFocus = undefined;
     this.previousFoxus = this.changeFocus;
     if (this.v.inpType != 'text' && typeof this.mudInputLine !== 'undefined') {
       FirstFocus = this.mudInputLine.nativeElement;
       this.changeFocus = 1;
-      console.log("doFocus-2-inputline",this.changeFocus,this.previousFoxus);
-    } else if (this.v.inpType == "text" && typeof this.mudInputArea !== 'undefined') {
+      console.log('doFocus-2-inputline', this.changeFocus, this.previousFoxus);
+    } else if (
+      this.v.inpType == 'text' &&
+      typeof this.mudInputArea !== 'undefined'
+    ) {
       FirstFocus = this.mudInputArea.nativeElement;
       // this.changeFocus = -1;
-      console.log("doFocus-1-inputarea",this.changeFocus,this.previousFoxus);
+      console.log('doFocus-1-inputarea', this.changeFocus, this.previousFoxus);
     } else if (this.v.inpType != 'text') {
       this.changeFocus = 2;
       return;
@@ -112,12 +127,12 @@ export class MudclientComponent implements AfterViewChecked,OnInit,OnDestroy {
       FirstFocus.select();
     }
   }
-  menuAction(act : any) {
-    console.log("menuAction",act);
-    switch(act.item.id) {
-      case "MUD:MENU": 
+  menuAction(act: any) {
+    console.log('menuAction', act);
+    switch (act.item.id) {
+      case 'MUD:MENU':
         return; // no action/with submenu!
-      default: 
+      default:
         if (act.item.id.startsWith('MUD:CONNECT:')) {
           const mudkey = act.item.id.split(':')[2];
           console.log(act.item.id);
@@ -126,61 +141,73 @@ export class MudclientComponent implements AfterViewChecked,OnInit,OnDestroy {
           this.changeFocus = -3;
         }
         return;
-      case "MUD:CONNECT":
-        if (typeof this.cfg !== 'undefined' && typeof this.cfg.mudname !== 'undefined'
-              && this.cfg.mudname !== '') {
+      case 'MUD:CONNECT':
+        if (
+          typeof this.cfg !== 'undefined' &&
+          typeof this.cfg.mudname !== 'undefined' &&
+          this.cfg.mudname !== ''
+        ) {
           this.mudName = this.cfg.mudname;
           this.connect();
           this.changeFocus = -4;
-        }  
+        }
         return;
-      case "MUD:DISCONNECT":
+      case 'MUD:DISCONNECT':
         this.mudName = 'disconnect';
         this.connect();
         return;
       case 'MUD:SCROLL':
         this.v.scrollLock = !this.v.scrollLock;
         return;
-      case "MUD:NUMPAD":
+      case 'MUD:NUMPAD':
         this.dialogService.open(KeypadConfigComponent, {
-              data: {
-                keypad:this.keySetters,
-                cb: this.menuAction,
-                cbThis:this,
-              },
-              header: 'NumPad-Belegung',
-              width: '90%'
-          });
+          data: {
+            keypad: this.keySetters,
+            cb: this.menuAction,
+            cbThis: this,
+          },
+          header: 'NumPad-Belegung',
+          width: '90%',
+        });
         return;
-      case "MUD:NUMPAD:RETURN":
+      case 'MUD:NUMPAD:RETURN':
         const numpadOther = act.item.cbThis;
         numpadOther.keySetters = act.item.keypad;
-        console.log("MUD:NUMPAD:RETURN",act.item.event);
-        var numpadSplit = act.item.event.split(":");
-        if (numpadSplit[2]=='undefined') {
+        console.log('MUD:NUMPAD:RETURN', act.item.event);
+        var numpadSplit = act.item.event.split(':');
+        if (numpadSplit[2] == 'undefined') {
           numpadSplit[2] = '';
         }
-        numpadOther.keySetters.addKey(numpadSplit[0],numpadSplit[1],numpadSplit.slice(2).join(":"));
-        numpadOther.socketsService.sendGMCP(numpadOther.mudc_id,"Numpad","Update",{
-          "prefix":numpadSplit[0],
-          "key": numpadSplit[1],
-          "value":numpadSplit.slice(2).join(":"),
-        })
+        numpadOther.keySetters.addKey(
+          numpadSplit[0],
+          numpadSplit[1],
+          numpadSplit.slice(2).join(':'),
+        );
+        numpadOther.socketsService.sendGMCP(
+          numpadOther.mudc_id,
+          'Numpad',
+          'Update',
+          {
+            prefix: numpadSplit[0],
+            key: numpadSplit[1],
+            value: numpadSplit.slice(2).join(':'),
+          },
+        );
         // doEvent: act.item.event
         return;
-      case "MUD:VIEW":
+      case 'MUD:VIEW':
         this.dialogService.open(ColorSettingsComponent, {
           data: {
             cs: this.cs,
             cb: this.menuAction,
-            v:this.v,
-            cbThis:this,
+            v: this.v,
+            cbThis: this,
           },
           header: 'Change Colors',
-          width: '40%'
-      });
+          width: '40%',
+        });
         return;
-      case "MUD_VIEW:COLOR:RETURN":
+      case 'MUD_VIEW:COLOR:RETURN':
         this.cs = act.item.cs;
         const other = act.item.cbThis;
         if (this.cs.blackOnWhite) {
@@ -196,92 +223,108 @@ export class MudclientComponent implements AfterViewChecked,OnInit,OnDestroy {
         other.cookieService.set('mudcolors', tmp64);
         return;
     }
-    
-  }  
-
-  private wordWrap(str:string, cols:number):string {
-    var formatedString = '',fstr = '',
-        wordsArray = [];
-      wordsArray = str.split(' ');
-      fstr = wordsArray[0];
-      for (var i = 1; i < wordsArray.length; i++) {
-          if (wordsArray[i].length > cols) {
-              formatedString += fstr+'\r\n';
-              fstr = wordsArray[i];
-          } else {
-              if (fstr.length + wordsArray[i].length > cols) {
-                formatedString += fstr+'\r\n';
-                fstr = wordsArray[i];
-              } else {
-                fstr += ' ' + wordsArray[i];
-              }
-          }
-      }
-      formatedString += fstr+'\r\n';
-      return formatedString;
   }
-  public tableOutput(words:string[],screen:number):string {
-    var width:number = 1;
-    words.forEach(word => {
+
+  private wordWrap(str: string, cols: number): string {
+    var formatedString = '',
+      fstr = '',
+      wordsArray = [];
+    wordsArray = str.split(' ');
+    fstr = wordsArray[0];
+    for (var i = 1; i < wordsArray.length; i++) {
+      if (wordsArray[i].length > cols) {
+        formatedString += fstr + '\r\n';
+        fstr = wordsArray[i];
+      } else {
+        if (fstr.length + wordsArray[i].length > cols) {
+          formatedString += fstr + '\r\n';
+          fstr = wordsArray[i];
+        } else {
+          fstr += ' ' + wordsArray[i];
+        }
+      }
+    }
+    formatedString += fstr + '\r\n';
+    return formatedString;
+  }
+  public tableOutput(words: string[], screen: number): string {
+    var width: number = 1;
+    words.forEach((word) => {
       if (word.length > width) {
         width = word.length;
       }
-    })
+    });
     width++;
-    var cols:number = Math.max(1,Math.floor((screen+1) / (width+1)));
-    var lines:number = Math.floor( (words.length + cols - 1) / cols);
-    width = Math.max(width+1, Math.floor((screen + 1) / cols));
-    var r:string[] = [];
-    for(var line=0;line<lines;line++) {
-      var s="";
-      var colMin = Math.min(cols,Math.floor((words.length - line + lines - 1) / lines));
-      for (var col=0;col<colMin;col++) {
-        var word = words[line+col*lines];
+    var cols: number = Math.max(1, Math.floor((screen + 1) / (width + 1)));
+    var lines: number = Math.floor((words.length + cols - 1) / cols);
+    width = Math.max(width + 1, Math.floor((screen + 1) / cols));
+    var r: string[] = [];
+    for (var line = 0; line < lines; line++) {
+      var s = '';
+      var colMin = Math.min(
+        cols,
+        Math.floor((words.length - line + lines - 1) / lines),
+      );
+      for (var col = 0; col < colMin; col++) {
+        var word = words[line + col * lines];
         var len = width - word.length;
-        s += word + " ".repeat(len);
+        s += word + ' '.repeat(len);
       }
       r.push(s);
     }
-    return "\r\n"+r.join('\r\n');
+    return '\r\n' + r.join('\r\n');
   }
-  
-  private localEcho(other:any,inp:string) {
-      other.ansiCurrent.ansi = '';
-      other.ansiCurrent.mudEcho = other.wordWrap(inp,75);
-      // other.messages.push({text:this.inpmessage+'\r\n'});
-      var ts = new Date();
-      other.ansiCurrent.timeString = ((ts.getDate() < 10)?"0":"") + ts.getDate() +"."
-                                   + (((ts.getMonth()+1) < 10)?"0":"") + (ts.getMonth()+1) +"."
-                                   + ts.getFullYear() + ' '
-                                   +((ts.getHours() < 10)?"0":"") + ts.getHours() +":"
-                                   + ((ts.getMinutes() < 10)?"0":"") + ts.getMinutes() +":"
-                                   + ((ts.getSeconds() < 10)?"0":"") + ts.getSeconds();
-      //console.debug('mudclient-sendMessage-ansiCurrent-before',this.mudc_id,other.ansiCurrent);
-      const a2harr = other.ansiService.processAnsi(other.ansiCurrent);
-      //console.debug('mudclient-sendMessage-s2harr after',this.mudc_id,a2harr);
-      for (var ix=0;ix<a2harr.length;ix++) {
-        if (a2harr[ix].text!=''||typeof a2harr[ix].mudEcho !=='undefined') {
-          other.mudlines = other.mudlines.concat(a2harr[ix]);
-        }
+
+  private localEcho(other: any, inp: string) {
+    other.ansiCurrent.ansi = '';
+    other.ansiCurrent.mudEcho = other.wordWrap(inp, 75);
+    // other.messages.push({text:this.inpmessage+'\r\n'});
+    var ts = new Date();
+    other.ansiCurrent.timeString =
+      (ts.getDate() < 10 ? '0' : '') +
+      ts.getDate() +
+      '.' +
+      (ts.getMonth() + 1 < 10 ? '0' : '') +
+      (ts.getMonth() + 1) +
+      '.' +
+      ts.getFullYear() +
+      ' ' +
+      (ts.getHours() < 10 ? '0' : '') +
+      ts.getHours() +
+      ':' +
+      (ts.getMinutes() < 10 ? '0' : '') +
+      ts.getMinutes() +
+      ':' +
+      (ts.getSeconds() < 10 ? '0' : '') +
+      ts.getSeconds();
+    //console.debug('mudclient-sendMessage-ansiCurrent-before',this.mudc_id,other.ansiCurrent);
+    const a2harr = other.ansiService.processAnsi(other.ansiCurrent);
+    //console.debug('mudclient-sendMessage-s2harr after',this.mudc_id,a2harr);
+    for (var ix = 0; ix < a2harr.length; ix++) {
+      if (a2harr[ix].text != '' || typeof a2harr[ix].mudEcho !== 'undefined') {
+        other.mudlines = other.mudlines.concat(a2harr[ix]);
       }
-      other.ansiCurrent = a2harr[a2harr.length-1];
-    
+    }
+    other.ansiCurrent = a2harr[a2harr.length - 1];
   }
-  
+
   sendMessage() {
     var other = this;
-    this.socketsService.mudSendData(this.mudc_id,this.inpmessage);
+    this.socketsService.mudSendData(this.mudc_id, this.inpmessage);
     if (this.v.inpType == 'text' && this.inpmessage != '') {
-      this.localEcho(other,this.inpmessage);
-      if ((this.inpHistory.length==0 || (this.inpHistory.length >0 && this.inpHistory[0] != this.inpmessage))) {
+      this.localEcho(other, this.inpmessage);
+      if (
+        this.inpHistory.length == 0 ||
+        (this.inpHistory.length > 0 && this.inpHistory[0] != this.inpmessage)
+      ) {
         this.inpHistory.unshift(this.inpmessage);
       }
     }
     this.inpmessage = '';
   }
-  
-  onKeyDown(event:KeyboardEvent) {
-    if (this.v.inpType!='text') return;
+
+  onKeyDown(event: KeyboardEvent) {
+    if (this.v.inpType != 'text') return;
     var modifiers = '';
     if (event.shiftKey) {
       modifiers += 'Shift';
@@ -296,40 +339,38 @@ export class MudclientComponent implements AfterViewChecked,OnInit,OnDestroy {
       modifiers += 'Meta';
     }
     if (modifiers == 'CtrlAlt') return;
-    if (modifiers == '' && event.key == "Enter") {
+    if (modifiers == '' && event.key == 'Enter') {
       event.returnValue = false;
       event.preventDefault();
-      this.sendMessage()
+      this.sendMessage();
       return;
     }
-    if (typeof this.keySetters === 'undefined'){
-      console.log('keydown-1',modifiers,event.code);
+    if (typeof this.keySetters === 'undefined') {
+      console.log('keydown-1', modifiers, event.code);
       return;
     }
-    if (event.code.startsWith("Numpad") || event.code.startsWith("F")) {
-      modifiers += '|'+event.code;
-      const inp = this.keySetters.getCompoundKey(modifiers); 
-      if (typeof inp!== 'undefined') {
+    if (event.code.startsWith('Numpad') || event.code.startsWith('F')) {
+      modifiers += '|' + event.code;
+      const inp = this.keySetters.getCompoundKey(modifiers);
+      if (typeof inp !== 'undefined') {
         if (inp !== '') {
-          this.socketsService.mudSendData(this.mudc_id,inp);
-          this.localEcho(this,inp);// TODO abschaltbar
+          this.socketsService.mudSendData(this.mudc_id, inp);
+          this.localEcho(this, inp); // TODO abschaltbar
         }
         event.returnValue = false;
         event.preventDefault();
         return;
       } else {
-        console.log('keydown-2',modifiers,event.code);
+        console.log('keydown-2', modifiers, event.code);
       }
     }
-    
   }
 
-  onKeyUp(event:KeyboardEvent) {
-    
-    var a2h : AnsiData;
-    if (this.v.inpType !='text') return;
+  onKeyUp(event: KeyboardEvent) {
+    var a2h: AnsiData;
+    if (this.v.inpType != 'text') return;
     switch (event.key) {
-      case "ArrowUp":
+      case 'ArrowUp':
         if (this.inpHistory.length < this.inpPointer) {
           return; // at the end.....
         }
@@ -343,7 +384,10 @@ export class MudclientComponent implements AfterViewChecked,OnInit,OnDestroy {
               return;
             }
           } else {
-            if (this.inpHistory.length>0 && this.inpmessage == this.inpHistory[0]) {
+            if (
+              this.inpHistory.length > 0 &&
+              this.inpmessage == this.inpHistory[0]
+            ) {
               return;
             }
             this.inpHistory.unshift(this.inpmessage);
@@ -364,7 +408,7 @@ export class MudclientComponent implements AfterViewChecked,OnInit,OnDestroy {
           this.inpmessage = this.inpHistory[this.inpPointer];
         }
         return;
-       case "ArrowDown":
+      case 'ArrowDown':
         if (this.inpPointer < 0) {
           return; // at the beginning
         }
@@ -375,23 +419,28 @@ export class MudclientComponent implements AfterViewChecked,OnInit,OnDestroy {
         }
         this.inpmessage = this.inpHistory[this.inpPointer];
         return;
-      case "ArrowLeft":
+      case 'ArrowLeft':
         return;
-      case "ArrowRight":
-      case "Shift":
-      case "Ctrl":
-      case "Alt":
-      case "AltGraph":
-      case "Meta":
+      case 'ArrowRight':
+      case 'Shift':
+      case 'Ctrl':
+      case 'Alt':
+      case 'AltGraph':
+      case 'Meta':
         return; // no change to the pointer...
-      case "Enter":
+      case 'Enter':
         this.inpPointer = -1;
-        a2h = Object.assign({},this.mudlines[this.mudlines.length-1]);
-        a2h.text = "\r\n";
+        a2h = Object.assign({}, this.mudlines[this.mudlines.length - 1]);
+        a2h.text = '\r\n';
         this.mudlines.push(a2h);
         return;
-      case "Tab":
-        this.socketsService.sendGMCP(this.ioMud.MudId,"Input","Complete",this.inpmessage);
+      case 'Tab':
+        this.socketsService.sendGMCP(
+          this.ioMud.MudId,
+          'Input',
+          'Complete',
+          this.inpmessage,
+        );
         return;
       default:
         this.inpPointer = -1;
@@ -400,66 +449,88 @@ export class MudclientComponent implements AfterViewChecked,OnInit,OnDestroy {
   }
 
   private connect() {
-    console.log("S95-mudclient-connecting-1",this.mudName);
+    console.log('S95-mudclient-connecting-1', this.mudName);
     if (this.mudName.toLowerCase() == 'disconnect') {
       if (this.mudc_id) {
         if (typeof this.ioMud !== undefined) {
           this.ioMud.disconnectFromMudClient(this.mudc_id);
           this.ioMud = undefined;
         }
-        console.info('S95-mudclient-disconnect',this.mudc_id);
+        console.info('S95-mudclient-disconnect', this.mudc_id);
         if (this.obs_debug) this.obs_debug.unsubscribe();
         if (this.obs_data) this.obs_data.unsubscribe();
         if (this.obs_signals) this.obs_signals.unsubscribe();
-        if (this.obs_connect) this.obs_connect.unsubscribe();// including disconnect
+        if (this.obs_connect) this.obs_connect.unsubscribe(); // including disconnect
         this.v.connected = false;
         this.mudc_id = undefined;
         return;
       }
     }
     const other = this;
-    const mudOb : MudConfig = {mudname:this.mudName,height:this.d.mudc_height,width:this.d.mudc_width}; // TODO options???
-    this.titleService.setTitle(this.srvcfgService.getWebmudName()+" "+this.mudName);// TODO portal!!!
+    const mudOb: MudConfig = {
+      mudname: this.mudName,
+      height: this.d.mudc_height,
+      width: this.d.mudc_width,
+    }; // TODO options???
+    this.titleService.setTitle(
+      this.srvcfgService.getWebmudName() + ' ' + this.mudName,
+    ); // TODO portal!!!
     if (this.cfg.autoUser != '') {
       mudOb['user'] = this.cfg.autoUser;
       mudOb['token'] = this.cfg.autoToken;
       mudOb['password'] = this.cfg.autoPw || '';
     }
-    console.log("S95-mudclient-connecting-2",mudOb);
-    this.obs_connect = this.socketsService.mudConnect(mudOb).subscribe(ioResult => {
-      switch (ioResult.IdType) {
-        case 'IoMud:SendToAllMuds':
-          MudSignalHelpers.mudProcessData(other,other.ioMud.MudId,[ioResult.MsgType,undefined]);
-          // console.warn("S96-check SendToAllMuds",ioResult);
-          return;
-        case 'IoMud':
-          other.ioMud = (ioResult.Data as IoMud);
-          other.v.connected = this.ioMud.connected;
-          switch (ioResult.MsgType) {
-            case 'mud-connect':
-              other.mudc_id = other.ioMud.MudId;
-              other.v.connected = true;
-              return;
-            case 'mud-signal':
-              MudSignalHelpers.mudProecessSignals(other,ioResult.musi,other.ioMud.MudId);
-              return;
-            case 'mud-output':
-              MudSignalHelpers.mudProcessData(other,other.ioMud.MudId,[ioResult.ErrorType,undefined]);
-              return;
-            case 'mud-disconnect':
-              other.v.connected = false;
-              MudSignalHelpers.mudProcessData(other,other.ioMud.MudId,[ioResult.ErrorType,undefined]);
-              return;
-            default:
-              console.warn("S96-unknown MsgType with IoMud",ioResult);
-          }
-          break;
-        default:
-          console.warn("S96-unknown idType",ioResult);
-      }
-    },error=>{
-      console.error(error);
-    })
+    console.log('S95-mudclient-connecting-2', mudOb);
+    this.obs_connect = this.socketsService.mudConnect(mudOb).subscribe(
+      (ioResult) => {
+        switch (ioResult.IdType) {
+          case 'IoMud:SendToAllMuds':
+            MudSignalHelpers.mudProcessData(other, other.ioMud.MudId, [
+              ioResult.MsgType,
+              undefined,
+            ]);
+            // console.warn("S96-check SendToAllMuds",ioResult);
+            return;
+          case 'IoMud':
+            other.ioMud = ioResult.Data as IoMud;
+            other.v.connected = this.ioMud.connected;
+            switch (ioResult.MsgType) {
+              case 'mud-connect':
+                other.mudc_id = other.ioMud.MudId;
+                other.v.connected = true;
+                return;
+              case 'mud-signal':
+                MudSignalHelpers.mudProecessSignals(
+                  other,
+                  ioResult.musi,
+                  other.ioMud.MudId,
+                );
+                return;
+              case 'mud-output':
+                MudSignalHelpers.mudProcessData(other, other.ioMud.MudId, [
+                  ioResult.ErrorType,
+                  undefined,
+                ]);
+                return;
+              case 'mud-disconnect':
+                other.v.connected = false;
+                MudSignalHelpers.mudProcessData(other, other.ioMud.MudId, [
+                  ioResult.ErrorType,
+                  undefined,
+                ]);
+                return;
+              default:
+                console.warn('S96-unknown MsgType with IoMud', ioResult);
+            }
+            break;
+          default:
+            console.warn('S96-unknown idType', ioResult);
+        }
+      },
+      (error) => {
+        console.error(error);
+      },
+    );
     return;
     // this.obs_connect = this.socketService.mudConnect(mudOb).subscribe(_id => {
     //   console.log("S05-mudclient-connecting-3",_id);
@@ -474,8 +545,8 @@ export class MudclientComponent implements AfterViewChecked,OnInit,OnDestroy {
     //       flag => {other.v.connected = flag;
     //       console.log("S05-mudclient-connecting-4",_id,flag);
     //     });
-    //   other.obs_signals = other.socketService.mudReceiveSignals(_id).subscribe( 
-    //       musi => { 
+    //   other.obs_signals = other.socketService.mudReceiveSignals(_id).subscribe(
+    //       musi => {
     //         MudSignalHelpers.mudProecessSignals(other,musi,_id);
     //   });
     //   other.obs_data = other.socketService.mudReceiveData(_id).subscribe(outline => {
@@ -483,16 +554,14 @@ export class MudclientComponent implements AfterViewChecked,OnInit,OnDestroy {
     //   });
     // });
   }
-    
 
-  ngOnDestroy(): void {
-  }
+  ngOnDestroy(): void {}
 
-  getViewPortHeight():number {
+  getViewPortHeight(): number {
     return this.window.innerHeight;
   }
-  
-  getViewPortWidth():number {
+
+  getViewPortWidth(): number {
     return this.window.innerWidth;
   }
 
@@ -501,19 +570,39 @@ export class MudclientComponent implements AfterViewChecked,OnInit,OnDestroy {
     var ow = this.mudBlock.nativeElement.offsetWidth;
     var tmpheight = this.getViewPortHeight();
     tmpheight -= this.mudMenu.nativeElement.offsetHeight;
-    tmpheight -= 2*this.mudInputArea.nativeElement.offsetHeight;
-    tmpheight = Math.floor(Math.floor(tmpheight/(this.d.ref_height_ratio))*this.d.ref_height_ratio+0.5);
+    tmpheight -= 2 * this.mudInputArea.nativeElement.offsetHeight;
+    tmpheight = Math.floor(
+      Math.floor(tmpheight / this.d.ref_height_ratio) *
+        this.d.ref_height_ratio +
+        0.5,
+    );
     var other = this;
-    setTimeout(function(){
+    setTimeout(function () {
       other.v.ref_height = tmpheight;
       // other.v.sizeCalculated2 = true;
       other.cdRef.detectChanges();
     });
-    if (this.d.mudc_height != Math.floor(tmpheight/this.d.ref_height_ratio)) {
-      this.d.mudc_height = Math.floor(tmpheight/(this.d.ref_height_ratio+1));
-      console.debug('MudSize ',''+this.d.mudc_width+'x'+this.d.mudc_height+' <= '+ow+'x'+tmpheight);
+    if (this.d.mudc_height != Math.floor(tmpheight / this.d.ref_height_ratio)) {
+      this.d.mudc_height = Math.floor(
+        tmpheight / (this.d.ref_height_ratio + 1),
+      );
+      console.debug(
+        'MudSize ',
+        '' +
+          this.d.mudc_width +
+          'x' +
+          this.d.mudc_height +
+          ' <= ' +
+          ow +
+          'x' +
+          tmpheight,
+      );
       this.d.startCnt++;
-      if (this.d.startCnt == 1 && typeof this.mudc_id === 'undefined' && this.cfg.autoConnect) {
+      if (
+        this.d.startCnt == 1 &&
+        typeof this.mudc_id === 'undefined' &&
+        this.cfg.autoConnect
+      ) {
         this.connect();
       }
       if (typeof this.mudc_id !== undefined) {
@@ -522,30 +611,36 @@ export class MudclientComponent implements AfterViewChecked,OnInit,OnDestroy {
     }
   }
 
-  focusFunction(what:string) {
-    console.log("get focus",what);
+  focusFunction(what: string) {
+    console.log('get focus', what);
   }
 
-  focusOutFunction(what:string) {
-    console.log("out focus",what);
+  focusOutFunction(what: string) {
+    console.log('out focus', what);
   }
 
   ngAfterViewChecked(): void {
     var other = this;
 
     // [scrollTop]="mudBlock.scrollHeight"
-    if (this.v.scrollLock && this.mudBlock && this.mudBlock.nativeElement.scrollTop != this.mudBlock.nativeElement.scrollHeight) {
-      setTimeout(()=>{
-        this.mudBlock.nativeElement.scrollTop = this.mudBlock.nativeElement.scrollHeight;
-      });      
+    if (
+      this.v.scrollLock &&
+      this.mudBlock &&
+      this.mudBlock.nativeElement.scrollTop !=
+        this.mudBlock.nativeElement.scrollHeight
+    ) {
+      setTimeout(() => {
+        this.mudBlock.nativeElement.scrollTop =
+          this.mudBlock.nativeElement.scrollHeight;
+      });
     }
 
-    var tmpwidth = this.getViewPortWidth()/1.0125;
+    var tmpwidth = this.getViewPortWidth() / 1.0125;
     if (!this.v.sizeCalculated) {
       this.doFocus();
-        tmpwidth = this.mudTest.nativeElement.offsetWidth * 1.0125;
-      this.d.ref_height_ratio = this.mudTest.nativeElement.offsetHeight/25.0;
-      setTimeout(function(){
+      tmpwidth = this.mudTest.nativeElement.offsetWidth * 1.0125;
+      this.d.ref_height_ratio = this.mudTest.nativeElement.offsetHeight / 25.0;
+      setTimeout(function () {
         other.v.ref_width = tmpwidth;
         other.v.sizeCalculated = true;
         other.cdRef.detectChanges();
@@ -558,38 +653,36 @@ export class MudclientComponent implements AfterViewChecked,OnInit,OnDestroy {
     }
   }
 
-  ngOnInit(): void {
-  }
+  ngOnInit(): void {}
 
   constructor(
-    @Inject(WINDOW) private window:Window,
-    private cdRef:ChangeDetectorRef,
-    private ansiService:AnsiService,
-    private dialogService:DialogService,
+    @Inject(WINDOW) private window: Window,
+    private cdRef: ChangeDetectorRef,
+    private ansiService: AnsiService,
+    private dialogService: DialogService,
     private socketsService: SocketsService,
     public filesrv: FilesService,
-    public wincfg:WindowService,
-    private srvcfgService:ServerConfigService,
-    private titleService:Title,
-    private cookieService: CookieService
-  ) { 
+    public wincfg: WindowService,
+    private srvcfgService: ServerConfigService,
+    private titleService: Title,
+    private cookieService: CookieService,
+  ) {
     this.invlist = new InventoryList();
     this.ansiCurrent = new AnsiData();
-    this.mudc_id = "one";
-    
-        const ncs = this.cookieService.get('mudcolors');
-        // console.log("mudcolors '"+ncs+"'");
-        if (ncs != '') {
-          this.cs = JSON.parse(ansiService.fromBinaryBase64(ncs));
-        }
-        if (this.cs.blackOnWhite) {
-          this.v.stdfg = 'black';
-          this.v.stdbg = 'white';
-        } else {
-          this.v.stdfg = 'white';
-          this.v.stdbg = 'black';
-        }
+    this.mudc_id = 'one';
+
+    const ncs = this.cookieService.get('mudcolors');
+    // console.log("mudcolors '"+ncs+"'");
+    if (ncs != '') {
+      this.cs = JSON.parse(ansiService.fromBinaryBase64(ncs));
+    }
+    if (this.cs.blackOnWhite) {
+      this.v.stdfg = 'black';
+      this.v.stdbg = 'white';
+    } else {
+      this.v.stdfg = 'white';
+      this.v.stdbg = 'black';
+    }
     // this.connect();
   }
-
 }

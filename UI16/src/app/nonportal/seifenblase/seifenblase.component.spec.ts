@@ -8,9 +8,8 @@ describe('Uni1993Component', () => {
 
   beforeEach(async(() => {
     TestBed.configureTestingModule({
-      declarations: [ Uni1993Component ]
-    })
-    .compileComponents();
+      declarations: [Uni1993Component],
+    }).compileComponents();
   }));
 
   beforeEach(() => {
