@@ -82,10 +82,10 @@ const standardRoutes: Routes = [
         if (!rootFlag) {
           console.error("No root node!");
         }
-        return [
-          ...routes,
-          ...standardRoutes
-        ];
+        if (count==0) {
+          console.error("no routes");
+        }
+        return [...routes, ...standardRoutes];
       },
       deps:[MudConfigService],
       multi: true
