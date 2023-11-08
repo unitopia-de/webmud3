@@ -1,11 +1,11 @@
-import { NgModule } from '@angular/core';
+import { Inject, NgModule,Component } from '@angular/core';
 import { Routes, RouterModule, ROUTES } from '@angular/router';
 import { OrbitComponent } from './nonportal/orbit/orbit.component';
 import { Uni1993Component } from './nonportal/uni1993/uni1993.component';
 import { UnitopiaComponent } from './nonportal/unitopia/unitopia.component';
 import { DualComponent } from './nonportal/dual/dual.component';
 import { SeifenblaseComponent } from './nonportal/seifenblase/seifenblase.component';
-import { environment } from '../environments/environment';
+import { environment } from '../environments/environment'
 import { MudConfigService } from './mud-config.service';
 
 // const routes: Routes = (environment.webmud3home == 'seifenblase') ? [
@@ -21,27 +21,30 @@ import { MudConfigService } from './mud-config.service';
 //   { path: '**', redirectTo: '/'}
 // ];
 
-const standardRoutes: Routes = [{ path: '**', redirectTo: '/' }];
+const standardRoutes: Routes = [
+  { path: '**', redirectTo: '/'}
+];
 
 @NgModule({
   imports: [
     RouterModule.forRoot(
       [],
-      { onSameUrlNavigation: 'reload', enableTracing: false }, // <-- debugging purposes only
-    ),
+      { onSameUrlNavigation: 'reload',
+        enableTracing: false } // <-- debugging purposes only
+    )
   ],
   providers: [
     {
       provide: ROUTES,
-      useFactory: (mudcfg: MudConfigService) => {
-        const routes: Routes = [];
-        const mroutes = mudcfg.data.routes;
+      useFactory: (mudcfg:MudConfigService) => {
+        let routes: Routes = [];
+        let mroutes = mudcfg.data.routes;
         let count = 0;
         let rootFlag = false;
-        Object.keys(mroutes).forEach((key: string) => {
-          if (Object.prototype.hasOwnProperty.call(mroutes, key) && key.startsWith('/')) {
+        Object.keys(mroutes).forEach( (key:string) => {
+          if (mroutes.hasOwnProperty(key) && key.startsWith("/")) {
             const path = key.substring(1);
-            let component: any = undefined;
+            let component : any = undefined;
             switch (mroutes[key]) {
               case 'unitopia':
                 component = UnitopiaComponent;
@@ -56,39 +59,38 @@ const standardRoutes: Routes = [{ path: '**', redirectTo: '/' }];
                 component = SeifenblaseComponent;
                 break;
               default:
-                console.error('unknown mud route:', key, mroutes[key]);
+                console.error("unknown mud route:",key,mroutes[key]);
                 break;
             }
             if (typeof component !== 'undefined') {
-              count++;
               if (key === '/') {
                 routes.push({
                   path,
                   component,
-                  pathMatch: 'full',
+                  pathMatch: 'full'
                 });
                 rootFlag = true;
-              } else {
+                } else {
                 routes.push({
                   path,
-                  component,
-                });
+                  component
+                })
               }
             }
           }
         });
         if (!rootFlag) {
-          console.error('No root node!');
+          console.error("No root node!");
         }
-        if (count==0) {
-          console.error("no routes");
-        }
-        return [...routes, ...standardRoutes];
+        return [
+          ...routes,
+          ...standardRoutes
+        ];
       },
-      deps: [MudConfigService],
-      multi: true,
-    },
+      deps:[MudConfigService],
+      multi: true
+    }
   ],
-  exports: [RouterModule],
+  exports: [RouterModule]
 })
-export class AppRoutingModule {}
+export class AppRoutingModule { }
