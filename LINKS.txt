@@ -39,11 +39,11 @@ https://www.npmjs.com/package/ng2-ace-editor
 
 https://microsoft.github.io/language-server-protocol/overview
 
+
 create a server configuration in angular:(Done)
 https://angular-book.dev/ch10-03-loading-configuration-file.html
 https://levelup.gitconnected.com/angular-dynamic-routing-299c04ca75b1
 https://stackoverflow.com/questions/38112891/angular-2-set-base-href-dynamically
-
 
   /* eslint @typescript-eslint/no-this-alias: "warn" */
   /* Object.prototype.hasOwnProperty.call(gmcp_support, element) */
