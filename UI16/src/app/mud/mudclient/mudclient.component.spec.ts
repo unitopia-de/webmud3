@@ -8,9 +8,8 @@ describe('MudclientComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      declarations: [ MudclientComponent ]
-    })
-    .compileComponents();
+      declarations: [MudclientComponent],
+    }).compileComponents();
   });
 
   beforeEach(() => {

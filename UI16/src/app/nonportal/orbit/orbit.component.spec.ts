@@ -8,9 +8,8 @@ describe('OrbitComponent', () => {
 
   beforeEach(async(() => {
     TestBed.configureTestingModule({
-      declarations: [ OrbitComponent ]
-    })
-    .compileComponents();
+      declarations: [OrbitComponent],
+    }).compileComponents();
   }));
 
   beforeEach(() => {

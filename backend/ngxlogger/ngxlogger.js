@@ -73,7 +73,7 @@ module.exports = {
                     console.error(outpline);
                     break;
             case 'FATAL':
-                    console.fatal(outpline);
+                    console.error(outpline);
                     break;
             case 'OFF':
                 break;

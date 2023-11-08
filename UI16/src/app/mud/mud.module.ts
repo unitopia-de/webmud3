@@ -10,17 +10,17 @@ import { PrimeModule } from '../prime.module';
 import { SettingsModule } from '../settings/settings.module';
 import { WidgetsModule } from '../widgets/widgets.module';
 
-
 @NgModule({
   declarations: [MudclientComponent, MudmenuComponent, MudspanComponent],
   imports: [
-    CommonModule,BrowserModule,
+    CommonModule,
+    BrowserModule,
     PrimeModule,
     BrowserAnimationsModule,
-    FormsModule,SettingsModule,WidgetsModule
+    FormsModule,
+    SettingsModule,
+    WidgetsModule,
   ],
-  exports: [
-    MudclientComponent
-  ]
+  exports: [MudclientComponent],
 })
-export class MudModule { }
+export class MudModule {}

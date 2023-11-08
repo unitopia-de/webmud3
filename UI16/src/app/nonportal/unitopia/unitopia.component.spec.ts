@@ -8,9 +8,8 @@ describe('UnitopiaComponent', () => {
 
   beforeEach(async(() => {
     TestBed.configureTestingModule({
-      declarations: [ UnitopiaComponent ]
-    })
-    .compileComponents();
+      declarations: [UnitopiaComponent],
+    }).compileComponents();
   }));
 
   beforeEach(() => {

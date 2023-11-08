@@ -5,30 +5,25 @@ import { WebmudConfig } from 'src/app/mud/webmud-config';
 @Component({
   selector: 'app-dual',
   templateUrl: './dual.component.html',
-  styleUrls: ['./dual.component.scss']
+  styleUrls: ['./dual.component.scss'],
 })
-export class DualComponent implements OnInit {
+export class DualComponent {
+  public mudcfg1: WebmudConfig = {
+    mudname: '',
+    autoConnect: false,
+    autoLogin: false,
+    autoUser: '',
+    autoToken: '',
+    localEcho: true,
+  };
+  public mudcfg2: WebmudConfig = {
+    mudname: '',
+    autoConnect: false,
+    autoLogin: false,
+    autoUser: '',
+    autoToken: '',
+    localEcho: true,
+  };
 
-  public mudcfg1 : WebmudConfig = {
-    mudname : '',
-    autoConnect : false,
-    autoLogin : false,
-    autoUser : '',
-    autoToken:'',
-    localEcho : true
-  }
-  public mudcfg2 : WebmudConfig = {
-    mudname : '',
-    autoConnect : false,
-    autoLogin : false,
-    autoUser : '',
-    autoToken:'',
-    localEcho : true
-  }
-
-  constructor(public srvcfg:ServerConfigService) { }
-
-  ngOnInit(): void {
-  }
-
+  constructor(public srvcfg: ServerConfigService) {}
 }

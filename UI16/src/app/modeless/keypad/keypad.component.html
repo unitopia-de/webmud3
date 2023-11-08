@@ -1,4 +1,4 @@
-<div class="grid" *ngIf="_keypad!=undefined ; else loading">
+<div class="grid" *ngIf="_keypad!==undefined ; else loading">
     <div class="col-3">-</div>
     <div class="col-3"><app-keyone [prefix]="_keypad.prefix" key="/" [value]="_keypad.keys['NumpadDivide']" (keyAction)="valAction($event)"></app-keyone></div>
     <div class="col-3"><app-keyone [prefix]="_keypad.prefix" key="*" [value]="_keypad.keys['NumpadMultiply']" (keyAction)="valAction($event)"></app-keyone></div>

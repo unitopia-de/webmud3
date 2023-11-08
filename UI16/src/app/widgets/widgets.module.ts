@@ -6,21 +6,15 @@ import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { PrimeModule } from '../prime.module';
 import { InventoryComponent } from './inventory/inventory.component';
 
-
-
 @NgModule({
-  declarations: [
-    InventoryComponent
-  ],
+  declarations: [InventoryComponent],
   imports: [
     CommonModule,
     FormsModule,
     BrowserModule,
     BrowserAnimationsModule,
-    PrimeModule
+    PrimeModule,
   ],
-  exports: [
-    InventoryComponent
-    ]
+  exports: [InventoryComponent],
 })
-export class WidgetsModule { }
+export class WidgetsModule {}

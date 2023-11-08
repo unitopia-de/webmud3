@@ -6,16 +6,9 @@ import { ColorSettingsComponent } from './color-settings/color-settings.componen
 import { PrimeModule } from '../prime.module';
 import { EditorSearchComponent } from './editor-search/editor-search.component';
 
-
-
 @NgModule({
   declarations: [ColorSettingsComponent, EditorSearchComponent],
-  imports: [
-    CommonModule,BrowserModule,
-    FormsModule,
-    PrimeModule
-  ],exports: [
-    ColorSettingsComponent
-  ]
+  imports: [CommonModule, BrowserModule, FormsModule, PrimeModule],
+  exports: [ColorSettingsComponent],
 })
-export class SettingsModule { }
+export class SettingsModule {}

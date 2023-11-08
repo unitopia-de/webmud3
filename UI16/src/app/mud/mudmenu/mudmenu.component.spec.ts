@@ -8,9 +8,8 @@ describe('MudmenuComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      declarations: [ MudmenuComponent ]
-    })
-    .compileComponents();
+      declarations: [MudmenuComponent],
+    }).compileComponents();
   });
 
   beforeEach(() => {

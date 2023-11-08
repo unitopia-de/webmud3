@@ -2,84 +2,85 @@ import { Injectable } from '@angular/core';
 import { MenuItem } from 'primeng/api';
 import { MenuType, OneMenu } from './one-menu';
 
+    /* eslint @typescript-eslint/ban-types: "warn" */
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class MenuService {
-
   private all_menus = {};
 
-  create_menu(menuType:MenuType,id:string,callback:Function):boolean{
-    if (this.all_menus.hasOwnProperty(id)) {
+  create_menu(menuType: MenuType, menuID: string, callback: Function): boolean {
+    if (Object.prototype.hasOwnProperty.call(this.all_menus, menuID)) {
       return false;
     }
-    var myMenu = new OneMenu(menuType,id,callback);
-    this.all_menus[id] = myMenu;
+    const myMenu = new OneMenu(menuType, menuID, callback);
+    this.all_menus[menuID] = myMenu;
     return true;
   }
-  refresh_menu(menuID:string):boolean {
-    if (this.all_menus.hasOwnProperty(menuID)) {
+  refresh_menu(menuID: string): boolean {
+    if (Object.prototype.hasOwnProperty.call(this.all_menus, menuID)) {
       this.all_menus[menuID].items = [];
       return true;
     }
     return false;
   }
-  get_menu_items(menuId:string) : MenuItem[] {
-    if (this.all_menus.hasOwnProperty(menuId))  {
-      return this.all_menus[menuId].items;
+  get_menu_items(menuID: string): MenuItem[] {
+    if (Object.prototype.hasOwnProperty.call(this.all_menus, menuID)) {
+      return this.all_menus[menuID].items;
     }
     return [];
   }
   add_menu_item(
-      menuId:string,
-      submenu:number,
-      itemId:string,
-      label:string,
-      icon:string,
-      disabled:boolean=false,
-      visible:boolean=true):boolean{
-    if (!this.all_menus.hasOwnProperty(menuId)) {
+    menuID: string,
+    submenu: number,
+    itemId: string,
+    label: string,
+    icon: string,
+    disabled = false,
+    visible = true,
+  ): boolean {
+    if (!Object.prototype.hasOwnProperty.call(this.all_menus, menuID)) {
       return false;
     }
-    var myItem : MenuItem = {
-      id:itemId,
-      label : label,
+    const myItem: MenuItem = {
+      id: itemId,
+      label: label,
       icon: icon,
       disabled: disabled,
       visible: visible,
-      command: this.all_menus[menuId].executer
-    }
+      command: this.all_menus[menuID].executer,
+    };
     if (submenu <= 0) {
-      if (!this.all_menus[menuId].hasOwnProperty('items')) {
-        this.all_menus[menuId].items = [];
+      if (!Object.prototype.hasOwnProperty.call(this.all_menus[menuID], 'items')) {
+        this.all_menus[menuID].items = [];
       }
-      this.all_menus[menuId].items.push(myItem);
+      this.all_menus[menuID].items.push(myItem);
       return true;
     }
-    if (!this.all_menus[menuId].hasOwnProperty('items')) {
+    if (!Object.prototype.hasOwnProperty.call(this.all_menus[menuID], 'items')) {
       return false; // no previous element to insert to.
     }
-    var ix1 = this.all_menus[menuId].items.length - 1;
+    const ix1 = this.all_menus[menuID].items.length - 1;
     if (submenu == 1) {
-      if (!this.all_menus[menuId].items[ix1].hasOwnProperty('items')) {
-        this.all_menus[menuId].items[ix1].items = [];
+      if (!Object.prototype.hasOwnProperty.call(this.all_menus[menuID].items[ix1], 'items')) {
+        this.all_menus[menuID].items[ix1].items = [];
       }
-      this.all_menus[menuId].items[ix1].items.push(myItem);
+      this.all_menus[menuID].items[ix1].items.push(myItem);
       return true;
     }
-    if (!this.all_menus[menuId].items[ix1].hasOwnProperty('items')) {
-      return false;// no previous element on level 1 to insert to
+    if (!Object.prototype.hasOwnProperty.call(this.all_menus[menuID].items[ix1], 'items')) {
+      return false; // no previous element on level 1 to insert to
     }
-    var ix2 = this.all_menus[menuId].items[ix1].items.length;
+    const ix2 = this.all_menus[menuID].items[ix1].items.length;
     if (submenu == 2) {
-      if (!this.all_menus[menuId].items[ix1].items[ix2].hasOwnProperty('items')) {
-        this.all_menus[menuId].items[ix1].items[ix2].items = [];
+      if (
+        !Object.prototype.hasOwnProperty.call(this.all_menus[menuID].items[ix1].items[ix2], 'items')
+      ) {
+        this.all_menus[menuID].items[ix1].items[ix2].items = [];
       }
-      this.all_menus[menuId].items[ix1].items[ix2].items.push(myItem);
+      this.all_menus[menuID].items[ix1].items[ix2].items.push(myItem);
       return true;
     }
     return false; // only submenu level 0,1,2 is valid.
   }
-
-  constructor() { }
 }

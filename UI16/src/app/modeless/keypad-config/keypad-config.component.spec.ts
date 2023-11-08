@@ -8,9 +8,8 @@ describe('KeypadConfigComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      declarations: [ KeypadConfigComponent ]
-    })
-    .compileComponents();
+      declarations: [KeypadConfigComponent],
+    }).compileComponents();
   });
 
   beforeEach(() => {

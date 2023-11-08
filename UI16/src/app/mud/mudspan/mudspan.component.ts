@@ -1,33 +1,33 @@
-import { Component, OnInit, Input } from '@angular/core';
+import { Component, Input } from '@angular/core';
 import { AnsiData } from '../ansi-data';
 import { AnsiService } from '../ansi.service';
 
 @Component({
   selector: 'app-mudspan',
-  template:'<span display="inline" [ngClass]="myclasses" [style.color]="fg" [style.background]="bg">{{txt}}</span>',
+  template:
+    '<span display="inline" [ngClass]="myclasses" [style.color]="fg" [style.background]="bg">{{txt}}</span>',
   // templateUrl: './mudspan.component.html',
-  styleUrls: ['./mudspan.component.scss']
+  styleUrls: ['./mudspan.component.scss'],
 })
-export class MudspanComponent implements OnInit {
+export class MudspanComponent {
+  constructor(private ansiService: AnsiService) {}
 
-  constructor(private ansiService:AnsiService) { }
-
-  private a2h :AnsiData;
-  public myclasses : string;
-  public fg:string;
-  public bg:string;
-  public txt:string;
-  public bow:boolean=false;
-  public invert:boolean = false;
-  public colorOff : boolean = false;
-  public echoFlag : boolean = true;
-  public echoCol : string = '#a8ff00';
-  public echoBak : string = '#000000';
-  public tt:string='';
+  private a2h: AnsiData;
+  public myclasses: string;
+  public fg: string;
+  public bg: string;
+  public txt: string;
+  public bow = false;
+  public invert = false;
+  public _colorOff = false;
+  public echoFlag = true;
+  public echoCol = '#a8ff00';
+  public echoBak = '#000000';
+  public tt = '';
 
   private calcFgBg() {
-    var lfg,lbg;
-    if (typeof this.a2h === 'undefined' || this.colorOff) {
+    let lfg, lbg;
+    if (typeof this.a2h === 'undefined' || this._colorOff) {
       if (this.bow || this.invert) {
         this.fg = '#000000';
         this.bg = '#ffffff';
@@ -48,8 +48,8 @@ export class MudspanComponent implements OnInit {
       lfg = this.ansiService.invColor(lfg);
       lbg = this.ansiService.invColor(lbg);
     }
-    if (typeof this.a2h.text !=='undefined' && this.a2h.text !='') {
-      ; // no change
+    if (typeof this.a2h.text !== 'undefined' && this.a2h.text != '') {
+      // no change
     } else if (typeof this.a2h.mudEcho !== 'undefined') {
       if (this.echoFlag) {
         this.txt = this.a2h.mudEcho;
@@ -66,21 +66,21 @@ export class MudspanComponent implements OnInit {
       this.fg = this.ansiService.blackToWhite(lfg);
       this.bg = this.ansiService.blackToWhite(lbg);
     }
-    
+
     if (this.a2h.concealed) {
       this.fg = this.bg;
     }
-}
+  }
 
-   @Input('blackToWhite') set blackToWhite(bow : boolean) {
-     if (this.bow == bow) {
-       return;
-     }
-     this.bow = bow;
-     this.calcFgBg();
-   }
+  @Input() set blackToWhite(bow: boolean) {
+    if (this.bow == bow) {
+      return;
+    }
+    this.bow = bow;
+    this.calcFgBg();
+  }
 
-   @Input('invertFlag') set invertFlag(flag : boolean) {
+  @Input() set invertFlag(flag: boolean) {
     if (this.invert == flag) {
       return;
     }
@@ -88,23 +88,23 @@ export class MudspanComponent implements OnInit {
     this.calcFgBg();
   }
 
-  @Input('colorOff') set colorOffFlag(flag : boolean) {
-    if (this.colorOff == flag) {
+  @Input() set colorOff(flag: boolean) {
+    if (this._colorOff == flag) {
       return;
     }
-    this.colorOff = flag;
+    this._colorOff = flag;
     this.calcFgBg();
   }
 
-  @Input('localEchoActive') set localEchoActive(flag : boolean) {
+  @Input() set localEchoActive(flag: boolean) {
     if (this.echoFlag == flag) {
       return;
     }
     this.echoFlag = flag;
     this.calcFgBg();
   }
-  
-  @Input('localEchoColor') set localEchoColor(col : string) {
+
+  @Input() set localEchoColor(col: string) {
     if (this.echoCol == col) {
       return;
     }
@@ -112,7 +112,7 @@ export class MudspanComponent implements OnInit {
     this.calcFgBg();
   }
 
-  @Input('localEchoBackground') set localEchoBackground(col : string) {
+  @Input() set localEchoBackground(col: string) {
     if (this.echoBak == col) {
       return;
     }
@@ -120,7 +120,7 @@ export class MudspanComponent implements OnInit {
     this.calcFgBg();
   }
 
-   @Input('ansi2html') set ansi2html(ansi: AnsiData) {
+  @Input() set ansi2html(ansi: AnsiData) {
     this.a2h = ansi;
     this.tt = ansi.timeString;
     this.calcFgBg();
@@ -143,18 +143,15 @@ export class MudspanComponent implements OnInit {
     if (ansi.faint) {
       this.myclasses += ' faint';
     }
-    if (this.myclasses != ''){
+    if (this.myclasses != '') {
       this.myclasses = this.myclasses.substr(1);
     }
-    if (typeof ansi.text !=='undefined' && ansi.text !='') {
+    if (typeof ansi.text !== 'undefined' && ansi.text != '') {
       this.txt = ansi.text;
-    } else if (typeof ansi.mudEcho !=='undefined' && this.echoFlag) {
+    } else if (typeof ansi.mudEcho !== 'undefined' && this.echoFlag) {
       this.txt = ansi.mudEcho;
     } else {
       this.txt = '';
     }
-}
-  ngOnInit() {
   }
-
 }

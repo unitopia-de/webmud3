@@ -5,7 +5,7 @@ import { AnsiService } from './ansi.service';
 describe('AnsiService', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
-      providers: [AnsiService]
+      providers: [AnsiService],
     });
   });
 

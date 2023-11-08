@@ -1,13 +1,13 @@
 import { TestBed } from '@angular/core/testing';
 
-import { SocketsService } from './sockets.service';
+import { MudConfigService } from './mud-config.service';
 
-describe('SocketsService', () => {
-  let service: SocketsService;
+describe('MudConfigService', () => {
+  let service: MudConfigService;
 
   beforeEach(() => {
     TestBed.configureTestingModule({});
-    service = TestBed.inject(SocketsService);
+    service = TestBed.inject(MudConfigService);
   });
 
   it('should be created', () => {

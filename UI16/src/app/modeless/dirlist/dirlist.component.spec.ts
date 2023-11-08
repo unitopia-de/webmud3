@@ -8,9 +8,8 @@ describe('DirlistComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      declarations: [ DirlistComponent ]
-    })
-    .compileComponents();
+      declarations: [DirlistComponent],
+    }).compileComponents();
   });
 
   beforeEach(() => {
