@@ -13,12 +13,10 @@ import { WindowConfig } from 'src/app/shared/window-config';
   templateUrl: './window.component.html',
   styleUrls: ['./window.component.scss'],
 })
-export class WindowComponent implements OnInit {
-  @Input('config') config: WindowConfig;
-  @Output('menuAction') menuAction = new EventEmitter<string>();
+export class WindowComponent {
+  @Input() config: WindowConfig;
+  @Output() menuAction = new EventEmitter<string>();
   @ViewChild('dialog') dialog;
-
-  constructor() {}
 
   doWindowAction(event: any, actionType: string) {
     //console.log(actionType,event);
@@ -43,7 +41,4 @@ export class WindowComponent implements OnInit {
     }
   }
 
-  ngOnInit(): void {
-    // console.log("config",this.config);
-  }
 }

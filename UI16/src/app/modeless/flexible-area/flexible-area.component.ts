@@ -5,8 +5,5 @@ import { Component, OnInit } from '@angular/core';
   templateUrl: './flexible-area.component.html',
   styleUrls: ['./flexible-area.component.scss'],
 })
-export class FlexibleAreaComponent implements OnInit {
-  constructor() {}
-
-  ngOnInit(): void {}
+export class FlexibleAreaComponent  {
 }

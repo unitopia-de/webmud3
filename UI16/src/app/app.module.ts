@@ -16,6 +16,7 @@ import { ModelessModule } from './modeless/modeless.module';
 import { MudConfigService } from './mud-config.service';
 import { getBaseLocation } from './app-common-functions';
 
+/* eslint @typescript-eslint/ban-types: "warn" */
 export function setupAppConfigServiceFactory(
   service: MudConfigService,
 ): Function {

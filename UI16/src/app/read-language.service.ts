@@ -27,8 +27,7 @@ export class ReadLanguageService {
   }
 
   constructor() {
-    var other = this;
-    other.voc = i18nStrings;
+    this.voc = i18nStrings;
     // I18n.putVocabularies(i18nStrings);
   }
 }

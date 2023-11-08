@@ -13,7 +13,7 @@ import {
   templateUrl: './keyone.component.html',
   styleUrls: ['./keyone.component.scss'],
 })
-export class KeyoneComponent implements OnInit {
+export class KeyoneComponent {
   @Input() prefix: string;
   @Input() key: string;
   @Input() set value(val: string) {
@@ -22,15 +22,11 @@ export class KeyoneComponent implements OnInit {
   get value(): string {
     return this.keyinp;
   }
-  @Output('keyAction') keyAction = new EventEmitter<string>();
+  @Output() keyAction = new EventEmitter<string>();
   @ViewChild('keyoneInput', { static: false }) keyoneInput: ElementRef;
-  public keyinp: string = '';
+  public keyinp = '';
 
   submit() {
     this.keyAction.emit(this.prefix + ':' + this.key + ':' + this.keyinp);
   }
-
-  constructor() {}
-
-  ngOnInit(): void {}
 }

@@ -1,7 +1,7 @@
 export class CharacterData {
-  public nameAtMud: string = '';
-  public cStatus: string = '';
-  public cVitals: string = '';
+  public nameAtMud = '';
+  public cStatus = '';
+  public cVitals = '';
   public cStats: CharacterStat[] = [];
 
   constructor(name: string) {
@@ -18,11 +18,11 @@ export class CharacterData {
   public setStats(inp: string) {
     const csplit = inp.split('|');
     const csArr: string[] = ['str', 'int', 'con', 'dex'];
-    var i = 0;
-    var tmpOb: any = {};
+    let i = 0;
+    const tmpOb: any = {};
     for (i = 0; i < csplit.length; i++) {
       const params = csplit[i].split('=');
-      var statOb = new CharacterStat();
+      const statOb = new CharacterStat();
       switch (params[0]) {
         case 'str':
           statOb.name = 'Stärke';
@@ -56,7 +56,7 @@ export class CharacterData {
 }
 
 export class CharacterStat {
-  public key: string = '';
-  public name: string = '';
-  public value: string = '';
+  public key = '';
+  public name = '';
+  public value = '';
 }

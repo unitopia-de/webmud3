@@ -6,18 +6,16 @@ import { AnsiData } from './ansi-data';
   providedIn: 'root',
 })
 export class AnsiService {
-  public ESC_CLRSCR: string = 'e[He[J';
-  public ESC_m_FG256: string = '38;5;';
-  public ESC_m_BG256: string = '48;5;';
-  public ESC_m_FG_RGB: string = '39;2;';
-  public ESC_m_BG_RGB: string = '49;2;';
+  public ESC_CLRSCR = 'e[He[J';
+  public ESC_m_FG256 = '38;5;';
+  public ESC_m_BG256 = '48;5;';
+  public ESC_m_FG_RGB = '39;2;';
+  public ESC_m_BG_RGB = '49;2;';
   public ESC_VALID = /^[0-9;A-Za-z]$/;
   public ESC_ENDCHAR = /^[A-Za-z]$/;
 
-  constructor() {}
-
   private toHex2(val: number) {
-    var result = val.toString(16);
+    const result = val.toString(16);
     if (result.length < 2) {
       return '0' + result;
     } else {
@@ -55,7 +53,7 @@ export class AnsiService {
   }
 
   public invColor(s: string) {
-    var iconv = (parseInt(s.substr(1), 16) << 8) / 256;
+    let iconv = (parseInt(s.substr(1), 16) << 8) / 256;
     iconv = (iconv ^ 0x00ffffff) & 0x00ffffff; // Invert color
     return (
       '#' +
@@ -65,10 +63,10 @@ export class AnsiService {
   }
 
   public blackToWhite(s: string) {
-    var iconv = (parseInt(s.substr(1), 16) << 8) / 256;
-    var r = (iconv & 0xff0000) >> 16;
-    var g = (iconv & 0x00ff00) >> 8;
-    var b = iconv & 0x0000ff;
+    const iconv = (parseInt(s.substr(1), 16) << 8) / 256;
+    const r = (iconv & 0xff0000) >> 16;
+    const g = (iconv & 0x00ff00) >> 8;
+    const b = iconv & 0x0000ff;
     return r == g && g == b ? this.invColor(s) : s;
   }
 
@@ -79,9 +77,9 @@ export class AnsiService {
     invert: boolean,
     colorOff: boolean,
   ): string[] {
-    var result = ['#000000', '#ffffff'];
-    var lfg: string;
-    var lbg: string;
+    const result = ['#000000', '#ffffff'];
+    let lfg: string;
+    let lbg: string;
     if (colorOff) {
       if (bow || invert) {
         result[0] = '#000000';
@@ -132,9 +130,11 @@ export class AnsiService {
       data.lastEscape = String.fromCharCode(27);
       return data;
     }
-    var char = data.ansi[data.ansiPos];
-    var escape = '';
-    var stop = false;
+    let char = data.ansi[data.ansiPos];
+    let escape = '';
+    let stop = false;
+    let i=0;
+    let codes;
     if (char == '[') {
       do {
         data.ansiPos += 1;
@@ -189,11 +189,11 @@ export class AnsiService {
       case 'r': //  scroll screen
         break; // no action!
       case 'm': // Change attrinutes / colors
-        var codes = escape.substring(0, escape.length - 1).split(';');
-        for (var i = 0; i < codes.length; i++) {
-          var code = codes[i];
-          var setcolor256fg = '';
-          var setcolor256bg = '';
+        codes = escape.substring(0, escape.length - 1).split(';');
+        for (i = 0; i < codes.length; i++) {
+          const code = codes[i];
+          let setcolor256fg = '';
+          let setcolor256bg = '';
           switch (code) {
             case '0':
               data.bold = false;
@@ -303,6 +303,7 @@ export class AnsiService {
                 );
                 break;
               }
+              break;
             case '39':
               data.fgcolor = 'white';
               break;
@@ -351,6 +352,7 @@ export class AnsiService {
                 );
                 break;
               }
+              break;
             case '49':
               data.bgcolor = 'black';
               break;
@@ -433,7 +435,7 @@ export class AnsiService {
   }
 
   public processAnsi(data: AnsiData): AnsiData[] {
-    var result: AnsiData[] = [];
+    const result: AnsiData[] = [];
     data = Object.assign({}, data);
     data.text = '';
     if (typeof data.mudEcho !== 'undefined' && data.ansi == '') {
@@ -456,9 +458,9 @@ export class AnsiService {
     console.debug('AnsiService:processAnsi', data);
     while (data.ansiPos < data.ansi.length) {
       // <=???
-      var code: number = data.ansi.charCodeAt(data.ansiPos); //  & 0xff;
+      const code: number = data.ansi.charCodeAt(data.ansiPos); //  & 0xff;
       data.ansiPos += 1;
-      var display = true;
+      let display = true;
       if (code < 33 || code > 126) {
         switch (code) {
           case 0:

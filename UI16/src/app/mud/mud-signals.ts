@@ -20,12 +20,12 @@ export class MudSignals {
 }
 
 export class InventoryEntry {
-  name: string = '';
-  category: string = '';
+  name = '';
+  category = '';
 }
 
 export class InventoryList {
-  private namedList: Object = {};
+  private namedList: object = {};
 
   public getItems(cat: string): string[] {
     return this.namedList[cat];
@@ -34,8 +34,8 @@ export class InventoryList {
     return Object.keys(this.namedList);
   }
 
-  public addItem(ientry: InventoryEntry, addTop: boolean = true) {
-    if (this.namedList.hasOwnProperty(ientry.category)) {
+  public addItem(ientry: InventoryEntry, addTop = true) {
+    if (Object.prototype.hasOwnProperty.call(this.namedList, ientry.category)) {
       if (addTop) {
         this.namedList[ientry.category].unshift(ientry.name);
       } else {
@@ -46,7 +46,7 @@ export class InventoryList {
     }
   }
   public removeItem(ientry: InventoryEntry) {
-    if (this.namedList.hasOwnProperty(ientry.category)) {
+    if (Object.prototype.hasOwnProperty.call(this.namedList, ientry.category)) {
       const ix = this.namedList[ientry.category].indexOf(ientry.name);
       if (ix >= 0) {
         this.namedList[ientry.category].splice(ix, 1);
@@ -65,33 +65,33 @@ export class InventoryList {
 }
 
 export class FileEntries {
-  name: string = '';
-  size: number = -2;
-  filedate: string = '';
-  filetime: string = '';
-  isdir: number = 0;
+  name = '';
+  size = -2;
+  filedate = '';
+  filetime = '';
+  isdir = 0;
 }
-
+  /* eslint @typescript-eslint/no-empty-function: "warn" */
 export class FileInfo {
-  lasturl: string = '';
-  file: string = '';
-  path: string = '';
-  filename: string = '';
-  filetype: string = '';
-  edditortype?: string = '';
+  lasturl = '';
+  file = '';
+  path = '';
+  filename = '';
+  filetype = '';
+  edditortype? = '';
 
-  newfile: boolean = true;
-  writeacl: boolean = false;
-  temporary: boolean = false;
-  saveActive: boolean = false;
-  closable: boolean = false;
-  filesize: number = -1;
-  title: string = '';
+  newfile = true;
+  writeacl = false;
+  temporary = false;
+  saveActive = false;
+  closable = false;
+  filesize = -1;
+  title = '';
 
-  content?: string = '';
-  oldContent?: string = '';
+  content? = '';
+  oldContent? = '';
 
-  alreadyLoaded?: boolean = false;
+  alreadyLoaded? = false;
   windowsId?: string = undefined;
   save01_start? = function (filepath) {};
   save02_url? = function (url) {};
@@ -108,8 +108,8 @@ export class FileInfo {
 export class MudSignalHelpers {
   public static updateCharStats(other: any, musi: MudSignals, _id: string) {
     return;
-    let nooldcfg = typeof other.charStatsWindow === 'undefined';
-    let newcfg = other.wincfg.findCharStatWindow(other.charStatsWindow, musi);
+    const nooldcfg = typeof other.charStatsWindow === 'undefined';
+    const newcfg = other.wincfg.findCharStatWindow(other.charStatsWindow, musi);
     other.charStatsWindow = newcfg;
     if (nooldcfg) {
       other.charStatsWindow.outGoingEvents.subscribe(
@@ -133,6 +133,8 @@ export class MudSignalHelpers {
       musi.signal,
     );
     // console.debug('mudclient-socketService.mudReceiveSignals',_id,musi);
+    let audio,newfile,filewincfg:WindowConfig;
+    let nooldcfg,newcfg,xsplit;
     switch (musi.signal) {
       case 'NOECHO-START':
         other.v.inpType = 'password';
@@ -173,13 +175,13 @@ export class MudSignalHelpers {
       case 'Input.CompleteNone': // TODO beep??
         return;
       case 'Sound.Play.Once':
-        let audio = new Audio();
+        audio = new Audio();
         audio.src = musi.playSoundFile;
         audio.load();
         audio.play();
         break;
       case 'Files.URL':
-        let newfile = other.filesrv.processFileInfo(musi.fileinfo);
+        newfile = other.filesrv.processFileInfo(musi.fileinfo);
         if (newfile.alreadyLoaded) {
           console.log('Files.URL-alreadyLoaded', _id, newfile);
         } else {
@@ -196,7 +198,7 @@ export class MudSignalHelpers {
             other.wincfg.SaveComplete(windowsid, newfile.closable);
           };
           console.log('Files.URL-firstLoad', _id, newfile);
-          let filewincfg: WindowConfig = new WindowConfig();
+          filewincfg = new WindowConfig();
           filewincfg.component = 'EditorComponent';
           filewincfg.data = newfile;
           filewincfg.dontCancel = true;
@@ -208,8 +210,7 @@ export class MudSignalHelpers {
           }
           if (!newfile.newfile) {
             newfile.load(function (err, data) {
-              if (typeof err !== 'undefined') {
-              } else {
+              if (typeof err === 'undefined') {
                 newfile.content = data;
                 newfile.oldContent = data;
                 filewincfg.data = newfile;
@@ -229,14 +230,14 @@ export class MudSignalHelpers {
         }
         return;
       case 'Files.Dir':
-        let nooldcfg = typeof other.filesWindow === 'undefined';
-        let newcfg = other.wincfg.findFilesWindow(other.filesWindow, musi);
+        nooldcfg = typeof other.filesWindow === 'undefined';
+        newcfg = other.wincfg.findFilesWindow(other.filesWindow, musi);
         other.filesWindow = newcfg;
         if (nooldcfg) {
           other.filesWindow.outGoingEvents.subscribe(
             (x: string) => {
               console.debug('Files.Dir-outGoingEvents', _id, x);
-              let xsplit = x.split(':');
+              xsplit = x.split(':');
               switch (xsplit[0]) {
                 case 'FileOpen':
                   // Files.OpenFile { "file": "/w/myonara/ed.tmp" }
@@ -286,6 +287,7 @@ export class MudSignalHelpers {
         return;
       case 'Char.Items.Remove':
         other.invlist.removeItem(musi.invEntry);
+        return;
       default:
         console.info(
           'mudclient-socketService.mudReceiveSignals UNKNOWN',
@@ -296,8 +298,8 @@ export class MudSignalHelpers {
     }
   }
   public static mudProcessData(other: any, _id: string, outline: string[]) {
-    var outp = outline[0];
-    var iecho = outline[1];
+    const outp = outline[0];
+    const iecho = outline[1];
     // console.log('mudclient-mudReceiveData',_id,outline);
     if (typeof outp !== 'undefined') {
       const idx = outp.indexOf(other.ansiService.ESC_CLRSCR);
@@ -313,7 +315,7 @@ export class MudSignalHelpers {
       other.ansiCurrent.mudEcho = iecho;
       other.messages.push({ text: iecho });
     }
-    var ts = new Date();
+    const ts = new Date();
     other.ansiCurrent.timeString =
       (ts.getDate() < 10 ? '0' : '') +
       ts.getDate() +
@@ -334,7 +336,7 @@ export class MudSignalHelpers {
     // console.log('mudclient-mudReceiveData-ansiCurrent-before',_id,other.ansiCurrent);
     const a2harr = other.ansiService.processAnsi(other.ansiCurrent);
     // console.log('mudclient-mudReceiveData-s2harr after',_id,a2harr);
-    for (var ix = 0; ix < a2harr.length; ix++) {
+    for (let ix = 0; ix < a2harr.length; ix++) {
       if (a2harr[ix].text != '' || typeof a2harr[ix].mudEcho !== 'undefined') {
         other.mudlines = other.mudlines.concat(a2harr[ix]);
       }

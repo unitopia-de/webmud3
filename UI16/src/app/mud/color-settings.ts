@@ -1,8 +1,8 @@
 export class ColorSettings {
-  invert: boolean = false;
-  blackOnWhite: boolean = false;
-  colorOff: boolean = false;
+  invert = false;
+  blackOnWhite = false;
+  colorOff = false;
   localEchoColor: '#a8ff00';
   localEchoBackground: '#000000';
-  localEchoActive: boolean = true;
+  localEchoActive = true;
 }

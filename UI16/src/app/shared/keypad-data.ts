@@ -1,5 +1,5 @@
 export class OneKeypadData {
-  public prefix: string = '';
+  public prefix = '';
   public keys: any = {};
   public addKey(key: string, value: string) {
     this.keys[key] = value;
@@ -16,7 +16,7 @@ export class KeypadData {
   public levels: any = {};
   public addKey(prefix: string, key: string, value: string) {
     if (typeof this.levels[prefix] === 'undefined') {
-      var level = new OneKeypadData(prefix);
+      const level = new OneKeypadData(prefix);
       level.addKey(key, value);
       this.levels[prefix] = level;
     } else {
@@ -25,7 +25,7 @@ export class KeypadData {
   }
   public getLevel(prefix: string): OneKeypadData {
     if (typeof this.levels[prefix] == 'undefined') {
-      var level = new OneKeypadData(prefix);
+      const level = new OneKeypadData(prefix);
       this.levels[prefix] = level;
     }
     return this.levels[prefix];

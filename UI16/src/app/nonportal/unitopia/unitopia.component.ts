@@ -7,7 +7,7 @@ import { ServerConfigService } from '../../shared/server-config.service';
   templateUrl: './unitopia.component.html',
   styleUrls: ['./unitopia.component.scss'],
 })
-export class UnitopiaComponent implements OnInit {
+export class UnitopiaComponent  {
   public mudcfg: WebmudConfig = {
     mudname: this.srvcfg.getUNItopiaName(),
     autoConnect: true,
@@ -19,5 +19,4 @@ export class UnitopiaComponent implements OnInit {
 
   constructor(public srvcfg: ServerConfigService) {}
 
-  ngOnInit() {}
 }

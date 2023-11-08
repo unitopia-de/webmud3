@@ -25,6 +25,7 @@ export class SocketsService {
     this.socketNsp = this.srvcfg.getSocketNamespace();
     this.socketConnect();
   }
+  /* eslint @typescript-eslint/no-this-alias: "warn" */
   private socketConnect() {
     this.ioSocket = this.platform.connectSocket(this.socketUrl, this.socketNsp);
     const other = this;

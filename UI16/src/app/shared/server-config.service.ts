@@ -36,7 +36,7 @@ export class ServerConfigService {
     ) {
       return 'https://www.unitopia.de/mysocket-test.io/';
     }
-    if (this.originMap.hasOwnProperty(l_origin)) {
+    if (Object.prototype.hasOwnProperty.call(this.originMap, l_origin)) {
       return this.originMap[l_origin];
     }
     return l_origin;
@@ -182,10 +182,10 @@ export class ServerConfigService {
   /**
    * returns some browserinformation...
    *
-   * @returns {Object} some brower information
+   * @returns {object} some brower information
    * @memberof ServerConfigService
    */
-  getBrowserInfo(): Object {
+  getBrowserInfo(): object {
     return this.browserInfo;
   }
 
@@ -194,7 +194,7 @@ export class ServerConfigService {
     const isMobile = this.deviceService.isMobile();
     const isTablet = this.deviceService.isTablet();
     const isDesktopDevice = this.deviceService.isDesktop();
-    var clientType: string;
+    let clientType: string;
     if (isDesktopDevice) {
       clientType = 'Desktop';
     } else if (isMobile) {

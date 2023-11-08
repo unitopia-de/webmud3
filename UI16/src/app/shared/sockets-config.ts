@@ -1,4 +1,4 @@
-import { io, Manager, Socket } from 'socket.io-client';
+import { Manager, Socket } from 'socket.io-client';
 import { MudConfig } from '../mudconfig/mud-config';
 import { Observable, Observer } from 'rxjs';
 import { EventEmitter } from '@angular/core';
@@ -11,6 +11,8 @@ import { OneKeypadData } from './keypad-data';
 export interface HashTable<T> {
   [key: string]: T;
 }
+
+  /* eslint @typescript-eslint/no-this-alias: "warn" */
 
 export class IoResult {
   IdType: string;
@@ -45,10 +47,10 @@ export class IoResult {
 }
 
 export class IoMud {
-  MudId: string = '';
+  MudId = '';
   uplink?: IoSocket;
   mudConfig: MudConfig;
-  connected: boolean = false;
+  connected = false;
   eventBus: EventEmitter<IoResult> = new EventEmitter<IoResult>();
 
   constructor(up: IoSocket, cfg: MudConfig, observer: Observer<IoResult>) {
@@ -68,11 +70,11 @@ export class IoMud {
       if (typeof data.id !== 'undefined') {
         other.MudId = data.id;
         up.reportId('IoMud', data.id, other);
-        const notChanged =
-          ioManager.compareServerID(data.serverID) &&
-          ioSocket.compareSocketId(data.socketID);
-        if (!notChanged) {
-        }
+        // const notChanged =
+        //   ioManager.compareServerID(data.serverID) &&
+        //   ioSocket.compareSocketId(data.socketID);
+        // if (!notChanged) {
+        // }
         other.connected = true;
         console.info(
           'S10: mud-connect: ' + data.id + ' socket: ' + data.socketID,
@@ -125,7 +127,7 @@ export class IoMud {
         cb(false);
         return;
       }
-      let mySize = {
+      const mySize = {
         height: other.mudConfig.height,
         width: other.mudConfig.width,
       };
@@ -137,7 +139,7 @@ export class IoMud {
         console.log('S28: mud-signal Different Ids', sdata.id, other.MudId);
         return;
       }
-      let musi: MudSignals = {
+      const musi: MudSignals = {
         signal: sdata.signal,
         id: sdata.id,
       };
@@ -193,6 +195,8 @@ export class IoMud {
         null,
         other,
       );
+      let fileinfo: FileInfo;
+      let num : OneKeypadData;
       switch (mod.toLowerCase().trim()) {
         case 'core':
           switch (msg.toLowerCase().trim()) {
@@ -384,7 +388,7 @@ export class IoMud {
         case 'files':
           switch (msg.toLowerCase().trim()) {
             case 'url':
-              let fileinfo: FileInfo = {
+              fileinfo = {
                 lasturl: data.url,
                 newfile: data.newfile,
                 writeacl: data.writeacl,
@@ -456,7 +460,7 @@ export class IoMud {
         case 'numpad':
           switch (msg.toLowerCase().trim()) {
             case 'sendlevel':
-              const num = new OneKeypadData(data.prefix);
+              num = new OneKeypadData(data.prefix);
               num.keys = data.keys;
               r.musi = {
                 signal: 'Numpad.SendLevel',
@@ -551,7 +555,7 @@ export class IoSocket {
   }
   public addMud(cfg: MudConfig, nsp: string): Observable<IoResult> {
     const other = this;
-    let observable = new Observable<IoResult>((observer) => {
+    const observable = new Observable<IoResult>((observer) => {
       if (typeof other.socket === 'undefined') {
         other.nsp = nsp;
         other.socketConnect(nsp);
@@ -681,7 +685,8 @@ export class IoSocket {
     });
   }
   public reportId(type: string, id: string, ob: any) {
-    if (ob == null && type == 'IoMud' && this.MudIndex.hasOwnProperty(id)) {
+    if (ob == null && type == 'IoMud' 
+          && Object.prototype.hasOwnProperty.call(this.MudIndex, id)) {
       delete this.MudIndex[id];
       console.log('Count IoMuds:', this.MudIndex.length, id);
     } else if (ob != null && type == 'IoMud') {
@@ -709,7 +714,7 @@ export class IoSocket {
     return true;
   }
   public mudList(): Observable<IoResult> {
-    let other = this;
+    const other = this;
     const r = IoResult.getResult(
       'IoSocket',
       other.SocketId,
@@ -718,7 +723,7 @@ export class IoSocket {
       other,
     );
 
-    let observable = new Observable<IoResult>((observer) => {
+    const observable = new Observable<IoResult>((observer) => {
       if (typeof other.socket === 'undefined') {
         console.trace('mudList empty socket');
         return;
@@ -726,7 +731,7 @@ export class IoSocket {
       other.socket.emit('mud-list', true, function (data) {
         r.mudlist = [];
         Object.keys(data).forEach(function (key) {
-          var item: MudListItem = {
+          const item: MudListItem = {
             key: key,
             name: data[key].name,
             host: data[key].host,
@@ -751,7 +756,7 @@ export class IoSocket {
 }
 
 export class IoManager {
-  ManagerId: string = '';
+  ManagerId = '';
   manager: Manager | undefined = undefined;
   socketList: HashTable<IoSocket> = {};
   url: string;

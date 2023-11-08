@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { GmcpConfig } from '../gmcp/gmcp-config';
 import { GmcpMenu } from '../gmcp/gmcp-menu';
-
+  /* eslint @typescript-eslint/no-this-alias: "warn" */
 @Injectable({
   providedIn: 'root',
 })
@@ -30,8 +30,6 @@ export class UnitopiaService {
     this.set_mudconf(_id, 'cb_add_gmcp_module', cb_add_gmcp_module);
     this.set_mudconf(_id, 'cb_remove_gmcp_module', cb_remove_gmcp_module);
   }
-
-  constructor() {}
 
   private toggleSound(gcfg: GmcpConfig, gmen: GmcpMenu, _cb) {
     if (!gmen.active) {
@@ -67,11 +65,11 @@ export class UnitopiaService {
         );
     }
   }
-
+  /* eslint @typescript-eslint/no-this-alias: "warn" */
   public init_module_config(_id: string, mod: string) {
-    var cb_add_gmcp_module = this.get_mudconf(_id, 'cb_add_gmcp_module');
-    var gmcpcfg = new GmcpConfig();
-    var other = this;
+    const cb_add_gmcp_module = this.get_mudconf(_id, 'cb_add_gmcp_module');
+    const gmcpcfg = new GmcpConfig();
+    const other = this;
     gmcpcfg.mud_family = 'unitopia';
     gmcpcfg.mud_id = _id;
     gmcpcfg.callback = function (
@@ -134,7 +132,7 @@ export class UnitopiaService {
   }
 
   public init_module(_id: string, mod: string) {
-    var cb_switch = this.get_mudconf(_id, 'cb_mudSwitchGmcpModule');
+    const cb_switch = this.get_mudconf(_id, 'cb_mudSwitchGmcpModule');
     switch (mod.toLowerCase()) {
       case 'sound':
       case 'sound 1':
@@ -162,8 +160,8 @@ export class UnitopiaService {
     }
   }
   public delete_module(_id: string, mod: string) {
-    var cb_switch = this.get_mudconf(_id, 'cb_mudSwitchGmcpModule');
-    var cb_remove_gmcp_module = this.get_mudconf(_id, 'cb_remove_gmcp_module');
+    const cb_switch = this.get_mudconf(_id, 'cb_mudSwitchGmcpModule');
+    const cb_remove_gmcp_module = this.get_mudconf(_id, 'cb_remove_gmcp_module');
     switch (mod.toLowerCase()) {
       case 'sound':
       case 'sound 1':

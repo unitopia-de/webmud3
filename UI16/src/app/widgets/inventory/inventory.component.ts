@@ -1,4 +1,4 @@
-import { Component, OnInit, Input } from '@angular/core';
+import { Component, Input } from '@angular/core';
 import { InventoryList } from 'src/app/mud/mud-signals';
 
 @Component({
@@ -6,7 +6,7 @@ import { InventoryList } from 'src/app/mud/mud-signals';
   templateUrl: './inventory.component.html',
   styleUrls: ['./inventory.component.scss'],
 })
-export class InventoryComponent implements OnInit {
+export class InventoryComponent {
   @Input() inv: InventoryList;
   @Input() vheight: number;
 
@@ -16,8 +16,4 @@ export class InventoryComponent implements OnInit {
     }
     return "{width: '100%', height: '" + this.vheight + "px'}";
   }
-
-  constructor() {}
-
-  ngOnInit(): void {}
 }

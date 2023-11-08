@@ -7,7 +7,7 @@ import { ServerConfigService } from '../../shared/server-config.service';
   templateUrl: './orbit.component.html',
   styleUrls: ['./orbit.component.scss'],
 })
-export class OrbitComponent implements OnInit {
+export class OrbitComponent  {
   public mudcfg: WebmudConfig = {
     mudname: this.srvcfg.getOrbitName(),
     autoConnect: true,
@@ -19,5 +19,4 @@ export class OrbitComponent implements OnInit {
 
   constructor(public srvcfg: ServerConfigService) {}
 
-  ngOnInit() {}
 }

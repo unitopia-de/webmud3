@@ -1,6 +1,5 @@
 import { Component, OnInit, Input } from '@angular/core';
 import { WindowConfig } from 'src/app/shared/window-config';
-import { MudSignals } from 'src/app/mud/mud-signals';
 
 @Component({
   selector: 'app-char-stat',
@@ -19,8 +18,6 @@ export class CharStatComponent implements OnInit {
   private _config: WindowConfig;
 
   public charData: CharacterData;
-
-  constructor() {}
 
   ngOnInit(): void {
     console.debug('inComingEvents-CharStat-1');

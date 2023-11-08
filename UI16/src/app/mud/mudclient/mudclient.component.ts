@@ -1,3 +1,4 @@
+  /* eslint @typescript-eslint/no-this-alias: "warn" */
 import {
   AfterViewChecked,
   ChangeDetectorRef,
@@ -35,7 +36,7 @@ import { KeypadData } from 'src/app/shared/keypad-data';
   templateUrl: './mudclient.component.html',
   styleUrls: ['./mudclient.component.scss'],
 })
-export class MudclientComponent implements AfterViewChecked, OnInit, OnDestroy {
+export class MudclientComponent implements AfterViewChecked {
   @Input() cfg: WebmudConfig;
   @ViewChild('mudBlock', { static: false }) mudBlock: ElementRef;
   @ViewChild('mudInputLine', { static: false }) mudInputLine: ElementRef;
@@ -72,22 +73,22 @@ export class MudclientComponent implements AfterViewChecked, OnInit, OnDestroy {
     mudc_width: 80,
     startCnt: 0,
   };
-  private mudName: string = 'disconnect';
+  private mudName = 'disconnect';
   public mudc_id: string;
   private ioMud: IoMud;
   public mudlines: AnsiData[] = [];
   private ansiCurrent: AnsiData;
   public inpmessage: string;
   private inpHistory: string[] = [];
-  public togglePing: boolean = false;
-  private inpPointer: number = -1;
+  public togglePing = false;
+  private inpPointer = -1;
   public messages: MudMessage[] = [];
   public filesWindow: WindowConfig;
   public charStatsWindow: WindowConfig;
   public charData: CharacterData;
   public invlist: InventoryList;
-  public changeFocus: number = 1;
-  public previousFoxus: number = 1;
+  public changeFocus = 1;
+  public previousFoxus = 1;
 
   private obs_connect: any;
   //   private obs_connected:any;
@@ -102,7 +103,7 @@ export class MudclientComponent implements AfterViewChecked, OnInit, OnDestroy {
     );
   }
   doFocus() {
-    var FirstFocus = undefined;
+    let FirstFocus = undefined;
     this.previousFoxus = this.changeFocus;
     if (this.v.inpType != 'text' && typeof this.mudInputLine !== 'undefined') {
       FirstFocus = this.mudInputLine.nativeElement;
@@ -129,6 +130,8 @@ export class MudclientComponent implements AfterViewChecked, OnInit, OnDestroy {
   }
   menuAction(act: any) {
     console.log('menuAction', act);
+    let numpadOther,other;
+    let numpadSplit : string[] = [];
     switch (act.item.id) {
       case 'MUD:MENU':
         return; // no action/with submenu!
@@ -171,10 +174,10 @@ export class MudclientComponent implements AfterViewChecked, OnInit, OnDestroy {
         });
         return;
       case 'MUD:NUMPAD:RETURN':
-        const numpadOther = act.item.cbThis;
+        numpadOther = act.item.cbThis;
         numpadOther.keySetters = act.item.keypad;
         console.log('MUD:NUMPAD:RETURN', act.item.event);
-        var numpadSplit = act.item.event.split(':');
+        numpadSplit = act.item.event.split(':');
         if (numpadSplit[2] == 'undefined') {
           numpadSplit[2] = '';
         }
@@ -209,7 +212,7 @@ export class MudclientComponent implements AfterViewChecked, OnInit, OnDestroy {
         return;
       case 'MUD_VIEW:COLOR:RETURN':
         this.cs = act.item.cs;
-        const other = act.item.cbThis;
+        other = act.item.cbThis;
         if (this.cs.blackOnWhite) {
           this.v.stdfg = 'black';
           this.v.stdbg = 'white';
@@ -217,21 +220,19 @@ export class MudclientComponent implements AfterViewChecked, OnInit, OnDestroy {
           this.v.stdfg = 'white';
           this.v.stdbg = 'black';
         }
-        const tmpJson = JSON.stringify(this.cs);
-        const tmp64 = other.ansiService.toBinaryBase64(tmpJson);
         // console.log('cs=',other.cs,tmpJson,tmp64);
-        other.cookieService.set('mudcolors', tmp64);
+        other.cookieService.set('mudcolors', other.ansiService.toBinaryBase64(JSON.stringify(this.cs)));
         return;
     }
   }
 
   private wordWrap(str: string, cols: number): string {
-    var formatedString = '',
+    let formatedString = '',
       fstr = '',
       wordsArray = [];
     wordsArray = str.split(' ');
     fstr = wordsArray[0];
-    for (var i = 1; i < wordsArray.length; i++) {
+    for (let i = 1; i < wordsArray.length; i++) {
       if (wordsArray[i].length > cols) {
         formatedString += fstr + '\r\n';
         fstr = wordsArray[i];
@@ -248,26 +249,26 @@ export class MudclientComponent implements AfterViewChecked, OnInit, OnDestroy {
     return formatedString;
   }
   public tableOutput(words: string[], screen: number): string {
-    var width: number = 1;
+    let width = 1;
     words.forEach((word) => {
       if (word.length > width) {
         width = word.length;
       }
     });
     width++;
-    var cols: number = Math.max(1, Math.floor((screen + 1) / (width + 1)));
-    var lines: number = Math.floor((words.length + cols - 1) / cols);
+    const cols = Math.max(1, Math.floor((screen + 1) / (width + 1)));
+    const lines = Math.floor((words.length + cols - 1) / cols);
     width = Math.max(width + 1, Math.floor((screen + 1) / cols));
-    var r: string[] = [];
-    for (var line = 0; line < lines; line++) {
-      var s = '';
-      var colMin = Math.min(
+    const r: string[] = [];
+    for (let line = 0; line < lines; line++) {
+      let s = '';
+      const colMin = Math.min(
         cols,
         Math.floor((words.length - line + lines - 1) / lines),
       );
-      for (var col = 0; col < colMin; col++) {
-        var word = words[line + col * lines];
-        var len = width - word.length;
+      for (let col = 0; col < colMin; col++) {
+        const word = words[line + col * lines];
+        const len = width - word.length;
         s += word + ' '.repeat(len);
       }
       r.push(s);
@@ -279,7 +280,7 @@ export class MudclientComponent implements AfterViewChecked, OnInit, OnDestroy {
     other.ansiCurrent.ansi = '';
     other.ansiCurrent.mudEcho = other.wordWrap(inp, 75);
     // other.messages.push({text:this.inpmessage+'\r\n'});
-    var ts = new Date();
+    const ts = new Date();
     other.ansiCurrent.timeString =
       (ts.getDate() < 10 ? '0' : '') +
       ts.getDate() +
@@ -300,7 +301,7 @@ export class MudclientComponent implements AfterViewChecked, OnInit, OnDestroy {
     //console.debug('mudclient-sendMessage-ansiCurrent-before',this.mudc_id,other.ansiCurrent);
     const a2harr = other.ansiService.processAnsi(other.ansiCurrent);
     //console.debug('mudclient-sendMessage-s2harr after',this.mudc_id,a2harr);
-    for (var ix = 0; ix < a2harr.length; ix++) {
+    for (let ix = 0; ix < a2harr.length; ix++) {
       if (a2harr[ix].text != '' || typeof a2harr[ix].mudEcho !== 'undefined') {
         other.mudlines = other.mudlines.concat(a2harr[ix]);
       }
@@ -309,7 +310,7 @@ export class MudclientComponent implements AfterViewChecked, OnInit, OnDestroy {
   }
 
   sendMessage() {
-    var other = this;
+    const other = this;
     this.socketsService.mudSendData(this.mudc_id, this.inpmessage);
     if (this.v.inpType == 'text' && this.inpmessage != '') {
       this.localEcho(other, this.inpmessage);
@@ -325,7 +326,7 @@ export class MudclientComponent implements AfterViewChecked, OnInit, OnDestroy {
 
   onKeyDown(event: KeyboardEvent) {
     if (this.v.inpType != 'text') return;
-    var modifiers = '';
+    let modifiers = '';
     if (event.shiftKey) {
       modifiers += 'Shift';
     }
@@ -367,7 +368,7 @@ export class MudclientComponent implements AfterViewChecked, OnInit, OnDestroy {
   }
 
   onKeyUp(event: KeyboardEvent) {
-    var a2h: AnsiData;
+    let a2h: AnsiData;
     if (this.v.inpType != 'text') return;
     switch (event.key) {
       case 'ArrowUp':
@@ -555,8 +556,6 @@ export class MudclientComponent implements AfterViewChecked, OnInit, OnDestroy {
     // });
   }
 
-  ngOnDestroy(): void {}
-
   getViewPortHeight(): number {
     return this.window.innerHeight;
   }
@@ -566,9 +565,9 @@ export class MudclientComponent implements AfterViewChecked, OnInit, OnDestroy {
   }
 
   calculateSizing() {
-    // var oh = this.mudBlock.nativeElement.offsetHeight;
-    var ow = this.mudBlock.nativeElement.offsetWidth;
-    var tmpheight = this.getViewPortHeight();
+    // let oh = this.mudBlock.nativeElement.offsetHeight;
+    const ow = this.mudBlock.nativeElement.offsetWidth;
+    let tmpheight = this.getViewPortHeight();
     tmpheight -= this.mudMenu.nativeElement.offsetHeight;
     tmpheight -= 2 * this.mudInputArea.nativeElement.offsetHeight;
     tmpheight = Math.floor(
@@ -576,7 +575,7 @@ export class MudclientComponent implements AfterViewChecked, OnInit, OnDestroy {
         this.d.ref_height_ratio +
         0.5,
     );
-    var other = this;
+    const other = this;
     setTimeout(function () {
       other.v.ref_height = tmpheight;
       // other.v.sizeCalculated2 = true;
@@ -620,7 +619,7 @@ export class MudclientComponent implements AfterViewChecked, OnInit, OnDestroy {
   }
 
   ngAfterViewChecked(): void {
-    var other = this;
+    const other = this;
 
     // [scrollTop]="mudBlock.scrollHeight"
     if (
@@ -635,7 +634,7 @@ export class MudclientComponent implements AfterViewChecked, OnInit, OnDestroy {
       });
     }
 
-    var tmpwidth = this.getViewPortWidth() / 1.0125;
+    let tmpwidth = this.getViewPortWidth() / 1.0125;
     if (!this.v.sizeCalculated) {
       this.doFocus();
       tmpwidth = this.mudTest.nativeElement.offsetWidth * 1.0125;
@@ -652,8 +651,6 @@ export class MudclientComponent implements AfterViewChecked, OnInit, OnDestroy {
       this.doFocus();
     }
   }
-
-  ngOnInit(): void {}
 
   constructor(
     @Inject(WINDOW) private window: Window,

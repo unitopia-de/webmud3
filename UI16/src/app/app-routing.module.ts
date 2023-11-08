@@ -34,12 +34,12 @@ const standardRoutes: Routes = [{ path: '**', redirectTo: '/' }];
     {
       provide: ROUTES,
       useFactory: (mudcfg: MudConfigService) => {
-        let routes: Routes = [];
-        let mroutes = mudcfg.data.routes;
+        const routes: Routes = [];
+        const mroutes = mudcfg.data.routes;
         let count = 0;
         let rootFlag = false;
         Object.keys(mroutes).forEach((key: string) => {
-          if (mroutes.hasOwnProperty(key) && key.startsWith('/')) {
+          if (Object.prototype.hasOwnProperty.call(mroutes, key) && key.startsWith('/')) {
             const path = key.substring(1);
             let component: any = undefined;
             switch (mroutes[key]) {
@@ -60,6 +60,7 @@ const standardRoutes: Routes = [{ path: '**', redirectTo: '/' }];
                 break;
             }
             if (typeof component !== 'undefined') {
+              count++;
               if (key === '/') {
                 routes.push({
                   path,
@@ -78,6 +79,9 @@ const standardRoutes: Routes = [{ path: '**', redirectTo: '/' }];
         });
         if (!rootFlag) {
           console.error('No root node!');
+        }
+        if (count==0) {
+          console.error("no routes");
         }
         return [...routes, ...standardRoutes];
       },

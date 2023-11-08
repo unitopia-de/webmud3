@@ -1,21 +1,21 @@
 import { Injectable } from '@angular/core';
 import { FileInfo } from './file-info';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
-
+import { HttpClient } from '@angular/common/http';
+  /* eslint @typescript-eslint/no-this-alias: "warn" */
 @Injectable({
   providedIn: 'root',
 })
 export class FilesService {
-  private filemap: Object = {};
+  private filemap: object = {};
 
-  startFilesModule() {}
+  startFilesModule() {return;}
 
   processFileInfo(fileinfo: FileInfo): FileInfo {
     const url = fileinfo.lasturl;
     const filepath = fileinfo.file;
     console.debug('FilesService-processFileInfo-start', fileinfo);
-    if (this.filemap.hasOwnProperty(filepath) && fileinfo.saveActive) {
-      var cfileinfo: FileInfo = this.filemap[filepath];
+    if (Object.prototype.hasOwnProperty.call(this.filemap, filepath) && fileinfo.saveActive) {
+      const cfileinfo: FileInfo = this.filemap[filepath];
       cfileinfo.save02_url(url);
       cfileinfo.alreadyLoaded = true;
       cfileinfo.saveActive = true;
@@ -26,7 +26,7 @@ export class FilesService {
       fileinfo.alreadyLoaded = false;
       this.filemap[filepath] = fileinfo;
     }
-    var other = this;
+    const other = this;
     fileinfo.relateWindow = function (winid: string) {
       console.debug('FilesService-relaeWindow', winid);
       this.windowsId = winid;

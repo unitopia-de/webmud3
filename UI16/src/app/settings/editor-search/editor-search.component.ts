@@ -1,7 +1,6 @@
 import { Component, Input, OnInit } from '@angular/core';
 
 import * as ace from 'ace-builds';
-import { DynamicDialogConfig } from 'primeng/dynamicdialog';
 import { WindowConfig } from 'src/app/shared/window-config';
 
 @Component({
@@ -21,20 +20,21 @@ export class EditorSearchComponent implements OnInit {
   private _config: WindowConfig;
 
   private aceEditor: ace.Ace.Editor;
-  seachText: string = '';
+  seachText = '';
   type = 'text';
 
-  constructor() {}
 
   ngOnInit(): void {
     // this.aceEditor = this.config.data['aceEDitor'];
+    return;
   }
   onSearch() {
+    return;
     //   var range = this.aceEditor.find(this.seachText,{
     //     wrap: true,
     //     caseSensitive: true,
     // })
   }
-  onReplace() {}
-  doSearch() {}
+  onReplace() {return;}
+  doSearch() {return;}
 }

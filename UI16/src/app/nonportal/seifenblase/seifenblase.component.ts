@@ -7,7 +7,7 @@ import { ServerConfigService } from '../../shared/server-config.service';
   templateUrl: './seifenblase.component.html',
   styleUrls: ['./seifenblase.component.scss'],
 })
-export class SeifenblaseComponent implements OnInit {
+export class SeifenblaseComponent {
   public mudcfg: WebmudConfig = {
     mudname: this.srvcfg.getSeifenblase(),
     autoConnect: true,
@@ -18,6 +18,4 @@ export class SeifenblaseComponent implements OnInit {
   };
 
   constructor(public srvcfg: ServerConfigService) {}
-
-  ngOnInit() {}
 }

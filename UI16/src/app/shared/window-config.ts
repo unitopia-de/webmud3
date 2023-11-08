@@ -1,22 +1,21 @@
 import { EventEmitter } from '@angular/core';
-import { FileInfo } from '../mud/mud-signals';
 
 export class WindowConfig {
-  windowid: string = ''; // unique id
-  parentWindow: string = ''; // id of the parent window, if any.
-  visible: boolean = false;
-  wtitle: string = 'Editor'; // Window title
-  tooltip: string = '';
-  initalLock: boolean = false; // Initialisation of lock.
-  save: boolean = false; // saving allowed or not.
-  dontCancel: boolean = false; // supress cancelbutton
-  component: string = 'EditorComponent';
-  zIndex: number = 0;
-  tabID: string = '';
-  posx: number = 0;
-  posy: number = 0;
+  windowid = ''; // unique id
+  parentWindow = ''; // id of the parent window, if any.
+  visible = false;
+  wtitle = 'Editor'; // Window title
+  tooltip = '';
+  initalLock = false; // Initialisation of lock.
+  save = false; // saving allowed or not.
+  dontCancel = false; // supress cancelbutton
+  component = 'EditorComponent';
+  zIndex = 0;
+  tabID = '';
+  posx = 0;
+  posy = 0;
   data?: any = undefined;
-  winService: any = undefined;
+  winService?: any = undefined;
   outGoingEvents: EventEmitter<string> = new EventEmitter<string>();
   inComingEvents: EventEmitter<string> = new EventEmitter<string>();
 }

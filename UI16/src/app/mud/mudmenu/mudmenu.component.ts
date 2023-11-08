@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
+import { Component, EventEmitter, Input,  Output } from '@angular/core';
 import { MenuItem } from 'primeng/api';
 import { MenuService } from 'src/app/menu/menu.service';
 import { MenuType } from 'src/app/menu/one-menu';
@@ -10,7 +10,7 @@ import { SocketsService } from 'src/app/shared/sockets.service';
   templateUrl: './mudmenu.component.html',
   styleUrls: ['./mudmenu.component.scss'],
 })
-export class MudmenuComponent implements OnInit {
+export class MudmenuComponent  {
   @Input() set connected(conn: boolean) {
     if (this._connected != conn) {
       this._connected = conn;
@@ -34,7 +34,7 @@ export class MudmenuComponent implements OnInit {
   @Input() set mud_id(mud_id: string) {
     if (typeof mud_id !== 'undefined') {
       this._mudID = mud_id;
-      var myMenuId = 'MUD_CLIENT:' + mud_id;
+      const myMenuId = 'MUD_CLIENT:' + mud_id;
       if (this.menuID != myMenuId) {
         this.items = undefined;
         this.refreshMenu(true);
@@ -59,10 +59,10 @@ export class MudmenuComponent implements OnInit {
   public items: MenuItem[];
   private menuID: string;
   private mudName: string;
-  private noMudnames: boolean = false;
+  private noMudnames = false;
   private _mudID: string;
-  private _connected: boolean = false;
-  private _scroll: boolean = false;
+  private _connected = false;
+  private _scroll = false;
 
   constructor(
     private i18n: ReadLanguageService,
@@ -85,9 +85,9 @@ export class MudmenuComponent implements OnInit {
       this.menuAction.emit(event); // pass through to parent node.
     }
   }
-
-  refreshMenu(initial: boolean = false) {
-    var other = this;
+  /* eslint @typescript-eslint/no-this-alias: "warn" */
+  refreshMenu(initial = false) {
+    const other = this;
     if (initial) {
       this.menuSrv.create_menu(
         MenuType.MUD_CLIENT,
@@ -168,6 +168,5 @@ export class MudmenuComponent implements OnInit {
     this.items = this.menuSrv.get_menu_items(this.menuID);
   }
 
-  ngOnInit(): void {}
 }
 // TODO help: pi-question-circle webmud3 hilfe, befehle spieler und goetter und enzy.

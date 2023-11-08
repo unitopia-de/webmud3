@@ -11,7 +11,7 @@ import { ReadLanguageService } from 'src/app/read-language.service';
 })
 export class ColorSettingsComponent implements OnInit {
   cs: ColorSettings = new ColorSettings();
-  cb: Function;
+  cb: any;
   v: any; // pass through to MenuAction cb!
   cbThis: any; // paththrough
 

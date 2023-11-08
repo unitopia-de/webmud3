@@ -1,6 +1,5 @@
 import {
   Component,
-  OnInit,
   Input,
   ViewChild,
   ElementRef,
@@ -19,11 +18,11 @@ const enum Status {
   templateUrl: './resizable-draggable.component.html',
   styleUrls: ['./resizable-draggable.component.scss'],
 })
-export class ResizableDraggableComponent implements OnInit, AfterViewInit {
-  @Input('width') public width: number;
-  @Input('height') public height: number;
-  @Input('left') public left: number;
-  @Input('top') public top: number;
+export class ResizableDraggableComponent implements AfterViewInit {
+  @Input() public width: number;
+  @Input() public height: number;
+  @Input() public left: number;
+  @Input() public top: number;
   @ViewChild('box') public box: ElementRef;
   private boxPosition: { left: number; top: number };
   private containerPos: {
@@ -35,8 +34,6 @@ export class ResizableDraggableComponent implements OnInit, AfterViewInit {
   public mouse: { x: number; y: number };
   public status: Status = Status.OFF;
   private mouseClick: { x: number; y: number; left: number; top: number };
-
-  ngOnInit() {}
 
   ngAfterViewInit() {
     this.loadBox();

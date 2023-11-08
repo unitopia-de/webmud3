@@ -7,7 +7,7 @@ import { WebmudConfig } from 'src/app/mud/webmud-config';
   templateUrl: './dual.component.html',
   styleUrls: ['./dual.component.scss'],
 })
-export class DualComponent implements OnInit {
+export class DualComponent {
   public mudcfg1: WebmudConfig = {
     mudname: '',
     autoConnect: false,
@@ -26,6 +26,4 @@ export class DualComponent implements OnInit {
   };
 
   constructor(public srvcfg: ServerConfigService) {}
-
-  ngOnInit(): void {}
 }

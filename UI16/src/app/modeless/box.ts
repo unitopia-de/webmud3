@@ -29,10 +29,10 @@ export class Box {
   }
   resize_to_mouse(mouse_x: number, mouse_y: number) {
     // (this.mouse.x < this.containerPos.right && this.mouse.y < this.containerPos.bottom
-    var width = this.width;
-    var height = this.height;
-    var count_width_changes = 0;
-    var count_height_changes = 0;
+    let width = this.width;
+    let height = this.height;
+    let count_width_changes = 0;
+    let count_height_changes = 0;
     if (this.outerBox != null) {
       if (mouse_x >= this.outerBox.right || mouse_y >= this.outerBox.bottom) {
         return;
@@ -64,7 +64,7 @@ export class Box {
         count_height_changes++;
       }
     }
-    var changeflag = 0;
+    let changeflag = 0;
     if (count_width_changes < 2 && width != this.width) {
       this.width = width;
       this.right = this.left + this.width;

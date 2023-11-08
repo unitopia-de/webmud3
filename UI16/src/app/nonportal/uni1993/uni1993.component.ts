@@ -7,7 +7,7 @@ import { ServerConfigService } from '../../shared/server-config.service';
   templateUrl: './uni1993.component.html',
   styleUrls: ['./uni1993.component.scss'],
 })
-export class Uni1993Component implements OnInit {
+export class Uni1993Component {
   public mudcfg: WebmudConfig = {
     mudname: this.srvcfg.getUni1993Name(),
     autoConnect: true,
@@ -18,6 +18,4 @@ export class Uni1993Component implements OnInit {
   };
 
   constructor(public srvcfg: ServerConfigService) {}
-
-  ngOnInit() {}
 }

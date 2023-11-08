@@ -13,8 +13,6 @@ import { WindowConfig } from 'src/app/shared/window-config';
 import { ConfirmationService, MenuItem } from 'primeng/api';
 
 import * as ace from 'ace-builds';
-import { DialogService } from 'primeng/dynamicdialog';
-import { EditorSearchComponent } from 'src/app/settings/editor-search/editor-search.component';
 import { FileInfo } from 'src/app/mud/mud-signals';
 import { WindowService } from 'src/app/shared/window.service';
 import { CookieService } from 'ngx-cookie-service';
@@ -82,25 +80,25 @@ export class EditorComponent implements OnInit, AfterViewInit {
     return this._config;
   }
   private _config: WindowConfig;
-  @Output('menuAction') menuAction = new EventEmitter<string>();
+  @Output() menuAction = new EventEmitter<string>();
 
   @ViewChild('editor') private editor: ElementRef<HTMLElement>;
   private aceEditor: ace.Ace.Editor;
   private aceSession: ace.Ace.EditSession;
   public themes: any[] = [];
   public currentTheme: any = {};
-  zinSearch: number = 100;
+  zinSearch = 100;
   items: MenuItem[];
   searchOptions: any = {
     regex: false,
   };
 
-  public text: string = '';
+  public text = '';
   private fileinfo: FileInfo;
-  public disabled: boolean = false;
-  public readonly: boolean = false;
-  private cwidth: number = 0;
-  private cheight: number = 0;
+  public disabled = false;
+  public readonly = false;
+  private cwidth = 0;
+  private cheight = 0;
 
   onChange(code) {
     console.log('new code', code);
@@ -114,8 +112,10 @@ export class EditorComponent implements OnInit, AfterViewInit {
     this.fileinfo.save01_start(this.fileinfo.file);
     this.config.outGoingEvents.next('Save:' + closeable);
   }
+  
+  /* eslint @typescript-eslint/no-this-alias: "warn" */
   onCancel(event) {
-    var other = this;
+    const other = this;
     if (this.text == this.aceEditor.getValue()) {
       other.config.outGoingEvents.next('Cancel:');
       return;
@@ -164,8 +164,8 @@ export class EditorComponent implements OnInit, AfterViewInit {
     this.cookieService.set('editortheme', this.currentTheme.code);
   }
 
-  searchWindow(event: any, replaceFlag: boolean = false) {
-    var cfg = new WindowConfig();
+  searchWindow(event: any, replaceFlag = false) {
+    const cfg = new WindowConfig();
     cfg.component = 'EditorSearchComponent';
     cfg.save = false;
     cfg.parentWindow = this.config.windowid;
@@ -233,7 +233,7 @@ export class EditorComponent implements OnInit, AfterViewInit {
     this.updateMenu();
     this._config.inComingEvents.subscribe(
       (event) => {
-        var msgSplit = event.split(':');
+        const msgSplit = event.split(':');
         console.log('editor.inComingEvents.event:', event);
         switch (msgSplit[0]) {
           case 'resize':
@@ -268,7 +268,7 @@ export class EditorComponent implements OnInit, AfterViewInit {
       this.aceEditor = ace.edit(this.editor.nativeElement);
     }
     this.aceEditor.setAutoScrollEditorIntoView(true);
-    var themeNow = this.cookieService.get('editortheme');
+    let themeNow = this.cookieService.get('editortheme');
     if (themeNow == '') {
       themeNow = 'twilight';
     }
@@ -276,7 +276,7 @@ export class EditorComponent implements OnInit, AfterViewInit {
     this.aceSession = new ace.EditSession(this.text);
     this.aceSession.setMode('ace/mode/' + this._config.data['edditortype']);
     this.aceEditor.setSession(this.aceSession);
-    var themelist = ace.require('ace/ext/themelist'); // delivers undefined!!!
+    const themelist = ace.require('ace/ext/themelist'); // delivers undefined!!!
     console.log('themelist', themelist);
     this.themes = [];
     // var themeOb :any = themelist.themesByName // error reference undefined

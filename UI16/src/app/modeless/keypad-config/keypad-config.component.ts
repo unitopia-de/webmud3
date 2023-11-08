@@ -1,5 +1,4 @@
-import { Component, OnInit, Input, AfterContentInit } from '@angular/core';
-import { WindowConfig } from 'src/app/shared/window-config';
+import { Component, OnInit } from '@angular/core';
 import { DynamicDialogRef } from 'primeng/dynamicdialog';
 import { DynamicDialogConfig } from 'primeng/dynamicdialog';
 import { ReadLanguageService } from 'src/app/read-language.service';
@@ -12,6 +11,7 @@ import { KeypadData } from 'src/app/shared/keypad-data';
 })
 export class KeypadConfigComponent implements OnInit {
   public keypad: KeypadData = new KeypadData();
+  /* eslint @typescript-eslint/ban-types: "warn" */
   cb: Function;
   cbThis: any; // paththrough
 

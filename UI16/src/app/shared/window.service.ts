@@ -1,4 +1,4 @@
-import { EventEmitter, Inject, Injectable } from '@angular/core';
+import { Inject, Injectable } from '@angular/core';
 import { Title } from '@angular/platform-browser';
 import { CookieService } from 'ngx-cookie-service';
 import { UUID } from 'angular2-uuid';
@@ -25,8 +25,8 @@ export class WindowService {
     if (this.wincfg.get(parentId) === undefined) {
       return 0;
     }
-    var count = 0;
-    var newcfg: WindowConfig[] = [];
+    let count = 0;
+    const newcfg: WindowConfig[] = [];
     this.last_zindex = 100;
     this.windowsconfigurations.forEach((cfg) => {
       if (cfg.parentWindow == parentId) {
@@ -52,9 +52,8 @@ export class WindowService {
     cfg.winService = this;
     this.windowsconfigurations.push(cfg);
     this.wincfg.set(cfg.windowid, cfg);
-    var other = this;
     cfg.outGoingEvents.subscribe((n) => {
-      other.OnMenuAction(n, cfg.windowid, other);
+      this.OnMenuAction(n, cfg.windowid, this);
     });
     console.debug('newWindow', maxindex, cfg.windowid);
     return cfg.windowid;
@@ -63,7 +62,7 @@ export class WindowService {
     if (typeof cfg === 'undefined') {
       return -2;
     }
-    var i: number;
+    let i: number;
     for (i = 0; i < this.windowsconfigurations.length; i++) {
       if (this.windowsconfigurations[i].windowid == cfg.windowid) {
         return i;
@@ -72,7 +71,7 @@ export class WindowService {
     return -1;
   }
 
-  public findFilesWindow(cfg: WindowConfig, data: Object): WindowConfig {
+  public findFilesWindow(cfg: WindowConfig, data: object): WindowConfig {
     if (this.findWindowByCfg(cfg) < 0) {
       cfg = new WindowConfig();
       cfg.component = 'DirlistComponent';
@@ -91,7 +90,7 @@ export class WindowService {
     return cfg;
   }
 
-  public findCharStatWindow(cfg: WindowConfig, data: Object): WindowConfig {
+  public findCharStatWindow(cfg: WindowConfig, data: object): WindowConfig {
     if (this.findWindowByCfg(cfg) < 0) {
       cfg = new WindowConfig();
       cfg.component = 'CharStatComponent';
@@ -124,6 +123,7 @@ export class WindowService {
         return;
       case 'do_hide':
         other.deleteWindow(winid, other);
+        break;
       case 'saved':
         if (exp[1] == 'false') break; // dont close!
         cfg.visible = false;
@@ -142,22 +142,22 @@ export class WindowService {
       );
     }
     console.log('deleteWindow', index, other.windowsconfigurations);
-    var maxindex = other.windowsconfigurations.length - 1;
-    var zoffset;
-    for (var i: number = index as number; i < maxindex; i++) {
-      var dwin = other.windowsconfigurations[i + 1];
+    const maxindex = other.windowsconfigurations.length - 1;
+    let zoffset;
+    for (let i: number = index as number; i < maxindex; i++) {
+      const dwin = other.windowsconfigurations[i + 1];
       zoffset = dwin.initalLock ? 1000 : 100;
       dwin.zIndex = zoffset + i;
       other.windowsconfigurations[i] = dwin;
     }
     other.wincfg.clear();
     other.windowsconfigurations.pop();
-    for (var j = 0; j < other.windowsconfigurations.length; j++) {
-      var id = other.windowsconfigurations[j].windowid;
+    for (let j = 0; j < other.windowsconfigurations.length; j++) {
+      const id = other.windowsconfigurations[j].windowid;
       other.wincfg.set(id, other.windowsconfigurations[j]);
     }
   }
-  setWindowsSize(innerHeight: number, innerWidth: number): any {
+  setWindowsSize(innerHeight: number, innerWidth: number)  {
     // TODO propagate resizing...
   }
 
@@ -216,11 +216,11 @@ export class WindowService {
     const cfg: WindowConfig = this.wincfg.get(winid);
     console.warn('focus-1', this.windowsconfigurations);
     const index = this.findWindowByCfg(cfg);
-    var maxindex = this.windowsconfigurations.length - 1;
-    var cwin = this.windowsconfigurations[index];
-    var zoffset = 100;
-    for (var i = index; i < maxindex; i++) {
-      var dwin = this.windowsconfigurations[i + 1];
+    const maxindex = this.windowsconfigurations.length - 1;
+    const cwin = this.windowsconfigurations[index];
+    const zoffset = 100;
+    for (let i = index; i < maxindex; i++) {
+      const dwin = this.windowsconfigurations[i + 1];
       dwin.zIndex = zoffset + i;
       this.windowsconfigurations[i] = dwin;
     }

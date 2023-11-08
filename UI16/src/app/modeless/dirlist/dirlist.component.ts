@@ -1,7 +1,6 @@
 import { Component, Input, OnInit } from '@angular/core';
 import { FileEntries, MudSignals } from 'src/app/mud/mud-signals';
 import { WindowConfig } from 'src/app/shared/window-config';
-import { WindowService } from 'src/app/shared/window.service';
 
 @Component({
   selector: 'app-dirlist',
@@ -19,11 +18,9 @@ export class DirlistComponent implements OnInit {
   }
   private _config: WindowConfig;
 
-  public path: string = '';
+  public path = '';
   public entries: FileEntries[] = [];
   private musi: MudSignals;
-
-  constructor() {}
 
   updateDirList() {
     this.musi = <MudSignals>this._config.data;

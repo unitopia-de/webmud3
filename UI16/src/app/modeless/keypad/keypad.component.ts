@@ -6,7 +6,7 @@ import { OneKeypadData } from 'src/app/shared/keypad-data';
   templateUrl: './keypad.component.html',
   styleUrls: ['./keypad.component.scss'],
 })
-export class KeypadComponent implements OnInit {
+export class KeypadComponent {
   @Input() set keypad(one: OneKeypadData) {
     if (typeof one !== 'undefined') this._keypad = one;
   }
@@ -15,10 +15,10 @@ export class KeypadComponent implements OnInit {
   }
   _keypad: OneKeypadData = new OneKeypadData('');
 
-  @Output('keyAction') keyAction = new EventEmitter<string>();
+  @Output() keyAction = new EventEmitter<string>();
 
   valAction(event: string) {
-    var evs = event.split(':');
+    const evs = event.split(':');
     switch (evs[1]) {
       case '/':
         evs[1] = 'NumpadDivide';
@@ -53,8 +53,4 @@ export class KeypadComponent implements OnInit {
     }
     this.keyAction.emit(evs.join(':'));
   }
-
-  constructor() {}
-
-  ngOnInit(): void {}
 }
