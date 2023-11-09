@@ -7,6 +7,7 @@
 
 docker build -f Dockerfile -t myonara/webmud3:latest .
 
+docker build -f dockerfiles/ng_unitopia_test.dockerfile -t myonara/webmud3:unitopiatest .
 
 ### To run the docker containers in a swarm:
 
@@ -29,29 +30,31 @@ docker run -d --name mudconnOrbit myonara/mdconn:v0.0.6
 docker run -d -p 50000:80 --name helloplain -P nginxdemos/hello:plain-text
 
 ### Alternative podman compose
-#### starten
+#### to start
 
 podman-compose -f dockerfiles/w3_docker_compose.yml -p webmud_unitopia up -d
 
-podman-compose -f dockerfiles/w3_docker_compose_test.yml -p webmud_test up -d
-    
 podman-compose -f dockerfiles/w3_docker_compose_sb.yml -p webmud_seifenblase up -d
 
-####  Beenden kann man sie mit
+podman-compose -f dockerfiles/w3_docker_compose_test.yml -p webmud_test up -d
+    
+podman-compose -f dockerfiles/w3_docker_compose_test_neu.yml -p webmud_test up -d
+    
+####  to stop
 
 podman-compose -f dockerfiles/w3_docker_compose.yml -p webmud_unitopia down
     
-podman-compose -f dockerfiles/w3_docker_compose_test.yml -p webmud_test down
-    
 podman-compose -f dockerfiles/w3_docker_compose_sb.yml -p webmud_seifenblase down
 
-####  Neue Images holt man mit:
+podman-compose -f dockerfiles/w3_docker_compose_test.yml -p webmud_test down
+    
+podman-compose -f dockerfiles/w3_docker_compose_test_neu.yml -p webmud_test down
+    
+####  to get new imges:
 
-podman-compose -f dockerfiles/w3_docker_compose.yml -p webmud_unitopia pull
-    
-podman-compose -f dockerfiles/w3_docker_compose_test.yml -p webmud_test pull
-    
-podman-compose -f dockerfiles/w3_docker_compose_sb.yml -p webmud_seifenblase pull
+podman pull myonara/webmud3:latest
+
+podman pull myonara/webmud3:unitopiatest
 
 
 ### docker commands for diagnosis:

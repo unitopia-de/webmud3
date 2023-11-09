@@ -4,7 +4,7 @@ export class OneMenu {
   menuType: MenuType = MenuType.OTHER;
   menuID: string;
   items: MenuItem[] = [];
-    /* eslint @typescript-eslint/ban-types: "warn" */
+  /* eslint @typescript-eslint/ban-types: "warn" */
   executer: Function;
   constructor(type: MenuType, id: string, callback: Function) {
     this.menuType = type;

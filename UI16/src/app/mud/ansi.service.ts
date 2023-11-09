@@ -133,7 +133,7 @@ export class AnsiService {
     let char = data.ansi[data.ansiPos];
     let escape = '';
     let stop = false;
-    let i=0;
+    let i = 0;
     let codes;
     if (char == '[') {
       do {

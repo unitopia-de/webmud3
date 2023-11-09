@@ -8,15 +8,15 @@ export class AnsiData {
   ansiPos = 0;
   fgcolor = '#ffffff';
   bgcolor = '#000000';
-  bold  = false;
-  faint  = false;
-  blink  = false;
-  italic  = false;
-  underline  = false;
-  reverse  = false;
-  concealed  = false;
-  crossedout  = false;
-  optionInvert  = false;
+  bold = false;
+  faint = false;
+  blink = false;
+  italic = false;
+  underline = false;
+  reverse = false;
+  concealed = false;
+  crossedout = false;
+  optionInvert = false;
   timeString = '';
   text = '';
 }

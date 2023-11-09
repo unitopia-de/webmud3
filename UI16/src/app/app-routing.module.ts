@@ -39,7 +39,10 @@ const standardRoutes: Routes = [{ path: '**', redirectTo: '/' }];
         let count = 0;
         let rootFlag = false;
         Object.keys(mroutes).forEach((key: string) => {
-          if (Object.prototype.hasOwnProperty.call(mroutes, key) && key.startsWith('/')) {
+          if (
+            Object.prototype.hasOwnProperty.call(mroutes, key) &&
+            key.startsWith('/')
+          ) {
             const path = key.substring(1);
             let component: any = undefined;
             switch (mroutes[key]) {
@@ -80,8 +83,8 @@ const standardRoutes: Routes = [{ path: '**', redirectTo: '/' }];
         if (!rootFlag) {
           console.error('No root node!');
         }
-        if (count==0) {
-          console.error("no routes");
+        if (count == 0) {
+          console.error('no routes');
         }
         return [...routes, ...standardRoutes];
       },

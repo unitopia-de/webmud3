@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { MenuItem } from 'primeng/api';
 import { MenuType, OneMenu } from './one-menu';
 
-    /* eslint @typescript-eslint/ban-types: "warn" */
+/* eslint @typescript-eslint/ban-types: "warn" */
 @Injectable({
   providedIn: 'root',
 })
@@ -51,30 +51,47 @@ export class MenuService {
       command: this.all_menus[menuID].executer,
     };
     if (submenu <= 0) {
-      if (!Object.prototype.hasOwnProperty.call(this.all_menus[menuID], 'items')) {
+      if (
+        !Object.prototype.hasOwnProperty.call(this.all_menus[menuID], 'items')
+      ) {
         this.all_menus[menuID].items = [];
       }
       this.all_menus[menuID].items.push(myItem);
       return true;
     }
-    if (!Object.prototype.hasOwnProperty.call(this.all_menus[menuID], 'items')) {
+    if (
+      !Object.prototype.hasOwnProperty.call(this.all_menus[menuID], 'items')
+    ) {
       return false; // no previous element to insert to.
     }
     const ix1 = this.all_menus[menuID].items.length - 1;
     if (submenu == 1) {
-      if (!Object.prototype.hasOwnProperty.call(this.all_menus[menuID].items[ix1], 'items')) {
+      if (
+        !Object.prototype.hasOwnProperty.call(
+          this.all_menus[menuID].items[ix1],
+          'items',
+        )
+      ) {
         this.all_menus[menuID].items[ix1].items = [];
       }
       this.all_menus[menuID].items[ix1].items.push(myItem);
       return true;
     }
-    if (!Object.prototype.hasOwnProperty.call(this.all_menus[menuID].items[ix1], 'items')) {
+    if (
+      !Object.prototype.hasOwnProperty.call(
+        this.all_menus[menuID].items[ix1],
+        'items',
+      )
+    ) {
       return false; // no previous element on level 1 to insert to
     }
     const ix2 = this.all_menus[menuID].items[ix1].items.length;
     if (submenu == 2) {
       if (
-        !Object.prototype.hasOwnProperty.call(this.all_menus[menuID].items[ix1].items[ix2], 'items')
+        !Object.prototype.hasOwnProperty.call(
+          this.all_menus[menuID].items[ix1].items[ix2],
+          'items',
+        )
       ) {
         this.all_menus[menuID].items[ix1].items[ix2].items = [];
       }

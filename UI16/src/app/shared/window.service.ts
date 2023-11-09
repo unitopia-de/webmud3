@@ -157,7 +157,7 @@ export class WindowService {
       other.wincfg.set(id, other.windowsconfigurations[j]);
     }
   }
-  setWindowsSize(innerHeight: number, innerWidth: number)  {
+  setWindowsSize(innerHeight: number, innerWidth: number) {
     // TODO propagate resizing...
   }
 

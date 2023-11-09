@@ -1,4 +1,4 @@
-  /* eslint @typescript-eslint/no-this-alias: "warn" */
+/* eslint @typescript-eslint/no-this-alias: "warn" */
 import {
   AfterViewChecked,
   ChangeDetectorRef,
@@ -130,8 +130,8 @@ export class MudclientComponent implements AfterViewChecked {
   }
   menuAction(act: any) {
     console.log('menuAction', act);
-    let numpadOther,other;
-    let numpadSplit : string[] = [];
+    let numpadOther, other;
+    let numpadSplit: string[] = [];
     switch (act.item.id) {
       case 'MUD:MENU':
         return; // no action/with submenu!
@@ -221,7 +221,10 @@ export class MudclientComponent implements AfterViewChecked {
           this.v.stdbg = 'black';
         }
         // console.log('cs=',other.cs,tmpJson,tmp64);
-        other.cookieService.set('mudcolors', other.ansiService.toBinaryBase64(JSON.stringify(this.cs)));
+        other.cookieService.set(
+          'mudcolors',
+          other.ansiService.toBinaryBase64(JSON.stringify(this.cs)),
+        );
         return;
     }
   }

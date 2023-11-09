@@ -12,7 +12,7 @@ export interface HashTable<T> {
   [key: string]: T;
 }
 
-  /* eslint @typescript-eslint/no-this-alias: "warn" */
+/* eslint @typescript-eslint/no-this-alias: "warn" */
 
 export class IoResult {
   IdType: string;
@@ -196,7 +196,7 @@ export class IoMud {
         other,
       );
       let fileinfo: FileInfo;
-      let num : OneKeypadData;
+      let num: OneKeypadData;
       switch (mod.toLowerCase().trim()) {
         case 'core':
           switch (msg.toLowerCase().trim()) {
@@ -685,8 +685,11 @@ export class IoSocket {
     });
   }
   public reportId(type: string, id: string, ob: any) {
-    if (ob == null && type == 'IoMud' 
-          && Object.prototype.hasOwnProperty.call(this.MudIndex, id)) {
+    if (
+      ob == null &&
+      type == 'IoMud' &&
+      Object.prototype.hasOwnProperty.call(this.MudIndex, id)
+    ) {
       delete this.MudIndex[id];
       console.log('Count IoMuds:', this.MudIndex.length, id);
     } else if (ob != null && type == 'IoMud') {

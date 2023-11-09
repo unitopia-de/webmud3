@@ -71,7 +71,7 @@ export class FileEntries {
   filetime = '';
   isdir = 0;
 }
-  /* eslint @typescript-eslint/no-empty-function: "warn" */
+/* eslint @typescript-eslint/no-empty-function: "warn" */
 export class FileInfo {
   lasturl = '';
   file = '';
@@ -133,8 +133,8 @@ export class MudSignalHelpers {
       musi.signal,
     );
     // console.debug('mudclient-socketService.mudReceiveSignals',_id,musi);
-    let audio,newfile,filewincfg:WindowConfig;
-    let nooldcfg,newcfg,xsplit;
+    let audio, newfile, filewincfg: WindowConfig;
+    let nooldcfg, newcfg, xsplit;
     switch (musi.signal) {
       case 'NOECHO-START':
         other.v.inpType = 'password';

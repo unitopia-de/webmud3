@@ -1,16 +1,14 @@
 version: "3.7"
 services:
   web:
-    # replace username/repo:tag with your name and image details
-    image: myonara/webmud3:latest
+    image: myonara/webmud3:unitopiatest
     environment: 
       NODE_ENV: 'production'
-      SECRET_CONFIG: '/run/webmud3.json'
-      MUD_CONFIG: '/run/mud_config_unitopia.json'
-      WEBMUD3_DISTRIBUTION_TYPE: 'unitopia-prod'
+      SECRET_CONFIG: '/run/webmud3test.json'
+      MUD_CONFIG: '/run/mud_config_unitopia_test.json'
+      WEBMUD3_DISTRIBUTION_TYPE: 'unitopia-test'
     volumes:
       - "/UNItopia/ftpwww/webmud3/run:/run"
-    # command: --tls-cert=/run/secrets/cert.pem --tls-key=/run/secrets/privkey.pem
     deploy:
       replicas: 1
       resources:
@@ -20,14 +18,16 @@ services:
       labels:
         com.docker.lb.hosts: www.unitopia.de
         com.docker.lb.network: webnet
-        com.docker.lb.port: 2018
+        com.docker.lb.port: 2019
       restart_policy:
         condition: on-failure
+        delay: 20s
+        max_attempts: 2 
+        window: 3600s
     ports:
-      - "2018:5000"
+      - "2019:5000"
     networks:
       - webnet
 networks:
   webnet:
-    #driver: overlay
     attachable: true
