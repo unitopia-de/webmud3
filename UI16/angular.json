@@ -14,9 +14,9 @@
           "builder": "@angular-devkit/build-angular:browser",
           "options": {
             "allowedCommonJsDependencies": [
-               "ace-builds",
-               "angular2-uuid",
-               "socket.io-client"
+              "ace-builds",
+              "angular2-uuid",
+              "socket.io-client"
             ],
             "outputPath": "dist/UI14",
             "index": "src/index.html",
@@ -209,6 +209,15 @@
               "devServerTarget": "UI14:serve:production"
             }
           }
+        },
+        "lint": {
+          "builder": "@angular-eslint/builder:lint",
+          "options": {
+            "lintFilePatterns": [
+              "src/**/*.ts",
+              "src/**/*.html"
+            ]
+          }
         }
       }
     }
@@ -219,6 +228,9 @@
     }
   },
   "cli": {
-    "analytics": "8bdb3947-8e70-4f9f-8c2b-d60a8684624b"
+    "analytics": "8bdb3947-8e70-4f9f-8c2b-d60a8684624b",
+    "schematicCollections": [
+      "@angular-eslint/schematics"
+    ]
   }
 }
