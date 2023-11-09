@@ -1,20 +1,25 @@
 import { Injectable } from '@angular/core';
 import { FileInfo } from './file-info';
 import { HttpClient } from '@angular/common/http';
-  /* eslint @typescript-eslint/no-this-alias: "warn" */
+/* eslint @typescript-eslint/no-this-alias: "warn" */
 @Injectable({
   providedIn: 'root',
 })
 export class FilesService {
   private filemap: object = {};
 
-  startFilesModule() {return;}
+  startFilesModule() {
+    return;
+  }
 
   processFileInfo(fileinfo: FileInfo): FileInfo {
     const url = fileinfo.lasturl;
     const filepath = fileinfo.file;
     console.debug('FilesService-processFileInfo-start', fileinfo);
-    if (Object.prototype.hasOwnProperty.call(this.filemap, filepath) && fileinfo.saveActive) {
+    if (
+      Object.prototype.hasOwnProperty.call(this.filemap, filepath) &&
+      fileinfo.saveActive
+    ) {
       const cfileinfo: FileInfo = this.filemap[filepath];
       cfileinfo.save02_url(url);
       cfileinfo.alreadyLoaded = true;

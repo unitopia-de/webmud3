@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { GmcpConfig } from '../gmcp/gmcp-config';
 import { GmcpMenu } from '../gmcp/gmcp-menu';
-  /* eslint @typescript-eslint/no-this-alias: "warn" */
+/* eslint @typescript-eslint/no-this-alias: "warn" */
 @Injectable({
   providedIn: 'root',
 })
@@ -161,7 +161,10 @@ export class UnitopiaService {
   }
   public delete_module(_id: string, mod: string) {
     const cb_switch = this.get_mudconf(_id, 'cb_mudSwitchGmcpModule');
-    const cb_remove_gmcp_module = this.get_mudconf(_id, 'cb_remove_gmcp_module');
+    const cb_remove_gmcp_module = this.get_mudconf(
+      _id,
+      'cb_remove_gmcp_module',
+    );
     switch (mod.toLowerCase()) {
       case 'sound':
       case 'sound 1':

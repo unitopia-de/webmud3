@@ -19,11 +19,8 @@ RUN apk update && apk upgrade && \
 # fetch the angular sources and stuff
 COPY ./UI16/ /app/
 
-# ok may be we have to do more with the environment...
-ARG configuration=production
-
 # create the output of the angular app
-RUN ng build --configuration production --output-path=dist/out
+RUN ng build --configuration development-unitopia --output-path=dist/out
 
 # produces the final node.js immage.
 FROM node:16-alpine3.16 AS webmud3
@@ -43,3 +40,4 @@ RUN mkdir /run/secrets \
     && npm install --only=prod 
 
 CMD node server.js
+

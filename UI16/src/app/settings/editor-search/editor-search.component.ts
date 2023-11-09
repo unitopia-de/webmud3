@@ -23,7 +23,6 @@ export class EditorSearchComponent implements OnInit {
   seachText = '';
   type = 'text';
 
-
   ngOnInit(): void {
     // this.aceEditor = this.config.data['aceEDitor'];
     return;
@@ -35,6 +34,10 @@ export class EditorSearchComponent implements OnInit {
     //     caseSensitive: true,
     // })
   }
-  onReplace() {return;}
-  doSearch() {return;}
+  onReplace() {
+    return;
+  }
+  doSearch() {
+    return;
+  }
 }
