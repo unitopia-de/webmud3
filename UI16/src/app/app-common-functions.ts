@@ -1,5 +1,4 @@
-
-export function getBaseLocation():string {
+export function getBaseLocation(): string {
   const paths: string[] = location.pathname.split('/').splice(1, 1);
   // console.log("paths:",location.pathname);
   const basePath: string = (paths && paths[0]) || '';
@@ -11,5 +10,4 @@ export function getBaseLocation():string {
     default:
       return '/';
   }
-
 }

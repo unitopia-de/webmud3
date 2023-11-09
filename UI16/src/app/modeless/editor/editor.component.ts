@@ -113,7 +113,7 @@ export class EditorComponent implements OnInit, AfterViewInit {
     this.fileinfo.save01_start(this.fileinfo.file);
     this.config.outGoingEvents.next('Save:' + closeable);
   }
-  
+
   /* eslint @typescript-eslint/no-this-alias: "warn" */
   onCancel(event) {
     if (typeof this.aceEditor === 'undefined') return;
@@ -163,8 +163,11 @@ export class EditorComponent implements OnInit, AfterViewInit {
   }
 
   public changeTheme() {
-    if (typeof this.aceEditor === 'undefined'
-      || typeof this.currentTheme ==='undefined' ) return;
+    if (
+      typeof this.aceEditor === 'undefined' ||
+      typeof this.currentTheme === 'undefined'
+    )
+      return;
     this.aceEditor.setTheme('ace/theme/' + this.currentTheme.code);
     this.cookieService.set('editortheme', this.currentTheme.code);
   }

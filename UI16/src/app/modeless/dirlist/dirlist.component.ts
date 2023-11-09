@@ -33,10 +33,10 @@ export class DirlistComponent implements OnInit {
     this.entries = this.musi.entries;
     console.debug('DirlistComponent-updateDirList', this.path);
   }
-  fileOpen(file: string,event = undefined) {
+  fileOpen(file: string, event = undefined) {
     this.config.outGoingEvents.next('FileOpen:' + this.path + ':' + file);
   }
-  changeDir(dir: string,event = undefined) {
+  changeDir(dir: string, event = undefined) {
     this.config.outGoingEvents.next('ChangeDir:' + this.path + ':' + dir);
   }
   ngOnInit(): void {

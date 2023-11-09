@@ -36,7 +36,7 @@ export class GmcpService {
     }
     return -1;
   }
-/* eslint @typescript-eslint/no-this-alias: "warn" */
+  /* eslint @typescript-eslint/no-this-alias: "warn" */
   public menuAction(actual_menu: GmcpMenu) {
     console.debug('GmcpService-menuAction', actual_menu);
     const mud_id = actual_menu.cfg.mud_id;

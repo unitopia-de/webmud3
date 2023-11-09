@@ -5,5 +5,4 @@ import { Component, OnInit } from '@angular/core';
   templateUrl: './flexible-area.component.html',
   styleUrls: ['./flexible-area.component.scss'],
 })
-export class FlexibleAreaComponent  {
-}
+export class FlexibleAreaComponent {}

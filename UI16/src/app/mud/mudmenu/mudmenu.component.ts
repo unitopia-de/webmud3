@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input,  Output } from '@angular/core';
+import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { MenuItem } from 'primeng/api';
 import { MenuService } from 'src/app/menu/menu.service';
 import { MenuType } from 'src/app/menu/one-menu';
@@ -10,7 +10,7 @@ import { SocketsService } from 'src/app/shared/sockets.service';
   templateUrl: './mudmenu.component.html',
   styleUrls: ['./mudmenu.component.scss'],
 })
-export class MudmenuComponent  {
+export class MudmenuComponent {
   @Input() set connected(conn: boolean) {
     if (this._connected != conn) {
       this._connected = conn;
@@ -167,6 +167,5 @@ export class MudmenuComponent  {
     );
     this.items = this.menuSrv.get_menu_items(this.menuID);
   }
-
 }
 // TODO help: pi-question-circle webmud3 hilfe, befehle spieler und goetter und enzy.
