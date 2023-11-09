@@ -3,13 +3,13 @@
     <table>
       <ng-container *ngFor="let entry of entries">
         <tr *ngIf="entry.isdir===0">
-          <td><a (keydown)="fileOpen(entry.name)" tabindex="0">{{entry.name}}</a></td>
+          <td><a (click)="fileOpen(entry.name)" tabindex="0">{{entry.name}}</a></td>
           <td>{{entry.size}}</td>
           <td>{{entry.filedate}}</td>
           <td>{{entry.filetime}}</td>
         </tr>
         <tr *ngIf="entry.isdir!==0">
-          <td><a (keydown)="changeDir(entry.name)" tabindex="0">{{entry.name}}/</a></td>
+          <td><a (click)="changeDir(entry.name)" tabindex="0">{{entry.name}}/</a></td>
           <td></td>
           <td>{{entry.filedate}}</td>
           <td>{{entry.filetime}}</td>

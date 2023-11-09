@@ -19,9 +19,6 @@ RUN apk update && apk upgrade && \
 # fetch the angular sources and stuff
 COPY ./UI16/ /app/
 
-# exchange webmud3 in baseref webmud3\UI8\src\index.html
-# RUN sed -i 's-%%BASEREF%%-/-' /app/src/index.html 
-
 # ok may be we have to do more with the environment...
 ARG configuration=production
 
@@ -39,14 +36,6 @@ COPY ./backend/ /app/
 
 #fetch the angular distribution for serving from node.js
 COPY --from=ng-build-stage /app/dist/out/ /app/dist/
-
-# mkdir runs OLD
-# RUN mkdir /run/secrets \
-#     && mkdir /run/db \
-#     && npm install --only=prod \
-#     && chown -R node:node /app
-
-# USER node:node
 
 # mkdir runs
 RUN mkdir /run/secrets \

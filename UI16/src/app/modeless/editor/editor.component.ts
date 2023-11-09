@@ -105,6 +105,7 @@ export class EditorComponent implements OnInit, AfterViewInit {
   }
   onSave(event: any, closeable: boolean) {
     if (this.readonly) return;
+    if (typeof this.aceEditor === 'undefined') return;
     const itext = this.aceEditor.getValue();
     // console.log("save-text", itext);
     this.fileinfo.content = itext;
@@ -115,6 +116,7 @@ export class EditorComponent implements OnInit, AfterViewInit {
   
   /* eslint @typescript-eslint/no-this-alias: "warn" */
   onCancel(event) {
+    if (typeof this.aceEditor === 'undefined') return;
     const other = this;
     if (this.text == this.aceEditor.getValue()) {
       other.config.outGoingEvents.next('Cancel:');
@@ -153,6 +155,7 @@ export class EditorComponent implements OnInit, AfterViewInit {
     }
   }
   private updateMyStyle(twidth, theight) {
+    if (typeof this.aceEditor === 'undefined') return;
     //this.cwidth = twidth;
     //this.cheight = theight;
     this.aceEditor.resize(true);
@@ -160,6 +163,7 @@ export class EditorComponent implements OnInit, AfterViewInit {
   }
 
   public changeTheme() {
+    if (typeof this.aceEditor === 'undefined') return;
     this.aceEditor.setTheme('ace/theme/' + this.currentTheme.code);
     this.cookieService.set('editortheme', this.currentTheme.code);
   }
@@ -245,7 +249,7 @@ export class EditorComponent implements OnInit, AfterViewInit {
             break;
           case 'saved:false':
           case 'saved:true':
-            other.text = this.aceEditor.getValue();
+            other.text = other.aceEditor.getValue();
             other._config.data['content'] = other.text;
             break;
         }
@@ -269,7 +273,7 @@ export class EditorComponent implements OnInit, AfterViewInit {
     }
     this.aceEditor.setAutoScrollEditorIntoView(true);
     let themeNow = this.cookieService.get('editortheme');
-    if (themeNow == '') {
+    if (themeNow === '') {
       themeNow = 'twilight';
     }
     this.aceEditor.setTheme('ace/theme/' + themeNow);

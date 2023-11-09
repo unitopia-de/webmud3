@@ -1,8 +1,7 @@
 version: "3.7"
 services:
   web:
-    # replace username/repo:tag with your name and image details
-    image: myonara/webmud3:latest
+    image: myonara/webmud3:unitopiatest
     environment: 
       NODE_ENV: 'production'
       SECRET_CONFIG: '/run/webmud3test.json'
@@ -10,7 +9,6 @@ services:
       WEBMUD3_DISTRIBUTION_TYPE: 'unitopia-test'
     volumes:
       - "/UNItopia/ftpwww/webmud3/run:/run"
-    # command: --tls-cert=/run/secrets/cert.pem --tls-key=/run/secrets/privkey.pem
     deploy:
       replicas: 1
       resources:
@@ -32,5 +30,4 @@ services:
       - webnet
 networks:
   webnet:
-    #driver: overlay
     attachable: true
