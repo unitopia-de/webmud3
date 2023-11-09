@@ -167,18 +167,18 @@
         "serve": {
           "builder": "@angular-devkit/build-angular:dev-server",
           "options": {
-            "browserTarget": "UI17:build"
+            "buildTarget": "UI17:build"
           },
           "configurations": {
             "production": {
-              "browserTarget": "UI17:build:production"
+              "buildTarget": "UI17:build:production"
             }
           }
         },
         "extract-i18n": {
           "builder": "@angular-devkit/build-angular:extract-i18n",
           "options": {
-            "browserTarget": "UI17:build"
+            "buildTarget": "UI17:build"
           }
         },
         "test": {
