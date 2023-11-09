@@ -1,8 +1,8 @@
 
 export function getBaseLocation():string {
-  let paths: string[] = location.pathname.split('/').splice(1, 1);
+  const paths: string[] = location.pathname.split('/').splice(1, 1);
   // console.log("paths:",location.pathname);
-  let basePath: string = (paths && paths[0]) || '';
+  const basePath: string = (paths && paths[0]) || '';
   // console.log("href:",basePath);
   switch (basePath) {
     case 'webmud3':

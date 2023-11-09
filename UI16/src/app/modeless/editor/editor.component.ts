@@ -163,7 +163,8 @@ export class EditorComponent implements OnInit, AfterViewInit {
   }
 
   public changeTheme() {
-    if (typeof this.aceEditor === 'undefined') return;
+    if (typeof this.aceEditor === 'undefined'
+      || typeof this.currentTheme ==='undefined' ) return;
     this.aceEditor.setTheme('ace/theme/' + this.currentTheme.code);
     this.cookieService.set('editortheme', this.currentTheme.code);
   }
