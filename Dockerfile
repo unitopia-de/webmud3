@@ -13,7 +13,7 @@ RUN echo https://alpine.mirror.wearetriple.com/v3.16/main > /etc/apk/repositorie
 # ... install them together with angular-cli, prequisite git included.
 RUN apk update && apk upgrade && \
     apk add --no-cache bash git openssh \
-    && npm install --location=global @angular/cli@16.2.9 \
+    && npm install --location=global @angular/cli@16.2.10 \
     && npm install
 
 # fetch the angular sources and stuff
