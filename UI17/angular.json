@@ -3,7 +3,7 @@
   "version": 1,
   "newProjectRoot": "projects",
   "projects": {
-    "UI16": {
+    "UI17": {
       "projectType": "application",
       "schematics": {},
       "root": "",
@@ -18,7 +18,7 @@
               "angular2-uuid",
               "socket.io-client"
             ],
-            "outputPath": "dist/UI16",
+            "outputPath": "dist/UI17",
             "index": "src/index.html",
             "main": "src/main.ts",
             "polyfills": "src/polyfills.ts",
@@ -167,18 +167,18 @@
         "serve": {
           "builder": "@angular-devkit/build-angular:dev-server",
           "options": {
-            "browserTarget": "UI16:build"
+            "buildTarget": "UI17:build"
           },
           "configurations": {
             "production": {
-              "browserTarget": "UI16:build:production"
+              "buildTarget": "UI17:build:production"
             }
           }
         },
         "extract-i18n": {
           "builder": "@angular-devkit/build-angular:extract-i18n",
           "options": {
-            "browserTarget": "UI16:build"
+            "buildTarget": "UI17:build"
           }
         },
         "test": {
@@ -202,11 +202,11 @@
           "builder": "@angular-devkit/build-angular:protractor",
           "options": {
             "protractorConfig": "e2e/protractor.conf.js",
-            "devServerTarget": "UI16:serve"
+            "devServerTarget": "UI17:serve"
           },
           "configurations": {
             "production": {
-              "devServerTarget": "UI16:serve:production"
+              "devServerTarget": "UI17:serve:production"
             }
           }
         },
