@@ -1,29 +1,29 @@
 # based on node 10, alpine for least resource requirements.
-FROM node:16-alpine3.16 AS ng-build-stage
+FROM node:20-alpine3.18 AS ng-build-stage
 
 # working dir in build stage
 WORKDIR /app
 
 # fetching packages and...
-COPY UI16/package*.json /app/
+COPY UI17/package*.json /app/
 
-RUN echo https://alpine.mirror.wearetriple.com/v3.16/main > /etc/apk/repositories; \
-    echo https://alpine.mirror.wearetriple.com/v3.16/community >> /etc/apk/repositories
+RUN echo https://alpine.mirror.wearetriple.com/v3.18/main > /etc/apk/repositories; \
+    echo https://alpine.mirror.wearetriple.com/v3.18/community >> /etc/apk/repositories
 
 # ... install them together with angular-cli, prequisite git included.
 RUN apk update && apk upgrade && \
     apk add --no-cache bash git openssh \
-    && npm install --location=global @angular/cli@16.2.9 \
+    && npm install --location=global @angular/cli \
     && npm install
 
 # fetch the angular sources and stuff
-COPY ./UI16/ /app/
+COPY ./UI17/ /app/
 
 # create the output of the angular app
 RUN ng build --configuration development-unitopia --output-path=dist/out
 
 # produces the final node.js immage.
-FROM node:16-alpine3.16 AS webmud3
+FROM node:20-alpine3.18 AS webmud3
 
 # again a working dir...
 WORKDIR /app
