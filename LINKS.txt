@@ -51,3 +51,7 @@ https://stackoverflow.com/questions/38112891/angular-2-set-base-href-dynamically
   /* eslint @typescript-eslint/no-empty-function: "warn" */
 
 (node:1) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 close listeners added to [TLSSocket]. Use emitter.setMaxListeners() to increase limit
+
+missing packets:
+    "ngx-device-detector": "^6.0.2",
+"primeng": "^16.7.0",
