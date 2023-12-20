@@ -5,7 +5,7 @@ services:
     environment: 
       NODE_ENV: 'production'
       SECRET_CONFIG: '/run/webmud3.json'
-      MUD_CONFIG: '/run/mud_config_unitopia.json'
+      MUD_CONFIG: '/run/mud_config_local.json'
       WEBMUD3_DISTRIBUTION_TYPE: 'unitopia-prod'
     volumes:
       - "/mnt/run:/run"

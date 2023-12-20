@@ -1,0 +1,5 @@
+{
+    "env" : "webmud3b",
+    "mySocketPath" : "/mysocket.io",
+    "mySocket" : "/mysocket.io/"
+}
