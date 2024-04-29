@@ -2,7 +2,6 @@ import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { MenuItem } from 'primeng/api';
 import { MenuService } from 'src/app/menu/menu.service';
 import { MenuType } from 'src/app/menu/one-menu';
-import { ReadLanguageService } from 'src/app/read-language.service';
 import { SocketsService } from 'src/app/shared/sockets.service';
 
 @Component({
@@ -65,7 +64,6 @@ export class MudmenuComponent {
   private _scroll = false;
 
   constructor(
-    private i18n: ReadLanguageService,
     private menuSrv: MenuService,
     private socketSrv: SocketsService,
   ) {}
@@ -102,7 +100,7 @@ export class MudmenuComponent {
       this.menuID,
       0,
       'MUD:MENU',
-      this.i18n.get('MUD'),
+      'MUD',
       'pi pi-power-off',
     );
     console.log("add-menu '" + this.mudName + "'", this.socketSrv.mudlist);
@@ -111,7 +109,7 @@ export class MudmenuComponent {
         this.menuID,
         1,
         'MUD:CONNECT',
-        this.i18n.get('Verbinden'),
+        'Verbinden',
         'pi pi-sign-in',
         this._connected,
         true,
@@ -137,7 +135,7 @@ export class MudmenuComponent {
       this.menuID,
       1,
       'MUD:DISCONNECT',
-      this.i18n.get('Trennen'),
+      'Trennen',
       'pi pi-sign-out',
       !this._connected,
       true,
@@ -146,7 +144,7 @@ export class MudmenuComponent {
       this.menuID,
       1,
       'MUD:NUMPAD',
-      this.i18n.get('Numpad'),
+      'Numpad',
       'pi pi-key',
       !this._connected,
       true,
@@ -155,14 +153,14 @@ export class MudmenuComponent {
       this.menuID,
       0,
       'MUD:VIEW',
-      this.i18n.get('Farben'),
+      'Farben',
       'pi pi-eye',
     );
     this.menuSrv.add_menu_item(
       this.menuID,
       0,
       'MUD:SCROLL',
-      this.i18n.get('Scroll'),
+      'Scroll',
       this._scroll ? 'pi pi-play' : 'pi pi-pause',
     );
     this.items = this.menuSrv.get_menu_items(this.menuID);
