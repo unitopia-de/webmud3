@@ -16,6 +16,13 @@
       "es2018",
       "dom"
     ],
-    "useDefineForClassFields": false
-  }
+    "useDefineForClassFields": false,
+    "strict": false, /* Todo[mystiker]: Set to true after initial fixes. */
+    "resolveJsonModule": true,
+    "allowSyntheticDefaultImports": true,
+  },
+  "angularCompilerOptions": {
+    "strictTemplates": false, /* Todo[mystiker]: Set to true after initial fixes. */
+    "fullTemplateTypeCheck": false, /* Todo[mystiker]: Set to true after initial fixes. */
+  },
 }
