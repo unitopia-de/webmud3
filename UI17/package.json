@@ -15,8 +15,7 @@
     "start": "ng serve",
     "build": "ng build",
     "test": "ng test",
-    "lint": "ng lint",
-    "e2e": "ng e2e"
+    "lint": "ng lint"
   },
   "private": true,
   "dependencies": {
@@ -50,17 +49,13 @@
     "@angular-eslint/template-parser": "~17.3.0",
     "@angular/cli": "~17.3.6",
     "@angular/compiler-cli": "~17.3.6",
-    "@types/jasmine": "~4.6.4",
     "@types/node": "20.12.2",
     "@typescript-eslint/eslint-plugin": "~7.7.1",
     "@typescript-eslint/parser": "~7.7.1",
     "eslint": "~8.57.0",
-    "jasmine-core": "~5.1.2",
     "karma": "~6.4.3",
     "karma-chrome-launcher": "~3.2.0",
     "karma-coverage": "~2.2.1",
-    "karma-jasmine": "~5.1.0",
-    "karma-jasmine-html-reporter": "~2.1.0",
     "prettier": "~3.2.5",
     "ts-node": "~10.9.2",
     "typescript": "~5.4.5"
