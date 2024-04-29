@@ -1,3 +1,6 @@
+# ignores all .nx files - generated due a bug in dependencies - see https://github.com/nrwl/nx-console/issues/1975
+.nx 
+
 # Logs
 logs
 *.log
