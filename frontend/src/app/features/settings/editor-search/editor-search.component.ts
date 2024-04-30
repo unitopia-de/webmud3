@@ -1,7 +1,7 @@
 import { Component, Input, OnInit } from '@angular/core';
+import { WindowConfig } from '@mudlet3/frontend/shared';
 
 import * as ace from 'ace-builds';
-import { WindowConfig } from 'src/app/shared/window-config';
 
 @Component({
   selector: 'app-editor-search',

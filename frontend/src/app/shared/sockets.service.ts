@@ -1,10 +1,10 @@
 import { Injectable } from '@angular/core';
 import { ServerConfigService } from './server-config.service';
-import { GmcpService } from '../gmcp/gmcp.service';
 import { IoPlatform, IoSocket, IoResult } from './sockets-config';
-import { MudListItem } from '../mud/mud-list-item';
-import { MudConfig } from '../mudconfig/mud-config';
 import { Observable } from 'rxjs';
+import { GmcpService } from '@mudlet3/frontend/features/gmcp';
+import { MudConfig } from '@mudlet3/frontend/features/mudconfig';
+import { MudListItem } from '@mudlet3/frontend/core';
 
 @Injectable({
   providedIn: 'root',

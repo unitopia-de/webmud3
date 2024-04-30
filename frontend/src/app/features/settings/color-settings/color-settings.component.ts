@@ -1,7 +1,7 @@
 import { Component, OnInit } from '@angular/core';
+import { ColorSettings } from '@mudlet3/frontend/core';
 import { DynamicDialogRef } from 'primeng/dynamicdialog';
 import { DynamicDialogConfig } from 'primeng/dynamicdialog';
-import { ColorSettings } from 'src/app/mud/color-settings';
 
 @Component({
   selector: 'app-color-settings',

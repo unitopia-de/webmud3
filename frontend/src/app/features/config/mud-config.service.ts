@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { MudConfig } from './mud-config';
 
-import config from './../mud_config.json';
+import config from '../../../mud_config.json';
 
 @Injectable({
   providedIn: 'root',

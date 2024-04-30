@@ -1,5 +1,5 @@
 import { Component, OnInit, Input } from '@angular/core';
-import { WindowConfig } from 'src/app/shared/window-config';
+import { CharacterData, WindowConfig } from '@mudlet3/frontend/shared';
 
 @Component({
   selector: 'app-char-stat',

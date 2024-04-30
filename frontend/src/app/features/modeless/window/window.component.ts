@@ -2,11 +2,10 @@ import {
   Component,
   EventEmitter,
   Input,
-  OnInit,
   Output,
   ViewChild,
 } from '@angular/core';
-import { WindowConfig } from 'src/app/shared/window-config';
+import { WindowConfig } from '@mudlet3/frontend/shared';
 
 @Component({
   selector: 'app-window',

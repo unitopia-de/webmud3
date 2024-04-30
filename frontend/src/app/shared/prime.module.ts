@@ -24,6 +24,7 @@ import { TabViewModule } from 'primeng/tabview';
 import { InputTextareaModule } from 'primeng/inputtextarea';
 import { ScrollPanelModule } from 'primeng/scrollpanel';
 
+// Todo[myst]: Remove this whole module and import on the fly
 @NgModule({
   declarations: [],
   imports: [

@@ -1,7 +1,7 @@
 import { Component, HostListener } from '@angular/core';
 import { WindowService } from './shared/window.service';
-import { WebmudConfig } from './mud/webmud-config';
 import { ServerConfigService } from './shared/server-config.service';
+import { WebmudConfig } from '@mudlet3/frontend/core';
 
 @Component({
   selector: 'app-root',

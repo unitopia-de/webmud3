@@ -6,30 +6,23 @@ import {
   ElementRef,
   Inject,
   Input,
-  OnDestroy,
-  OnInit,
   ViewChild,
 } from '@angular/core';
 import { DialogService } from 'primeng/dynamicdialog';
 import { AnsiData } from '../ansi-data';
-import { WINDOW } from '../../shared/WINDOW_PROVIDERS';
 import { AnsiService } from '../ansi.service';
 import { ColorSettings } from '../color-settings';
-import { ColorSettingsComponent } from 'src/app/settings/color-settings/color-settings.component';
+
 import { WebmudConfig } from '../webmud-config';
-// import { SocketService } from 'src/app/shared/socket.service';
-import { SocketsService } from 'src/app/shared/sockets.service';
-import { ServerConfigService } from 'src/app/shared/server-config.service';
 import { Title } from '@angular/platform-browser';
 import { MudMessage, MudSignalHelpers, InventoryList } from '../mud-signals';
-import { WindowConfig } from 'src/app/shared/window-config';
-import { WindowService } from 'src/app/shared/window.service';
 import { FilesService } from '../files.service';
 import { CookieService } from 'ngx-cookie-service';
-import { MudConfig } from 'src/app/mudconfig/mud-config';
-import { IoMud } from 'src/app/shared/sockets-config';
-import { KeypadConfigComponent } from 'src/app/modeless/keypad-config/keypad-config.component';
-import { KeypadData } from 'src/app/shared/keypad-data';
+import { IoMud, KeypadData, ServerConfigService, SocketsService, WINDOW, WindowConfig, WindowService } from '@mudlet3/frontend/shared';
+import { ColorSettingsComponent } from '@mudlet3/frontend/features/settings';
+import { KeypadConfigComponent } from '@mudlet3/frontend/features/modeless';
+import { MudConfig } from '@mudlet3/frontend/features/mudconfig';
+import { CharacterData } from '@mudlet3/frontend/shared';
 
 @Component({
   selector: 'app-mudclient',

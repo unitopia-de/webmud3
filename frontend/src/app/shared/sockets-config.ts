@@ -1,12 +1,11 @@
 import { Manager, Socket } from 'socket.io-client';
-import { MudConfig } from '../mudconfig/mud-config';
 import { Observable, Observer } from 'rxjs';
 import { EventEmitter } from '@angular/core';
-import { MudSignals, FileInfo } from '../mud/mud-signals';
 import { ServerConfigService } from './server-config.service';
-import { GmcpService } from '../gmcp/gmcp.service';
-import { MudListItem } from '../mud/mud-list-item';
 import { OneKeypadData } from './keypad-data';
+import { MudConfig } from '@mudlet3/frontend/features/mudconfig';
+import { GmcpService } from '@mudlet3/frontend/features/gmcp';
+import { FileInfo, MudListItem, MudSignals } from '@mudlet3/frontend/core';
 
 export interface HashTable<T> {
   [key: string]: T;

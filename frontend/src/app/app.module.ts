@@ -3,13 +3,19 @@ import { APP_INITIALIZER, NgModule } from '@angular/core';
 import { CookieService } from 'ngx-cookie-service';
 import { AppComponent } from './app.component';
 import { WINDOW_PROVIDERS } from './shared/WINDOW_PROVIDERS';
-import { PrimeModule } from './prime.module';
+import { PrimeModule } from './shared/prime.module';
 import { HttpClientModule } from '@angular/common/http';
 // import { ServiceWorkerModule } from '@angular/service-worker';
 // import { environment } from '../environments/environment';
-import { MudConfigService } from './mud-config.service';
-import { MudModule } from './features/mud/mud.module';
+import { MudConfigService } from './features/config/mud-config.service';
 import { ModelessModule } from './features/modeless/modeless.module';
+import { CoreModule, MudModule } from '@mudlet3/frontend/core';
+import { SharedModule } from 'primeng/api';
+import { SettingsModule } from '@mudlet3/frontend/features/settings';
+import { WidgetsModule } from '@mudlet3/frontend/features/widgets';
+import { MudconfigModule } from '@mudlet3/frontend/features/mudconfig';
+import { GmcpModule } from '@mudlet3/frontend/features/gmcp';
+
 /* eslint @typescript-eslint/ban-types: "warn" */
 export function setupAppConfigServiceFactory(
   service: MudConfigService,
@@ -17,6 +23,14 @@ export function setupAppConfigServiceFactory(
   // console.log("LOADING Config");
   return () => service.load();
 }
+
+const features = [
+  GmcpModule,
+  ModelessModule,
+  MudconfigModule,
+  SettingsModule,
+  WidgetsModule,
+]
 
 @NgModule({
   declarations: [AppComponent],
@@ -26,6 +40,9 @@ export function setupAppConfigServiceFactory(
     MudModule,
     PrimeModule,
     ModelessModule,
+    CoreModule,
+    SharedModule,
+    ...features,
     // ServiceWorkerModule.register('ngsw-worker.js', {
     //   enabled: environment.production,
     //   registrationStrategy: 'registerImmediately'
@@ -40,10 +57,6 @@ export function setupAppConfigServiceFactory(
       deps: [MudConfigService],
       multi: true,
     },
-    // {
-    //   provide: APP_BASE_HREF,
-    //   useFactory: getBaseLocation,
-    // },
   ],
   bootstrap: [AppComponent],
 })

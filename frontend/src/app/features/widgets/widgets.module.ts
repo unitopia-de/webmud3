@@ -3,8 +3,8 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { BrowserModule } from '@angular/platform-browser';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
-import { PrimeModule } from '../prime.module';
 import { InventoryComponent } from './inventory/inventory.component';
+import { PrimeModule } from '@mudlet3/frontend/shared';
 
 @NgModule({
   declarations: [InventoryComponent],

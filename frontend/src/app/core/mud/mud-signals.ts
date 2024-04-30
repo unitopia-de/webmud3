@@ -1,6 +1,5 @@
-import { WindowConfig } from '../shared/window-config';
-import { OneKeypadData } from '../shared/keypad-data';
-import { CharacterData } from '../shared/char-data';
+import { OneKeypadData, WindowConfig } from "@mudlet3/frontend/shared";
+import { CharacterData } from '@mudlet3/frontend/shared';
 
 export class MudMessage {
   text: string;

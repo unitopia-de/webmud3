@@ -1,7 +1,7 @@
 import { Component, OnInit } from '@angular/core';
+import { KeypadData } from '@mudlet3/frontend/shared';
 import { DynamicDialogRef } from 'primeng/dynamicdialog';
 import { DynamicDialogConfig } from 'primeng/dynamicdialog';
-import { KeypadData } from 'src/app/shared/keypad-data';
 
 @Component({
   selector: 'app-keypad-config',

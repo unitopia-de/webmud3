@@ -9,13 +9,12 @@ import {
   AfterViewInit,
   ChangeDetectorRef,
 } from '@angular/core';
-import { WindowConfig } from 'src/app/shared/window-config';
 import { ConfirmationService, MenuItem } from 'primeng/api';
 
 import * as ace from 'ace-builds';
-import { FileInfo } from 'src/app/mud/mud-signals';
-import { WindowService } from 'src/app/shared/window.service';
 import { CookieService } from 'ngx-cookie-service';
+import { FileInfo } from '@mudlet3/frontend/core';
+import { WindowConfig, WindowService } from '@mudlet3/frontend/shared';
 
 const ithemes: string[] = [
   'ambiance',

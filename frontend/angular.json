@@ -3,7 +3,7 @@
   "version": 1,
   "newProjectRoot": "projects",
   "projects": {
-    "UI17": {
+    "frontend": {
       "projectType": "application",
       "schematics": {},
       "root": "",
@@ -36,7 +36,7 @@
                 "maximumError": "10kb"
               }
             ],
-            "outputPath": "dist/UI17",
+            "outputPath": "dist/frontend",
             "index": "src/index.html",
             "main": "src/main.ts",
             "polyfills": ["zone.js"],
@@ -89,11 +89,11 @@
         "serve": {
           "builder": "@angular-devkit/build-angular:dev-server",
           "options": {
-            "buildTarget": "UI17:build"
+            "buildTarget": "frontend:build"
           },
           "configurations": {
             "production": {
-              "buildTarget": "UI17:build:production"
+              "buildTarget": "frontend:build:production"
             }
           }
         },

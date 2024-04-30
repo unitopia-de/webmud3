@@ -1,5 +1,5 @@
-import { Component, OnInit, Input, Output, EventEmitter } from '@angular/core';
-import { OneKeypadData } from 'src/app/shared/keypad-data';
+import { Component, Input, Output, EventEmitter } from '@angular/core';
+import { OneKeypadData } from '@mudlet3/frontend/shared';
 
 @Component({
   selector: 'app-keypad',

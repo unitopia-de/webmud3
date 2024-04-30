@@ -6,9 +6,8 @@ import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { MudclientComponent } from './mudclient/mudclient.component';
 import { MudmenuComponent } from './mudmenu/mudmenu.component';
 import { MudspanComponent } from './mudspan/mudspan.component';
-import { PrimeModule } from '../prime.module';
-import { SettingsModule } from '../settings/settings.module';
-import { WidgetsModule } from '../widgets/widgets.module';
+import { PrimeModule } from '@mudlet3/frontend/shared';
+import { WidgetsModule } from '@mudlet3/frontend/features/widgets';
 
 @NgModule({
   declarations: [MudclientComponent, MudmenuComponent, MudspanComponent],
@@ -18,7 +17,6 @@ import { WidgetsModule } from '../widgets/widgets.module';
     PrimeModule,
     BrowserAnimationsModule,
     FormsModule,
-    SettingsModule,
     WidgetsModule,
   ],
   exports: [MudclientComponent],
