@@ -1,10 +1,12 @@
 import { Injectable } from '@angular/core';
-import { ServerConfigService } from './server-config.service';
+import { ServerConfigService } from '../../shared/server-config.service';
 import { IoPlatform, IoSocket, IoResult } from './sockets-config';
 import { Observable } from 'rxjs';
-import { GmcpService } from '@mudlet3/frontend/features/gmcp';
-import { MudConfig } from '@mudlet3/frontend/features/mudconfig';
 import { MudListItem } from '@mudlet3/frontend/shared';
+
+// Todo[myst]: Socket muss ein eigenes feature werden!
+import { MudConfig } from '@mudlet3/frontend/features/mudconfig';
+import { GmcpService } from '@mudlet3/frontend/features/gmcp';
 
 @Injectable({
   providedIn: 'root',

@@ -42,6 +42,9 @@
       "@mudlet3/frontend/features/settings": [
         "src/app/features/settings"
       ],
+      "@mudlet3/frontend/features/sockets": [
+        "src/app/features/sockets"
+      ],
       "@mudlet3/frontend/features/widgets": [
         "src/app/features/widgets"
       ],

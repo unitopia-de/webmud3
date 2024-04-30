@@ -1,6 +1,6 @@
 import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { MenuType, MenuService } from '@mudlet3/frontend/core';
-import { SocketsService } from '@mudlet3/frontend/shared';
+import { SocketsService } from '@mudlet3/frontend/features/sockets';
 import { MenuItem } from 'primeng/api';
 
 @Component({

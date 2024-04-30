@@ -1,12 +1,13 @@
 import { Manager, Socket } from 'socket.io-client';
 import { Observable, Observer } from 'rxjs';
 import { EventEmitter } from '@angular/core';
-import { ServerConfigService } from './server-config.service';
-import { OneKeypadData } from './keypad-data';
-import { MudConfig } from '@mudlet3/frontend/features/mudconfig';
-import { GmcpService } from '@mudlet3/frontend/features/gmcp';
+import { ServerConfigService } from '../../shared/server-config.service';
+import { OneKeypadData } from '../../shared/keypad-data';
 import { FileInfo, MudListItem, MudSignals } from '@mudlet3/frontend/shared';
 
+// Todo[myst]: Socket muss ein eigenes feature werden!
+import { GmcpService } from '@mudlet3/frontend/features/gmcp';
+import { MudConfig } from '@mudlet3/frontend/features/mudconfig';
 export interface HashTable<T> {
   [key: string]: T;
 }
