@@ -4,7 +4,7 @@ import { IoPlatform, IoSocket, IoResult } from './sockets-config';
 import { Observable } from 'rxjs';
 import { GmcpService } from '@mudlet3/frontend/features/gmcp';
 import { MudConfig } from '@mudlet3/frontend/features/mudconfig';
-import { MudListItem } from '@mudlet3/frontend/core';
+import { MudListItem } from '@mudlet3/frontend/shared';
 
 @Injectable({
   providedIn: 'root',
