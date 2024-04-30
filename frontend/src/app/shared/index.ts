@@ -8,3 +8,7 @@ export { CharacterData } from './char-data';
 export { SocketsService } from './sockets.service';
 export { ServerConfigService } from './server-config.service';
 export { IoMud } from './sockets-config';
+export { FileInfo } from './file-info';
+export { ColorSettings } from './color-settings';
+export { InventoryList, InventoryEntry } from './inventory-list';
+export { MudSignals, FileEntries } from './mud-signals';

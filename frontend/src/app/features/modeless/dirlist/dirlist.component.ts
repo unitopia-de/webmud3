@@ -1,6 +1,5 @@
 import { Component, Input, OnInit } from '@angular/core';
-import { FileEntries, MudSignals } from '@mudlet3/frontend/core';
-import { WindowConfig } from '@mudlet3/frontend/shared';
+import { FileEntries, MudSignals, WindowConfig } from '@mudlet3/frontend/shared';
 
 @Component({
   selector: 'app-dirlist',

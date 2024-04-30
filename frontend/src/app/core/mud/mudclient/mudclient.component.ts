@@ -11,18 +11,18 @@ import {
 import { DialogService } from 'primeng/dynamicdialog';
 import { AnsiData } from '../ansi-data';
 import { AnsiService } from '../ansi.service';
-import { ColorSettings } from '../color-settings';
+import { ColorSettings } from '../../../shared/color-settings';
 
 import { WebmudConfig } from '../webmud-config';
 import { Title } from '@angular/platform-browser';
-import { MudMessage, MudSignalHelpers, InventoryList } from '../mud-signals';
+import { MudMessage, MudSignalHelpers } from '../mud-signals';
+import { InventoryList } from "../../../shared/inventory-list";
 import { FilesService } from '../files.service';
 import { CookieService } from 'ngx-cookie-service';
-import { IoMud, KeypadData, ServerConfigService, SocketsService, WINDOW, WindowConfig, WindowService } from '@mudlet3/frontend/shared';
+import { CharacterData, IoMud, KeypadData, ServerConfigService, SocketsService, WINDOW, WindowConfig, WindowService } from '@mudlet3/frontend/shared';
 import { ColorSettingsComponent } from '@mudlet3/frontend/features/settings';
 import { KeypadConfigComponent } from '@mudlet3/frontend/features/modeless';
 import { MudConfig } from '@mudlet3/frontend/features/mudconfig';
-import { CharacterData } from '@mudlet3/frontend/shared';
 
 @Component({
   selector: 'app-mudclient',

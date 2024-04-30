@@ -13,8 +13,7 @@ import { ConfirmationService, MenuItem } from 'primeng/api';
 
 import * as ace from 'ace-builds';
 import { CookieService } from 'ngx-cookie-service';
-import { FileInfo } from '@mudlet3/frontend/core';
-import { WindowConfig, WindowService } from '@mudlet3/frontend/shared';
+import { FileInfo, WindowConfig, WindowService } from '@mudlet3/frontend/shared';
 
 const ithemes: string[] = [
   'ambiance',

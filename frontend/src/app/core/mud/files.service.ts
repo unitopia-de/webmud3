@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
-import { FileInfo } from './file-info';
 import { HttpClient } from '@angular/common/http';
+import { FileInfo } from '@mudlet3/frontend/shared';
 /* eslint @typescript-eslint/no-this-alias: "warn" */
 @Injectable({
   providedIn: 'root',

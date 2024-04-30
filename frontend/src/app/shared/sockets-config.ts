@@ -5,7 +5,8 @@ import { ServerConfigService } from './server-config.service';
 import { OneKeypadData } from './keypad-data';
 import { MudConfig } from '@mudlet3/frontend/features/mudconfig';
 import { GmcpService } from '@mudlet3/frontend/features/gmcp';
-import { FileInfo, MudListItem, MudSignals } from '@mudlet3/frontend/core';
+import { MudListItem } from '@mudlet3/frontend/core';
+import { FileInfo, MudSignals } from '@mudlet3/frontend/shared';
 
 export interface HashTable<T> {
   [key: string]: T;

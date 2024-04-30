@@ -9,7 +9,7 @@ import { HttpClientModule } from '@angular/common/http';
 // import { environment } from '../environments/environment';
 import { MudConfigService } from './features/config/mud-config.service';
 import { ModelessModule } from './features/modeless/modeless.module';
-import { CoreModule, MudModule } from '@mudlet3/frontend/core';
+import { CoreModule } from '@mudlet3/frontend/core';
 import { SharedModule } from 'primeng/api';
 import { SettingsModule } from '@mudlet3/frontend/features/settings';
 import { WidgetsModule } from '@mudlet3/frontend/features/widgets';
@@ -37,12 +37,10 @@ const features = [
   imports: [
     BrowserModule,
     HttpClientModule,
-    MudModule,
     PrimeModule,
-    ModelessModule,
-    CoreModule,
-    SharedModule,
     ...features,
+    SharedModule,
+    CoreModule,
     // ServiceWorkerModule.register('ngsw-worker.js', {
     //   enabled: environment.production,
     //   registrationStrategy: 'registerImmediately'

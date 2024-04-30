@@ -1,7 +1,5 @@
 import { Component, Input } from '@angular/core';
-
-// Todo[myst]: Features shall never access the core
-import { InventoryList } from '@mudlet3/frontend/core';
+import { InventoryList } from '@mudlet3/frontend/shared';
 
 @Component({
   selector: 'app-inventory',
