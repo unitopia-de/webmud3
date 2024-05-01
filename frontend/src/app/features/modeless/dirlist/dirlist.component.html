@@ -1,0 +1,19 @@
+<div class="noselect">
+  <div><b>{{path}}</b></div>
+  <table>
+    <ng-container *ngFor="let entry of entries; index as i">
+      <tr *ngIf="entry.isdir===0">
+        <td><a (click)="fileOpen(entry.name)" (keypress)="fileOpen(entry.name,$event)" [tabindex]="i">{{entry.name}}</a></td>
+        <td>{{entry.size}}</td>
+        <td>{{entry.filedate}}</td>
+        <td>{{entry.filetime}}</td>
+      </tr>
+      <tr *ngIf="entry.isdir!==0">
+        <td><a (click)="changeDir(entry.name)" (keypress)="changeDir(entry.name,$event)" [tabindex]="i">{{entry.name}}/</a></td>
+        <td></td>
+        <td>{{entry.filedate}}</td>
+        <td>{{entry.filetime}}</td>
+      </tr>
+    </ng-container>
+  </table>
+</div>

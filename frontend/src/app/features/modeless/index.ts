@@ -1,0 +1,1 @@
+export { KeypadConfigComponent } from './keypad-config/keypad-config.component';

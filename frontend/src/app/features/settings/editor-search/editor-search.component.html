@@ -1,0 +1,2 @@
+<input pInputText [(type)]="type" class="search-input" #searchInput (keyup.enter)="doSearch()" [(ngModel)]="seachText" />
+<button #btn type="button" pButton icon="pi pi-filter" label="Suchen" (click)="doSearch()">Suchen</button>

@@ -1,7 +1,0 @@
-    <p-checkbox [label]="i18n.get('Invert Colors')" [(ngModel)]="cs.invert" [binary]="true" (click)="onClick($event)"></p-checkbox><br/>
-    <p-checkbox [label]="i18n.get('Black on White')" [(ngModel)]="cs.blackOnWhite" [binary]="true" (click)="onClick($event)"></p-checkbox><br/>
-    <p-checkbox [label]="i18n.get('Colors off')" [(ngModel)]="cs.colorOff" [binary]="true" (click)="onClick($event)"></p-checkbox><br/>
-    <p-checkbox [label]="i18n.get('Local Echo Active')" [(ngModel)]="cs.localEchoActive" [binary]="true" (click)="onClick($event)"></p-checkbox><br/>
-    <p-colorPicker [(ngModel)]="cs.localEchoColor" [inline]="true" (click)="onClick($event)"></p-colorPicker>
-    <p-colorPicker [(ngModel)]="cs.localEchoBackground" [inline]="true" (click)="onClick($event)"></p-colorPicker><br/>
-    <span [style.color]="cs.localEchoColor" [style.background]="cs.localEchoBackground" style.align="center">Ergebnis</span><br/>
