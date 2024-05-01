@@ -1,5 +1,6 @@
 import { BrowserModule } from '@angular/platform-browser';
 import { APP_INITIALIZER, NgModule } from '@angular/core';
+import { APP_BASE_HREF } from '@angular/common';
 import { CookieService } from 'ngx-cookie-service';
 import { AppComponent } from './app.component';
 import { WINDOW_PROVIDERS } from './shared/WINDOW_PROVIDERS';
@@ -15,6 +16,7 @@ import { SettingsModule } from '@mudlet3/frontend/features/settings';
 import { WidgetsModule } from '@mudlet3/frontend/features/widgets';
 import { MudconfigModule } from '@mudlet3/frontend/features/mudconfig';
 import { GmcpModule } from '@mudlet3/frontend/features/gmcp';
+import { getBaseLocation } from './core/app-common-functions';
 
 /* eslint @typescript-eslint/ban-types: "warn" */
 export function setupAppConfigServiceFactory(
@@ -54,6 +56,10 @@ const features = [
       useFactory: setupAppConfigServiceFactory,
       deps: [MudConfigService],
       multi: true,
+    },
+    {
+      provide: APP_BASE_HREF,
+      useFactory: getBaseLocation,
     },
   ],
   bootstrap: [AppComponent],

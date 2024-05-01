@@ -2,11 +2,19 @@ import { Component, HostListener } from '@angular/core';
 import { WindowService } from './shared/window.service';
 import { ServerConfigService } from './shared/server-config.service';
 import { WebmudConfig } from '@mudlet3/frontend/core';
+import { APP_BASE_HREF } from '@angular/common';
+import { getBaseLocation } from './core/app-common-functions';
 
 @Component({
   selector: 'app-root',
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.scss'],
+  providers: [
+    {
+      provide: APP_BASE_HREF,
+      useFactory: getBaseLocation,
+    },
+  ]
 })
 export class AppComponent {
 
