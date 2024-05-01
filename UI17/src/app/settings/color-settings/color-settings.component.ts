@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { DynamicDialogRef } from 'primeng/dynamicdialog';
 import { DynamicDialogConfig } from 'primeng/dynamicdialog';
 import { ColorSettings } from 'src/app/mud/color-settings';
+import { ReadLanguageService } from 'src/app/read-language.service';
 
 @Component({
   selector: 'app-color-settings',
@@ -15,6 +16,7 @@ export class ColorSettingsComponent implements OnInit {
   cbThis: any; // paththrough
 
   constructor(
+    public i18n: ReadLanguageService,
     public ref: DynamicDialogRef,
     public config: DynamicDialogConfig,
   ) {}
