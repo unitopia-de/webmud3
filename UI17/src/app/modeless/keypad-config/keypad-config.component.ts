@@ -1,7 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { DynamicDialogRef } from 'primeng/dynamicdialog';
 import { DynamicDialogConfig } from 'primeng/dynamicdialog';
-import { ReadLanguageService } from 'src/app/read-language.service';
 import { KeypadData } from 'src/app/shared/keypad-data';
 
 @Component({
@@ -28,7 +27,6 @@ export class KeypadConfigComponent implements OnInit {
   }
 
   constructor(
-    public i18n: ReadLanguageService,
     public ref: DynamicDialogRef,
     public config: DynamicDialogConfig,
   ) {}

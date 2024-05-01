@@ -1,4 +1,9 @@
-# README for docker commands
+# docker documatation on webmud3:
+
+* webmud3/Dockerfile: Standard for all production docker images. (e.g UNItopia, Seifenblase)
+* webmud3/dockerfiles/ng_unitopia_test.dockerfile: Special configuration for a develpment/test image for webmud3test!
+
+## README for docker commands
 
 ### To adjust versions:  webmud3\UI8\src\app\shared\server-config.service.ts
 
