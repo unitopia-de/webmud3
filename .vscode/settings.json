@@ -1,3 +1,8 @@
 {
-  "typescript.preferences.importModuleSpecifier": "non-relative"
+  "typescript.preferences.importModuleSpecifier": "non-relative",
+  "editor.codeActionsOnSave": {
+    "source.organizeImports": "always",
+    "source.fixAll": "explicit",
+  },
+  "editor.formatOnSave": true
 }
