@@ -17,7 +17,7 @@
       "dom"
     ],
     "useDefineForClassFields": false,
-    "strict": false, /* Todo[mystiker]: Set to true after initial fixes. */
+    "strict": true, /* Todo[mystiker]: Set to true after initial fixes. */
     "resolveJsonModule": true,
     "allowSyntheticDefaultImports": true,
     "paths": {
