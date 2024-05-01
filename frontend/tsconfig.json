@@ -1,0 +1,57 @@
+/* To learn more about this file see: https://angular.io/config/tsconfig. */
+{
+  "compileOnSave": false,
+  "compilerOptions": {
+    "baseUrl": "./",
+    "outDir": "./dist/out-tsc",
+    "sourceMap": true,
+    "declaration": false,
+    "downlevelIteration": true,
+    "experimentalDecorators": true,
+    "moduleResolution": "node",
+    "importHelpers": true,
+    "target": "ES2022",
+    "module": "es2020",
+    "lib": [
+      "es2018",
+      "dom"
+    ],
+    "useDefineForClassFields": false,
+    "strict": false, /* Todo[mystiker]: Set to true after initial fixes. */
+    "resolveJsonModule": true,
+    "allowSyntheticDefaultImports": true,
+    "paths": {
+      "@mudlet3/frontend/core": [
+        "src/app/core"
+      ],
+      "@mudlet3/frontend/shared": [
+        "src/app/shared"
+      ],
+      "@mudlet3/frontend/features/config": [
+        "src/app/features/config"
+      ],
+      "@mudlet3/frontend/features/gmcp": [
+        "src/app/features/gmcp"
+      ],
+      "@mudlet3/frontend/features/modeless": [
+        "src/app/features/modeless"
+      ],
+      "@mudlet3/frontend/features/mudconfig": [
+        "src/app/features/mudconfig"
+      ],
+      "@mudlet3/frontend/features/settings": [
+        "src/app/features/settings"
+      ],
+      "@mudlet3/frontend/features/sockets": [
+        "src/app/features/sockets"
+      ],
+      "@mudlet3/frontend/features/widgets": [
+        "src/app/features/widgets"
+      ],
+    }
+  },
+  "angularCompilerOptions": {
+    "strictTemplates": false, /* Todo[mystiker]: Set to true after initial fixes. */
+    "fullTemplateTypeCheck": false, /* Todo[mystiker]: Set to true after initial fixes. */
+  },
+}
