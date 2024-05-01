@@ -61,6 +61,11 @@ podman pull myonara/webmud3:latest
 
 podman pull myonara/webmud3:unitopiatest
 
+#### to follow log
+podman container ls --all
+
+podman logs --follow=true --since 10m <ctrid>
+
 
 ### docker commands for diagnosis:
 grep dockerd /var/log/daemon.log
