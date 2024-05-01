@@ -11,15 +11,16 @@ import * as ace from 'ace-builds';
 export class EditorSearchComponent implements OnInit {
   @Input() set config(cfg: WindowConfig) {
     this._config = cfg;
-    this.aceEditor = this.config.data['aceEditor'];
+    this.aceEditor = this.config?.data['aceEditor'];
     console.log('config:', cfg);
   }
-  get config(): WindowConfig {
+  get config(): WindowConfig | undefined {
     return this._config;
   }
-  private _config: WindowConfig;
+  private _config?: WindowConfig;
 
-  private aceEditor: ace.Ace.Editor;
+  private aceEditor?: ace.Ace.Editor;
+
   seachText = '';
   type = 'text';
 
