@@ -1,12 +1,12 @@
-import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
+import { Injectable } from '@angular/core';
 import { FileInfo } from '@mudlet3/frontend/shared';
-/* eslint @typescript-eslint/no-this-alias: "warn" */
+
 @Injectable({
   providedIn: 'root',
 })
 export class FilesService {
-  private filemap: object = {};
+  private filemap: Record<string, FileInfo> = {};
 
   startFilesModule() {
     return;
@@ -21,7 +21,7 @@ export class FilesService {
       fileinfo.saveActive
     ) {
       const cfileinfo: FileInfo = this.filemap[filepath];
-      cfileinfo.save02_url(url);
+      cfileinfo.save02_url?.(url);
       cfileinfo.alreadyLoaded = true;
       cfileinfo.saveActive = true;
       console.debug('FilesService-processFileInfo-alreadyLoaded', cfileinfo);
@@ -46,15 +46,18 @@ export class FilesService {
           (value: string) => {
             fileinfo.oldContent = fileinfo.content;
             fileinfo.saveActive = false;
-            fileinfo.save03_saved(filepath);
+            fileinfo.save03_saved?.(filepath);
           },
           (err: any) => {
             console.error('FilesService-save02_url-rrror', fileinfo, err);
-            fileinfo.save05_error(fileinfo.windowsId, err);
+
+            if (fileinfo.windowsId !== undefined) {
+              fileinfo.save05_error?.(fileinfo.windowsId, err);
+            }
           },
         );
     };
-    fileinfo.load = function (cb) {
+    fileinfo.load = function (cb: Function) {
       other.http.get(url, { responseType: 'text' }).subscribe(
         (value: string) => {
           console.debug('FilesService-load', filepath);

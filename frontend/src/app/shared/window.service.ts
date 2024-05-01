@@ -1,10 +1,10 @@
 import { Inject, Injectable } from '@angular/core';
 import { Title } from '@angular/platform-browser';
-import { CookieService } from 'ngx-cookie-service';
 import { UUID } from 'angular2-uuid';
-import { WindowConfig } from './window-config';
-import { WINDOW } from './WINDOW_PROVIDERS';
+import { CookieService } from 'ngx-cookie-service';
 import { MessageService } from 'primeng/api';
+import { WINDOW } from './WINDOW_PROVIDERS';
+import { WindowConfig } from './window-config';
 
 @Injectable({
   providedIn: 'root',
@@ -212,22 +212,23 @@ export class WindowService {
     return this.window.innerWidth;
   }
 
-  private focus(winid: string) {
-    const cfg: WindowConfig = this.wincfg.get(winid);
-    console.warn('focus-1', this.windowsconfigurations);
-    const index = this.findWindowByCfg(cfg);
-    const maxindex = this.windowsconfigurations.length - 1;
-    const cwin = this.windowsconfigurations[index];
-    const zoffset = 100;
-    for (let i = index; i < maxindex; i++) {
-      const dwin = this.windowsconfigurations[i + 1];
-      dwin.zIndex = zoffset + i;
-      this.windowsconfigurations[i] = dwin;
-    }
-    cwin.zIndex = zoffset + maxindex;
-    this.windowsconfigurations[maxindex] = cwin;
-    console.warn('focus-2', this.windowsconfigurations);
-  }
+  // Remark[myst] unused function
+  // private focus(winid: string) {
+  //   const cfg: WindowConfig = this.wincfg.get(winid);
+  //   console.warn('focus-1', this.windowsconfigurations);
+  //   const index = this.findWindowByCfg(cfg);
+  //   const maxindex = this.windowsconfigurations.length - 1;
+  //   const cwin = this.windowsconfigurations[index];
+  //   const zoffset = 100;
+  //   for (let i = index; i < maxindex; i++) {
+  //     const dwin = this.windowsconfigurations[i + 1];
+  //     dwin.zIndex = zoffset + i;
+  //     this.windowsconfigurations[i] = dwin;
+  //   }
+  //   cwin.zIndex = zoffset + maxindex;
+  //   this.windowsconfigurations[maxindex] = cwin;
+  //   console.warn('focus-2', this.windowsconfigurations);
+  // }
 
   constructor(
     @Inject(WINDOW) private window: Window,

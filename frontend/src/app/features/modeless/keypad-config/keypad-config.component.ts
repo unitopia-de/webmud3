@@ -1,7 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { KeypadData } from '@mudlet3/frontend/shared';
-import { DynamicDialogRef } from 'primeng/dynamicdialog';
-import { DynamicDialogConfig } from 'primeng/dynamicdialog';
+import { DynamicDialogConfig, DynamicDialogRef } from 'primeng/dynamicdialog';
 
 @Component({
   selector: 'app-keypad-config',
@@ -10,8 +9,9 @@ import { DynamicDialogConfig } from 'primeng/dynamicdialog';
 })
 export class KeypadConfigComponent implements OnInit {
   public keypad: KeypadData = new KeypadData();
-  /* eslint @typescript-eslint/ban-types: "warn" */
-  cb: Function;
+
+  cb?: Function;
+
   cbThis: any; // paththrough
 
   public keyAction(event: string) {
@@ -23,7 +23,8 @@ export class KeypadConfigComponent implements OnInit {
         event: event,
       },
     };
-    this.cb(newev);
+
+    this.cb?.(newev);
   }
 
   constructor(

@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
-import { Ansi256Colors } from './ansi256colors';
 import { AnsiData } from './ansi-data';
+import { Ansi256Colors } from './ansi256colors';
 
 @Injectable({
   providedIn: 'root',
@@ -413,13 +413,21 @@ export class AnsiService {
           }
           if (setcolor256fg != '') {
             data.fgcolor = data.faint
-              ? Ansi256Colors.faint[setcolor256fg]
-              : Ansi256Colors.normal[setcolor256fg];
+              ? Ansi256Colors.faint[
+                  setcolor256fg as keyof typeof Ansi256Colors.faint
+                ]
+              : Ansi256Colors.normal[
+                  setcolor256fg as keyof typeof Ansi256Colors.normal
+                ];
           }
           if (setcolor256bg != '') {
             data.bgcolor = data.faint
-              ? Ansi256Colors.faint[setcolor256bg]
-              : Ansi256Colors.normal[setcolor256bg];
+              ? Ansi256Colors.faint[
+                  setcolor256bg as keyof typeof Ansi256Colors.faint
+                ]
+              : Ansi256Colors.normal[
+                  setcolor256bg as keyof typeof Ansi256Colors.normal
+                ];
           }
           if (data.fgcolor == data.bgcolor) {
             data.fgcolor = this.invColor(data.fgcolor);

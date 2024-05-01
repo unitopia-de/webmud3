@@ -1,39 +1,34 @@
-import { CharacterData, WindowConfig } from "@mudlet3/frontend/shared";
-import { MudSignals } from "../../shared/mud-signals";
+import { CharacterData, WindowConfig } from '@mudlet3/frontend/shared';
+import { MudSignals } from '../../shared/mud-signals';
 
-export class MudMessage {
+export interface MudMessage {
   text: string;
 }
 
 export class MudSignalHelpers {
   public static updateCharStats(other: any, musi: MudSignals, _id: string) {
     return;
-    const nooldcfg = typeof other.charStatsWindow === 'undefined';
-    const newcfg = other.wincfg.findCharStatWindow(other.charStatsWindow, musi);
-    other.charStatsWindow = newcfg;
-    if (nooldcfg) {
-      other.charStatsWindow.outGoingEvents.subscribe(
-        (x: string) => {
-          console.debug('updateCharStats-outGoingEvents', _id, x);
-        },
-        (err) => {
-          console.error('updateCharStats-outGoingEvents-Error', _id, err);
-        },
-        () => {
-          console.debug('updateCharStats-outGoingEvents-complete', _id);
-        },
-      );
-    }
   }
 
-  public static mudProecessSignals(other: any, musi: MudSignals, _id: string) {
+  public static mudProecessSignals(
+    other: any,
+    musi: MudSignals | undefined,
+    _id: string,
+  ) {
     console.debug(
       'mudclient-socketService.mudReceiveSignals',
       _id,
-      musi.signal,
+      musi?.signal,
     );
+
+    if (musi === undefined) {
+      throw new Error(
+        'mudclient-socketService.mudReceiveSignals: musi is undefined and shall not be?!',
+      );
+    }
+
     // console.debug('mudclient-socketService.mudReceiveSignals',_id,musi);
-    let audio, newfile, filewincfg: WindowConfig;
+    let audio: any, newfile: any, filewincfg: WindowConfig;
     let nooldcfg, newcfg, xsplit;
     switch (musi.signal) {
       case 'NOECHO-START':
@@ -67,10 +62,7 @@ export class MudSignalHelpers {
         other.inpmessage = musi.id;
         return;
       case 'Input.CompleteChoice':
-        this.mudProcessData(other, _id, [
-          undefined,
-          other.tableOutput(musi.id, 78),
-        ]);
+        this.mudProcessData(other, _id, [null, other.tableOutput(musi.id, 78)]);
         return;
       case 'Input.CompleteNone': // TODO beep??
         return;
@@ -85,15 +77,15 @@ export class MudSignalHelpers {
         if (newfile.alreadyLoaded) {
           console.log('Files.URL-alreadyLoaded', _id, newfile);
         } else {
-          newfile.save04_closing = function (windowsid) {
+          newfile.save04_closing = function (windowsid: any) {
             console.debug('Files.URL-save04_closing', _id, windowsid);
             other.wincfg.SavedAndClose(windowsid);
           };
-          newfile.save05_error = function (windowsid, error) {
+          newfile.save05_error = function (windowsid: any, error: any) {
             console.error('Files.URL-save05_error', _id, windowsid, error);
             other.wincfg.WinError(windowsid, error);
           };
-          newfile.save06_success = function (windowsid) {
+          newfile.save06_success = function (windowsid: any) {
             console.debug('Files.URL-save06_success', _id, windowsid);
             other.wincfg.SaveComplete(windowsid, newfile.closable);
           };
@@ -109,7 +101,7 @@ export class MudSignalHelpers {
             filewincfg.tooltip = newfile.file;
           }
           if (!newfile.newfile) {
-            newfile.load(function (err, data) {
+            newfile.load(function (err: any, data: any) {
               if (typeof err === 'undefined') {
                 newfile.content = data;
                 newfile.oldContent = data;
@@ -158,7 +150,7 @@ export class MudSignalHelpers {
                   break;
               }
             },
-            (err) => {
+            (err: any) => {
               console.error('Files.Dir-outGoingEvents-Error', _id, err);
             },
             () => {
@@ -197,13 +189,18 @@ export class MudSignalHelpers {
         return;
     }
   }
-  public static mudProcessData(other: any, _id: string, outline: string[]) {
+  public static mudProcessData(
+    other: any,
+    _id: string,
+    outline: [string | null, string | undefined],
+  ) {
     const outp = outline[0];
     const iecho = outline[1];
     // console.log('mudclient-mudReceiveData',_id,outline);
     if (typeof outp !== 'undefined') {
-      const idx = outp.indexOf(other.ansiService.ESC_CLRSCR);
-      if (idx >= 0) {
+      const idx = outp?.indexOf(other.ansiService.ESC_CLRSCR);
+
+      if (idx !== undefined && idx >= 0) {
         other.messages = [];
         other.mudlines = [];
       }

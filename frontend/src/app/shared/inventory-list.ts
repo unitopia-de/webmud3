@@ -1,14 +1,15 @@
-export class InventoryEntry {
-  name = '';
-  category = '';
+export interface InventoryEntry {
+  name: string;
+  category: string;
 }
 
 export class InventoryList {
-  private namedList: object = {};
+  private namedList: Record<string, string[]> = {};
 
   public getItems(cat: string): string[] {
     return this.namedList[cat];
   }
+
   public getCategories(): string[] {
     return Object.keys(this.namedList);
   }
@@ -24,6 +25,7 @@ export class InventoryList {
       this.namedList[ientry.category] = [ientry.name];
     }
   }
+
   public removeItem(ientry: InventoryEntry) {
     if (Object.prototype.hasOwnProperty.call(this.namedList, ientry.category)) {
       const ix = this.namedList[ientry.category].indexOf(ientry.name);
@@ -35,9 +37,11 @@ export class InventoryList {
       }
     }
   }
+
   public initList(ilist: InventoryEntry[]) {
     this.namedList = {};
-    ilist.forEach(function (currentValue, index, arr) {
+
+    ilist.forEach((currentValue, index, arr) => {
       this.addItem(currentValue, false);
     }, this);
   }

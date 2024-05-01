@@ -3,7 +3,7 @@ export class AnsiData {
   fontwidth = 8;
   // data.canvas = $('<canvas width="' + (data.fontwidth * 80) + 'px" height="' + (data.fontheight * 25) + 'px">');
   ansi = '';
-  mudEcho = '';
+  mudEcho: string | undefined = '';
   lastEscape?: string = undefined;
   ansiPos = 0;
   fgcolor = '#ffffff';

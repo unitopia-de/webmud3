@@ -1,10 +1,10 @@
 import { GmcpConfig } from './gmcp-config';
 
-export class GmcpMenu {
-  name = '';
-  active = false;
-  action = '';
-  index = -1;
-  mud_id = '';
+export interface GmcpMenu {
+  name: string;
+  active: boolean;
+  action: string;
+  index: number;
+  mud_id: string;
   cfg: GmcpConfig;
 }

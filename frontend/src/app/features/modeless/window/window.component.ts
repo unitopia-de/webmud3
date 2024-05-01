@@ -13,9 +13,14 @@ import { WindowConfig } from '@mudlet3/frontend/shared';
   styleUrls: ['./window.component.scss'],
 })
 export class WindowComponent {
-  @Input() config: WindowConfig;
-  @Output() menuAction = new EventEmitter<string>();
-  @ViewChild('dialog') dialog;
+  @Input({ required: true })
+  public config!: WindowConfig;
+
+  @Output()
+  public menuAction = new EventEmitter<string>();
+
+  @ViewChild('dialog', { static: false })
+  public dialog?: any;
 
   doWindowAction(event: any, actionType: string) {
     //console.log(actionType,event);

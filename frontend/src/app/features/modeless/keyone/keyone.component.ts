@@ -1,11 +1,10 @@
 import {
   Component,
-  OnInit,
-  ViewChild,
   ElementRef,
+  EventEmitter,
   Input,
   Output,
-  EventEmitter,
+  ViewChild,
 } from '@angular/core';
 
 @Component({
@@ -14,16 +13,26 @@ import {
   styleUrls: ['./keyone.component.scss'],
 })
 export class KeyoneComponent {
-  @Input() prefix: string;
-  @Input() key: string;
-  @Input() set value(val: string) {
+  @Input({ required: true })
+  public prefix!: string;
+
+  @Input({ required: true })
+  public key!: string;
+
+  @Input()
+  set value(val: string) {
     this.keyinp = val;
   }
   get value(): string {
     return this.keyinp;
   }
-  @Output() keyAction = new EventEmitter<string>();
-  @ViewChild('keyoneInput', { static: false }) keyoneInput: ElementRef;
+
+  @Output()
+  public keyAction = new EventEmitter<string>();
+
+  @ViewChild('keyoneInput', { static: false })
+  public keyoneInput?: ElementRef;
+
   public keyinp = '';
 
   submit() {

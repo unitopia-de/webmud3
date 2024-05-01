@@ -1,5 +1,5 @@
 import { Component, EventEmitter, Input, Output } from '@angular/core';
-import { MenuType, MenuService } from '@mudlet3/frontend/core';
+import { MenuService, MenuType } from '@mudlet3/frontend/core';
 import { SocketsService } from '@mudlet3/frontend/features/sockets';
 import { MenuItem } from 'primeng/api';
 
@@ -9,6 +9,18 @@ import { MenuItem } from 'primeng/api';
   styleUrls: ['./mudmenu.component.scss'],
 })
 export class MudmenuComponent {
+  private menuID: string = '';
+
+  private mudName: string = '';
+
+  private noMudnames = false;
+
+  private _mudID: string = '';
+
+  private _connected = false;
+
+  private _scroll = false;
+
   @Input() set connected(conn: boolean) {
     if (this._connected != conn) {
       this._connected = conn;
@@ -54,20 +66,14 @@ export class MudmenuComponent {
 
   @Output() menuAction = new EventEmitter<any>();
 
-  public items: MenuItem[];
-  private menuID: string;
-  private mudName: string;
-  private noMudnames = false;
-  private _mudID: string;
-  private _connected = false;
-  private _scroll = false;
+  public items?: MenuItem[];
 
   constructor(
     private menuSrv: MenuService,
     private socketSrv: SocketsService,
   ) {}
 
-  menuEvent(event) {
+  menuEvent(event: any) {
     //event.originalEvent: Browser event
     //event.item: menuitem metadata
     if (
@@ -89,7 +95,7 @@ export class MudmenuComponent {
       this.menuSrv.create_menu(
         MenuType.MUD_CLIENT,
         this.menuID,
-        function (event) {
+        function (event: any) {
           other.menuEvent(event);
         },
       );

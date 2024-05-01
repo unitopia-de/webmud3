@@ -19,15 +19,16 @@ export class FileInfo {
   oldContent? = '';
 
   alreadyLoaded? = false;
-  windowsId? = undefined;
-  save01_start? = function (filepath) {};
-  save02_url? = function (url) {};
-  save03_saved? = function (filepath) {};
-  save04_closing? = function (windowsid) {};
-  save05_error? = function (windowsid, error) {};
-  save06_success? = function (windowsid) {};
-  relateWindow? = function (wid) {};
-  load? = function (cb) {};
-  cancel01_start? = function (filepath, cb) {};
-  cancel02_end? = function (filepath) {};
+  windowsId?: string = undefined;
+
+  save01_start? = function (filepath: string) {};
+  save02_url? = function (url: string) {};
+  save03_saved? = function (filepath: string) {};
+  save04_closing? = function (windowsid: string) {};
+  save05_error? = function (windowsid: string, error: string) {};
+  save06_success? = function (windowsid: string) {};
+  relateWindow? = function (windowsid: string) {};
+  load? = function (cb: Function) {};
+  cancel01_start? = function (filepath: string, cb: Function) {};
+  cancel02_end? = function (filepath: string) {};
 }

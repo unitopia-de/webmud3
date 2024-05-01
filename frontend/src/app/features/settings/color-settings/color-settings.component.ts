@@ -1,7 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { ColorSettings } from '@mudlet3/frontend/shared';
-import { DynamicDialogRef } from 'primeng/dynamicdialog';
-import { DynamicDialogConfig } from 'primeng/dynamicdialog';
+import { DynamicDialogConfig, DynamicDialogRef } from 'primeng/dynamicdialog';
 
 @Component({
   selector: 'app-color-settings',
@@ -25,7 +24,7 @@ export class ColorSettingsComponent implements OnInit {
     this.v = this.config.data['v'];
     this.cbThis = this.config.data['cbThis'];
   }
-  onClick(event) {
+  onClick(event: any) {
     const newev = {
       item: {
         id: 'MUD_VIEW:COLOR:RETURN',

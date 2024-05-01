@@ -1,4 +1,8 @@
-import { FileInfo, InventoryEntry, OneKeypadData } from "@mudlet3/frontend/shared";
+import {
+  FileInfo,
+  InventoryEntry,
+  OneKeypadData,
+} from '@mudlet3/frontend/shared';
 
 export class FileEntries {
   name = '';
@@ -8,7 +12,7 @@ export class FileEntries {
   isdir = 0;
 }
 
-export class MudSignals {
+export interface MudSignals {
   signal: string;
   id: string;
   wizard?: number;

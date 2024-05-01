@@ -1,4 +1,4 @@
-export class MudListItem {
+export interface MudListItem {
   key: string;
   name: string;
   host: string;

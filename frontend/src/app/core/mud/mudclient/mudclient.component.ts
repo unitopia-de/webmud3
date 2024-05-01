@@ -9,21 +9,28 @@ import {
   ViewChild,
 } from '@angular/core';
 import { DialogService } from 'primeng/dynamicdialog';
+import { ColorSettings } from '../../../shared/color-settings';
 import { AnsiData } from '../ansi-data';
 import { AnsiService } from '../ansi.service';
-import { ColorSettings } from '../../../shared/color-settings';
 
-import { WebmudConfig } from '../webmud-config';
 import { Title } from '@angular/platform-browser';
-import { MudMessage, MudSignalHelpers } from '../mud-signals';
-import { InventoryList } from "../../../shared/inventory-list";
-import { FilesService } from '../files.service';
-import { CookieService } from 'ngx-cookie-service';
-import { CharacterData, KeypadData, ServerConfigService, WINDOW, WindowConfig, WindowService } from '@mudlet3/frontend/shared';
-import { ColorSettingsComponent } from '@mudlet3/frontend/features/settings';
 import { KeypadConfigComponent } from '@mudlet3/frontend/features/modeless';
 import { MudConfig } from '@mudlet3/frontend/features/mudconfig';
+import { ColorSettingsComponent } from '@mudlet3/frontend/features/settings';
 import { IoMud, SocketsService } from '@mudlet3/frontend/features/sockets';
+import {
+  CharacterData,
+  KeypadData,
+  ServerConfigService,
+  WINDOW,
+  WindowConfig,
+  WindowService,
+} from '@mudlet3/frontend/shared';
+import { CookieService } from 'ngx-cookie-service';
+import { InventoryList } from '../../../shared/inventory-list';
+import { FilesService } from '../files.service';
+import { MudMessage, MudSignalHelpers } from '../mud-signals';
+import { WebmudConfig } from '../webmud-config';
 
 @Component({
   selector: 'app-mudclient',
@@ -31,13 +38,25 @@ import { IoMud, SocketsService } from '@mudlet3/frontend/features/sockets';
   styleUrls: ['./mudclient.component.scss'],
 })
 export class MudclientComponent implements AfterViewChecked {
-  @Input() cfg: WebmudConfig;
-  @ViewChild('mudBlock', { static: false }) mudBlock: ElementRef;
-  @ViewChild('mudInputLine', { static: false }) mudInputLine: ElementRef;
-  @ViewChild('mudInputArea', { static: false }) mudInputArea: ElementRef;
-  @ViewChild('mudTest', { static: false }) mudTest: ElementRef;
-  @ViewChild('mudMenu', { static: false }) mudMenu: ElementRef;
-  @ViewChild('scroller', { static: false }) scroller: ElementRef;
+  @Input({ required: true }) cfg!: WebmudConfig;
+
+  @ViewChild('mudBlock', { static: false })
+  public mudBlock?: ElementRef;
+
+  @ViewChild('mudInputLine', { static: false })
+  public mudInputLine?: ElementRef;
+
+  @ViewChild('mudInputArea', { static: false })
+  public mudInputArea?: ElementRef;
+
+  @ViewChild('mudTest', { static: false })
+  public mudTest?: ElementRef;
+
+  @ViewChild('mudMenu', { static: false })
+  public mudMenu?: ElementRef;
+
+  @ViewChild('scroller', { static: false })
+  public scroller?: ElementRef;
 
   public v = {
     // visualize-parameters
@@ -68,18 +87,18 @@ export class MudclientComponent implements AfterViewChecked {
     startCnt: 0,
   };
   private mudName = 'disconnect';
-  public mudc_id: string;
-  private ioMud: IoMud;
+  public mudc_id: string | undefined;
+  private ioMud?: IoMud;
   public mudlines: AnsiData[] = [];
   private ansiCurrent: AnsiData;
-  public inpmessage: string;
+  public inpmessage?: string;
   private inpHistory: string[] = [];
   public togglePing = false;
   private inpPointer = -1;
   public messages: MudMessage[] = [];
-  public filesWindow: WindowConfig;
-  public charStatsWindow: WindowConfig;
-  public charData: CharacterData;
+  public filesWindow?: WindowConfig;
+  public charStatsWindow?: WindowConfig;
+  public charData?: CharacterData;
   public invlist: InventoryList;
   public changeFocus = 1;
   public previousFoxus = 1;
@@ -91,11 +110,12 @@ export class MudclientComponent implements AfterViewChecked {
   private obs_signals: any;
 
   scroll() {
-    this.mudBlock.nativeElement.scrollTo(
-      this.scroller.nativeElement.scrollLeft,
+    this.mudBlock?.nativeElement.scrollTo(
+      this.scroller?.nativeElement.scrollLeft,
       0,
     );
   }
+
   doFocus() {
     let FirstFocus = undefined;
     this.previousFoxus = this.changeFocus;
@@ -308,7 +328,15 @@ export class MudclientComponent implements AfterViewChecked {
 
   sendMessage() {
     const other = this;
-    this.socketsService.mudSendData(this.mudc_id, this.inpmessage);
+
+    if (this.inpmessage === undefined) {
+      throw new Error('inpmessage is undefined');
+    }
+
+    if (this.mudc_id !== undefined) {
+      this.socketsService.mudSendData(this.mudc_id, this.inpmessage);
+    }
+
     if (this.v.inpType == 'text' && this.inpmessage != '') {
       this.localEcho(other, this.inpmessage);
       if (
@@ -318,6 +346,7 @@ export class MudclientComponent implements AfterViewChecked {
         this.inpHistory.unshift(this.inpmessage);
       }
     }
+
     this.inpmessage = '';
   }
 
@@ -352,7 +381,10 @@ export class MudclientComponent implements AfterViewChecked {
       const inp = this.keySetters.getCompoundKey(modifiers);
       if (typeof inp !== 'undefined') {
         if (inp !== '') {
-          this.socketsService.mudSendData(this.mudc_id, inp);
+          if (this.mudc_id !== undefined) {
+            this.socketsService.mudSendData(this.mudc_id, inp);
+          }
+
           this.localEcho(this, inp); // TODO abschaltbar
         }
         event.returnValue = false;
@@ -388,7 +420,11 @@ export class MudclientComponent implements AfterViewChecked {
             ) {
               return;
             }
-            this.inpHistory.unshift(this.inpmessage);
+
+            if (this.inpmessage !== undefined) {
+              this.inpHistory.unshift(this.inpmessage);
+            }
+
             if (this.inpHistory.length > 1) {
               this.inpPointer = 1;
               this.inpmessage = this.inpHistory[1];
@@ -433,12 +469,14 @@ export class MudclientComponent implements AfterViewChecked {
         this.mudlines.push(a2h);
         return;
       case 'Tab':
-        this.socketsService.sendGMCP(
-          this.ioMud.MudId,
-          'Input',
-          'Complete',
-          this.inpmessage,
-        );
+        if (this.ioMud !== undefined) {
+          this.socketsService.sendGMCP(
+            this.ioMud.MudId,
+            'Input',
+            'Complete',
+            this.inpmessage,
+          );
+        }
         return;
       default:
         this.inpPointer = -1;
@@ -450,7 +488,7 @@ export class MudclientComponent implements AfterViewChecked {
     console.log('S95-mudclient-connecting-1', this.mudName);
     if (this.mudName.toLowerCase() == 'disconnect') {
       if (this.mudc_id) {
-        if (typeof this.ioMud !== undefined) {
+        if (this.ioMud !== undefined) {
           this.ioMud.disconnectFromMudClient(this.mudc_id);
           this.ioMud = undefined;
         }
@@ -483,15 +521,24 @@ export class MudclientComponent implements AfterViewChecked {
       (ioResult) => {
         switch (ioResult.IdType) {
           case 'IoMud:SendToAllMuds':
-            MudSignalHelpers.mudProcessData(other, other.ioMud.MudId, [
-              ioResult.MsgType,
-              undefined,
-            ]);
+            if (other.ioMud !== undefined) {
+              MudSignalHelpers.mudProcessData(other, other.ioMud.MudId, [
+                ioResult.MsgType,
+                undefined,
+              ]);
+            }
+
             // console.warn("S96-check SendToAllMuds",ioResult);
             return;
           case 'IoMud':
             other.ioMud = ioResult.Data as IoMud;
+
+            if (this.ioMud === undefined) {
+              return;
+            }
+
             other.v.connected = this.ioMud.connected;
+
             switch (ioResult.MsgType) {
               case 'mud-connect':
                 other.mudc_id = other.ioMud.MudId;
@@ -562,6 +609,14 @@ export class MudclientComponent implements AfterViewChecked {
   }
 
   calculateSizing() {
+    if (
+      this.mudBlock === undefined ||
+      this.mudMenu === undefined ||
+      this.mudInputArea === undefined
+    ) {
+      throw new Error('mudBlock, mudMenu or mudInputArea is undefined');
+    }
+
     // let oh = this.mudBlock.nativeElement.offsetHeight;
     const ow = this.mudBlock.nativeElement.offsetWidth;
     let tmpheight = this.getViewPortHeight();
@@ -584,8 +639,7 @@ export class MudclientComponent implements AfterViewChecked {
       );
       console.debug(
         'MudSize ',
-        '' +
-          this.d.mudc_width +
+        String(this.d.mudc_width) +
           'x' +
           this.d.mudc_height +
           ' <= ' +
@@ -626,16 +680,18 @@ export class MudclientComponent implements AfterViewChecked {
         this.mudBlock.nativeElement.scrollHeight
     ) {
       setTimeout(() => {
-        this.mudBlock.nativeElement.scrollTop =
-          this.mudBlock.nativeElement.scrollHeight;
+        if (this.mudBlock !== undefined) {
+          this.mudBlock.nativeElement.scrollTop =
+            this.mudBlock.nativeElement.scrollHeight;
+        }
       });
     }
 
     let tmpwidth = this.getViewPortWidth() / 1.0125;
     if (!this.v.sizeCalculated) {
       this.doFocus();
-      tmpwidth = this.mudTest.nativeElement.offsetWidth * 1.0125;
-      this.d.ref_height_ratio = this.mudTest.nativeElement.offsetHeight / 25.0;
+      tmpwidth = this.mudTest?.nativeElement.offsetWidth * 1.0125;
+      this.d.ref_height_ratio = this.mudTest?.nativeElement.offsetHeight / 25.0;
       setTimeout(function () {
         other.v.ref_width = tmpwidth;
         other.v.sizeCalculated = true;

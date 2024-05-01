@@ -1,32 +1,29 @@
-import { Manager, Socket } from 'socket.io-client';
-import { Observable, Observer } from 'rxjs';
 import { EventEmitter } from '@angular/core';
-import { ServerConfigService } from '../../shared/server-config.service';
-import { OneKeypadData } from '../../shared/keypad-data';
 import { FileInfo, MudListItem, MudSignals } from '@mudlet3/frontend/shared';
+import { Observable, Observer } from 'rxjs';
+import { Manager, Socket } from 'socket.io-client';
+import { OneKeypadData } from '../../shared/keypad-data';
+import { ServerConfigService } from '../../shared/server-config.service';
 
-// Todo[myst]: Socket muss ein eigenes feature werden!
 import { GmcpService } from '@mudlet3/frontend/features/gmcp';
 import { MudConfig } from '@mudlet3/frontend/features/mudconfig';
 export interface HashTable<T> {
   [key: string]: T;
 }
 
-/* eslint @typescript-eslint/no-this-alias: "warn" */
-
 export class IoResult {
   IdType: string;
-  Id: string;
-  MsgType: string;
-  ErrorType: string;
+  Id: string | null;
+  MsgType: string | null;
+  ErrorType: string | null;
   Data: any;
   musi?: MudSignals;
   mudlist?: MudListItem[];
   constructor(
     type: string,
-    id: string,
-    msgType: string,
-    error: string,
+    id: string | null,
+    msgType: string | null,
+    error: string | null,
     data: any,
   ) {
     this.IdType = type;
@@ -37,9 +34,9 @@ export class IoResult {
   }
   public static getResult(
     type: string,
-    id: string,
-    msgType: string,
-    error: string,
+    id: string | null,
+    msgType: string | null,
+    error: string | null,
     data: any,
   ): IoResult {
     return new IoResult(type, id, msgType, error, data);
@@ -66,29 +63,33 @@ export class IoMud {
     cfg['version'] = ioPlatform.srvcfg.getWebmudVersion();
     console.log('S09 connect-init');
 
-    socket.emit('mud-connect', cfg, function (data) {
-      if (typeof data.id !== 'undefined') {
-        other.MudId = data.id;
-        up.reportId('IoMud', data.id, other);
-        // const notChanged =
-        //   ioManager.compareServerID(data.serverID) &&
-        //   ioSocket.compareSocketId(data.socketID);
-        // if (!notChanged) {
-        // }
-        other.connected = true;
-        console.info(
-          'S10: mud-connect: ' + data.id + ' socket: ' + data.socketID,
-        );
-        observer.next(
-          IoResult.getResult('IoMud', data.id, 'mud-connect', null, other),
-        );
-      } else {
-        console.error('S10: mud-connect-error: ', data);
-        observer.next(
-          IoResult.getResult('IoMud', null, null, 'mud-connect-error', other),
-        );
-      }
-    });
+    socket.emit(
+      'mud-connect',
+      cfg,
+      function (data: { id: string; socketID: string }) {
+        if (typeof data.id !== 'undefined') {
+          other.MudId = data.id;
+          up.reportId('IoMud', data.id, other);
+          // const notChanged =
+          //   ioManager.compareServerID(data.serverID) &&
+          //   ioSocket.compareSocketId(data.socketID);
+          // if (!notChanged) {
+          // }
+          other.connected = true;
+          console.info(
+            'S10: mud-connect: ' + data.id + ' socket: ' + data.socketID,
+          );
+          observer.next(
+            IoResult.getResult('IoMud', data.id, 'mud-connect', null, other),
+          );
+        } else {
+          console.error('S10: mud-connect-error: ', data);
+          observer.next(
+            IoResult.getResult('IoMud', null, null, 'mud-connect-error', other),
+          );
+        }
+      },
+    );
     this.eventBus.subscribe((fr) => {
       observer.next(fr);
     });
@@ -427,10 +428,12 @@ export class IoMud {
                   title: fileinfo.title,
                   flag: 1, // save flag!!!
                 });
-                if (fileinfo.temporary) {
-                  fileinfo.save04_closing(fileinfo.windowsId);
-                } else {
-                  fileinfo.save06_success(fileinfo.windowsId);
+                if (fileinfo.windowsId) {
+                  if (fileinfo.temporary) {
+                    fileinfo.save04_closing?.(fileinfo.windowsId);
+                  } else {
+                    fileinfo.save06_success?.(fileinfo.windowsId);
+                  }
                 }
               };
               r.musi = {
@@ -489,7 +492,7 @@ export class IoMud {
       return false;
     }
     console.log('G01: GMCP-send:', id, mod, msg, data);
-    this.uplink.socket.emit('mud-gmcp-outgoing', id, mod, msg, data);
+    this.uplink?.socket.emit('mud-gmcp-outgoing', id, mod, msg, data);
     return true;
   }
   public mudSwitchGmcpModule(
@@ -511,12 +514,12 @@ export class IoMud {
     }
     // console.debug('mudSendData-id ',id);
     // console.debug('mudSendData-data',id,data);
-    this.uplink.socket.emit('mud-input', id, data);
+    this.uplink?.socket.emit('mud-input', id, data);
     return true;
   }
   public setMudOutputSize(height: number, width: number) {
     console.log('S05: resize', this.MudId, height, width);
-    this.uplink.socket.emit('mud-window-size', this.MudId, height, width);
+    this.uplink?.socket.emit('mud-window-size', this.MudId, height, width);
   }
   public disconnectFromMudClient(id: string) {
     if (this.MudId == id) {
@@ -529,10 +532,10 @@ export class IoMud {
         this,
       );
       this.eventBus.emit(r);
-      this.uplink.reportId('IoMud', id, null);
+      this.uplink?.reportId('IoMud', id, null);
       console.log('S06: disconnectFromMudClient known ids:', id);
     } else {
-      this.uplink.reportId('IoMud', id, null);
+      this.uplink?.reportId('IoMud', id, null);
       console.log(
         'S06: disconnectFromMudClient different ids:',
         id,
@@ -542,10 +545,11 @@ export class IoMud {
   }
 }
 
+//Todo[myst] Types for socket and nsdb are wrong (the undefined part)
 export class IoSocket {
   SocketId: string;
-  nsp: string;
-  socket: Socket;
+  nsp!: string;
+  socket!: Socket;
   MudIndex: HashTable<IoMud> = {};
   uplink?: IoManager;
   constructor(id: string, up: IoManager) {
@@ -574,8 +578,13 @@ export class IoSocket {
     return observable;
   }
   public socketConnect(nsp: string) {
-    const ioManager = this.uplink.getIdObject('IoManager') as IoManager;
+    const ioManager = this.uplink?.getIdObject('IoManager') as IoManager;
     const manager = ioManager.manager;
+
+    if (manager === undefined) {
+      throw new Error('S13 socket-undefined and should not be!');
+    }
+
     if (typeof this.nsp === 'undefined') {
       this.nsp = nsp;
     } else if (this.nsp != nsp) {
@@ -614,6 +623,10 @@ export class IoSocket {
       console.log('close', reason);
     });
     other.socket.on('connect', () => {
+      if (typeof other.socket.id === 'undefined') {
+        throw new Error('S13 socket-undefined and should not be!');
+      }
+
       console.log('S13 socket-Connected', other.socket.id);
       if (!other.compareSocketId(other.socket.id)) {
         other.send2AllMuds(
@@ -632,7 +645,7 @@ export class IoSocket {
         console.error('S24 socket-connect error', other.socket.id, error);
       }
     });
-    other.socket.emit('keep-alive', '1', function (level) {
+    other.socket.emit('keep-alive', '1', function (level: any) {
       console.log('S14 keep alive 1', other.socket.id, level);
     });
     other.socket.on('error', function (error) {
@@ -660,10 +673,11 @@ export class IoSocket {
       ioManager.compareServerID(server_id);
       cb('ok', undefined);
     });
-    other.socket.emit('keep-alive', '2', function (level) {
+    other.socket.emit('keep-alive', '2', function (level: any) {
       console.log('S14 keep alive 2', other.socket.id, level);
     });
   }
+
   public send2AllMuds(msg: string, action: string) {
     // TODO implement
     Object.values(this.MudIndex).forEach((mud) => {
@@ -684,6 +698,7 @@ export class IoSocket {
       mud.eventBus.emit(r);
     });
   }
+
   public reportId(type: string, id: string, ob: any) {
     if (
       ob == null &&
@@ -695,14 +710,18 @@ export class IoSocket {
     } else if (ob != null && type == 'IoMud') {
       this.MudIndex[id] = ob;
     }
-    this.uplink.reportId(type, id, ob);
+    this.uplink?.reportId(type, id, ob);
   }
-  public getIdObject(type: string): IoSocket | IoManager | IoPlatform {
+
+  public getIdObject(
+    type: string,
+  ): IoSocket | IoManager | IoPlatform | undefined {
     if (type == 'IoSocket') {
       return this;
     }
-    return this.uplink.getIdObject(type);
+    return this.uplink?.getIdObject(type);
   }
+
   public compareSocketId(id: string): boolean {
     if (typeof this.SocketId === 'undefined') {
       this.SocketId = id;
@@ -731,25 +750,40 @@ export class IoSocket {
         console.trace('mudList empty socket');
         return;
       }
-      other.socket.emit('mud-list', true, function (data) {
-        r.mudlist = [];
-        Object.keys(data).forEach(function (key) {
-          const item: MudListItem = {
-            key: key,
-            name: data[key].name,
-            host: data[key].host,
-            port: data[key].port,
-            ssl: data[key].ssl,
-            rejectUnauthorized: data[key].rejectUnauthorized,
-            description: data[key].description,
-            playerlevel: data[key].playerlevel,
-            mudfamily: data[key].mudfamily,
+      other.socket.emit(
+        'mud-list',
+        true,
+        function (data: {
+          [x: string]: {
+            mudfamily: any;
+            name: string;
+            host: string;
+            port: any;
+            ssl: boolean;
+            rejectUnauthorized: boolean;
+            description: string;
+            playerlevel: any;
           };
-          r.mudlist.push(item);
-        });
-        observer.next(r);
-        console.log('mudList: ', r.mudlist);
-      });
+        }) {
+          r.mudlist = [];
+          Object.keys(data).forEach(function (key) {
+            const item: MudListItem = {
+              key: key,
+              name: data[key].name,
+              host: data[key].host,
+              port: data[key].port,
+              ssl: data[key].ssl,
+              rejectUnauthorized: data[key].rejectUnauthorized,
+              description: data[key].description,
+              playerlevel: data[key].playerlevel,
+              mudfamily: data[key].mudfamily,
+            };
+            r.mudlist?.push(item);
+          });
+          observer.next(r);
+          console.log('mudList: ', r.mudlist);
+        },
+      );
       return () => {
         console.log('mud-list observer-complete');
       };
@@ -829,18 +863,21 @@ export class IoManager {
       }
     });
   }
+
   public reportId(type: string, id: string, ob: any) {
     if (type == 'IoSocket') {
       this.socketList[id] = ob;
     }
     this.uplink.reportId(type, id, ob);
   }
-  public getIdObject(type: string): IoSocket | IoManager | IoPlatform {
+
+  public getIdObject(type: string): IoSocket | this | IoPlatform | IoManager {
     if (type == 'IoManager') {
       return this;
     }
     return this.uplink.getIdObject(type);
   }
+
   public compareServerID(id: string): boolean {
     if (typeof this.serverID === 'undefined') {
       this.serverID = id;
@@ -854,6 +891,7 @@ export class IoManager {
     }
     return true;
   }
+
   public openSocket(nsp: string): IoSocket {
     const ioSocket = new IoSocket(nsp, this);
     ioSocket.socketConnect(nsp);
@@ -877,7 +915,7 @@ export class IoPlatform {
     }
     this.idLookup[type + ':' + id] = ob;
   }
-  public getIdObject(type: string): IoSocket | IoManager | IoPlatform {
+  public getIdObject(type: string): IoSocket | IoManager | this {
     return this;
   }
   public querIdObject(

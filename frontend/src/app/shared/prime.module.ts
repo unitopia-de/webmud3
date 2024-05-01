@@ -1,28 +1,26 @@
-import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FocusTrapModule } from 'primeng/focustrap';
+import { NgModule } from '@angular/core';
+import { ConfirmationService, MessageService } from 'primeng/api';
 import { AutoFocusModule } from 'primeng/autofocus';
-import { InputTextModule } from 'primeng/inputtext';
-import { DividerModule } from 'primeng/divider';
-import { MenuModule } from 'primeng/menu';
-import { MenubarModule } from 'primeng/menubar';
-import { DialogModule } from 'primeng/dialog';
-import { DynamicDialogModule } from 'primeng/dynamicdialog';
-import { DialogService } from 'primeng/dynamicdialog';
+import { ButtonModule } from 'primeng/button';
 import { CheckboxModule } from 'primeng/checkbox';
 import { ColorPickerModule } from 'primeng/colorpicker';
-import { ToastModule } from 'primeng/toast';
-import { MessageService } from 'primeng/api';
-import { ConfirmationService } from 'primeng/api';
-import { TableModule } from 'primeng/table';
-import { ToolbarModule } from 'primeng/toolbar';
-import { ButtonModule } from 'primeng/button';
 import { ConfirmPopupModule } from 'primeng/confirmpopup';
+import { DialogModule } from 'primeng/dialog';
+import { DividerModule } from 'primeng/divider';
 import { DropdownModule } from 'primeng/dropdown';
-import { SlideMenuModule } from 'primeng/slidemenu';
-import { TabViewModule } from 'primeng/tabview';
+import { DialogService, DynamicDialogModule } from 'primeng/dynamicdialog';
+import { FocusTrapModule } from 'primeng/focustrap';
+import { InputTextModule } from 'primeng/inputtext';
 import { InputTextareaModule } from 'primeng/inputtextarea';
+import { MenuModule } from 'primeng/menu';
+import { MenubarModule } from 'primeng/menubar';
 import { ScrollPanelModule } from 'primeng/scrollpanel';
+import { SlideMenuModule } from 'primeng/slidemenu';
+import { TableModule } from 'primeng/table';
+import { TabViewModule } from 'primeng/tabview';
+import { ToastModule } from 'primeng/toast';
+import { ToolbarModule } from 'primeng/toolbar';
 
 // Todo[myst]: Remove this whole module and import on the fly
 @NgModule({

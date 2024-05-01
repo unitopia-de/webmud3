@@ -1,10 +1,10 @@
 import {
+  AfterViewInit,
   Component,
+  ElementRef,
+  HostListener,
   Input,
   ViewChild,
-  ElementRef,
-  AfterViewInit,
-  HostListener,
 } from '@angular/core';
 
 const enum Status {
@@ -19,21 +19,41 @@ const enum Status {
   styleUrls: ['./resizable-draggable.component.scss'],
 })
 export class ResizableDraggableComponent implements AfterViewInit {
-  @Input() public width: number;
-  @Input() public height: number;
-  @Input() public left: number;
-  @Input() public top: number;
-  @ViewChild('box') public box: ElementRef;
-  private boxPosition: { left: number; top: number };
+  private boxPosition: { left: number; top: number } = { left: 0, top: 0 };
+
   private containerPos: {
     left: number;
     top: number;
     right: number;
     bottom: number;
+  } = { bottom: 0, left: 0, right: 0, top: 0 };
+
+  private mouseClick: { x: number; y: number; left: number; top: number } = {
+    left: 0,
+    top: 0,
+    x: 0,
+    y: 0,
   };
-  public mouse: { x: number; y: number };
+
+  @Input({ required: true })
+  public width!: number;
+
+  @Input({ required: true })
+  public height!: number;
+
+  @Input({ required: true })
+  public left!: number;
+
+  @Input({ required: true })
+  public top!: number;
+
+  // Todo[myst]: Typings: Not sure of that one
+  @ViewChild('box', { static: true })
+  public box!: ElementRef;
+
+  public mouse: { x: number; y: number } = { x: 0, y: 0 };
+
   public status: Status = Status.OFF;
-  private mouseClick: { x: number; y: number; left: number; top: number };
 
   ngAfterViewInit() {
     this.loadBox();

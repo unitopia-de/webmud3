@@ -24,7 +24,7 @@ export class KeypadData {
     }
   }
   public getLevel(prefix: string): OneKeypadData {
-    if (typeof this.levels[prefix] == 'undefined') {
+    if (typeof this.levels[prefix] === 'undefined') {
       const level = new OneKeypadData(prefix);
       this.levels[prefix] = level;
     }

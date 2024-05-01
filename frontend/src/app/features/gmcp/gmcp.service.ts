@@ -1,18 +1,18 @@
-import { Injectable, EventEmitter } from '@angular/core';
-import { GmcpMenu } from './gmcp-menu';
-import { GmcpConfig } from './gmcp-config';
-import { UnitopiaService } from '../mudconfig/unitopia.service';
+import { EventEmitter, Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
+import { UnitopiaService } from '../mudconfig/unitopia.service';
+import { GmcpConfig } from './gmcp-config';
+import { GmcpMenu } from './gmcp-menu';
 
 @Injectable({
   providedIn: 'root',
 })
 export class GmcpService {
-  private gmcpconfig: GmcpConfig[] = [];
-  private gmcpconn = {};
-  private gmcpmenus = {};
-  private gmcpOb = {};
-  private gmcpEvE = {};
+  private gmcpconfig: any;
+  private gmcpconn: { [key: string]: { [key: string]: any } } = {};
+  private gmcpmenus: { [key: string]: GmcpMenu[] } = {};
+  private gmcpOb: { [key: string]: Observable<any> } = {};
+  private gmcpEvE: { [key: string]: EventEmitter<any> } = {};
 
   private add_mudConnAndModule(mud_id: string, module_name: string) {
     if (typeof this.gmcpconn[mud_id] === 'undefined') {
@@ -36,7 +36,7 @@ export class GmcpService {
     }
     return -1;
   }
-  /* eslint @typescript-eslint/no-this-alias: "warn" */
+
   public menuAction(actual_menu: GmcpMenu) {
     console.debug('GmcpService-menuAction', actual_menu);
     const mud_id = actual_menu.cfg.mud_id;
@@ -47,7 +47,7 @@ export class GmcpService {
       actual_menu.cfg,
       actual_menu,
       index,
-      function (reaction) {
+      function (reaction: string) {
         switch (reaction) {
           case 'toggle':
             if (index > -1) {
@@ -131,9 +131,13 @@ export class GmcpService {
 
   public set_gmcp_support(
     mud_id: string,
-    gmcp_support: object,
-    cb_mudSwitchGmcpModule,
-  ) {
+    gmcp_support: any,
+    cb_mudSwitchGmcpModule: (
+      mud_id: string,
+      module_name: string,
+      onoff: boolean,
+    ) => void,
+  ): void {
     if (typeof this.gmcpconn[mud_id] === 'undefined') {
       this.gmcpconn[mud_id] = {};
       this.gmcpconfig[mud_id] = {};
@@ -151,19 +155,14 @@ export class GmcpService {
         return other.remove_gmcp_module(mud_id, module_name);
       },
     );
-    // console.log("gmcp_support",gmcp_support);
     Object.getOwnPropertyNames(gmcp_support).forEach((element) => {
-      // console.log("gmcp_support-element-1",element);
       if (Object.prototype.hasOwnProperty.call(gmcp_support, element)) {
         const modver = element + ' ' + gmcp_support[element].version;
-        // TODO pre configered modules...
         if (typeof other.gmcpconn[mud_id][element] === 'undefined') {
           if (
-            gmcp_support['mudfamily'] == 'unitopia' &&
+            gmcp_support['mudfamily'] === 'unitopia' &&
             gmcp_support[element].standard
           ) {
-            // TODO dynamic mud-service
-            // console.log("gmcp_support-modver-1",modver);
             other.unitopiaSrv.init_module(mud_id, modver);
             other.unitopiaSrv.init_module_config(mud_id, modver);
             other.gmcpconn[mud_id][element] = other.find(mud_id, element);
@@ -186,7 +185,7 @@ export class GmcpService {
   public remove_gmcp_module(mud_id: string, module_name: string): boolean {
     const index = this.find(mud_id, module_name);
     if (index >= 0) {
-      this.gmcpconfig = this.gmcpconfig.filter(function (val, ix) {
+      this.gmcpconfig = this.gmcpconfig.filter(function (val: any, ix: number) {
         if (ix == index) return false;
         return true;
       });

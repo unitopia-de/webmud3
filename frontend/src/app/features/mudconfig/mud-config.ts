@@ -1,4 +1,4 @@
-export class MudConfig {
+export interface MudConfig {
   mudname: string;
   height: number;
   width: number;
@@ -15,12 +15,13 @@ export class MudConfig {
   'gmcp-charname'?: string;
   'gmcp-fullname'?: string;
   'gmcp-gender'?: string;
+  'gmcp-wizard'?: string;
   'guild-varname'?: string;
   'race-varname'?: string;
   'rank-varname'?: string;
-  'guild'?: string;
-  'race'?: string;
-  'rank'?: string;
+  guild?: string;
+  race?: string;
+  rank?: string;
   'sound-url'?: string;
   'dir-current'?: string;
   'dir-entries'?: string;

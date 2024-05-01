@@ -7,8 +7,8 @@ import { InventoryList } from '@mudlet3/frontend/shared';
   styleUrls: ['./inventory.component.scss'],
 })
 export class InventoryComponent {
-  @Input() inv: InventoryList;
-  @Input() vheight: number;
+  @Input({ required: true }) inv!: InventoryList;
+  @Input({ required: true }) vheight!: number;
 
   public mystyle(): string {
     if (this.vheight == 0) {

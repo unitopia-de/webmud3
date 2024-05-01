@@ -1,12 +1,12 @@
 import { Injectable } from '@angular/core';
 import { GmcpConfig } from '../gmcp/gmcp-config';
 import { GmcpMenu } from '../gmcp/gmcp-menu';
-/* eslint @typescript-eslint/no-this-alias: "warn" */
+
 @Injectable({
   providedIn: 'root',
 })
 export class UnitopiaService {
-  private mudconfs = {};
+  private mudconfs: Record<string, Record<string, any>> = {};
 
   private set_mudconf(_id: string, key: string, value: any) {
     if (typeof this.mudconfs[_id] === 'undefined') {
@@ -22,16 +22,24 @@ export class UnitopiaService {
   }
   public set_callbacks(
     _id: string,
-    cb_mudSwitchGmcpModule,
-    cb_add_gmcp_module,
-    cb_remove_gmcp_module,
+    cb_mudSwitchGmcpModule: (
+      mud_id: string,
+      module_name: string,
+      onoff: boolean,
+    ) => void,
+    cb_add_gmcp_module: (gcfg: GmcpConfig) => void,
+    cb_remove_gmcp_module: (mud_id: string, module_name: string) => boolean,
   ) {
     this.set_mudconf(_id, 'cb_mudSwitchGmcpModule', cb_mudSwitchGmcpModule);
     this.set_mudconf(_id, 'cb_add_gmcp_module', cb_add_gmcp_module);
     this.set_mudconf(_id, 'cb_remove_gmcp_module', cb_remove_gmcp_module);
   }
 
-  private toggleSound(gcfg: GmcpConfig, gmen: GmcpMenu, _cb) {
+  private toggleSound(
+    gcfg: GmcpConfig,
+    gmen: GmcpMenu,
+    _cb: (arg0: string) => void,
+  ) {
     if (!gmen.active) {
       this.init_module(gcfg.mud_id, 'Sound');
     } else {
@@ -45,7 +53,7 @@ export class UnitopiaService {
     gcfg: GmcpConfig,
     gmen: GmcpMenu,
     index: number,
-    _cb,
+    _cb: (arg0: string) => void,
   ) {
     console.debug('UnitopiaService-menuAction', action, gcfg, gmen, index);
     switch (action) {
@@ -77,7 +85,7 @@ export class UnitopiaService {
       gcfg: GmcpConfig,
       gmen: GmcpMenu,
       index: number,
-      _cb,
+      _cb: any,
     ) {
       other.menuAction(action, gcfg, gmen, index, _cb);
     };
@@ -86,10 +94,14 @@ export class UnitopiaService {
       case 'sound 1':
         gmcpcfg.module_name = 'Sound';
         gmcpcfg.version = '1';
-        gmcpcfg.initial_menu = new GmcpMenu();
-        gmcpcfg.initial_menu.action = 'ToggleSound';
-        gmcpcfg.initial_menu.active = true; // on per default
-        gmcpcfg.initial_menu.name = 'Vertonung';
+        gmcpcfg.initial_menu = {
+          action: 'ToggleSound',
+          active: true,
+          name: 'Vertonung',
+          mud_id: _id,
+          cfg: gmcpcfg,
+          index: 0,
+        };
         cb_add_gmcp_module(gmcpcfg);
         return;
       case 'input':

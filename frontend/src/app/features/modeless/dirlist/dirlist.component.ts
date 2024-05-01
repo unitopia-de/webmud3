@@ -1,5 +1,9 @@
 import { Component, Input, OnInit } from '@angular/core';
-import { FileEntries, MudSignals, WindowConfig } from '@mudlet3/frontend/shared';
+import {
+  FileEntries,
+  MudSignals,
+  WindowConfig,
+} from '@mudlet3/frontend/shared';
 
 @Component({
   selector: 'app-dirlist',
@@ -7,40 +11,54 @@ import { FileEntries, MudSignals, WindowConfig } from '@mudlet3/frontend/shared'
   styleUrls: ['./dirlist.component.scss'],
 })
 export class DirlistComponent implements OnInit {
-  @Input() set config(cfg: WindowConfig) {
+  private musi?: MudSignals;
+  private _config?: WindowConfig;
+
+  @Input()
+  set config(cfg: WindowConfig) {
     this._config = cfg;
     // console.log("config:",cfg);
     this.updateDirList();
   }
-  get config(): WindowConfig {
+
+  get config(): WindowConfig | undefined {
     return this._config;
   }
-  private _config: WindowConfig;
 
-  public path = '';
-  public entries: FileEntries[] = [];
-  private musi: MudSignals;
+  public path? = '';
+
+  public entries?: FileEntries[] = [];
 
   updateDirList() {
+    if (this._config === undefined) {
+      throw new Error('config is undefined and should not be!');
+    }
+
     this.musi = <MudSignals>this._config.data;
+
     if (typeof this.musi === 'undefined') {
       this.path = '';
       this.entries = [];
       return;
     }
+
     this.path = this.musi.filepath;
     this.entries = this.musi.entries;
+
     console.debug('DirlistComponent-updateDirList', this.path);
   }
+
   fileOpen(file: string, event = undefined) {
-    this.config.outGoingEvents.next('FileOpen:' + this.path + ':' + file);
+    this.config?.outGoingEvents.next('FileOpen:' + this.path + ':' + file);
   }
+
   changeDir(dir: string, event = undefined) {
-    this.config.outGoingEvents.next('ChangeDir:' + this.path + ':' + dir);
+    this.config?.outGoingEvents.next('ChangeDir:' + this.path + ':' + dir);
   }
+
   ngOnInit(): void {
     console.debug('inComingEvents-DirList');
-    this.config.inComingEvents.subscribe(
+    this.config?.inComingEvents.subscribe(
       (event: string) => {
         this.updateDirList();
         console.log('inComingEvents-DirList', event);
@@ -49,7 +67,9 @@ export class DirlistComponent implements OnInit {
         console.error('incomingEvents-DirList', error);
       },
       () => {
-        this.config.visible = false;
+        if (this.config !== undefined) {
+          this.config.visible = false;
+        }
       },
     );
   }

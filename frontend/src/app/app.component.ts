@@ -1,7 +1,7 @@
 import { Component, HostListener } from '@angular/core';
-import { WindowService } from './shared/window.service';
-import { ServerConfigService } from './shared/server-config.service';
 import { WebmudConfig } from '@mudlet3/frontend/core';
+import { ServerConfigService } from './shared/server-config.service';
+import { WindowService } from './shared/window.service';
 
 @Component({
   selector: 'app-root',
@@ -9,7 +9,6 @@ import { WebmudConfig } from '@mudlet3/frontend/core';
   styleUrls: ['./app.component.scss'],
 })
 export class AppComponent {
-
   public mudcfg: WebmudConfig = {
     mudname: this.srvcfg.getUNItopiaName(),
     autoConnect: true,
@@ -19,7 +18,10 @@ export class AppComponent {
     localEcho: true,
   };
 
-  constructor(public wincfg: WindowService, public srvcfg: ServerConfigService) {
+  constructor(
+    public wincfg: WindowService,
+    public srvcfg: ServerConfigService,
+  ) {
     this.onResize();
   }
 
@@ -29,7 +31,7 @@ export class AppComponent {
   }
 
   @HostListener('window:resize', ['$event'])
-  onResize(event?) {
+  onResize(event?: undefined) {
     this.wincfg.setWindowsSize(window.innerHeight, window.innerWidth);
   }
 

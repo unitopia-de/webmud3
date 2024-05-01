@@ -1,4 +1,4 @@
-import { Component, OnInit, Input } from '@angular/core';
+import { Component, Input, OnInit } from '@angular/core';
 import { CharacterData, WindowConfig } from '@mudlet3/frontend/shared';
 
 @Component({
@@ -7,21 +7,22 @@ import { CharacterData, WindowConfig } from '@mudlet3/frontend/shared';
   styleUrls: ['./char-stat.component.scss'],
 })
 export class CharStatComponent implements OnInit {
+  private _config?: WindowConfig;
+
   @Input() set config(cfg: WindowConfig) {
     this._config = cfg;
     console.log('CharStat-config:', cfg);
     this.charData = <CharacterData>cfg.data;
   }
-  get config(): WindowConfig {
+  get config(): WindowConfig | undefined {
     return this._config;
   }
-  private _config: WindowConfig;
 
-  public charData: CharacterData;
+  public charData?: CharacterData;
 
   ngOnInit(): void {
     console.debug('inComingEvents-CharStat-1');
-    this.config.inComingEvents.subscribe(
+    this.config?.inComingEvents.subscribe(
       (event: string) => {
         console.log('inComingEvents-CharStat-2', event, this.charData);
       },
@@ -29,7 +30,9 @@ export class CharStatComponent implements OnInit {
         console.error('incomingEvents-CharStat-3', error);
       },
       () => {
-        this.config.visible = false;
+        if (this.config !== undefined) {
+          this.config.visible = false;
+        }
       },
     );
   }

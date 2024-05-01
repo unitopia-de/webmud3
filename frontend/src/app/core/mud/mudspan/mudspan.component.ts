@@ -12,11 +12,12 @@ import { AnsiService } from '../ansi.service';
 export class MudspanComponent {
   constructor(private ansiService: AnsiService) {}
 
-  private a2h: AnsiData;
-  public myclasses: string;
-  public fg: string;
-  public bg: string;
-  public txt: string;
+  private a2h?: AnsiData;
+
+  public myclasses: string = '';
+  public fg: string = '';
+  public bg: string = '';
+  public txt: string = '';
   public bow = false;
   public invert = false;
   public _colorOff = false;
