@@ -61,6 +61,11 @@ podman pull myonara/webmud3:latest
 
 podman pull myonara/webmud3:unitopiatest
 
+#### to follow log
+podman container ls --all
+
+podman logs --follow=true --since 10m <ctrid>
+
 
 ### docker commands for diagnosis:
 grep dockerd /var/log/daemon.log
@@ -120,3 +125,9 @@ docker stack deploy -c dockerfiles/w3mdc_docker_compose.yml mdconn
 docker attach <containerid>
 
 docker exec -ti node:alpine /bin/sh
+
+
+#### local
+docker compose -f "/run/webmud3/w3_docker_compose_linux.yml" up -d --build
+
+docker compose -f "/run/webmud3/w3_docker_compose_linux.yml" down
