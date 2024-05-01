@@ -1,6 +1,4 @@
-import { Environment } from "./environment.interface";
-
-export const environment: Environment = {
+export const environment = {
   production: true,
-  backendUrl: '/',
+  webmud3home: 'unknown',
 };
