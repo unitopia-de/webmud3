@@ -137,18 +137,16 @@ export class TelnetClient extends EventEmitter<TelnetClientEvents> {
 
         return;
       }
-
-      default: {
-        this.updateNegotiations(option, {
-          server: TelnetControlSequences.DO,
-          client: TelnetControlSequences.WONT,
-        });
-
-        this.telnetSocket.writeWont(option);
-
-        return;
-      }
     }
+
+    this.updateNegotiations(option, {
+      server: TelnetControlSequences.DO,
+      client: TelnetControlSequences.WONT,
+    });
+
+    this.telnetSocket.writeWont(option);
+
+    return;
   }
 
   private handleDont(option: TelnetOptions): void {
@@ -161,48 +159,44 @@ export class TelnetClient extends EventEmitter<TelnetClientEvents> {
   }
 
   private handleWill(option: TelnetOptions): void {
-    if (option === TelnetOptions.TELOPT_CHARSET) {
-      this.telnetSocket.writeDo(option);
+    switch (option) {
+      case TelnetOptions.TELOPT_CHARSET: {
+        this.telnetSocket.writeDo(option);
 
-      this.updateNegotiations(option, {
-        server: TelnetControlSequences.WILL,
-        client: TelnetControlSequences.DO,
-      });
+        this.updateNegotiations(option, {
+          server: TelnetControlSequences.WILL,
+          client: TelnetControlSequences.DO,
+        });
 
-      return;
-    }
+        return;
+      }
 
-    if (option === TelnetOptions.TELOPT_ECHO) {
-      this.telnetSocket.writeDo(option);
+      case TelnetOptions.TELOPT_ECHO: {
+        this.telnetSocket.writeDo(option);
 
-      this.updateNegotiations(option, {
-        server: TelnetControlSequences.WILL,
-        client: TelnetControlSequences.DO,
-      });
+        this.updateNegotiations(option, {
+          server: TelnetControlSequences.WILL,
+          client: TelnetControlSequences.DO,
+        });
 
-      return;
+        // socket_io.emit('mud-signal', {
+        //   signal: 'NOECHO-START',
+        //   id: this.mudOptions?.id,
+        // });
 
-      // socket_io.emit('mud-signal', {
-      //   signal: 'NOECHO-START',
-      //   id: this.mudOptions?.id,
-      // });
-    }
+        return;
+      }
 
-    if (option === TelnetOptions.TELOPT_GMCP) {
-      this.telnetSocket.writeDo(option);
+      case TelnetOptions.TELOPT_GMCP: {
+        this.telnetSocket.writeDo(option);
 
-      this.updateNegotiations(option, {
-        server: TelnetControlSequences.WILL,
-        client: TelnetControlSequences.DO,
-      });
+        this.updateNegotiations(option, {
+          server: TelnetControlSequences.WILL,
+          client: TelnetControlSequences.DO,
+        });
 
-      return;
-
-      // socket_io.emit(
-      //   'mud-gmcp-start',
-      //   this.mudOptions.id,
-      //   this.mudOptions.gmcp_support,
-      // );
+        return;
+      }
     }
 
     this.updateNegotiations(option, {
@@ -214,20 +208,22 @@ export class TelnetClient extends EventEmitter<TelnetClientEvents> {
   }
 
   private handleWont(option: TelnetOptions): void {
-    if (option === TelnetOptions.TELOPT_ECHO) {
-      this.telnetSocket.writeDont(option);
+    switch (option) {
+      case TelnetOptions.TELOPT_ECHO: {
+        this.telnetSocket.writeDont(option);
 
-      this.updateNegotiations(option, {
-        server: TelnetControlSequences.WONT,
-        client: TelnetControlSequences.DONT,
-      });
+        this.updateNegotiations(option, {
+          server: TelnetControlSequences.WONT,
+          client: TelnetControlSequences.DONT,
+        });
 
-      return;
+        // socket_io.emit('mud-signal', {
+        //   signal: 'NOECHO-END',
+        //   id: this.mudOptions?.id,
+        // });
 
-      // socket_io.emit('mud-signal', {
-      //   signal: 'NOECHO-END',
-      //   id: this.mudOptions?.id,
-      // });
+        return;
+      }
     }
 
     this.telnetSocket.writeDo(option);
