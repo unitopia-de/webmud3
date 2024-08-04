@@ -17,6 +17,13 @@ import { TelnetSocketWrapper } from './utils/telnet-socket-wrapper.js';
 type TelnetClientEvents = {
   data: [string | Buffer];
   close: [boolean];
+  negotiationChanged: [
+    {
+      option: TelnetOptions;
+      server: TelnetControlSequences;
+      client: TelnetControlSequences;
+    },
+  ];
 };
 
 /**
@@ -82,10 +89,6 @@ export class TelnetClient extends EventEmitter<TelnetClientEvents> {
   }
 
   public sendMessage(data: string): void {
-    logger.info(`[Telnet-Client] Send message`, {
-      data,
-    });
-
     this.telnetSocket.write(data);
   }
 
@@ -313,6 +316,12 @@ export class TelnetClient extends EventEmitter<TelnetClientEvents> {
         negotiations.client
       ] as keyof typeof TelnetControlSequences,
     };
+
+    this.emit('negotiationChanged', {
+      option,
+      client: negotiations.client,
+      server: negotiations.server,
+    });
   }
 }
 

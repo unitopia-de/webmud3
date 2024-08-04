@@ -4,5 +4,6 @@ export type MudConnections = {
   [socketId: string]: {
     telnet: TelnetClient | undefined;
     connectionTimer: NodeJS.Timeout | undefined;
+    echo: boolean;
   };
 };
