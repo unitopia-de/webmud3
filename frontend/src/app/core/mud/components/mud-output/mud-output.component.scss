@@ -29,26 +29,32 @@
   }
 }
 
-@media (max-width: 700px) {
+@media (max-width: 1000px) {
   .mud-output {
-    font-size: 0.85rem;
+    font-size: 0.93rem;
   }
 }
 
-@media (max-width: 580px) {
+@media (max-width: 720px) {
   .mud-output {
     font-size: 0.75rem;
   }
 }
 
+@media (max-width: 580px) {
+  .mud-output {
+    font-size: 0.7rem;
+  }
+}
+
 @media (max-width: 500px) {
   .mud-output {
-    font-size: 0.65rem;
+    font-size: 0.6rem;
   }
 }
 
 @media (max-width: 450px) {
   .mud-output {
-    font-size: 0.5rem;
+    font-size: 0.49rem;
   }
 }

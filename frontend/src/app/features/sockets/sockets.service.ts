@@ -5,10 +5,7 @@ import { Manager, Socket } from 'socket.io-client';
 import { ServerConfigService } from '../../shared/server-config.service';
 import { ClientToServerEvents } from './types/client-to-server-events';
 import { ServerToClientEvents } from './types/server-to-client-events';
-import {
-  isSecureString,
-  SecureString,
-} from 'src/app/shared/types/secure-string';
+import { isSecureString, SecureString } from '@mudlet3/frontend/shared';
 
 type MudOutputEventArgs = {
   data: string;

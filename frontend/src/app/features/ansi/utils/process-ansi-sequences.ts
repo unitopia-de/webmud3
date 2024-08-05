@@ -1,4 +1,4 @@
-import { FormatData } from 'src/app/features/ansi/types/format-data';
+import { FormatData } from '../types/format-data';
 
 import { processAnsiCodes } from './process-ansi-codes';
 

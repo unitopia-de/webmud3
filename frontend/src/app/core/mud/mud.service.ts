@@ -1,15 +1,15 @@
 import { Injectable } from '@angular/core';
 import { MudConfigService } from '@mudlet3/frontend/features/config';
 import { SocketsService } from '@mudlet3/frontend/features/sockets';
-import { wordWrap } from '@mudlet3/frontend/shared';
-import { BehaviorSubject, Observable, Subject } from 'rxjs';
-import { IMudMessage } from 'src/app/core/mud/types/mud-message';
-
-import { mudProcessData } from './utils/mud-process-data';
 import {
+  wordWrap,
   isSecureString,
   SecureString,
-} from 'src/app/shared/types/secure-string';
+} from '@mudlet3/frontend/shared';
+import { BehaviorSubject, Observable, Subject } from 'rxjs';
+import { IMudMessage } from './types/mud-message';
+
+import { mudProcessData } from './utils/mud-process-data';
 
 @Injectable({
   providedIn: 'root',
