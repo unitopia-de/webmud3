@@ -85,7 +85,7 @@ export class MudclientComponent {
     // See https://github.com/mystiker/webmud3/issues/48
     const lowerCaseMessage = isSecureString(message)
       ? message
-      : message.length >= 3
+      : message.length >= 2
         ? message.charAt(0).toLowerCase() + message.slice(1)
         : message;
 
