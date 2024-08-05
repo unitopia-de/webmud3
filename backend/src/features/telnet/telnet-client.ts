@@ -4,30 +4,26 @@
 // Das siegreiche Gnomi sagt: Ah, und SGA oder LINEMODE
 
 import EventEmitter from 'events';
-import { Socket } from 'net';
 import net from 'net';
-import { TelnetSocket, TelnetSocketOptions } from 'telnet-stream';
+import { TelnetSocket } from 'telnet-stream';
 import tls from 'tls';
 
 import { logger } from '../../shared/utils/logger.js';
-import { TelnetOptions } from './models/telnet-options.js';
+import { TelnetControlSequences } from './types/telnet-control-sequences.js';
 import { TelnetNegotiations } from './types/telnet-negotiations.js';
-
-const logNegotiation = (
-  perspective: 'Received' | 'Send',
-  action: string,
-  option: number,
-  data?: Buffer,
-) => {
-  logger.verbose(
-    `[Telnet-Socket] ${perspective} ${action} for option ${TelnetOptions.num2opt[option]}`,
-    data ? { data: data.toString() } : {},
-  );
-};
+import { TelnetOptions } from './types/telnet-options.js';
+import { TelnetSocketWrapper } from './utils/telnet-socket-wrapper.js';
 
 type TelnetClientEvents = {
   data: [string | Buffer];
   close: [boolean];
+  negotiationChanged: [
+    {
+      option: TelnetOptions;
+      server: TelnetControlSequences;
+      client: TelnetControlSequences;
+    },
+  ];
 };
 
 /**
@@ -49,9 +45,11 @@ export class TelnetClient extends EventEmitter<TelnetClientEvents> {
   }
 
   /**
-   * Constructs a TelnetClient instance.
-   * @param telnetConnection - The socket connection to the MUD server.
-   * @param clientConnection - The client socket connection.
+   * Constructs a new instance of the TelnetClient class.
+   *
+   * @param {string} telnetHost - The hostname or IP address of the Telnet server.
+   * @param {number} telnetPort - The port number of the Telnet server.
+   * @param {boolean} useTls - Indicates whether to use TLS encryption for the connection.
    */
   constructor(telnetHost: string, telnetPort: number, useTls: boolean) {
     super();
@@ -63,6 +61,7 @@ export class TelnetClient extends EventEmitter<TelnetClientEvents> {
     );
 
     this.telnetSocket = new TelnetSocketWrapper(telnetConnection, {
+      // Todo[myst]: Is this the right buffer size? Is it needed anyway?
       bufferSize: 65536,
     });
 
@@ -90,10 +89,6 @@ export class TelnetClient extends EventEmitter<TelnetClientEvents> {
   }
 
   public sendMessage(data: string): void {
-    logger.info(`[Telnet-Client] Send message`, {
-      data,
-    });
-
     this.telnetSocket.write(data);
   }
 
@@ -105,124 +100,150 @@ export class TelnetClient extends EventEmitter<TelnetClientEvents> {
     this.connected = false;
   }
 
-  // Todo[myst]: Establish connection here and do not accept it from outside via ctor
-  // public connect(): void {
-  //   this.telnetSocket.connect();
-  // }
-
-  private updateNegotiations(
-    option: number,
-    action: 'will' | 'do' | 'wont' | 'dont',
-  ): string {
-    const opt = TelnetOptions.num2opt[option.toString()];
-
-    const stateAction = action === 'do' || action === 'will' ? 'do' : 'dont';
-
-    this.negotiations[opt] = { server: stateAction, client: 'wont' };
-
-    return opt;
-  }
-
   private handleClose(hadErrors: boolean): void {
     this.connected = false;
 
     this.emit('close', hadErrors);
   }
 
-  private handleDo(option: number): void {
-    const opt = this.updateNegotiations(option, 'do');
+  private handleDo(option: TelnetOptions): void {
+    switch (option) {
+      case TelnetOptions.TELOPT_CHARSET: {
+        this.telnetSocket.writeWill(option);
 
-    if (opt === 'TELOPT_CHARSET') {
-      this.telnetSocket.writeWill(option);
+        this.updateNegotiations(option, {
+          server: TelnetControlSequences.DO,
+          client: TelnetControlSequences.WILL,
+        });
 
-      return;
+        return;
+      }
+
+      case TelnetOptions.TELOPT_TM: {
+        this.updateNegotiations(option, {
+          server: TelnetControlSequences.DO,
+          client: TelnetControlSequences.WILL,
+        });
+
+        this.telnetSocket.writeWill(option);
+
+        return;
+      }
+
+      case TelnetOptions.TELOPT_NAWS: {
+        this.updateNegotiations(option, {
+          server: TelnetControlSequences.DO,
+          client: TelnetControlSequences.WILL,
+        });
+
+        this.telnetSocket.writeWill(option);
+
+        return;
+      }
     }
 
-    if (opt === 'TELOPT_TM') {
-      // Timing Mark
+    this.updateNegotiations(option, {
+      server: TelnetControlSequences.DO,
+      client: TelnetControlSequences.WONT,
+    });
 
-      this.telnetSocket.writeWill(option);
-    } else if (opt === 'TELOPT_NAWS') {
-      // Window size
-      this.negotiations[opt] = { server: 'do', client: 'will' };
+    this.telnetSocket.writeWont(option);
 
-      this.telnetSocket.writeWill(option);
-
-      // Todo[myst]: Re-Enable NAWS. See https://github.com/mystiker/webmud3/issues/33
-      // this.telnetSocket.writeSub(option, sizeToBuffer(100, 2));
-
-      // Spezielle Logik für NAWS
-      // socket_io.emit(
-      //   'mud-get-naws',
-      //   this.mudOptions?.id,
-      //   (sizeOb: { width: number; height: number }) => {
-      //     const buf = sizeToBuffer(sizeOb.width, sizeOb.height);
-      //     this.writeSub(chunkData, buf);
-      //   },
-      // );
-    } else {
-      this.telnetSocket.writeWont(option);
-    }
+    return;
   }
 
-  private handleDont(option: number): void {
-    this.updateNegotiations(option, 'dont');
+  private handleDont(option: TelnetOptions): void {
+    this.telnetSocket.writeWont(option);
+
+    this.updateNegotiations(option, {
+      server: TelnetControlSequences.DONT,
+      client: TelnetControlSequences.WONT,
+    });
   }
 
-  private handleWill(option: number): void {
-    const opt = this.updateNegotiations(option, 'will');
+  private handleWill(option: TelnetOptions): void {
+    switch (option) {
+      case TelnetOptions.TELOPT_CHARSET: {
+        this.telnetSocket.writeDo(option);
 
-    if (opt === 'TELOPT_CHARSET') {
-      this.telnetSocket.writeDo(option);
+        this.updateNegotiations(option, {
+          server: TelnetControlSequences.WILL,
+          client: TelnetControlSequences.DO,
+        });
 
-      this.negotiations[opt].client = 'do';
+        return;
+      }
 
-      return;
+      case TelnetOptions.TELOPT_ECHO: {
+        this.telnetSocket.writeDo(option);
+
+        this.updateNegotiations(option, {
+          server: TelnetControlSequences.WILL,
+          client: TelnetControlSequences.DO,
+        });
+
+        // socket_io.emit('mud-signal', {
+        //   signal: 'NOECHO-START',
+        //   id: this.mudOptions?.id,
+        // });
+
+        return;
+      }
+
+      case TelnetOptions.TELOPT_GMCP: {
+        this.telnetSocket.writeDo(option);
+
+        this.updateNegotiations(option, {
+          server: TelnetControlSequences.WILL,
+          client: TelnetControlSequences.DO,
+        });
+
+        return;
+      }
     }
 
-    if (opt === 'TELOPT_ECHO') {
-      this.telnetSocket.writeDo(option);
+    this.updateNegotiations(option, {
+      server: TelnetControlSequences.WILL,
+      client: TelnetControlSequences.DONT,
+    });
 
-      this.negotiations[opt].client = 'do';
-
-      // socket_io.emit('mud-signal', {
-      //   signal: 'NOECHO-START',
-      //   id: this.mudOptions?.id,
-      // });
-    } else if (opt === 'TELOPT_GMCP') {
-      this.telnetSocket.writeDo(option);
-
-      this.negotiations[opt].client = 'do';
-
-      // socket_io.emit(
-      //   'mud-gmcp-start',
-      //   this.mudOptions.id,
-      //   this.mudOptions.gmcp_support,
-      // );
-    } else {
-      this.telnetSocket.writeDont(option);
-    }
+    this.telnetSocket.writeDont(option);
   }
 
-  private handleWont(option: number): void {
-    const opt = this.updateNegotiations(option, 'wont');
+  private handleWont(option: TelnetOptions): void {
+    switch (option) {
+      case TelnetOptions.TELOPT_ECHO: {
+        this.telnetSocket.writeDont(option);
 
-    if (opt === 'TELOPT_ECHO') {
-      this.telnetSocket.writeDont(option);
+        this.updateNegotiations(option, {
+          server: TelnetControlSequences.WONT,
+          client: TelnetControlSequences.DONT,
+        });
 
-      // socket_io.emit('mud-signal', {
-      //   signal: 'NOECHO-END',
-      //   id: this.mudOptions?.id,
-      // });
-    } else {
-      this.telnetSocket.writeDont(option);
+        // socket_io.emit('mud-signal', {
+        //   signal: 'NOECHO-END',
+        //   id: this.mudOptions?.id,
+        // });
+
+        return;
+      }
     }
+
+    this.telnetSocket.writeDo(option);
+
+    this.updateNegotiations(option, {
+      server: TelnetControlSequences.WONT,
+      client: TelnetControlSequences.DO,
+    });
   }
 
-  private handleSub(option: number, chunkData: Buffer): void {
-    const opt = TelnetOptions.num2opt[option.toString()];
+  private handleSub(option: TelnetOptions, chunkData: Buffer): void {
+    // Todo[myst] save this as well in the this.negotiations object to see what is currently sub-negotiated
 
-    if (opt === 'TELOPT_TTYPE' && new Uint8Array(chunkData)[0] === 1) {
+    if (
+      option === TelnetOptions.TELOPT_TTYPE &&
+      new Uint8Array(chunkData)[0] === 1
+    ) {
       const nullBuf = Buffer.alloc(1, 0); // TELQUAL_IS
 
       const buf = Buffer.from('WebMud3a');
@@ -230,7 +251,14 @@ export class TelnetClient extends EventEmitter<TelnetClientEvents> {
       const sendBuf = Buffer.concat([nullBuf, buf], buf.length + 1);
 
       this.telnetSocket.writeSub(option, sendBuf);
-    } else if (opt === 'TELOPT_CHARSET' && new Uint8Array(chunkData)[0] === 1) {
+
+      return;
+    }
+
+    if (
+      option === TelnetOptions.TELOPT_CHARSET &&
+      new Uint8Array(chunkData)[0] === 1
+    ) {
       const nullBuf = Buffer.alloc(1, 2); // ACCEPTED
 
       const buf = Buffer.from('UTF-8');
@@ -238,7 +266,11 @@ export class TelnetClient extends EventEmitter<TelnetClientEvents> {
       const sendBuf = Buffer.concat([nullBuf, buf], buf.length + 1);
 
       this.telnetSocket.writeSub(option, sendBuf);
-    } else if (opt === 'TELOPT_GMCP') {
+
+      return;
+    }
+
+    if (option === TelnetOptions.TELOPT_GMCP) {
       const tmpstr = chunkData.toString();
 
       const ix = tmpstr.indexOf(' ');
@@ -255,59 +287,41 @@ export class TelnetClient extends EventEmitter<TelnetClientEvents> {
       //   tmpstr.substr(jx + 1, ix - jx),
       //   JSON.parse(jsdata),
       // );
+
+      return;
     }
   }
-}
 
-class TelnetSocketWrapper extends TelnetSocket {
-  public override writeDo(option: number): void {
-    logNegotiation('Send', 'do', option);
+  /**
+   * Updates the negotiations for a given Telnet option with the provided server and client control sequences.
+   * This function is special because it maps all enum values to its keys, making it easier to observe.
+   *
+   * @param {TelnetOptions} option - The Telnet option to update the negotiations for.
+   * @param {Object} negotiations - An object containing the server and client control sequences for the option.
+   * @param {TelnetControlSequences} negotiations.server - The server control sequence for the option.
+   * @param {TelnetControlSequences} negotiations.client - The client control sequence for the option.
+   */
+  private updateNegotiations(
+    option: TelnetOptions,
+    negotiations: {
+      server: TelnetControlSequences;
+      client: TelnetControlSequences;
+    },
+  ): void {
+    this.negotiations[TelnetOptions[option] as keyof typeof TelnetOptions] = {
+      server: TelnetControlSequences[
+        negotiations.server
+      ] as keyof typeof TelnetControlSequences,
+      client: TelnetControlSequences[
+        negotiations.client
+      ] as keyof typeof TelnetControlSequences,
+    };
 
-    super.writeDo(option);
-  }
-
-  public override writeDont(option: number): void {
-    logNegotiation('Send', 'dont', option);
-
-    super.writeDont(option);
-  }
-
-  public override writeWill(option: number): void {
-    logNegotiation('Send', 'will', option);
-
-    super.writeWill(option);
-  }
-
-  public override writeWont(option: number): void {
-    logNegotiation('Send', 'wont', option);
-
-    super.writeWont(option);
-  }
-
-  public override writeSub(option: number, buffer: Buffer): void {
-    logNegotiation('Send', 'sub', option, buffer);
-
-    super.writeSub(option, buffer);
-  }
-
-  constructor(socket: Socket, options?: TelnetSocketOptions) {
-    super(socket, options);
-
-    this.on('will', (option) => logNegotiation('Received', 'will', option));
-
-    this.on('wont', (option) => logNegotiation('Received', 'wont', option));
-
-    this.on('do', (option) => logNegotiation('Received', 'do', option));
-
-    this.on('dont', (option) => logNegotiation('Received', 'dont', option));
-
-    this.on('sub', (option, chunkData) =>
-      logNegotiation('Received', 'sub', option, chunkData),
-    );
-
-    this.on('command', (command) =>
-      logNegotiation('Received', 'command', command),
-    );
+    this.emit('negotiationChanged', {
+      option,
+      client: negotiations.client,
+      server: negotiations.server,
+    });
   }
 }
 

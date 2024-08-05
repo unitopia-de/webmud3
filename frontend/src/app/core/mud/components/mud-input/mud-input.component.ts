@@ -1,6 +1,14 @@
-import { Component, EventEmitter, Output, ViewChild } from '@angular/core';
+import {
+  Component,
+  EventEmitter,
+  Input,
+  Output,
+  ViewChild,
+} from '@angular/core';
 import { FormBuilder, FormGroup } from '@angular/forms';
+import { InputText } from 'primeng/inputtext';
 import { InputTextarea } from 'primeng/inputtextarea';
+import { SecureString } from 'src/app/shared/types/secure-string';
 
 @Component({
   selector: 'app-mud-input',
@@ -11,13 +19,19 @@ export class MudInputComponent {
   private inpHistory: string[] = [];
   private inpPointer = -1;
 
-  @ViewChild(InputTextarea, { static: true })
-  private textarea!: InputTextarea;
+  @ViewChild(InputTextarea, { static: false })
+  private textarea?: InputTextarea;
+
+  @ViewChild(InputText, { static: false })
+  private textinput?: InputTextarea;
 
   @Output()
-  public readonly messageSent = new EventEmitter<string>();
+  public readonly messageSent = new EventEmitter<string | SecureString>();
 
   protected readonly form: FormGroup;
+
+  @Input()
+  public mode: 'text' | 'password' = 'text';
 
   constructor(fb: FormBuilder) {
     this.form = fb.group({
@@ -26,7 +40,11 @@ export class MudInputComponent {
   }
 
   public focus() {
-    (this.textarea.el.nativeElement as HTMLTextAreaElement).focus();
+    (
+      this.textarea?.el.nativeElement as HTMLTextAreaElement | undefined
+    )?.focus();
+
+    (this.textinput?.el.nativeElement as HTMLInputElement | undefined)?.focus();
   }
 
   protected onKeyDown(event: KeyboardEvent) {
@@ -47,7 +65,14 @@ export class MudInputComponent {
   private sendMessage() {
     const message = this.form.get('inpmessage')?.value as string;
 
-    this.messageSent.emit(message);
+    if (this.mode === 'text') {
+      this.messageSent.emit(message);
+    }
+
+    if (this.mode === 'password') {
+      this.messageSent.emit({ value: message });
+    }
+
     if (
       this.inpHistory.length === 0 ||
       (this.inpHistory.length > 0 && this.inpHistory[0] !== message)

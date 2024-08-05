@@ -1,5 +1,6 @@
 <form [formGroup]="form">
   <textarea
+    *ngIf="mode === 'text'"
     id="mud-input"
     pInputTextarea
     class="mud-input"
@@ -10,4 +11,12 @@
     placeholder="Gib hier deine Befehle ein!"
   >
   </textarea>
+  <input
+    *ngIf="mode === 'password'"
+    id="mud-input-hidden"
+    pInputText
+    (keydown)="onKeyDown($event)"
+    formControlName="inpmessage"
+    type="password"
+  />
 </form>

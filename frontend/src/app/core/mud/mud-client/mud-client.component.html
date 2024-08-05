@@ -6,7 +6,10 @@
 ></app-mud-output>
 
 <ng-container *ngIf="this.isConnected$ | async; else disconnected">
-  <app-mud-input (messageSent)="onInputReceived($event)"></app-mud-input>
+  <app-mud-input
+    [mode]="(this.showEcho$ | async) ? 'text' : 'password'"
+    (messageSent)="onInputReceived($event)"
+  ></app-mud-input>
 </ng-container>
 
 <ng-template #disconnected>

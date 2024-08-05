@@ -5,6 +5,10 @@ import { Manager, Socket } from 'socket.io-client';
 import { ServerConfigService } from '../../shared/server-config.service';
 import { ClientToServerEvents } from './types/client-to-server-events';
 import { ServerToClientEvents } from './types/server-to-client-events';
+import {
+  isSecureString,
+  SecureString,
+} from 'src/app/shared/types/secure-string';
 
 type MudOutputEventArgs = {
   data: string;
@@ -22,6 +26,7 @@ export class SocketsService {
   public onMudConnect = new EventEmitter();
   public onMudDisconnect = new EventEmitter();
   public onMudOutput = new EventEmitter<MudOutputEventArgs>();
+  public onSetEchoMode = new EventEmitter<boolean>();
 
   public readonly connectedToServer$ = this.connectedToServer.asObservable();
   public readonly connectedToMud$ = this.connectedToMud.asObservable();
@@ -91,25 +96,33 @@ export class SocketsService {
     this.socket.on('mudOutput', (output: string) => {
       this.handleMudOutput(output);
     });
+
+    this.socket.on('setEchoMode', (showEchos: boolean) => {
+      this.handleSetEchoMode(showEchos);
+    });
   }
 
   public connectToMud(): void {
-    console.log(`[Sockets] Socket Service 'connectToMud'`);
+    console.log(`[Sockets] Sockets-Service: 'connectToMud'`);
     this.socket.emit('mudConnect');
   }
 
   public disconnectFromMud() {
-    console.log(`[Sockets] Socket Service 'disconnect'`);
+    console.log(`[Sockets] Sockets-Service: 'disconnect'`);
     this.socket.emit('mudDisconnect');
   }
 
-  public sendMessage(message: string) {
-    console.log(`[Sockets] Socket Service 'sendMessage'`, { message });
-    this.socket.emit('mudInput', message);
+  public sendMessage(message: string | SecureString) {
+    if (!isSecureString(message)) {
+      console.log(`[Sockets] Sockets-Service: 'sendMessage'`, { message });
+      this.socket.emit('mudInput', message);
+    } else {
+      this.socket.emit('mudInput', message.value);
+    }
   }
 
   public sendGmcp(/*id: string, mod: string, msg: string, data: any*/): boolean {
-    console.log(`[Sockets] Socket Service 'sendGmcp'`);
+    console.log(`[Sockets] Sockets-Service: 'sendGmcp'`);
     throw new Error('Method not implemented.');
   }
 
@@ -120,7 +133,7 @@ export class SocketsService {
   };
 
   private handleMudDisconnect = () => {
-    console.log(`[Sockets] Socket Service received 'mudDisconnected'`);
+    console.log(`[Sockets] Sockets-Service: received 'mudDisconnected'`);
 
     this.connectedToMud.next(false);
 
@@ -134,7 +147,7 @@ export class SocketsService {
   };
 
   private handleClose() {
-    console.log('[Sockets] Socket Service Close');
+    console.log('[Sockets] Sockets-Service: Close');
 
     this.connectedToMud.next(false);
 
@@ -142,41 +155,47 @@ export class SocketsService {
   }
 
   private handleError = (error: Error) => {
-    console.error('[Sockets] Socket Service Error:', error);
+    console.error('[Sockets] Sockets-Service: Error:', error);
   };
 
   private handleReconnect = (attempt: number) => {
-    console.info('[Sockets] Socket Service Reconnect:', attempt);
+    console.info('[Sockets] Sockets-Service: Reconnect:', attempt);
   };
 
   private handleReconnectAttempt = (attempt: number) => {
-    console.info('[Sockets] Socket Service Reconnect Attempt:', attempt);
+    console.info('[Sockets] Sockets-Service: Reconnect Attempt:', attempt);
   };
 
   private handleReconnectError = (error: Error) => {
-    console.error('[Sockets] Socket Service Reconnect Error:', error);
+    console.error('[Sockets] Sockets-Service: Reconnect Error:', error);
   };
 
   private handleReconnectFailed = () => {
     this.connectedToServer.next(false);
 
-    console.error('[Sockets] Socket Service Reconnect Failed');
+    console.error('[Sockets] Sockets-Service: Reconnect Failed');
   };
 
   private handlePing = () => {
-    console.info('[Sockets] Socket Service Ping');
+    console.info('[Sockets] Sockets-Service: Ping');
   };
 
   private handleConnect = () => {
     this.connectedToServer.next(true);
 
-    console.info('[Sockets] Socket Service Socket Connected');
+    console.info('[Sockets] Sockets-Service: Socket Connected');
   };
 
   private handleDisconnect = (reason: string) => {
     this.connectedToServer.next(false);
 
-    console.info('[Sockets] Socket Service Socket Disconnected:', reason);
+    console.info('[Sockets] Sockets-Service: Socket Disconnected:', reason);
+  };
+
+  private handleSetEchoMode = (showEchos: boolean) => {
+    console.info('[Sockets] Sockets-Service: Socket Set Echo Mode:', showEchos);
+
+    this.onSetEchoMode.emit(showEchos);
   };
 }
 

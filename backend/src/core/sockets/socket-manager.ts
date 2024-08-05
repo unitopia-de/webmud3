@@ -3,6 +3,8 @@ import { Server as HttpsServer } from 'https';
 import { Server, Socket } from 'socket.io';
 
 import { TelnetClient } from '../../features/telnet/telnet-client.js';
+import { TelnetControlSequences } from '../../features/telnet/types/telnet-control-sequences.js';
+import { TelnetOptions } from '../../features/telnet/types/telnet-options.js';
 import { logger } from '../../shared/utils/logger.js';
 import { Environment } from '../environment/environment.js';
 import { ClientToServerEvents } from './types/client-to-server-events.js';
@@ -104,11 +106,13 @@ export class SocketManager extends Server<
     });
 
     socket.on('mudInput', (data: string) => {
+      const inputEcho = this.mudConnections[socket.id].echo;
+
       logger.info(`[Socket-Manager] [Client] ${socket.id} mudInput`, {
-        input: data,
+        input: inputEcho ? data : '**OBSFUSCATED**',
       });
 
-      const telnetClient = this.mudConnections[socket.id]?.telnet;
+      const telnetClient = this.mudConnections[socket.id].telnet;
 
       if (telnetClient === undefined || telnetClient.isConnected === false) {
         logger.error(
@@ -157,9 +161,33 @@ export class SocketManager extends Server<
           socket.emit('mudDisconnected');
         });
 
+        telnetClient.on('negotiationChanged', (negotiation) => {
+          logger.info(
+            `[Socket-Manager] [Client] ${socket.id} telnet negotiation changed. Emitting 'negotiationChanged'`,
+            negotiation,
+          );
+
+          switch (negotiation.option) {
+            case TelnetOptions.TELOPT_ECHO: {
+              if (negotiation.server === TelnetControlSequences.WILL) {
+                this.mudConnections[socket.id].echo = false;
+
+                socket.emit('setEchoMode', false);
+              }
+
+              if (negotiation.server === TelnetControlSequences.WONT) {
+                this.mudConnections[socket.id].echo = true;
+
+                socket.emit('setEchoMode', true);
+              }
+            }
+          }
+        });
+
         this.mudConnections[socket.id] = {
           telnet: telnetClient,
           connectionTimer: undefined,
+          echo: true,
         };
 
         logger.info(

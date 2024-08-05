@@ -1,15 +1,10 @@
 import { Component, HostListener, ViewChild } from '@angular/core';
-import {
-  CharacterData,
-  InventoryList,
-  KeypadData,
-  WindowConfig,
-} from '@mudlet3/frontend/shared';
 import { Observable } from 'rxjs';
 
 import { MudInputComponent } from '../components/mud-input/mud-input.component';
 import { MudService } from '../mud.service';
 import { IMudMessage } from '../types/mud-message';
+import { SecureString } from 'src/app/shared/types/secure-string';
 
 @Component({
   selector: 'app-mud-client',
@@ -20,27 +15,28 @@ export class MudclientComponent {
   protected readonly output$: Observable<IMudMessage[]>;
 
   protected readonly isConnected$: Observable<boolean>;
+  protected readonly showEcho$: Observable<boolean>;
 
   @ViewChild(MudInputComponent, { static: false })
   private mudInputComponent?: MudInputComponent;
 
   public v = {
-    scrollLock: true,
-    sizeCalculated: false,
-    sizeCalculated2: false,
-    inpType: 'text',
-    ref_width: 615,
-    ref_height: 320,
+    // scrollLock: true,
+    // sizeCalculated: false,
+    // sizeCalculated2: false,
+    // inpType: 'text',
+    // ref_width: 615,
+    // ref_height: 320,
     stdfg: 'white',
     stdbg: 'black',
-    scrolltop: 0,
+    // scrolltop: 0,
   };
 
-  public keySetters: KeypadData = new KeypadData(); // Todo[myst]: nonsense;
-  public filesWindow: WindowConfig = new WindowConfig(); // Todo[myst]: nonsense;
-  public charStatsWindow: WindowConfig = new WindowConfig(); // Todo[myst]: nonsense;
-  public charData: CharacterData = new CharacterData(''); // Todo[myst]: nonsense
-  public invlist: InventoryList; // Todo[myst]: nonsense
+  // public keySetters: KeypadData = new KeypadData(); // Todo[myst]: nonsense;
+  // public filesWindow: WindowConfig = new WindowConfig(); // Todo[myst]: nonsense;
+  // public charStatsWindow: WindowConfig = new WindowConfig(); // Todo[myst]: nonsense;
+  // public charData: CharacterData = new CharacterData(''); // Todo[myst]: nonsense
+  // public invlist: InventoryList; // Todo[myst]: nonsense
 
   constructor(
     private readonly mudService: MudService,
@@ -51,12 +47,12 @@ export class MudclientComponent {
     // private cookieService: CookieService,
   ) {
     this.output$ = this.mudService.outputLines$;
-
     this.isConnected$ = this.mudService.connectedToMud$;
+    this.showEcho$ = this.mudService.showEcho$;
 
     this.mudService.connect();
 
-    this.invlist = new InventoryList();
+    // this.invlist = new InventoryList();
 
     // Todo[myst]: Herausfinden, was der cookieService alles unter 'mudcolors' gespeichert hat
     // const ncs = this.cookieService.get('mudcolors');
@@ -84,7 +80,7 @@ export class MudclientComponent {
   //   return tableOutput(words, screen);
   // }
 
-  protected onInputReceived(message: string) {
+  protected onInputReceived(message: string | SecureString) {
     this.mudService.sendMessage(message);
   }
 
