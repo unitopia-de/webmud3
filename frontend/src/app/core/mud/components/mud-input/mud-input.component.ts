@@ -8,7 +8,7 @@ import {
 import { FormBuilder, FormGroup } from '@angular/forms';
 import { InputText } from 'primeng/inputtext';
 import { InputTextarea } from 'primeng/inputtextarea';
-import { SecureString } from 'src/app/shared/types/secure-string';
+import { SecureString } from '@mudlet3/frontend/shared';
 
 @Component({
   selector: 'app-mud-input',

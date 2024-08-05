@@ -12,3 +12,4 @@ export { wordWrap } from './utils/word-wrap';
 export { WindowService } from './window.service';
 export { WINDOW, WINDOW_PROVIDERS } from './WINDOW_PROVIDERS';
 export { WindowConfig } from './window-config';
+export { SecureString, isSecureString } from './types/secure-string';
