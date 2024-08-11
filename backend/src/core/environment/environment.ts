@@ -16,12 +16,10 @@ export class Environment implements IEnvironment {
   public readonly port: number;
   public readonly telnetHost: string;
   public readonly telnetPort: number;
-  public readonly tls?: {
-    cert: string;
-    key: string;
-  };
+  public readonly telnetTLS: boolean;
   public readonly charset: string;
   public readonly projectRoot: string;
+  public readonly socketRoot: string;
   public readonly socketTimeout: number;
 
   /**
@@ -31,17 +29,6 @@ export class Environment implements IEnvironment {
   private constructor() {
     configureEnvironment();
 
-    const tls_cert = getEnvironmentVariable('TLS_CERT', false);
-
-    const tls_key = getEnvironmentVariable('TLS_KEY', false);
-
-    if (tls_cert !== null && tls_key !== null) {
-      this.tls = {
-        cert: tls_cert,
-        key: tls_key,
-      };
-    }
-
     this.host = String(getEnvironmentVariable('HOST', false, '0.0.0.0'));
 
     this.port = Number(getEnvironmentVariable('PORT', false, '5000'));
@@ -49,6 +36,11 @@ export class Environment implements IEnvironment {
     this.telnetHost = String(getEnvironmentVariable('TELNET_HOST'));
 
     this.telnetPort = Number(getEnvironmentVariable('TELNET_PORT'));
+
+    this.telnetTLS =
+      getEnvironmentVariable('TELNET_TLS', false, 'false') === 'true';
+
+    this.socketRoot = String(getEnvironmentVariable('SOCKET_ROOT'));
 
     this.charset = String(getEnvironmentVariable('CHARSET', false, 'utf8'));
 

@@ -29,6 +29,8 @@ describe('Environment', () => {
 
     process.env.TELNET_PORT = '3000';
 
+    process.env.SOCKET_ROOT = '/socket.io';
+
     process.env.CHARSET = 'utf8';
 
     const env = await getFreshEnvironmentInstance();
@@ -42,6 +44,8 @@ describe('Environment', () => {
     process.env.TELNET_HOST = 'localhost';
 
     process.env.TELNET_PORT = '3000';
+
+    process.env.SOCKET_ROOT = '/socket.io';
 
     process.env.CHARSET = 'utf8';
 
@@ -59,18 +63,15 @@ describe('Environment', () => {
 
     process.env.TELNET_PORT = '3000';
 
+    process.env.SOCKET_ROOT = '/socket.io';
+
     process.env.CHARSET = 'utf8';
 
-    process.env.TLS_CERT = 'cert_value';
-
-    process.env.TLS_KEY = 'key_value';
+    process.env.TELNET_TLS = 'true';
 
     const env = await getFreshEnvironmentInstance();
 
-    expect(env.tls).toEqual({
-      cert: 'cert_value',
-      key: 'key_value',
-    });
+    expect(env.telnetTLS).toBe(true);
   });
 
   it('should handle missing TLS configuration gracefully', async () => {
@@ -78,17 +79,21 @@ describe('Environment', () => {
 
     process.env.TELNET_PORT = '3000';
 
+    process.env.SOCKET_ROOT = '/socket.io';
+
     process.env.CHARSET = 'utf8';
 
     const env = await getFreshEnvironmentInstance();
 
-    expect(env.tls).toBeUndefined();
+    expect(env.telnetTLS).toBe(false);
   });
 
   it('should use default charset if not set', async () => {
     process.env.TELNET_HOST = 'localhost';
 
     process.env.TELNET_PORT = '3000';
+
+    process.env.SOCKET_ROOT = '/socket.io';
 
     const env = await getFreshEnvironmentInstance();
 
@@ -101,6 +106,8 @@ describe('Environment', () => {
     process.env.TELNET_PORT = '3000';
 
     process.env.CHARSET = 'utf8';
+
+    process.env.SOCKET_ROOT = '/socket.io';
 
     const env = await getFreshEnvironmentInstance();
 

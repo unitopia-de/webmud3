@@ -1,13 +1,10 @@
 export interface IEnvironment {
   readonly telnetHost: string;
   readonly telnetPort: number;
-
-  readonly tls?: {
-    cert: string;
-    key: string;
-  };
+  readonly telnetTLS: boolean;
 
   readonly projectRoot: string;
+  readonly socketRoot: string;
 
   readonly charset: string;
 

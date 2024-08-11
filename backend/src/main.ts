@@ -18,9 +18,7 @@ const app = express();
 
 const UNIQUE_SERVER_ID = uuidv4();
 
-const httpServer = createHttpServer(app, {
-  tls: environment.tls,
-});
+const httpServer = createHttpServer(app, {});
 
 useBodyParser(app);
 
