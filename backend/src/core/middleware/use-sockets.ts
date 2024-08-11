@@ -11,6 +11,7 @@ export const useSockets = (
   new SocketManager(httpServer, {
     telnetHost: environment.telnetHost,
     telnetPort: environment.telnetPort,
-    useTls: environment.tls !== undefined,
+    useTls: environment.telnetTLS,
+    socketRoot: environment.socketRoot,
   });
 };

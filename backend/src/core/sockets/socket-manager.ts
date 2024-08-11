@@ -25,10 +25,11 @@ export class SocketManager extends Server<
       telnetHost: string;
       telnetPort: number;
       useTls: boolean;
+      socketRoot: string;
     },
   ) {
     super(server, {
-      path: '/socket.io',
+      path: telnetOptions.socketRoot,
       transports: ['websocket'],
       connectionStateRecovery: {
         maxDisconnectionDuration: Environment.getInstance().socketTimeout,

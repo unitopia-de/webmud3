@@ -16,12 +16,14 @@ export class Environment implements IEnvironment {
   public readonly port: number;
   public readonly telnetHost: string;
   public readonly telnetPort: number;
+  public readonly telnetTLS: boolean;
   public readonly tls?: {
     cert: string;
     key: string;
   };
   public readonly charset: string;
   public readonly projectRoot: string;
+  public readonly socketRoot: string;
   public readonly socketTimeout: number;
 
   /**
@@ -50,6 +52,8 @@ export class Environment implements IEnvironment {
 
     this.telnetPort = Number(getEnvironmentVariable('TELNET_PORT'));
 
+    this.telnetTLS =Boolean(getEnvironmentVariable('TELNET_TLS',false,'false'));
+
     this.charset = String(getEnvironmentVariable('CHARSET', false, 'utf8'));
 
     this.socketTimeout = Number(
@@ -57,6 +61,8 @@ export class Environment implements IEnvironment {
     );
 
     this.projectRoot = resolveModulePath('../../../main.js');
+
+    this.socketRoot = String(getEnvironmentVariable('SOCKET_ROOT',false,'/socket.io'));
 
     logger.info('[Environment] initialized', this);
   }
