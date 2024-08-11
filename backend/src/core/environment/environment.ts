@@ -52,7 +52,7 @@ export class Environment implements IEnvironment {
 
     this.telnetPort = Number(getEnvironmentVariable('TELNET_PORT'));
 
-    this.telnetTLS =Boolean(getEnvironmentVariable('TELNET_TLS',false,'false'));
+    this.telnetTLS =Boolean(getEnvironmentVariable('TELNET_TLS',false,''));
 
     this.charset = String(getEnvironmentVariable('CHARSET', false, 'utf8'));
 
