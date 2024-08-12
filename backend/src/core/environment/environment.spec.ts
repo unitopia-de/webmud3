@@ -74,6 +74,22 @@ describe('Environment', () => {
     expect(env.telnetTLS).toBe(true);
   });
 
+  it('should handle TRUE as boolean values for TLS configuration', async () => {
+    process.env.TELNET_HOST = 'localhost';
+
+    process.env.TELNET_PORT = '3000';
+
+    process.env.SOCKET_ROOT = '/socket.io';
+
+    process.env.CHARSET = 'utf8';
+
+    process.env.TELNET_TLS = 'TRUE';
+
+    const env = await getFreshEnvironmentInstance();
+
+    expect(env.telnetTLS).toBe(true);
+  });
+
   it('should handle missing TLS configuration gracefully', async () => {
     process.env.TELNET_HOST = 'localhost';
 

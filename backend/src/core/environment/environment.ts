@@ -38,7 +38,11 @@ export class Environment implements IEnvironment {
     this.telnetPort = Number(getEnvironmentVariable('TELNET_PORT'));
 
     this.telnetTLS =
-      getEnvironmentVariable('TELNET_TLS', false, 'false') === 'true';
+      getEnvironmentVariable(
+        'TELNET_TLS',
+        false,
+        'false',
+      )?.toLocaleLowerCase() === 'true';
 
     this.socketRoot = String(getEnvironmentVariable('SOCKET_ROOT'));
 
