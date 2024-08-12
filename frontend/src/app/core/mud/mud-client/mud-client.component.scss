@@ -15,16 +15,26 @@
 :host {
   display: flex;
   flex-direction: column;
-  flex: 1 0 100%;
-  overflow: hidden;
+  flex: 0 0 100%;
+  overflow: auto;
 
   app-mud-menu {
     flex: 0 1 auto;
   }
 
+  p-splitter {
+    flex: 0 1 100%;
+    overflow: auto;
+    display: flex;
+    flex-direction: column;
+
+    .p-splitter {
+      flex: 1 1 100%;
+    }
+  }
+
   app-mud-output {
-    flex: 1 1 auto;
-    overflow-y: auto;
+    flex: 1 1 100%;
   }
 
   app-mud-input {

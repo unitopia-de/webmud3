@@ -1,9 +1,28 @@
-<app-mud-output
-  *ngIf="this.output$ | async as lines"
-  [lines]="lines"
-  [foregroundColor]="this.v.stdfg"
-  [backgroundColor]="this.v.stdbg"
-></app-mud-output>
+<p-splitter
+  layout="vertical"
+  [style]="{ flex: '0 1 100%', overflow: 'hidden' }"
+  [panelStyle]="{ overflow: 'hidden' }"
+>
+  <ng-template pTemplate>
+    <app-mud-output
+      id="test"
+      *ngIf="this.output$ | async as lines"
+      [lines]="lines"
+      [foregroundColor]="this.v.stdfg"
+      [backgroundColor]="this.v.stdbg"
+      [shallScroll]="true"
+    ></app-mud-output>
+  </ng-template>
+  <ng-template pTemplate>
+    <app-mud-output
+      *ngIf="this.output$ | async as lines"
+      [lines]="lines"
+      [foregroundColor]="this.v.stdfg"
+      [backgroundColor]="this.v.stdbg"
+      [autoScroll]="true"
+    ></app-mud-output>
+  </ng-template>
+</p-splitter>
 
 <ng-container *ngIf="this.isConnected$ | async; else disconnected">
   <app-mud-input

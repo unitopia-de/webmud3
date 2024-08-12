@@ -41,8 +41,14 @@ export class MudOutputComponent implements AfterViewChecked, AfterViewInit {
   @Input({ required: true })
   public backgroundColor!: string;
 
+  @Input({ required: false })
+  public shallScroll: boolean = false;
+
+  @Input({ required: false })
+  public autoScroll: boolean = false;
+
   public ngAfterViewChecked() {
-    if (this.canScrollToBottom) {
+    if (this.canScrollToBottom && this.autoScroll) {
       this.scrollToBottom();
     }
   }

@@ -17,7 +17,7 @@
 .mud-output {
   flex: 0 1 100%;
 
-  overflow: auto;
+  overflow: hidden;
   flex-direction: column;
   flex-wrap: wrap;
   font-family: monospace;

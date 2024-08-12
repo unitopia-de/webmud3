@@ -12,6 +12,10 @@ import { MudOutputComponent } from './components/mud-output/mud-output.component
 import { MudspanComponent } from './components/mud-span/mud-span.component';
 import { MudclientComponent } from './mud-client/mud-client.component';
 
+import { SplitterModule } from 'primeng/splitter';
+
+const primeModules = [SplitterModule];
+
 @NgModule({
   declarations: [
     MudclientComponent,
@@ -28,6 +32,7 @@ import { MudclientComponent } from './mud-client/mud-client.component';
     ReactiveFormsModule,
     WidgetsModule,
     MenuModule,
+    primeModules,
   ],
   exports: [MudclientComponent],
 })

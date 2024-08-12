@@ -7,6 +7,7 @@
   class="mud-output doselect"
   [style.background-color]="this.backgroundColor"
   [style.color]="this.foregroundColor"
+  [style.overflow]="this.shallScroll ? 'auto' : 'hidden'"
 >
   <div class="mud-message" *ngFor="let mudLine of this.lines$ | async">
     <app-mud-span [line]="mudLine"> </app-mud-span>
