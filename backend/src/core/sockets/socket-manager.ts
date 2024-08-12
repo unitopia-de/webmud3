@@ -21,14 +21,15 @@ export class SocketManager extends Server<
 
   public constructor(
     server: HttpServer | HttpsServer,
-    private readonly telnetOptions: {
+    private readonly managerOptions: {
       telnetHost: string;
       telnetPort: number;
-      useTls: boolean;
+      useTelnetTls: boolean;
+      socketRoot: string;
     },
   ) {
     super(server, {
-      path: '/socket.io',
+      path: managerOptions.socketRoot,
       transports: ['websocket'],
       connectionStateRecovery: {
         maxDisconnectionDuration: Environment.getInstance().socketTimeout,
@@ -142,9 +143,9 @@ export class SocketManager extends Server<
         );
 
         const telnetClient = new TelnetClient(
-          this.telnetOptions.telnetHost,
-          this.telnetOptions.telnetPort,
-          this.telnetOptions.useTls,
+          this.managerOptions.telnetHost,
+          this.managerOptions.telnetPort,
+          this.managerOptions.useTelnetTls,
         );
 
         telnetClient.on('data', (data: string | Buffer) => {
