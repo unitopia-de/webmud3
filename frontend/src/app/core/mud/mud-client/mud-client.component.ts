@@ -1,24 +1,37 @@
-import { Component, HostListener, ViewChild } from '@angular/core';
-import { Observable } from 'rxjs';
+import {
+  AfterViewChecked,
+  Component,
+  HostListener,
+  ViewChild,
+} from '@angular/core';
+import { BehaviorSubject, Observable } from 'rxjs';
 
 import { MudInputComponent } from '../components/mud-input/mud-input.component';
 import { MudService } from '../mud.service';
 import { IMudMessage } from '../types/mud-message';
 import { isSecureString, SecureString } from '@mudlet3/frontend/shared';
+import { MudOutputComponent } from 'src/app/core/mud/components/mud-output/mud-output.component';
 
 @Component({
   selector: 'app-mud-client',
   templateUrl: './mud-client.component.html',
   styleUrls: ['./mud-client.component.scss'],
 })
-export class MudclientComponent {
+export class MudclientComponent implements AfterViewChecked {
+  private readonly mode = new BehaviorSubject<'normal' | 'split'>('normal');
+
   protected readonly output$: Observable<IMudMessage[]>;
 
   protected readonly isConnected$: Observable<boolean>;
   protected readonly showEcho$: Observable<boolean>;
 
+  protected readonly mode$ = this.mode.asObservable();
+
   @ViewChild(MudInputComponent, { static: false })
   private mudInputComponent?: MudInputComponent;
+
+  @ViewChild('mainOutputSplit', { static: false })
+  private mudOutputComponent?: MudOutputComponent;
 
   public v = {
     // scrollLock: true,
@@ -52,6 +65,12 @@ export class MudclientComponent {
 
     this.mudService.connect();
 
+    // this.mode$.subscribe((mode) => {
+    //   if (mode === 'split') {
+    //     this.mudOutputComponent?.scrollToBottom();
+    //   }
+    // });
+
     // this.invlist = new InventoryList();
 
     // Todo[myst]: Herausfinden, was der cookieService alles unter 'mudcolors' gespeichert hat
@@ -67,10 +86,19 @@ export class MudclientComponent {
     //   this.v.stdbg = 'black';
     // }
   }
+  ngAfterViewChecked(): void {
+    if (this.mode.value === 'split') {
+      this.mudOutputComponent?.scrollToBottom();
+    }
+  }
 
   // protected onDisconnectClicked() {
   //   this.mudService.disconnect();
   // }
+
+  protected onSplitToggle() {
+    this.mode.next(this.mode.value === 'normal' ? 'split' : 'normal');
+  }
 
   protected onConnectClicked() {
     this.mudService.connect();

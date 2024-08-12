@@ -3,7 +3,10 @@ import {
   AfterViewInit,
   Component,
   ElementRef,
+  EventEmitter,
   Input,
+  OnDestroy,
+  Output,
   ViewChild,
 } from '@angular/core';
 import { BehaviorSubject, Observable } from 'rxjs';
@@ -15,13 +18,18 @@ import { IMudMessage } from '../../types/mud-message';
   templateUrl: './mud-output.component.html',
   styleUrls: ['./mud-output.component.scss'],
 })
-export class MudOutputComponent implements AfterViewChecked, AfterViewInit {
+export class MudOutputComponent
+  implements AfterViewChecked, AfterViewInit, OnDestroy
+{
+  ngOnDestroy(): void {
+    console.log('DESTROY!');
+  }
   private readonly linesSubject = new BehaviorSubject<IMudMessage[]>([]);
 
-  private canScrollToBottom = true;
+  private isScrollAtBottom = true;
 
-  @ViewChild('container', { static: true })
-  private readonly outputContainer!: ElementRef<HTMLDivElement>;
+  @ViewChild('container', { static: false })
+  private readonly outputContainer?: ElementRef<HTMLDivElement>;
 
   protected readonly lines$: Observable<IMudMessage[]> =
     this.linesSubject.asObservable();
@@ -47,16 +55,21 @@ export class MudOutputComponent implements AfterViewChecked, AfterViewInit {
   @Input({ required: false })
   public autoScroll: boolean = false;
 
+  @Output()
+  public readonly onScrolled = new EventEmitter<boolean>();
+
   public ngAfterViewChecked() {
-    if (this.canScrollToBottom && this.autoScroll) {
+    if (this.isScrollAtBottom && this.autoScroll) {
       this.scrollToBottom();
     }
   }
 
   public ngAfterViewInit(): void {
-    this.outputContainer.nativeElement.onscroll = (event: Event) => {
-      this.onScroll(event);
-    };
+    if (this.outputContainer?.nativeElement !== undefined) {
+      this.outputContainer.nativeElement.onscroll = (event: Event) => {
+        this.onScroll(event);
+      };
+    }
   }
 
   private onScroll(event: Event): void {
@@ -67,11 +80,15 @@ export class MudOutputComponent implements AfterViewChecked, AfterViewInit {
         element.scrollHeight - element.scrollTop - element.clientHeight,
       ) <= tolerance;
 
-    this.canScrollToBottom = atBottom;
+    this.onScrolled.emit(atBottom);
+
+    this.isScrollAtBottom = atBottom;
   }
 
-  private scrollToBottom(): void {
-    this.outputContainer.nativeElement.scrollTop =
-      this.outputContainer.nativeElement.scrollHeight;
+  public scrollToBottom(): void {
+    if (this.outputContainer?.nativeElement !== undefined) {
+      this.outputContainer.nativeElement.scrollTop =
+        this.outputContainer.nativeElement.scrollHeight;
+    }
   }
 }

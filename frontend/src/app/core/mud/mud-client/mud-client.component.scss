@@ -35,6 +35,11 @@
 
   app-mud-output {
     flex: 1 1 100%;
+    overflow: hidden;
+
+    &#test {
+      flex: 1 1 0%;
+    }
   }
 
   app-mud-input {
