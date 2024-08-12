@@ -37,10 +37,6 @@ export class Environment implements IEnvironment {
 
     this.telnetPort = Number(getEnvironmentVariable('TELNET_PORT'));
 
-    this.telnetTLS =
-      getEnvironmentVariable('TELNET_TLS', false, 'false') === 'true';
-
-    this.socketRoot = String(getEnvironmentVariable('SOCKET_ROOT'));
 
     this.charset = String(getEnvironmentVariable('CHARSET', false, 'utf8'));
 
@@ -49,6 +45,8 @@ export class Environment implements IEnvironment {
     );
 
     this.projectRoot = resolveModulePath('../../../main.js');
+
+    this.socketRoot = String(getEnvironmentVariable('SOCKET_ROOT',false,'/socket.io'));
 
     logger.info('[Environment] initialized', this);
   }
