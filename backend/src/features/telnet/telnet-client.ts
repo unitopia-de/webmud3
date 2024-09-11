@@ -30,7 +30,7 @@ type TelnetClientEvents = {
  * Represents a client for handling telnet communication tailored for MUD games.
  */
 export class TelnetClient extends EventEmitter<TelnetClientEvents> {
-  private negotiations: TelnetNegotiations = {};
+  private _negotiations: TelnetNegotiations = {};
 
   private readonly telnetSocket: TelnetSocket;
 
@@ -40,8 +40,8 @@ export class TelnetClient extends EventEmitter<TelnetClientEvents> {
     return this.connected;
   }
 
-  public get getNegotiations(): TelnetNegotiations {
-    return { ...this.negotiations };
+  public get negotiations(): TelnetNegotiations {
+    return { ...this._negotiations };
   }
 
   /**
@@ -308,7 +308,7 @@ export class TelnetClient extends EventEmitter<TelnetClientEvents> {
       client: TelnetControlSequences;
     },
   ): void {
-    this.negotiations[TelnetOptions[option] as keyof typeof TelnetOptions] = {
+    this._negotiations[TelnetOptions[option] as keyof typeof TelnetOptions] = {
       server: TelnetControlSequences[
         negotiations.server
       ] as keyof typeof TelnetControlSequences,

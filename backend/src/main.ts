@@ -4,6 +4,7 @@ import { v4 as uuidv4 } from 'uuid';
 
 import { Environment } from './core/environment/environment.js';
 import { useBodyParser } from './core/middleware/use-body-parser.js';
+import { useRestEndpoints } from './core/middleware/use-rest-endpoints.js';
 import { useSockets } from './core/middleware/use-sockets.js';
 import { useStaticFiles } from './core/middleware/use-static-files.js';
 import { useRoutes } from './core/routes/routes.js';
@@ -27,9 +28,14 @@ useBodyParser(app);
 
 useStaticFiles(app, 'wwwroot');
 
-useRoutes(app);
+const socketManager = useSockets(httpServer, environment);
 
-useSockets(httpServer, environment);
+// Enable Debug Rest Endpoints in Development Mode
+if (environment.environment === 'development') {
+  useRestEndpoints(app, socketManager);
+}
+
+useRoutes(app);
 
 // function myCleanup() {
 //   console.log('Cleanup starts.');

@@ -2,7 +2,8 @@
  * Telnet options that can be negotiated.
  * @todo
  * Todo[myst]: Remove all special options that are not negotiated. Leave only the true ones and special ones, that
- * are negociated. See https://www.iana.org/assignments/telnet-options/telnet-options.xhtml for all the options
+ * are negociated. See https://www.iana.org/assignments/telnet-options/telnet-options.xhtml for all the options.
+ * Rename this to "SupportedTelnetOptions" after that.
  */
 export enum TelnetOptions {
   /**
@@ -291,6 +292,11 @@ export enum TelnetOptions {
    * Compression option.
    */
   TELOPT_COMPRESS = 85,
+
+  /**
+   * MCCP (Mud Client Compression Protocol).
+   */
+  TELOPT_MCCP = 86,
 
   /**
    * MSP option.

@@ -21,6 +21,7 @@ export class Environment implements IEnvironment {
   public readonly projectRoot: string;
   public readonly socketRoot: string;
   public readonly socketTimeout: number;
+  public readonly environment: 'production' | 'development';
 
   /**
    * Private constructor to enforce singleton pattern.
@@ -51,6 +52,18 @@ export class Environment implements IEnvironment {
     this.socketTimeout = Number(
       getEnvironmentVariable('SOCKET_TIMEOUT', false, '900000'),
     );
+
+    const environment = String(
+      getEnvironmentVariable('ENVIRONMENT', false, 'production'),
+    ).toLocaleLowerCase();
+
+    if (environment !== 'production' && environment !== 'development') {
+      throw new Error(
+        'Environment variable "ENVIRONMENT" must be either "production" or "development" or unset.',
+      );
+    }
+
+    this.environment = environment;
 
     this.projectRoot = resolveModulePath('../../../main.js');
 

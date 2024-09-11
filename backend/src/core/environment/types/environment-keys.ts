@@ -6,4 +6,5 @@ export type EnvironmentKeys =
   | 'TELNET_TLS'
   | 'SOCKET_TIMEOUT' // in milliseconds | default: 900000 (15 min) | determines how long messages are buffed for the disconnected frontend and when the telnet connection is closed
   | 'SOCKET_ROOT'
-  | 'CHARSET';
+  | 'CHARSET'
+  | 'ENVIRONMENT';

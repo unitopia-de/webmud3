@@ -17,7 +17,7 @@ export class SocketManager extends Server<
   ServerToClientEvents,
   InterServerEvents
 > {
-  private readonly mudConnections: MudConnections = {};
+  public readonly mudConnections: MudConnections = {};
 
   public constructor(
     server: HttpServer | HttpsServer,

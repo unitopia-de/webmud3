@@ -10,6 +10,8 @@ export interface IEnvironment {
 
   readonly socketTimeout: number;
 
+  readonly environment: 'production' | 'development';
+
   // backend: {
   //   host: string;
   //   port: number;
