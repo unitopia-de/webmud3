@@ -12,5 +12,10 @@ export type TelnetNegotiations = {
   -readonly [key in keyof typeof TelnetOptions]?: {
     server: keyof typeof TelnetControlSequences;
     client: keyof typeof TelnetControlSequences;
+    subnegotiation?: {
+      serverChunk: string;
+      clientChunk: string;
+      clientOption: string;
+    };
   };
 };

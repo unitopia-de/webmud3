@@ -9,6 +9,7 @@ import { TelnetSocket } from 'telnet-stream';
 import tls from 'tls';
 
 import { logger } from '../../shared/utils/logger.js';
+import { TelnetCharsetSubnogiation } from './types/telnet-charset-subnogiation.js';
 import { TelnetControlSequences } from './types/telnet-control-sequences.js';
 import { TelnetNegotiations } from './types/telnet-negotiations.js';
 import { TelnetOptions } from './types/telnet-options.js';
@@ -51,7 +52,12 @@ export class TelnetClient extends EventEmitter<TelnetClientEvents> {
    * @param {number} telnetPort - The port number of the Telnet server.
    * @param {boolean} useTls - Indicates whether to use TLS encryption for the connection.
    */
-  constructor(telnetHost: string, telnetPort: number, useTls: boolean) {
+  constructor(
+    telnetHost: string,
+    telnetPort: number,
+    useTls: boolean,
+    private readonly encoding: BufferEncoding,
+  ) {
     super();
 
     const telnetConnection = createTelnetConnection(
@@ -220,11 +226,6 @@ export class TelnetClient extends EventEmitter<TelnetClientEvents> {
           client: TelnetControlSequences.DONT,
         });
 
-        // socket_io.emit('mud-signal', {
-        //   signal: 'NOECHO-END',
-        //   id: this.mudOptions?.id,
-        // });
-
         return;
       }
     }
@@ -237,12 +238,10 @@ export class TelnetClient extends EventEmitter<TelnetClientEvents> {
     });
   }
 
-  private handleSub(option: TelnetOptions, chunkData: Buffer): void {
-    // Todo[myst] save this as well in the this.negotiations object to see what is currently sub-negotiated
-
+  private handleSub(option: TelnetOptions, serverChunk: Buffer): void {
     if (
       option === TelnetOptions.TELOPT_TTYPE &&
-      new Uint8Array(chunkData)[0] === 1
+      new Uint8Array(serverChunk)[0] === 1
     ) {
       const nullBuf = Buffer.alloc(1, 0); // TELQUAL_IS
 
@@ -257,21 +256,67 @@ export class TelnetClient extends EventEmitter<TelnetClientEvents> {
 
     if (
       option === TelnetOptions.TELOPT_CHARSET &&
-      new Uint8Array(chunkData)[0] === 1
+      new Uint8Array(serverChunk)[0] ===
+        TelnetCharsetSubnogiation.CHARSET_REQUEST
     ) {
-      const nullBuf = Buffer.alloc(1, 2); // ACCEPTED
+      const command = Buffer.alloc(
+        1,
+        TelnetCharsetSubnogiation.CHARSET_ACCEPTED,
+      );
 
-      const buf = Buffer.from('UTF-8');
+      const serverCharsets = serverChunk.toString().split(' ');
 
-      const sendBuf = Buffer.concat([nullBuf, buf], buf.length + 1);
+      /**
+       * This function remappes the given charset from the environment to the one supported by the Telnet server
+       */
+      const matchCharset = (
+        charset: BufferEncoding,
+        serverCharsets: string[],
+      ): string => {
+        if (charset === 'utf-8') {
+          if (serverCharsets.includes('UTF-8')) {
+            return 'UTF-8';
+          }
+        }
 
-      this.telnetSocket.writeSub(option, sendBuf);
+        if (charset === 'ascii') {
+          if (serverCharsets.includes('US-ASCII')) {
+            return 'US-ASCII';
+          }
+        }
+
+        if (charset === 'latin1') {
+          if (serverCharsets.includes('ISO-8859-1')) {
+            return 'ISO-8859-1';
+          }
+        }
+
+        logger.warn(
+          `[Socket-Manager] [Client] charset ${charset} is not supported by the Telnet server. Only ${serverCharsets.join(', ')} are supported. Default to utf-8`,
+        );
+
+        return 'UTF-8';
+      };
+
+      const charset = matchCharset(this.encoding, serverCharsets);
+
+      const data = Buffer.from(charset);
+
+      const message = Buffer.concat([command, data], data.length + 1);
+
+      this.updateSubNegotiation(TelnetOptions.TELOPT_CHARSET, {
+        clientChunk: message.toString(),
+        serverChunk: serverChunk.toString(),
+        clientOption: data.toString().toLocaleLowerCase(),
+      });
+
+      this.telnetSocket.writeSub(option, message);
 
       return;
     }
 
     if (option === TelnetOptions.TELOPT_GMCP) {
-      const tmpstr = chunkData.toString();
+      const tmpstr = serverChunk.toString();
 
       const ix = tmpstr.indexOf(' ');
 
@@ -308,7 +353,7 @@ export class TelnetClient extends EventEmitter<TelnetClientEvents> {
       client: TelnetControlSequences;
     },
   ): void {
-    this._negotiations[TelnetOptions[option] as keyof typeof TelnetOptions] = {
+    this._negotiations[option] = {
       server: TelnetControlSequences[
         negotiations.server
       ] as keyof typeof TelnetControlSequences,
@@ -322,6 +367,22 @@ export class TelnetClient extends EventEmitter<TelnetClientEvents> {
       client: negotiations.client,
       server: negotiations.server,
     });
+  }
+
+  private updateSubNegotiation(
+    option: TelnetOptions,
+    subnegotiation: {
+      serverChunk: string;
+      clientChunk: string;
+      clientOption: string;
+    },
+  ): void {
+    const existing = this._negotiations[option];
+
+    // It is not allowed to discuss subnegotiations without a negotiation beforehand
+    if (existing) {
+      existing.subnegotiation = subnegotiation;
+    }
   }
 }
 

@@ -5,6 +5,7 @@ import { Server as HttpsServer } from 'https';
 
 import { logger } from './logger.js';
 
+// Todo[myst]: Ich will das eigentlich nicht hier haben, da man nicht beliebig in der Anwendung einfach mal http Server spawnen können sollte
 export function createHttpServer(
   app: Express,
   settings: { tls?: { cert: string; key: string } },
@@ -14,8 +15,6 @@ export function createHttpServer(
       key: fs.readFileSync(settings.tls.key),
       cert: fs.readFileSync(settings.tls.cert),
     };
-
-    console.log('INIT: https active');
 
     logger.debug('SRV://5000 : INIT: https active');
 

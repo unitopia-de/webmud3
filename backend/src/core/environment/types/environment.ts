@@ -6,7 +6,7 @@ export interface IEnvironment {
   readonly projectRoot: string;
   readonly socketRoot: string;
 
-  readonly charset: string;
+  readonly charset: BufferEncoding;
 
   readonly socketTimeout: number;
 

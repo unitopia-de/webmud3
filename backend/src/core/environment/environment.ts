@@ -1,9 +1,19 @@
 import { config as configureEnvironment } from 'dotenv';
 
 import { logger } from '../../shared/utils/logger.js';
+import { mapToServerEncodings } from '../../shared/utils/supported-encodings.js';
 import { IEnvironment } from './types/environment.js';
 import { getEnvironmentVariable } from './utils/get-environment-variable.js';
 import { resolveModulePath } from './utils/resolve-modulepath.js';
+
+const ALLOWED_CHARSETS = [
+  'utf8',
+  'utf-8',
+  'latin1',
+  'iso-8859-1',
+  'ascii',
+  'us-ascii',
+];
 
 /**
  * Environment class to handle environment variables and application settings.
@@ -17,7 +27,7 @@ export class Environment implements IEnvironment {
   public readonly telnetHost: string;
   public readonly telnetPort: number;
   public readonly telnetTLS: boolean;
-  public readonly charset: string;
+  public readonly charset: BufferEncoding;
   public readonly projectRoot: string;
   public readonly socketRoot: string;
   public readonly socketTimeout: number;
@@ -47,7 +57,19 @@ export class Environment implements IEnvironment {
 
     this.socketRoot = String(getEnvironmentVariable('SOCKET_ROOT'));
 
-    this.charset = String(getEnvironmentVariable('CHARSET', false, 'utf8'));
+    const charset = String(
+      getEnvironmentVariable('CHARSET', false, 'utf-8'),
+    ).toLocaleLowerCase();
+
+    const mappedCharset = mapToServerEncodings(charset);
+
+    if (mappedCharset === null) {
+      throw new Error(
+        `Environment variable "CHARSET" must be one of ${ALLOWED_CHARSETS.join(', ')}.`,
+      );
+    }
+
+    this.charset = mappedCharset;
 
     this.socketTimeout = Number(
       getEnvironmentVariable('SOCKET_TIMEOUT', false, '900000'),
