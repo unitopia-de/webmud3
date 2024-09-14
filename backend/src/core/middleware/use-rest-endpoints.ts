@@ -1,5 +1,7 @@
 import { Express, Request, Response } from 'express';
 
+import { TelnetControlSequences } from '../../features/telnet/types/telnet-control-sequences.js';
+import { TelnetOptions } from '../../features/telnet/types/telnet-options.js';
 import { logger } from '../../shared/utils/logger.js';
 import { SocketManager } from '../sockets/socket-manager.js';
 
@@ -13,10 +15,24 @@ export const useRestEndpoints = (
     const connections = Object.entries(socketManager.mudConnections).flatMap(
       ([connectionKey, con]) => {
         const negotiations = Object.entries(con.telnet?.negotiations || {}).map(
-          ([negotiationKey, negotiations]) => ({
-            code: negotiationKey,
-            ...negotiations,
-          }),
+          ([negotiationKey, negotiations]) => {
+            const key = Number(negotiationKey);
+
+            return {
+              code: TelnetOptions[key],
+              ...{
+                server: negotiations?.server
+                  ? TelnetControlSequences[negotiations?.server]
+                  : {},
+              },
+              ...{
+                client: negotiations?.client
+                  ? TelnetControlSequences[negotiations?.client]
+                  : {},
+              },
+              ...negotiations?.subnegotiation,
+            };
+          },
         );
 
         return {

@@ -9,10 +9,12 @@ import { TelnetSocket } from 'telnet-stream';
 import tls from 'tls';
 
 import { logger } from '../../shared/utils/logger.js';
-import { TelnetCharsetSubnogiation } from './types/telnet-charset-subnogiation.js';
 import { TelnetControlSequences } from './types/telnet-control-sequences.js';
 import { TelnetNegotiations } from './types/telnet-negotiations.js';
+import { TelnetOptionHandler } from './types/telnet-option-handler.js';
 import { TelnetOptions } from './types/telnet-options.js';
+import { handleCharsetOption } from './utils/handle-charset-option.js';
+import { handleEchoOption } from './utils/handle-echo-option.js';
 import { TelnetSocketWrapper } from './utils/telnet-socket-wrapper.js';
 
 type TelnetClientEvents = {
@@ -21,8 +23,8 @@ type TelnetClientEvents = {
   negotiationChanged: [
     {
       option: TelnetOptions;
-      server: TelnetControlSequences;
-      client: TelnetControlSequences;
+      server?: TelnetControlSequences;
+      client?: TelnetControlSequences;
     },
   ];
 };
@@ -36,6 +38,8 @@ export class TelnetClient extends EventEmitter<TelnetClientEvents> {
   private readonly telnetSocket: TelnetSocket;
 
   private connected: boolean = false;
+
+  private optionsHandler: Map<TelnetOptions, TelnetOptionHandler>;
 
   public get isConnected(): boolean {
     return this.connected;
@@ -56,7 +60,7 @@ export class TelnetClient extends EventEmitter<TelnetClientEvents> {
     telnetHost: string,
     telnetPort: number,
     useTls: boolean,
-    private readonly encoding: BufferEncoding,
+    encoding: BufferEncoding,
   ) {
     super();
 
@@ -70,6 +74,16 @@ export class TelnetClient extends EventEmitter<TelnetClientEvents> {
       // Todo[myst]: Is this the right buffer size? Is it needed anyway?
       bufferSize: 65536,
     });
+
+    this.optionsHandler = new Map([
+      [
+        TelnetOptions.TELOPT_CHARSET,
+        handleCharsetOption(this.telnetSocket, encoding),
+      ],
+      [TelnetOptions.TELOPT_ECHO, handleEchoOption(this.telnetSocket)],
+    ]);
+
+    this.telnetSocket.on('connect', () => this.handleConnect());
 
     this.telnetSocket.on('close', (hadErrors) => this.handleClose(hadErrors));
 
@@ -106,6 +120,10 @@ export class TelnetClient extends EventEmitter<TelnetClientEvents> {
     this.connected = false;
   }
 
+  private handleConnect(): void {
+    logger.info(`[Telnet-Client] Connected`);
+  }
+
   private handleClose(hadErrors: boolean): void {
     this.connected = false;
 
@@ -113,276 +131,207 @@ export class TelnetClient extends EventEmitter<TelnetClientEvents> {
   }
 
   private handleDo(option: TelnetOptions): void {
-    switch (option) {
-      case TelnetOptions.TELOPT_CHARSET: {
-        this.telnetSocket.writeWill(option);
-
-        this.updateNegotiations(option, {
-          server: TelnetControlSequences.DO,
-          client: TelnetControlSequences.WILL,
-        });
-
-        return;
-      }
-
-      case TelnetOptions.TELOPT_TM: {
-        this.updateNegotiations(option, {
-          server: TelnetControlSequences.DO,
-          client: TelnetControlSequences.WILL,
-        });
-
-        this.telnetSocket.writeWill(option);
-
-        return;
-      }
-
-      case TelnetOptions.TELOPT_NAWS: {
-        this.updateNegotiations(option, {
-          server: TelnetControlSequences.DO,
-          client: TelnetControlSequences.WILL,
-        });
-
-        this.telnetSocket.writeWill(option);
-
-        return;
-      }
-    }
-
     this.updateNegotiations(option, {
       server: TelnetControlSequences.DO,
-      client: TelnetControlSequences.WONT,
     });
 
-    this.telnetSocket.writeWont(option);
+    const handler = this.optionsHandler.get(option);
+
+    const handlerResult = handler?.handleDo();
+
+    if (handlerResult !== undefined) {
+      this.updateNegotiations(option, {
+        client: handlerResult,
+      });
+    } else {
+      this.telnetSocket.writeWont(option);
+
+      this.updateNegotiations(option, {
+        client: TelnetControlSequences.WONT, // we answer negatively but we should WILL everything possible
+      });
+    }
+
+    // switch (option) {
+
+    //   case TelnetOptions.TELOPT_TM: {
+    //     this.updateNegotiations(option, {
+    //       server: TelnetControlSequences.DO,
+    //       client: TelnetControlSequences.WILL,
+    //     });
+
+    //     this.telnetSocket.writeWill(option);
+
+    //     return;
+    //   }
+
+    //   case TelnetOptions.TELOPT_NAWS: {
+    //     this.updateNegotiations(option, {
+    //       server: TelnetControlSequences.DO,
+    //       client: TelnetControlSequences.WILL,
+    //     });
+
+    //     this.telnetSocket.writeWill(option);
+
+    //     return;
+    //   }
+    // }
 
     return;
   }
 
   private handleDont(option: TelnetOptions): void {
-    this.telnetSocket.writeWont(option);
-
     this.updateNegotiations(option, {
       server: TelnetControlSequences.DONT,
-      client: TelnetControlSequences.WONT,
     });
+
+    const handler = this.optionsHandler.get(option);
+
+    const handlerResult = handler?.handleDont();
+
+    if (handlerResult !== undefined) {
+      this.updateNegotiations(option, {
+        client: handlerResult,
+      });
+    } else {
+      this.telnetSocket.writeWont(option);
+
+      this.updateNegotiations(option, {
+        client: TelnetControlSequences.WONT,
+      });
+    }
   }
 
   private handleWill(option: TelnetOptions): void {
-    switch (option) {
-      case TelnetOptions.TELOPT_CHARSET: {
-        this.telnetSocket.writeDo(option);
-
-        this.updateNegotiations(option, {
-          server: TelnetControlSequences.WILL,
-          client: TelnetControlSequences.DO,
-        });
-
-        return;
-      }
-
-      case TelnetOptions.TELOPT_ECHO: {
-        this.telnetSocket.writeDo(option);
-
-        this.updateNegotiations(option, {
-          server: TelnetControlSequences.WILL,
-          client: TelnetControlSequences.DO,
-        });
-
-        // socket_io.emit('mud-signal', {
-        //   signal: 'NOECHO-START',
-        //   id: this.mudOptions?.id,
-        // });
-
-        return;
-      }
-
-      case TelnetOptions.TELOPT_GMCP: {
-        this.telnetSocket.writeDo(option);
-
-        this.updateNegotiations(option, {
-          server: TelnetControlSequences.WILL,
-          client: TelnetControlSequences.DO,
-        });
-
-        return;
-      }
-    }
-
     this.updateNegotiations(option, {
       server: TelnetControlSequences.WILL,
-      client: TelnetControlSequences.DONT,
     });
 
-    this.telnetSocket.writeDont(option);
+    const handler = this.optionsHandler.get(option);
+
+    const handlerResult = handler?.handleWill();
+
+    if (handlerResult !== undefined) {
+      this.updateNegotiations(option, {
+        client: handlerResult,
+      });
+    } else {
+      this.telnetSocket.writeDont(option);
+
+      this.updateNegotiations(option, {
+        client: TelnetControlSequences.DONT, // we answer negatively but we should DO everything possible
+      });
+    }
+
+    // switch (option) {
+
+    //   case TelnetOptions.TELOPT_GMCP: {
+    //     this.telnetSocket.writeDo(option);
+
+    //     this.updateNegotiations(option, {
+    //       server: TelnetControlSequences.WILL,
+    //       client: TelnetControlSequences.DO,
+    //     });
+
+    //     return;
+    //   }
+    // }
   }
 
   private handleWont(option: TelnetOptions): void {
-    switch (option) {
-      case TelnetOptions.TELOPT_ECHO: {
-        this.telnetSocket.writeDont(option);
-
-        this.updateNegotiations(option, {
-          server: TelnetControlSequences.WONT,
-          client: TelnetControlSequences.DONT,
-        });
-
-        return;
-      }
-    }
-
-    this.telnetSocket.writeDo(option);
-
     this.updateNegotiations(option, {
       server: TelnetControlSequences.WONT,
-      client: TelnetControlSequences.DO,
     });
+
+    const handler = this.optionsHandler.get(option);
+
+    const handlerResult = handler?.handleWont();
+
+    if (handlerResult !== undefined) {
+      this.updateNegotiations(option, {
+        client: handlerResult,
+      });
+    } else {
+      this.telnetSocket.writeDont(option);
+
+      this.updateNegotiations(option, {
+        client: TelnetControlSequences.DONT, // we answer negatively but we should DO everything possible
+      });
+    }
   }
 
   private handleSub(option: TelnetOptions, serverChunk: Buffer): void {
-    if (
-      option === TelnetOptions.TELOPT_TTYPE &&
-      new Uint8Array(serverChunk)[0] === 1
-    ) {
-      const nullBuf = Buffer.alloc(1, 0); // TELQUAL_IS
+    this.updateNegotiations(option, {
+      serverChunk,
+    });
 
-      const buf = Buffer.from('WebMud3a');
+    const handler = this.optionsHandler.get(option);
 
-      const sendBuf = Buffer.concat([nullBuf, buf], buf.length + 1);
+    const handlerResult = handler?.handleSub?.(serverChunk);
 
-      this.telnetSocket.writeSub(option, sendBuf);
-
-      return;
-    }
-
-    if (
-      option === TelnetOptions.TELOPT_CHARSET &&
-      new Uint8Array(serverChunk)[0] ===
-        TelnetCharsetSubnogiation.CHARSET_REQUEST
-    ) {
-      const command = Buffer.alloc(
-        1,
-        TelnetCharsetSubnogiation.CHARSET_ACCEPTED,
-      );
-
-      const serverCharsets = serverChunk.toString().split(' ');
-
-      /**
-       * This function remappes the given charset from the environment to the one supported by the Telnet server
-       */
-      const matchCharset = (
-        charset: BufferEncoding,
-        serverCharsets: string[],
-      ): string => {
-        if (charset === 'utf-8') {
-          if (serverCharsets.includes('UTF-8')) {
-            return 'UTF-8';
-          }
-        }
-
-        if (charset === 'ascii') {
-          if (serverCharsets.includes('US-ASCII')) {
-            return 'US-ASCII';
-          }
-        }
-
-        if (charset === 'latin1') {
-          if (serverCharsets.includes('ISO-8859-1')) {
-            return 'ISO-8859-1';
-          }
-        }
-
-        logger.warn(
-          `[Socket-Manager] [Client] charset ${charset} is not supported by the Telnet server. Only ${serverCharsets.join(', ')} are supported. Default to utf-8`,
-        );
-
-        return 'UTF-8';
-      };
-
-      const charset = matchCharset(this.encoding, serverCharsets);
-
-      const data = Buffer.from(charset);
-
-      const message = Buffer.concat([command, data], data.length + 1);
-
-      this.updateSubNegotiation(TelnetOptions.TELOPT_CHARSET, {
-        clientChunk: message.toString(),
-        serverChunk: serverChunk.toString(),
-        clientOption: data.toString().toLocaleLowerCase(),
-      });
-
-      this.telnetSocket.writeSub(option, message);
-
-      return;
-    }
-
-    if (option === TelnetOptions.TELOPT_GMCP) {
-      const tmpstr = serverChunk.toString();
-
-      const ix = tmpstr.indexOf(' ');
-
-      // const jx = tmpstr.indexOf('.');
-
-      let jsdata = tmpstr.substr(ix + 1);
-      if (ix < 0 || jsdata === '') jsdata = '{}';
-
-      // socket_io.emit(
-      //   'mud-gmcp-incoming',
-      //   this.mudOptions?.id,
-      //   tmpstr.substr(0, jx),
-      //   tmpstr.substr(jx + 1, ix - jx),
-      //   JSON.parse(jsdata),
-      // );
-
-      return;
+    if (handlerResult !== undefined && handlerResult !== null) {
+      this.updateNegotiations(option, handlerResult);
     }
   }
 
   /**
-   * Updates the negotiations for a given Telnet option with the provided server and client control sequences.
-   * This function is special because it maps all enum values to its keys, making it easier to observe.
+   * Updates the negotiations and subnegotiations for a given Telnet option.
+   * This method allows updating both the control sequences and the subnegotiations.
    *
-   * @param {TelnetOptions} option - The Telnet option to update the negotiations for.
-   * @param {Object} negotiations - An object containing the server and client control sequences for the option.
-   * @param {TelnetControlSequences} negotiations.server - The server control sequence for the option.
-   * @param {TelnetControlSequences} negotiations.client - The client control sequence for the option.
+   * @param {TelnetOptions} option - The Telnet option to update.
+   * @param {Object} negotiations - An object containing the server and client control sequences, as well as subnegotiations.
+   * @param {TelnetControlSequences} [negotiations.server] - The server control sequence for the option.
+   * @param {TelnetControlSequences} [negotiations.client] - The client control sequence for the option.
+   * @param {Buffer} [negotiations.serverChunk] - The server chunk for subnegotiations (optional).
+   * @param {Buffer} [negotiations.clientChunk] - The client chunk for subnegotiations (optional).
+   * @param {string} [negotiations.clientOption] - The client option for subnegotiations (optional).
    */
   private updateNegotiations(
     option: TelnetOptions,
     negotiations: {
-      server: TelnetControlSequences;
-      client: TelnetControlSequences;
+      server?: TelnetControlSequences;
+      client?: TelnetControlSequences;
+      serverChunk?: Buffer;
+      clientChunk?: Buffer;
+      clientOption?: string;
     },
   ): void {
-    this._negotiations[option] = {
-      server: TelnetControlSequences[
-        negotiations.server
-      ] as keyof typeof TelnetControlSequences,
-      client: TelnetControlSequences[
-        negotiations.client
-      ] as keyof typeof TelnetControlSequences,
+    const existing = this._negotiations[option] || {};
+
+    // Update the control sequences for server and client
+    const updatedNegotiation = {
+      ...existing,
+      ...{
+        server: negotiations.server ?? existing.server,
+        client: negotiations.client ?? existing.client,
+      },
     };
 
+    // Update the subnegotiation properties if they exist
+    if (existing) {
+      updatedNegotiation.subnegotiation = {
+        ...existing.subnegotiation,
+        ...{
+          serverChunk: negotiations.serverChunk
+            ? negotiations.serverChunk.toString()
+            : existing.subnegotiation?.serverChunk,
+          clientChunk: negotiations.clientChunk
+            ? negotiations.clientChunk.toString()
+            : existing.subnegotiation?.clientChunk,
+          clientOption:
+            negotiations.clientOption ?? existing.subnegotiation?.clientOption,
+        },
+      };
+    }
+
+    // Update the negotiations object
+    this._negotiations[option] = updatedNegotiation;
+
+    // Emit event with the updated negotiation values
     this.emit('negotiationChanged', {
       option,
       client: negotiations.client,
       server: negotiations.server,
     });
-  }
-
-  private updateSubNegotiation(
-    option: TelnetOptions,
-    subnegotiation: {
-      serverChunk: string;
-      clientChunk: string;
-      clientOption: string;
-    },
-  ): void {
-    const existing = this._negotiations[option];
-
-    // It is not allowed to discuss subnegotiations without a negotiation beforehand
-    if (existing) {
-      existing.subnegotiation = subnegotiation;
-    }
   }
 }
 
