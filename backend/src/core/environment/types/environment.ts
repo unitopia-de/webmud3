@@ -6,29 +6,7 @@ export interface IEnvironment {
   readonly projectRoot: string;
   readonly socketRoot: string;
 
-  readonly charset: BufferEncoding;
-
   readonly socketTimeout: number;
 
   readonly environment: 'production' | 'development';
-
-  // backend: {
-  //   host: string;
-  //   port: number;
-  // };
-  // frontend: {
-  //   host: string;
-  //   port: number;
-  // };
-  // mudrpc: {
-  //   socketfile: string;
-  // };
-  // webmud: {
-  //   mudname: string;
-  //   autoConnect: boolean;
-  //   autoLogin: boolean;
-  //   autoUser: string;
-  //   autoToken: string;
-  //   localEcho: boolean;
-  // };
 }

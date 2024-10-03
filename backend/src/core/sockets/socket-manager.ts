@@ -127,10 +127,7 @@ export class SocketManager extends Server<
         return;
       }
 
-      telnetClient.sendMessage(
-        // data.toString(Environment.getInstance().charset) + '\r\n',
-        `${data}\r\n`,
-      );
+      telnetClient.sendMessage(`${data}\r\n`);
     });
 
     socket.on('mudConnect', () => {
@@ -147,7 +144,6 @@ export class SocketManager extends Server<
           this.managerOptions.telnetHost,
           this.managerOptions.telnetPort,
           this.managerOptions.useTelnetTls,
-          Environment.getInstance().charset,
         );
 
         telnetClient.on('data', (data: string | Buffer) => {
@@ -192,7 +188,7 @@ export class SocketManager extends Server<
         });
 
         telnetClient.on('negotiationChanged', (negotiation) => {
-          logger.info(
+          logger.verbose(
             `[Socket-Manager] [Client] ${socket.id} telnet negotiation changed. Emitting 'negotiationChanged'`,
             negotiation,
           );

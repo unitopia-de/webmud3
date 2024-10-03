@@ -41,77 +41,49 @@ const handleCharsetWont =
   };
 
 const handleCharsetSub =
-  (socket: TelnetSocket, encoding: BufferEncoding) =>
+  (socket: TelnetSocket) =>
   (serverChunk: Buffer): TelnetSubnegotiationResult => {
     if (
-      new Uint8Array(serverChunk)[0] ===
+      new Uint8Array(serverChunk)[0] !==
       TelnetCharsetSubnogiation.CHARSET_REQUEST
     ) {
-      const command = Buffer.alloc(
-        1,
-        TelnetCharsetSubnogiation.CHARSET_ACCEPTED,
-      );
-
-      /**
-       * This function remappes the given charset from the environment to the one supported by the Telnet server
-       */
-      const matchCharset = (
-        charset: BufferEncoding,
-        serverCharsets: string[],
-      ): string => {
-        if (charset === 'utf-8') {
-          if (serverCharsets.includes('UTF-8')) {
-            return 'UTF-8';
-          }
-        }
-
-        if (charset === 'ascii') {
-          if (serverCharsets.includes('US-ASCII')) {
-            return 'US-ASCII';
-          }
-        }
-
-        if (charset === 'latin1') {
-          if (serverCharsets.includes('ISO-8859-1')) {
-            return 'ISO-8859-1';
-          }
-        }
-
-        logger.warn(
-          `[Socket-Manager] [Client] charset ${charset} is not supported by the Telnet server. Only ${serverCharsets.join(', ')} are supported. Default to utf-8`,
-        );
-
-        return 'UTF-8';
-      };
-
-      const serverCharsets = serverChunk.toString().split(' ');
-
-      const charset = matchCharset(encoding, serverCharsets);
-
-      const data = Buffer.from(charset);
-
-      const message = Buffer.concat([command, data], data.length + 1);
-
-      socket.writeSub(TelnetOptions.TELOPT_CHARSET, message);
-
-      return {
-        clientChunk: message,
-        clientOption: charset.toLocaleLowerCase(),
-      };
+      return null;
     }
 
-    return null;
+    const clientOption = 'UTF-8';
+
+    const serverCharsets = serverChunk.toString().split(' ');
+
+    if (serverCharsets.includes(clientOption) === false) {
+      logger.error(
+        `[Telnet-Client] [Charset-Option] charset ${clientOption} is not supported by the MUD server. Only ${serverCharsets.join(
+          ', ',
+        )} are supported.`,
+      );
+    }
+
+    const command = Buffer.alloc(1, TelnetCharsetSubnogiation.CHARSET_ACCEPTED);
+
+    const data = Buffer.from('UTF-8');
+
+    const message = Buffer.concat([command, data], data.length + 1);
+
+    socket.writeSub(TelnetOptions.TELOPT_CHARSET, message);
+
+    return {
+      clientChunk: message,
+      clientOption,
+    };
   };
 
 export const handleCharsetOption = (
   socket: TelnetSocket,
-  encoding: BufferEncoding,
 ): TelnetOptionHandler => {
   return {
     handleDo: handleCharsetDo(socket),
     handleDont: handleCharsetDont(socket),
     handleWill: handleCharsetWill(socket),
     handleWont: handleCharsetWont(socket),
-    handleSub: handleCharsetSub(socket, encoding),
+    handleSub: handleCharsetSub(socket),
   };
 };

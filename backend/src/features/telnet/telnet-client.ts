@@ -56,12 +56,7 @@ export class TelnetClient extends EventEmitter<TelnetClientEvents> {
    * @param {number} telnetPort - The port number of the Telnet server.
    * @param {boolean} useTls - Indicates whether to use TLS encryption for the connection.
    */
-  constructor(
-    telnetHost: string,
-    telnetPort: number,
-    useTls: boolean,
-    encoding: BufferEncoding,
-  ) {
+  constructor(telnetHost: string, telnetPort: number, useTls: boolean) {
     super();
 
     const telnetConnection = createTelnetConnection(
@@ -76,10 +71,7 @@ export class TelnetClient extends EventEmitter<TelnetClientEvents> {
     });
 
     this.optionsHandler = new Map([
-      [
-        TelnetOptions.TELOPT_CHARSET,
-        handleCharsetOption(this.telnetSocket, encoding),
-      ],
+      [TelnetOptions.TELOPT_CHARSET, handleCharsetOption(this.telnetSocket)],
       [TelnetOptions.TELOPT_ECHO, handleEchoOption(this.telnetSocket)],
     ]);
 
@@ -102,8 +94,6 @@ export class TelnetClient extends EventEmitter<TelnetClientEvents> {
     this.telnetSocket.on('data', (chunkData: string | Buffer) => {
       this.emit('data', chunkData);
     });
-
-    logger.info(`[Telnet-Client] Created`);
 
     this.connected = true;
   }

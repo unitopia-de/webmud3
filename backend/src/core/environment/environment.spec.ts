@@ -31,8 +31,6 @@ describe('Environment', () => {
 
     process.env.SOCKET_ROOT = '/socket.io';
 
-    process.env.CHARSET = 'utf-8';
-
     const env = await getFreshEnvironmentInstance();
 
     const { Environment } = await import('./environment');
@@ -47,15 +45,11 @@ describe('Environment', () => {
 
     process.env.SOCKET_ROOT = '/socket.io';
 
-    process.env.CHARSET = 'utf-8';
-
     const env = await getFreshEnvironmentInstance();
 
     expect(env.telnetHost).toBe('localhost');
 
     expect(env.telnetPort).toBe(3000);
-
-    expect(env.charset).toBe('utf-8');
   });
 
   it('should handle optional TLS configuration', async () => {
@@ -64,8 +58,6 @@ describe('Environment', () => {
     process.env.TELNET_PORT = '3000';
 
     process.env.SOCKET_ROOT = '/socket.io';
-
-    process.env.CHARSET = 'utf-8';
 
     process.env.TELNET_TLS = 'true';
 
@@ -81,8 +73,6 @@ describe('Environment', () => {
 
     process.env.SOCKET_ROOT = '/socket.io';
 
-    process.env.CHARSET = 'utf-8';
-
     process.env.TELNET_TLS = 'TRUE';
 
     const env = await getFreshEnvironmentInstance();
@@ -97,135 +87,9 @@ describe('Environment', () => {
 
     process.env.SOCKET_ROOT = '/socket.io';
 
-    process.env.CHARSET = 'utf-8';
-
     const env = await getFreshEnvironmentInstance();
 
     expect(env.telnetTLS).toBe(false);
-  });
-
-  it('should use utf-8 charset when set to utf8', async () => {
-    process.env.TELNET_HOST = 'localhost';
-
-    process.env.TELNET_PORT = '3000';
-
-    process.env.SOCKET_ROOT = '/socket.io';
-
-    process.env.CHARSET = 'utf8';
-
-    const env = await getFreshEnvironmentInstance();
-
-    expect(env.charset).toBe('utf-8');
-  });
-
-  it('should use utf-8 charset when set to utf-8', async () => {
-    process.env.TELNET_HOST = 'localhost';
-
-    process.env.TELNET_PORT = '3000';
-
-    process.env.SOCKET_ROOT = '/socket.io';
-
-    process.env.CHARSET = 'utf-8';
-
-    const env = await getFreshEnvironmentInstance();
-
-    expect(env.charset).toBe('utf-8');
-  });
-
-  it('should use latin1 charset when set to latin1', async () => {
-    process.env.TELNET_HOST = 'localhost';
-
-    process.env.TELNET_PORT = '3000';
-
-    process.env.SOCKET_ROOT = '/socket.io';
-
-    process.env.CHARSET = 'latin1';
-
-    const env = await getFreshEnvironmentInstance();
-
-    expect(env.charset).toBe('latin1');
-  });
-
-  it('should use latin1 charset when set to iso-8859-1', async () => {
-    process.env.TELNET_HOST = 'localhost';
-
-    process.env.TELNET_PORT = '3000';
-
-    process.env.SOCKET_ROOT = '/socket.io';
-
-    process.env.CHARSET = 'iso-8859-1';
-
-    const env = await getFreshEnvironmentInstance();
-
-    expect(env.charset).toBe('latin1');
-  });
-
-  it('should use ascii charset when set to ascii', async () => {
-    process.env.TELNET_HOST = 'localhost';
-
-    process.env.TELNET_PORT = '3000';
-
-    process.env.SOCKET_ROOT = '/socket.io';
-
-    process.env.CHARSET = 'ascii';
-
-    const env = await getFreshEnvironmentInstance();
-
-    expect(env.charset).toBe('ascii');
-  });
-
-  it('should use ascii charset when set to us-ascii', async () => {
-    process.env.TELNET_HOST = 'localhost';
-
-    process.env.TELNET_PORT = '3000';
-
-    process.env.SOCKET_ROOT = '/socket.io';
-
-    process.env.CHARSET = 'us-ascii';
-
-    const env = await getFreshEnvironmentInstance();
-
-    expect(env.charset).toBe('ascii');
-  });
-
-  it('should throw an error for invalid charset', async () => {
-    process.env.TELNET_HOST = 'localhost';
-
-    process.env.TELNET_PORT = '3000';
-
-    process.env.SOCKET_ROOT = '/socket.io';
-
-    process.env.CHARSET = 'invalid-charset';
-
-    await expect(getFreshEnvironmentInstance()).rejects.toThrow();
-  });
-
-  it('should use utf-8 as the default charset when CHARSET is not set', async () => {
-    process.env.TELNET_HOST = 'localhost';
-
-    process.env.TELNET_PORT = '3000';
-
-    process.env.SOCKET_ROOT = '/socket.io';
-
-    delete process.env.CHARSET; // Remove CHARSET from environment
-
-    const env = await getFreshEnvironmentInstance();
-
-    expect(env.charset).toBe('utf-8'); // Default value
-  });
-
-  it('should default to utf-8 when CHARSET is empty', async () => {
-    process.env.TELNET_HOST = 'localhost';
-
-    process.env.TELNET_PORT = '3000';
-
-    process.env.SOCKET_ROOT = '/socket.io';
-
-    process.env.CHARSET = ''; // Set CHARSET to an empty string
-
-    const env = await getFreshEnvironmentInstance();
-
-    expect(env.charset).toBe('utf-8'); // Default value
   });
 
   it('should set projectRoot correctly', async () => {
