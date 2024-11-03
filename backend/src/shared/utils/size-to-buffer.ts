@@ -7,14 +7,8 @@ import { val16ToBuffer } from './val16-to-buffer.js';
  * @returns {Buffer} A Buffer object containing the 16-bit encoded width and height.
  */
 export function sizeToBuffer(w: number, h: number): Buffer {
-  // Initialize an array to hold the encoded values.
-  let result: number[] = [];
-
-  // Encode the width and append it to the result array.
-  result = val16ToBuffer(result, w);
-
-  // Encode the height and append it to the result array.
-  result = val16ToBuffer(result, h);
+  // Combine the 16-bit buffers for width and height into a single array.
+  const result = [...val16ToBuffer(w), ...val16ToBuffer(h)];
 
   // Convert the array of numbers into a Buffer and return it.
   return Buffer.from(result);

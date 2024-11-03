@@ -2,9 +2,12 @@ import { TelnetSocket } from 'telnet-stream';
 
 import { logger } from '../../../shared/utils/logger.js';
 import { TelnetControlSequences } from '../types/telnet-control-sequences.js';
+import { TelnetNegotiationResult } from '../types/telnet-negotiation-result.js';
 import { TelnetOptionHandler } from '../types/telnet-option-handler.js';
 import { TelnetOptions } from '../types/telnet-options.js';
 import { TelnetSubnegotiationResult } from '../types/telnet-subnegotiation-result.js';
+
+const DEFAULT_CLIENT_ENCODING = 'UTF-8';
 
 enum TelnetCharsetSubnogiation {
   CHARSET_REJECTED = 0,
@@ -13,31 +16,39 @@ enum TelnetCharsetSubnogiation {
 }
 
 const handleCharsetDo =
-  (socket: TelnetSocket) => (): TelnetControlSequences => {
+  (socket: TelnetSocket) => (): TelnetNegotiationResult => {
     socket.writeWill(TelnetOptions.TELOPT_CHARSET);
 
-    return TelnetControlSequences.WILL;
+    return {
+      controlSequence: TelnetControlSequences.WILL,
+    };
   };
 
 const handleCharsetDont =
-  (socket: TelnetSocket) => (): TelnetControlSequences => {
+  (socket: TelnetSocket) => (): TelnetNegotiationResult => {
     socket.writeWont(TelnetOptions.TELOPT_CHARSET);
 
-    return TelnetControlSequences.WONT;
+    return {
+      controlSequence: TelnetControlSequences.WONT,
+    };
   };
 
 const handleCharsetWill =
-  (socket: TelnetSocket) => (): TelnetControlSequences => {
+  (socket: TelnetSocket) => (): TelnetNegotiationResult => {
     socket.writeDo(TelnetOptions.TELOPT_CHARSET);
 
-    return TelnetControlSequences.DO;
+    return {
+      controlSequence: TelnetControlSequences.DO,
+    };
   };
 
 const handleCharsetWont =
-  (socket: TelnetSocket) => (): TelnetControlSequences => {
+  (socket: TelnetSocket) => (): TelnetNegotiationResult => {
     socket.writeDont(TelnetOptions.TELOPT_CHARSET);
 
-    return TelnetControlSequences.DONT;
+    return {
+      controlSequence: TelnetControlSequences.DONT,
+    };
   };
 
 const handleCharsetSub =
@@ -50,13 +61,11 @@ const handleCharsetSub =
       return null;
     }
 
-    const clientOption = 'UTF-8';
-
     const serverCharsets = serverChunk.toString().split(' ');
 
-    if (serverCharsets.includes(clientOption) === false) {
+    if (serverCharsets.includes(DEFAULT_CLIENT_ENCODING) === false) {
       logger.error(
-        `[Telnet-Client] [Charset-Option] charset ${clientOption} is not supported by the MUD server. Only ${serverCharsets.join(
+        `[Telnet-Client] [Charset-Option] charset ${DEFAULT_CLIENT_ENCODING} is not supported by the MUD server. Only ${serverCharsets.join(
           ', ',
         )} are supported.`,
       );
@@ -72,7 +81,7 @@ const handleCharsetSub =
 
     return {
       clientChunk: message,
-      clientOption,
+      clientOption: DEFAULT_CLIENT_ENCODING,
     };
   };
 

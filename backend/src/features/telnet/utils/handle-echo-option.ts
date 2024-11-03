@@ -1,32 +1,36 @@
 import { TelnetSocket } from 'telnet-stream';
 
 import { TelnetControlSequences } from '../types/telnet-control-sequences.js';
+import { TelnetNegotiationResult } from '../types/telnet-negotiation-result.js';
 import { TelnetOptionHandler } from '../types/telnet-option-handler.js';
 import { TelnetOptions } from '../types/telnet-options.js';
 
-const handleEchoDo = (socket: TelnetSocket) => (): TelnetControlSequences => {
+const handleEchoDo = (socket: TelnetSocket) => (): TelnetNegotiationResult => {
   socket.writeWill(TelnetOptions.TELOPT_ECHO);
 
-  return TelnetControlSequences.WILL;
+  return { controlSequence: TelnetControlSequences.WILL };
 };
 
-const handleEchoDont = (socket: TelnetSocket) => (): TelnetControlSequences => {
-  socket.writeWont(TelnetOptions.TELOPT_ECHO);
+const handleEchoDont =
+  (socket: TelnetSocket) => (): TelnetNegotiationResult => {
+    socket.writeWont(TelnetOptions.TELOPT_ECHO);
 
-  return TelnetControlSequences.WONT;
-};
+    return { controlSequence: TelnetControlSequences.WONT };
+  };
 
-const handleEchoWill = (socket: TelnetSocket) => (): TelnetControlSequences => {
-  socket.writeDo(TelnetOptions.TELOPT_ECHO);
+const handleEchoWill =
+  (socket: TelnetSocket) => (): TelnetNegotiationResult => {
+    socket.writeDo(TelnetOptions.TELOPT_ECHO);
 
-  return TelnetControlSequences.DO;
-};
+    return { controlSequence: TelnetControlSequences.DO };
+  };
 
-const handleEchoWont = (socket: TelnetSocket) => (): TelnetControlSequences => {
-  socket.writeDont(TelnetOptions.TELOPT_ECHO);
+const handleEchoWont =
+  (socket: TelnetSocket) => (): TelnetNegotiationResult => {
+    socket.writeDont(TelnetOptions.TELOPT_ECHO);
 
-  return TelnetControlSequences.DONT;
-};
+    return { controlSequence: TelnetControlSequences.DONT };
+  };
 
 export const handleEchoOption = (socket: TelnetSocket): TelnetOptionHandler => {
   return {

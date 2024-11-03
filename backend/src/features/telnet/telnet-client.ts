@@ -15,6 +15,7 @@ import { TelnetOptionHandler } from './types/telnet-option-handler.js';
 import { TelnetOptions } from './types/telnet-options.js';
 import { handleCharsetOption } from './utils/handle-charset-option.js';
 import { handleEchoOption } from './utils/handle-echo-option.js';
+import { handleNawsOption } from './utils/handle-naws-option.js';
 import { TelnetSocketWrapper } from './utils/telnet-socket-wrapper.js';
 
 type TelnetClientEvents = {
@@ -73,6 +74,7 @@ export class TelnetClient extends EventEmitter<TelnetClientEvents> {
     this.optionsHandler = new Map([
       [TelnetOptions.TELOPT_CHARSET, handleCharsetOption(this.telnetSocket)],
       [TelnetOptions.TELOPT_ECHO, handleEchoOption(this.telnetSocket)],
+      [TelnetOptions.TELOPT_NAWS, handleNawsOption(this.telnetSocket)],
     ]);
 
     this.telnetSocket.on('connect', () => this.handleConnect());
@@ -131,7 +133,9 @@ export class TelnetClient extends EventEmitter<TelnetClientEvents> {
 
     if (handlerResult !== undefined) {
       this.updateNegotiations(option, {
-        client: handlerResult,
+        client: handlerResult.controlSequence,
+        clientChunk: handlerResult.subNegotiationResult?.clientChunk,
+        clientOption: handlerResult.subNegotiationResult?.clientOption,
       });
     } else {
       this.telnetSocket.writeWont(option);
@@ -154,18 +158,6 @@ export class TelnetClient extends EventEmitter<TelnetClientEvents> {
     //     return;
     //   }
 
-    //   case TelnetOptions.TELOPT_NAWS: {
-    //     this.updateNegotiations(option, {
-    //       server: TelnetControlSequences.DO,
-    //       client: TelnetControlSequences.WILL,
-    //     });
-
-    //     this.telnetSocket.writeWill(option);
-
-    //     return;
-    //   }
-    // }
-
     return;
   }
 
@@ -180,7 +172,9 @@ export class TelnetClient extends EventEmitter<TelnetClientEvents> {
 
     if (handlerResult !== undefined) {
       this.updateNegotiations(option, {
-        client: handlerResult,
+        client: handlerResult.controlSequence,
+        clientChunk: handlerResult.subNegotiationResult?.clientChunk,
+        clientOption: handlerResult.subNegotiationResult?.clientOption,
       });
     } else {
       this.telnetSocket.writeWont(option);
@@ -202,7 +196,9 @@ export class TelnetClient extends EventEmitter<TelnetClientEvents> {
 
     if (handlerResult !== undefined) {
       this.updateNegotiations(option, {
-        client: handlerResult,
+        client: handlerResult.controlSequence,
+        clientChunk: handlerResult.subNegotiationResult?.clientChunk,
+        clientOption: handlerResult.subNegotiationResult?.clientOption,
       });
     } else {
       this.telnetSocket.writeDont(option);
@@ -238,7 +234,9 @@ export class TelnetClient extends EventEmitter<TelnetClientEvents> {
 
     if (handlerResult !== undefined) {
       this.updateNegotiations(option, {
-        client: handlerResult,
+        client: handlerResult.controlSequence,
+        clientChunk: handlerResult.subNegotiationResult?.clientChunk,
+        clientOption: handlerResult.subNegotiationResult?.clientOption,
       });
     } else {
       this.telnetSocket.writeDont(option);
