@@ -2,15 +2,39 @@ import { TelnetControlSequences } from './telnet-control-sequences.js';
 import { TelnetOptions } from './telnet-options.js';
 
 /**
- * Represents the negotiation status of Telnet options between a server and a client.
- * Each key in the object represents a Telnet option and its corresponding negotiation on the server and client sides.
- * But the keys are the string representation of the enum values for ease of observation.
- * The value of each key is an object with `server` and `client` properties, which are of type `TelnetControlSequences`.
- * The optional `?` in the type definition indicates that not all Telnet options may be negotiated.
+ * Represents the state of negotiations for Telnet options, including both server
+ * and client control sequences, as well as any subnegotiation data.
  */
 export type TelnetNegotiations = {
   -readonly [key in keyof typeof TelnetOptions]?: {
-    server: keyof typeof TelnetControlSequences;
-    client: keyof typeof TelnetControlSequences;
+    /**
+     * The control sequence received from the server (DO, DON'T, WILL, WON'T).
+     */
+    server?: TelnetControlSequences;
+
+    /**
+     * The control sequence sent by the client (DO, DON'T, WILL, WON'T).
+     */
+    client?: TelnetControlSequences;
+
+    /**
+     * Optional subnegotiation data exchanged between the server and client.
+     */
+    subnegotiation?: {
+      /**
+       * The data chunk sent by the server during subnegotiation.
+       */
+      serverChunk?: string;
+
+      /**
+       * The data chunk sent by the client during subnegotiation.
+       */
+      clientChunk?: string;
+
+      /**
+       * The client option used during subnegotiation (e.g., a charset or mode).
+       */
+      clientOption?: string;
+    };
   };
 };

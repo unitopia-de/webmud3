@@ -5,5 +5,5 @@ export type EnvironmentKeys =
   | 'TELNET_PORT' // Required. Example '23'
   | 'TELNET_TLS' // Optional. Defaults to 'false'
   | 'SOCKET_TIMEOUT' // in milliseconds | default: 900000 (15 min) | determines how long messages are buffed for the disconnected frontend and when the telnet connection is closed
-  | 'SOCKET_ROOT' // Required. Example '/socket.io'
-  | 'CHARSET'; // Optional. Defaults to 'utf8';
+  | 'SOCKET_ROOT'
+  | 'ENVIRONMENT';

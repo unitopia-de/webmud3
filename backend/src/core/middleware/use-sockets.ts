@@ -8,7 +8,7 @@ export const useSockets = (
   httpServer: HttpServer | HttpsServer,
   environment: Environment,
 ) => {
-  new SocketManager(httpServer, {
+  return new SocketManager(httpServer, {
     telnetHost: environment.telnetHost,
     telnetPort: environment.telnetPort,
     useTelnetTls: environment.telnetTLS,

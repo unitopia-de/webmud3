@@ -6,6 +6,7 @@ import { TelnetClient } from '../../features/telnet/telnet-client.js';
 import { TelnetControlSequences } from '../../features/telnet/types/telnet-control-sequences.js';
 import { TelnetOptions } from '../../features/telnet/types/telnet-options.js';
 import { logger } from '../../shared/utils/logger.js';
+import { mapToServerEncodings } from '../../shared/utils/supported-encodings.js';
 import { Environment } from '../environment/environment.js';
 import { ClientToServerEvents } from './types/client-to-server-events.js';
 import { InterServerEvents } from './types/inter-server-events.js';
@@ -17,7 +18,7 @@ export class SocketManager extends Server<
   ServerToClientEvents,
   InterServerEvents
 > {
-  private readonly mudConnections: MudConnections = {};
+  public readonly mudConnections: MudConnections = {};
 
   public constructor(
     server: HttpServer | HttpsServer,
@@ -126,10 +127,7 @@ export class SocketManager extends Server<
         return;
       }
 
-      telnetClient.sendMessage(
-        // data.toString(Environment.getInstance().charset) + '\r\n',
-        `${data}\r\n`,
-      );
+      telnetClient.sendMessage(`${data}\r\n`);
     });
 
     socket.on('mudConnect', () => {
@@ -149,7 +147,34 @@ export class SocketManager extends Server<
         );
 
         telnetClient.on('data', (data: string | Buffer) => {
-          socket.emit('mudOutput', data.toString('utf8'));
+          const mudCharset =
+            this.mudConnections[socket.id].telnet?.negotiations[
+              TelnetOptions.TELOPT_CHARSET
+            ]?.subnegotiation?.clientOption;
+
+          if (mudCharset === undefined) {
+            logger.warn(
+              '[Socket-Manager] [Client] no charset negotiated before sending data. Default to utf-8',
+            );
+
+            socket.emit('mudOutput', data.toString('utf-8'));
+
+            return;
+          }
+
+          const charset = mapToServerEncodings(mudCharset);
+
+          if (charset !== null) {
+            socket.emit('mudOutput', data.toString(charset));
+
+            return;
+          }
+
+          logger.warn(
+            `[Socket-Manager] [Client] unknown charset ${mudCharset}. Default to utf-8`,
+          );
+
+          socket.emit('mudOutput', data.toString('utf-8'));
         });
 
         telnetClient.on('close', () => {
@@ -163,7 +188,7 @@ export class SocketManager extends Server<
         });
 
         telnetClient.on('negotiationChanged', (negotiation) => {
-          logger.info(
+          logger.verbose(
             `[Socket-Manager] [Client] ${socket.id} telnet negotiation changed. Emitting 'negotiationChanged'`,
             negotiation,
           );

@@ -17,10 +17,10 @@ export class Environment implements IEnvironment {
   public readonly telnetHost: string;
   public readonly telnetPort: number;
   public readonly telnetTLS: boolean;
-  public readonly charset: string;
   public readonly projectRoot: string;
   public readonly socketRoot: string;
   public readonly socketTimeout: number;
+  public readonly environment: 'production' | 'development';
 
   /**
    * Private constructor to enforce singleton pattern.
@@ -46,11 +46,21 @@ export class Environment implements IEnvironment {
 
     this.socketRoot = String(getEnvironmentVariable('SOCKET_ROOT'));
 
-    this.charset = String(getEnvironmentVariable('CHARSET', false, 'utf8'));
-
     this.socketTimeout = Number(
       getEnvironmentVariable('SOCKET_TIMEOUT', false, '900000'),
     );
+
+    const environment = String(
+      getEnvironmentVariable('ENVIRONMENT', false, 'production'),
+    ).toLocaleLowerCase();
+
+    if (environment !== 'production' && environment !== 'development') {
+      throw new Error(
+        'Environment variable "ENVIRONMENT" must be either "production" or "development" or unset.',
+      );
+    }
+
+    this.environment = environment;
 
     this.projectRoot = resolveModulePath('../../../main.js');
 

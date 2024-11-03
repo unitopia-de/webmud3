@@ -31,8 +31,6 @@ describe('Environment', () => {
 
     process.env.SOCKET_ROOT = '/socket.io';
 
-    process.env.CHARSET = 'utf8';
-
     const env = await getFreshEnvironmentInstance();
 
     const { Environment } = await import('./environment');
@@ -47,15 +45,11 @@ describe('Environment', () => {
 
     process.env.SOCKET_ROOT = '/socket.io';
 
-    process.env.CHARSET = 'utf8';
-
     const env = await getFreshEnvironmentInstance();
 
     expect(env.telnetHost).toBe('localhost');
 
     expect(env.telnetPort).toBe(3000);
-
-    expect(env.charset).toBe('utf8');
   });
 
   it('should handle optional TLS configuration', async () => {
@@ -64,8 +58,6 @@ describe('Environment', () => {
     process.env.TELNET_PORT = '3000';
 
     process.env.SOCKET_ROOT = '/socket.io';
-
-    process.env.CHARSET = 'utf8';
 
     process.env.TELNET_TLS = 'true';
 
@@ -81,8 +73,6 @@ describe('Environment', () => {
 
     process.env.SOCKET_ROOT = '/socket.io';
 
-    process.env.CHARSET = 'utf8';
-
     process.env.TELNET_TLS = 'TRUE';
 
     const env = await getFreshEnvironmentInstance();
@@ -97,23 +87,9 @@ describe('Environment', () => {
 
     process.env.SOCKET_ROOT = '/socket.io';
 
-    process.env.CHARSET = 'utf8';
-
     const env = await getFreshEnvironmentInstance();
 
     expect(env.telnetTLS).toBe(false);
-  });
-
-  it('should use default charset if not set', async () => {
-    process.env.TELNET_HOST = 'localhost';
-
-    process.env.TELNET_PORT = '3000';
-
-    process.env.SOCKET_ROOT = '/socket.io';
-
-    const env = await getFreshEnvironmentInstance();
-
-    expect(env.charset).toBe('utf8');
   });
 
   it('should set projectRoot correctly', async () => {
@@ -121,7 +97,7 @@ describe('Environment', () => {
 
     process.env.TELNET_PORT = '3000';
 
-    process.env.CHARSET = 'utf8';
+    process.env.CHARSET = 'utf-8';
 
     process.env.SOCKET_ROOT = '/socket.io';
 
