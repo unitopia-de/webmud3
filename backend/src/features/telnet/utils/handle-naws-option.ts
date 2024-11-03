@@ -6,9 +6,9 @@ import { TelnetNegotiationResult } from '../types/telnet-negotiation-result.js';
 import { TelnetOptionHandler } from '../types/telnet-option-handler.js';
 import { TelnetOptions } from '../types/telnet-options.js';
 
-const DEFAULT_VIEWPORT_WIDTH = 100;
+const DEFAULT_VIEWPORT_WIDTH = 80;
 
-const DEFAULT_VIEWPORT_HEIGHT = 30;
+const DEFAULT_VIEWPORT_HEIGHT = 25;
 
 const handleNawsDo = (socket: TelnetSocket) => (): TelnetNegotiationResult => {
   socket.writeWill(TelnetOptions.TELOPT_NAWS);
