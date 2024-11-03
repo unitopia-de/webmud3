@@ -1,9 +1,9 @@
 export type EnvironmentKeys =
-  | 'HOST' // Optional. Defaults to '0.0.0.0'
-  | 'PORT' // Optional. Defaults to 5000
-  | 'TELNET_HOST' // Required. Example '127.0.0.1'
-  | 'TELNET_PORT' // Required. Example '23'
-  | 'TELNET_TLS' // Optional. Defaults to 'false'
+  | 'HOST' // Optional | defaults to '0.0.0.0' | the IP the backend will listen for
+  | 'PORT' // Optional | defaults to 5000 | the PORT the backend will listen for
+  | 'TELNET_HOST' // Required | the IP of your MUD
+  | 'TELNET_PORT' // Required | the PORT of your MUD
+  | 'TELNET_TLS' // Optional | defaults to 'false' | set this to true if you want a secure connection
   | 'SOCKET_TIMEOUT' // in milliseconds | default: 900000 (15 min) | determines how long messages are buffed for the disconnected frontend and when the telnet connection is closed
-  | 'SOCKET_ROOT'
-  | 'ENVIRONMENT';
+  | 'SOCKET_ROOT' // Required | the named socket for
+  | 'ENVIRONMENT'; // Optional | Enables Debug REST Endpoint /api/info
