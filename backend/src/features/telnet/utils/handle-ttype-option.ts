@@ -4,23 +4,18 @@ import { TelnetOptions } from '../models/telnet-options.js';
 import { TelnetControlSequences } from '../types/telnet-control-sequences.js';
 import { TelnetOptionHandler } from '../types/telnet-option-handler.js';
 import { TelnetOptionResult } from '../types/telnet-option-result.js';
+import { TelnetSubnegotiationResult } from '../types/telnet-subnegotiation-result.js';
 
 const DEFAULT_TERMINAL_NAME = 'webmud3b';
+
+enum TelnetTTypeSubnogiation {
+  TTYPE_SEND = 1,
+}
 
 const handleTTypeDo = (socket: TelnetSocket) => (): TelnetOptionResult => {
   socket.writeWill(TelnetOptions.TELOPT_TTYPE);
 
-  const buffer = Buffer.from(DEFAULT_TERMINAL_NAME);
-
-  socket.writeSub(TelnetOptions.TELOPT_TTYPE, buffer);
-
-  return {
-    controlSequence: TelnetControlSequences.WONT,
-    subNegotiationResult: {
-      clientChunk: buffer,
-      clientOption: DEFAULT_TERMINAL_NAME,
-    },
-  };
+  return { controlSequence: TelnetControlSequences.WILL };
 };
 
 const handleTTypeDont = (socket: TelnetSocket) => (): TelnetOptionResult => {
@@ -42,6 +37,23 @@ const handleTTypeWont = (socket: TelnetSocket) => (): TelnetOptionResult => {
   return { controlSequence: TelnetControlSequences.DONT };
 };
 
+const handleTTypeSub =
+  (socket: TelnetSocket) =>
+  (serverChunk: Buffer): TelnetSubnegotiationResult => {
+    if (new Uint8Array(serverChunk)[0] === TelnetTTypeSubnogiation.TTYPE_SEND) {
+      const buffer = Buffer.from(DEFAULT_TERMINAL_NAME);
+
+      socket.writeSub(TelnetOptions.TELOPT_TTYPE, buffer);
+
+      return {
+        clientChunk: buffer,
+        clientOption: DEFAULT_TERMINAL_NAME,
+      };
+    }
+
+    return null;
+  };
+
 export const handleTTypeOption = (
   socket: TelnetSocket,
 ): TelnetOptionHandler => {
@@ -50,5 +62,6 @@ export const handleTTypeOption = (
     handleDont: handleTTypeDont(socket),
     handleWill: handleTTypeWill(socket),
     handleWont: handleTTypeWont(socket),
+    handleSub: handleTTypeSub(socket),
   };
 };
