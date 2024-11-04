@@ -5,6 +5,7 @@ import tls from 'tls';
 
 import { logger } from '../../shared/utils/logger.js';
 import { TelnetOptions } from './models/telnet-options.js';
+import { TelnetStatusSubnogiation } from './models/telnet-status-subnogiation.js';
 import { TelnetControlSequences } from './types/telnet-control-sequences.js';
 import { TelnetNegotiations } from './types/telnet-negotiations.js';
 import { TelnetOptionHandler } from './types/telnet-option-handler.js';
@@ -107,10 +108,48 @@ export class TelnetClient extends EventEmitter<TelnetClientEvents> {
     this.telnetSocket.on('data', (chunkData: string | Buffer) => {
       this.emit('data', chunkData);
     });
+
+    this.on('negotiationChanged', (negotiation) => {
+      // Request initial status data after negotiation - we use TTYPE since this is subnegotiated the last
+      // Todo[myst]: Find a better way to do this but its not that easy, since everything is async
+      if (negotiation.option === TelnetOptions.TELOPT_TTYPE) {
+        this.requestStatus();
+      }
+    });
   }
 
   public sendMessage(data: string): void {
     this.telnetSocket.write(data);
+  }
+
+  public requestStatus(): void {
+    const buffer = Buffer.from([TelnetStatusSubnogiation.STATUS_SEND]);
+
+    if (!this.connected) {
+      return;
+    }
+
+    const clientOption =
+      this._negotiations[TelnetOptions.TELOPT_STATUS]?.client;
+
+    const serverOption =
+      this._negotiations[TelnetOptions.TELOPT_STATUS]?.server;
+
+    if (
+      clientOption === undefined ||
+      clientOption !== TelnetControlSequences.DO
+    ) {
+      return;
+    }
+
+    if (
+      serverOption === undefined ||
+      serverOption !== TelnetControlSequences.WILL
+    ) {
+      return;
+    }
+
+    this.telnetSocket.writeSub(TelnetOptions.TELOPT_STATUS, buffer);
   }
 
   public disconnect(): void {

@@ -5,10 +5,6 @@ import { TelnetControlSequences } from '../types/telnet-control-sequences.js';
 import { TelnetOptionHandler } from '../types/telnet-option-handler.js';
 import { TelnetOptionResult } from '../types/telnet-option-result.js';
 
-enum TelnetStatusSubnogiation {
-  STATUS_SEND = 1,
-}
-
 const handleStatusDo = (socket: TelnetSocket) => (): TelnetOptionResult => {
   socket.writeWill(TelnetOptions.TELOPT_STATUS);
 
@@ -23,10 +19,6 @@ const handleStatusDont = (socket: TelnetSocket) => (): TelnetOptionResult => {
 
 const handleStatusWill = (socket: TelnetSocket) => (): TelnetOptionResult => {
   socket.writeDo(TelnetOptions.TELOPT_STATUS);
-
-  const buffer = Buffer.from([TelnetStatusSubnogiation.STATUS_SEND]);
-
-  socket.writeSub(TelnetOptions.TELOPT_STATUS, buffer);
 
   return { controlSequence: TelnetControlSequences.DO };
 };
