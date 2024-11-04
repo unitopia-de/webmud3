@@ -13,6 +13,7 @@ import { handleEchoOption } from './utils/handle-echo-option.js';
 import { handleLinemodeOption } from './utils/handle-linemode-option.js';
 import { handleNawsOption } from './utils/handle-naws-option.js';
 import { handleSGAOption } from './utils/handle-sga-option.js';
+import { handleStatusOption } from './utils/handle-status-option.js';
 import { handleTTypeOption } from './utils/handle-ttype-option.js';
 import { TelnetSocketWrapper } from './utils/telnet-socket-wrapper.js';
 
@@ -84,6 +85,7 @@ export class TelnetClient extends EventEmitter<TelnetClientEvents> {
         TelnetOptions.TELOPT_TTYPE,
         handleTTypeOption(this.telnetSocket, clientName),
       ],
+      [TelnetOptions.TELOPT_STATUS, handleStatusOption(this.telnetSocket)],
     ]);
 
     this.telnetSocket.on('connect', () => this.handleConnect());
