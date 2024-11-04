@@ -1,5 +1,5 @@
 import { logger } from '../../../shared/utils/logger.js';
-import { TelnetOptions } from '../types/telnet-options.js';
+import { TelnetOptions } from '../models/telnet-options.js';
 
 export function logNegotiation(
   perspective: 'Received' | 'Send',

@@ -1,7 +1,7 @@
 import { Express, Request, Response } from 'express';
 
+import { TelnetOptions } from '../../features/telnet/models/telnet-options.js';
 import { TelnetControlSequences } from '../../features/telnet/types/telnet-control-sequences.js';
-import { TelnetOptions } from '../../features/telnet/types/telnet-options.js';
 import { logger } from '../../shared/utils/logger.js';
 import { SocketManager } from '../sockets/socket-manager.js';
 

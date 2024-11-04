@@ -1,10 +1,10 @@
 import { TelnetSocket } from 'telnet-stream';
 
 import { logger } from '../../../shared/utils/logger.js';
+import { TelnetOptions } from '../models/telnet-options.js';
 import { TelnetControlSequences } from '../types/telnet-control-sequences.js';
-import { TelnetNegotiationResult } from '../types/telnet-negotiation-result.js';
 import { TelnetOptionHandler } from '../types/telnet-option-handler.js';
-import { TelnetOptions } from '../types/telnet-options.js';
+import { TelnetOptionResult } from '../types/telnet-option-result.js';
 import { TelnetSubnegotiationResult } from '../types/telnet-subnegotiation-result.js';
 
 const DEFAULT_CLIENT_ENCODING = 'UTF-8';
@@ -15,41 +15,37 @@ enum TelnetCharsetSubnogiation {
   CHARSET_ACCEPTED = 2,
 }
 
-const handleCharsetDo =
-  (socket: TelnetSocket) => (): TelnetNegotiationResult => {
-    socket.writeWill(TelnetOptions.TELOPT_CHARSET);
+const handleCharsetDo = (socket: TelnetSocket) => (): TelnetOptionResult => {
+  socket.writeWill(TelnetOptions.TELOPT_CHARSET);
 
-    return {
-      controlSequence: TelnetControlSequences.WILL,
-    };
+  return {
+    controlSequence: TelnetControlSequences.WILL,
   };
+};
 
-const handleCharsetDont =
-  (socket: TelnetSocket) => (): TelnetNegotiationResult => {
-    socket.writeWont(TelnetOptions.TELOPT_CHARSET);
+const handleCharsetDont = (socket: TelnetSocket) => (): TelnetOptionResult => {
+  socket.writeWont(TelnetOptions.TELOPT_CHARSET);
 
-    return {
-      controlSequence: TelnetControlSequences.WONT,
-    };
+  return {
+    controlSequence: TelnetControlSequences.WONT,
   };
+};
 
-const handleCharsetWill =
-  (socket: TelnetSocket) => (): TelnetNegotiationResult => {
-    socket.writeDo(TelnetOptions.TELOPT_CHARSET);
+const handleCharsetWill = (socket: TelnetSocket) => (): TelnetOptionResult => {
+  socket.writeDo(TelnetOptions.TELOPT_CHARSET);
 
-    return {
-      controlSequence: TelnetControlSequences.DO,
-    };
+  return {
+    controlSequence: TelnetControlSequences.DO,
   };
+};
 
-const handleCharsetWont =
-  (socket: TelnetSocket) => (): TelnetNegotiationResult => {
-    socket.writeDont(TelnetOptions.TELOPT_CHARSET);
+const handleCharsetWont = (socket: TelnetSocket) => (): TelnetOptionResult => {
+  socket.writeDont(TelnetOptions.TELOPT_CHARSET);
 
-    return {
-      controlSequence: TelnetControlSequences.DONT,
-    };
+  return {
+    controlSequence: TelnetControlSequences.DONT,
   };
+};
 
 const handleCharsetSub =
   (socket: TelnetSocket) =>
@@ -94,5 +90,6 @@ export const handleCharsetOption = (
     handleWill: handleCharsetWill(socket),
     handleWont: handleCharsetWont(socket),
     handleSub: handleCharsetSub(socket),
+    isDynamic: true,
   };
 };

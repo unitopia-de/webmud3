@@ -2,9 +2,9 @@ import { Server as HttpServer } from 'http';
 import { Server as HttpsServer } from 'https';
 import { Server, Socket } from 'socket.io';
 
+import { TelnetOptions } from '../../features/telnet/models/telnet-options.js';
 import { TelnetClient } from '../../features/telnet/telnet-client.js';
 import { TelnetControlSequences } from '../../features/telnet/types/telnet-control-sequences.js';
-import { TelnetOptions } from '../../features/telnet/types/telnet-options.js';
 import { logger } from '../../shared/utils/logger.js';
 import { mapToServerEncodings } from '../../shared/utils/supported-encodings.js';
 import { Environment } from '../environment/environment.js';
