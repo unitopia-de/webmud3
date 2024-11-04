@@ -15,7 +15,7 @@ Please note: most of these features have been tested against [UNItopia](https://
 
   Provides a flexible and customizable socket interface that can establish a Telnet connection to any MUD server. Telnet Options are negotiated as necessary.
 
-  There is [work in progress](https://github.com/unitopia-de/webmud3/milestone/9).
+  To see the full list of supported options and their negotiation status see the [Telnet Feature](./backend/src/features/telnet/README.md) page.
 
 - ANSI support
 
