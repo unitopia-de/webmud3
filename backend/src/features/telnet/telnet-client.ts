@@ -206,6 +206,10 @@ export class TelnetClient extends EventEmitter<TelnetClientEvents> {
     this.telnetSocket.writeSub(TelnetOptions.TELOPT_STATUS, buffer);
   }
 
+  public sendTimingMark(): void {
+    this.telnetSocket.writeWill(TelnetOptions.TELOPT_TM);
+  }
+
   public disconnect(): void {
     logger.info(`[Telnet-Client] Disconnect`);
 
@@ -242,6 +246,12 @@ export class TelnetClient extends EventEmitter<TelnetClientEvents> {
     this.updateNegotiations(option, {
       server: TelnetControlSequences.DO,
     });
+
+    // Timing Mark is excluded here since it needs a whole round-trip to the client
+    // We dont want to answer directly so we wait for the client to send the timing mark
+    if (option === TelnetOptions.TELOPT_TM) {
+      return;
+    }
 
     const handler = this.optionsHandler.get(option);
 

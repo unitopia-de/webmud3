@@ -108,6 +108,10 @@ export class SocketManager extends Server<
       }, Environment.getInstance().socketTimeout);
     });
 
+    socket.on('answerTimingMark', () => {
+      this.mudConnections[socket.id].telnet?.sendTimingMark();
+    });
+
     socket.on('mudInput', (data: string) => {
       const inputEcho = this.mudConnections[socket.id].echo;
 
@@ -207,6 +211,14 @@ export class SocketManager extends Server<
                 this.mudConnections[socket.id].echo = true;
 
                 socket.emit('setEchoMode', true);
+              }
+
+              break;
+            }
+
+            case TelnetOptions.TELOPT_TM: {
+              if (negotiation.server === TelnetControlSequences.DO) {
+                socket.emit('requestTimingMark');
               }
             }
           }
