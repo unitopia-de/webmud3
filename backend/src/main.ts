@@ -37,23 +37,6 @@ if (environment.environment === 'development') {
 
 useRoutes(app);
 
-// function myCleanup() {
-//   console.log('Cleanup starts.');
-//   if (typeof MudConnections !== 'undefined') {
-//     for (const key in MudConnections) {
-//       // skip loop if the property is from prototype
-//       if (!MudConnections.hasOwnProperty(key)) continue;
-//       // get object.
-//       const obj = MudConnections[key];
-//       // message to all frontends...
-//       io.emit('mud-disconnected', key);
-//       // disconnect gracefully.
-//       obj.socket.end();
-//     }
-//   }
-//   console.log('Cleanup ends.');
-// }
-
 httpServer.listen(environment.port, environment.host, 10000, () => {
   logger.info(`[Main] Server started on port ${environment.port}`, {
     UNIQUE_SERVER_ID,

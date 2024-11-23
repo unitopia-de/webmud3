@@ -11,6 +11,7 @@ import { TelnetNegotiations } from './types/telnet-negotiations.js';
 import { TelnetOptionHandler } from './types/telnet-option-handler.js';
 import { handleCharsetOption } from './utils/handle-charset-option.js';
 import { handleEchoOption } from './utils/handle-echo-option.js';
+import { handleEorOption } from './utils/handle-eor-option.js';
 import { handleLinemodeOption } from './utils/handle-linemode-option.js';
 import { handleMSSPOption } from './utils/handle-mssp-option.js';
 import { handleNawsOption } from './utils/handle-naws-option.js';
@@ -38,6 +39,9 @@ export class TelnetClient extends EventEmitter<TelnetClientEvents> {
   private _negotiations: TelnetNegotiations = {};
 
   private readonly telnetSocket: TelnetSocket;
+
+  // Is used to buffer incoming data until the EOR is received, if EOR is enabled
+  private eorBuffer: Buffer | null = null;
 
   private connected: boolean = false;
 
@@ -89,6 +93,7 @@ export class TelnetClient extends EventEmitter<TelnetClientEvents> {
       ],
       [TelnetOptions.TELOPT_STATUS, handleStatusOption(this.telnetSocket)],
       [TelnetOptions.TELOPT_MSSP, handleMSSPOption(this.telnetSocket)],
+      [TelnetOptions.TELOPT_EOR, handleEorOption(this.telnetSocket)],
     ]);
 
     this.telnetSocket.on('connect', () => this.handleConnect());
@@ -108,14 +113,48 @@ export class TelnetClient extends EventEmitter<TelnetClientEvents> {
     );
 
     this.telnetSocket.on('data', (chunkData: string | Buffer) => {
-      this.emit('data', chunkData);
+      // If EOR mode is enabled, we buffer incoming data until the EOR is received
+      // this "groups" responses correctly for the client
+      // else we emit the data directly to the client
+      if (this.eorBuffer !== null) {
+        this.eorBuffer = Buffer.concat([
+          this.eorBuffer,
+          Buffer.from(chunkData),
+        ]);
+      } else {
+        this.emit('data', chunkData);
+      }
+    });
+
+    this.telnetSocket.on('command', (command) => {
+      if (command === TelnetOptions.TELOPT_EOR) {
+        if (this.eorBuffer !== null) {
+          this.emit('data', this.eorBuffer);
+
+          this.eorBuffer = Buffer.alloc(0);
+        }
+      }
     });
 
     this.on('negotiationChanged', (negotiation) => {
-      // Request initial status data after negotiation - we use TTYPE since this is subnegotiated the last
+      // Request initial status data after negotiation - we use TTYPE since this is subnegotiated the last and only once
       // Todo[myst]: Find a better way to do this but its not that easy, since everything is async
       if (negotiation.option === TelnetOptions.TELOPT_TTYPE) {
         this.requestStatus();
+      }
+
+      if (negotiation.option === TelnetOptions.TELOPT_EOR) {
+        // Initialize EOR buffer once after successful negotiation
+        // or disable the eor buffer if negotiation fails
+        if (
+          negotiation.server === TelnetControlSequences.WILL &&
+          negotiation.client === TelnetControlSequences.DO &&
+          this.eorBuffer === null
+        ) {
+          this.eorBuffer = Buffer.alloc(0);
+        } else {
+          this.eorBuffer = null;
+        }
       }
     });
   }
@@ -362,7 +401,7 @@ export class TelnetClient extends EventEmitter<TelnetClientEvents> {
               serverChunks: [
                 ...(existing.subnegotiation?.serverChunks || []),
                 ...(negotiations.serverChunk
-                  ? [`0x${negotiations.serverChunk.toString()}`]
+                  ? [negotiations.serverChunk.toString()]
                   : []),
               ],
             }
@@ -373,7 +412,7 @@ export class TelnetClient extends EventEmitter<TelnetClientEvents> {
               clientChunks: [
                 ...(existing.subnegotiation?.clientChunks || []),
                 ...(negotiations.clientChunk
-                  ? [`0x${negotiations.clientChunk.toString()}`]
+                  ? [negotiations.clientChunk.toString()]
                   : []),
               ],
             }
