@@ -127,9 +127,16 @@ export class TelnetClient extends EventEmitter<TelnetClientEvents> {
     });
 
     this.telnetSocket.on('command', (command) => {
-      if (command === TelnetOptions.TELOPT_EOR) {
+      if (
+        command === TelnetOptions.TELOPT_EOR ||
+        command == TelnetOptions.EOR
+      ) {
         if (this.eorBuffer !== null) {
           this.emit('data', this.eorBuffer);
+
+          const data = this.eorBuffer.toString('utf-8');
+
+          console.log(data);
 
           this.eorBuffer = Buffer.alloc(0);
         }
@@ -144,11 +151,17 @@ export class TelnetClient extends EventEmitter<TelnetClientEvents> {
       }
 
       if (negotiation.option === TelnetOptions.TELOPT_EOR) {
+        const clientOption =
+          this.negotiations[TelnetOptions.TELOPT_EOR]?.client;
+
+        const serverOption =
+          this.negotiations[TelnetOptions.TELOPT_EOR]?.server;
+
         // Initialize EOR buffer once after successful negotiation
         // or disable the eor buffer if negotiation fails
         if (
-          negotiation.server === TelnetControlSequences.WILL &&
-          negotiation.client === TelnetControlSequences.DO &&
+          serverOption === TelnetControlSequences.WILL &&
+          clientOption === TelnetControlSequences.DO &&
           this.eorBuffer === null
         ) {
           this.eorBuffer = Buffer.alloc(0);
