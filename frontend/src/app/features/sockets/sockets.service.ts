@@ -98,8 +98,8 @@ export class SocketsService {
       this.handleSetEchoMode(showEchos);
     });
 
-    this.socket.on('requestTimingMark', () => {
-      this.handleTimingMark();
+    this.socket.on('requestTimingMark', (callback: () => void) => {
+      this.handleTimingMark(callback);
     });
   }
 
@@ -199,10 +199,10 @@ export class SocketsService {
     this.onSetEchoMode.emit(showEchos);
   };
 
-  private handleTimingMark = () => {
-    console.info('[Sockets] Sockets-Service: Got a Timing Mark');
+  private handleTimingMark = (callback: () => void) => {
+    console.info('[Sockets] Sockets-Service: Got and answer a Timing Mark');
 
-    this.socket.emit('answerTimingMark');
+    callback();
   };
 }
 

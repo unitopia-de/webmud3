@@ -3,5 +3,5 @@ export interface ServerToClientEvents {
   mudDisconnected: () => void;
   mudConnected: () => void;
   setEchoMode: (showEchos: boolean) => void;
-  requestTimingMark: () => void;
+  requestTimingMark: (callback: () => void) => void;
 }
