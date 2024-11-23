@@ -21,6 +21,7 @@ export class Environment implements IEnvironment {
   public readonly socketRoot: string;
   public readonly socketTimeout: number;
   public readonly environment: 'production' | 'development';
+  public readonly name: string;
 
   /**
    * Private constructor to enforce singleton pattern.
@@ -63,6 +64,8 @@ export class Environment implements IEnvironment {
     this.environment = environment;
 
     this.projectRoot = resolveModulePath('../../../main.js');
+
+    this.name = String(getEnvironmentVariable('NAME', false, 'webmud3b'));
 
     logger.info('[Environment] initialized', this);
   }

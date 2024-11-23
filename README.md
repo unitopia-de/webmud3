@@ -79,11 +79,11 @@ Example .env file:
 TELNET_HOST=127.0.0.1       # Required | the IP of your MUD
 TELNET_PORT=23              # Required | the PORT of your MUD
 SOCKET_ROOT=/socket.io      # Required | the named socket for
-HOST=0.0.0.0                # Optional, defaults to '0.0.0.0' | the IP the backend will listen for
-PORT=5000                   # Optional, defaults to 5000 | the PORT the backend will listen for
-TELNET_TLS=false            # Optional, defaults to 'false' | set this to true if you want a secure connection
-SOCKET_TIMEOUT=900000       # Optional, defaults to 900000 (15 min) | timeout for any lost frontend<->backend connection
-CHARSET=utf8                # Optional, defaults to 'utf8'
+NAME=webmud3                # Optional | defaults to 'webmud3'        | the name of the client
+HOST=0.0.0.0                # Optional | defaults to '0.0.0.0'        | the IP the backend will listen for
+PORT=5000                   # Optional | defaults to 5000             | the PORT the backend will listen for
+TELNET_TLS=false            # Optional | defaults to 'false'          | set this to true if you want a secure connection
+SOCKET_TIMEOUT=900000       # Optional | defaults to 900000 (15 min)  | timeout for any lost frontend <-> backend connection
 ```
 
 > [!TIP]

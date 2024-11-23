@@ -6,8 +6,6 @@ import { TelnetOptionHandler } from '../types/telnet-option-handler.js';
 import { TelnetOptionResult } from '../types/telnet-option-result.js';
 import { TelnetSubnegotiationResult } from '../types/telnet-subnegotiation-result.js';
 
-const DEFAULT_TERMINAL_NAME = 'webmud3b';
-
 enum TelnetTTypeSubnogiation {
   TTYPE_SEND = 1,
 }
@@ -38,16 +36,16 @@ const handleTTypeWont = (socket: TelnetSocket) => (): TelnetOptionResult => {
 };
 
 const handleTTypeSub =
-  (socket: TelnetSocket) =>
+  (socket: TelnetSocket, clientName: string) =>
   (serverChunk: Buffer): TelnetSubnegotiationResult => {
     if (new Uint8Array(serverChunk)[0] === TelnetTTypeSubnogiation.TTYPE_SEND) {
-      const buffer = Buffer.from(DEFAULT_TERMINAL_NAME);
+      const buffer = Buffer.from(clientName);
 
       socket.writeSub(TelnetOptions.TELOPT_TTYPE, buffer);
 
       return {
         clientChunk: buffer,
-        clientOption: DEFAULT_TERMINAL_NAME,
+        clientOption: clientName,
       };
     }
 
@@ -56,12 +54,13 @@ const handleTTypeSub =
 
 export const handleTTypeOption = (
   socket: TelnetSocket,
+  clientName: string,
 ): TelnetOptionHandler => {
   return {
     handleDo: handleTTypeDo(socket),
     handleDont: handleTTypeDont(socket),
     handleWill: handleTTypeWill(socket),
     handleWont: handleTTypeWont(socket),
-    handleSub: handleTTypeSub(socket),
+    handleSub: handleTTypeSub(socket, clientName),
   };
 };

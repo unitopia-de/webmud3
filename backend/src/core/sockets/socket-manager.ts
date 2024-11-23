@@ -27,6 +27,7 @@ export class SocketManager extends Server<
       telnetPort: number;
       useTelnetTls: boolean;
       socketRoot: string;
+      clientName: string;
     },
   ) {
     super(server, {
@@ -144,6 +145,7 @@ export class SocketManager extends Server<
           this.managerOptions.telnetHost,
           this.managerOptions.telnetPort,
           this.managerOptions.useTelnetTls,
+          this.managerOptions.clientName,
         );
 
         telnetClient.on('data', (data: string | Buffer) => {

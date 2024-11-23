@@ -1,6 +1,7 @@
 export type EnvironmentKeys =
   | 'HOST' // Optional | defaults to '0.0.0.0' | the IP the backend will listen for
   | 'PORT' // Optional | defaults to 5000 | the PORT the backend will listen for
+  | 'NAME' // Required | the name of your client. Will be send to the MUD. Defaults to 'webmud3b'
   | 'TELNET_HOST' // Required | the IP of your MUD
   | 'TELNET_PORT' // Required | the PORT of your MUD
   | 'TELNET_TLS' // Optional | defaults to 'false' | set this to true if you want a secure connection

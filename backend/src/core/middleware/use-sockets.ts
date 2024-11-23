@@ -13,5 +13,6 @@ export const useSockets = (
     telnetPort: environment.telnetPort,
     useTelnetTls: environment.telnetTLS,
     socketRoot: environment.socketRoot,
+    clientName: environment.name,
   });
 };
