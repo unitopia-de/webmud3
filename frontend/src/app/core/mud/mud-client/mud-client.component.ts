@@ -4,7 +4,7 @@ import { Observable } from 'rxjs';
 import { MudInputComponent } from '../components/mud-input/mud-input.component';
 import { MudService } from '../mud.service';
 import { IMudMessage } from '../types/mud-message';
-import { isSecureString, SecureString } from '@mudlet3/frontend/shared';
+import { SecureString } from '@mudlet3/frontend/shared';
 
 @Component({
   selector: 'app-mud-client',
@@ -81,15 +81,7 @@ export class MudclientComponent {
   // }
 
   protected onInputReceived(message: string | SecureString) {
-    // This is a workaround for the first letter being capitalized - remove this line after implementation in the mud itself
-    // See https://github.com/mystiker/webmud3/issues/48
-    const lowerCaseMessage = isSecureString(message)
-      ? message
-      : message.length >= 2
-        ? message.charAt(0).toLowerCase() + message.slice(1)
-        : message;
-
-    this.mudService.sendMessage(lowerCaseMessage);
+    this.mudService.sendMessage(message);
   }
 
   @HostListener('document:keydown', ['$event'])
