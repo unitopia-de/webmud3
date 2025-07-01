@@ -150,25 +150,27 @@ export class TelnetClient extends EventEmitter<TelnetClientEvents> {
         this.requestStatus();
       }
 
-      if (negotiation.option === TelnetOptions.TELOPT_EOR) {
-        const clientOption =
-          this.negotiations[TelnetOptions.TELOPT_EOR]?.client;
+      // EOR is disabled for now, since it is broken
+      // if (negotiation.option === TelnetOptions.TELOPT_EOR) {
+      //   const clientOption =
+      //     this.negotiations[TelnetOptions.TELOPT_EOR]?.client;
 
-        const serverOption =
-          this.negotiations[TelnetOptions.TELOPT_EOR]?.server;
+      //   const serverOption =
+      //     this.negotiations[TelnetOptions.TELOPT_EOR]?.server;
 
-        // Initialize EOR buffer once after successful negotiation
-        // or disable the eor buffer if negotiation fails
-        if (
-          serverOption === TelnetControlSequences.WILL &&
-          clientOption === TelnetControlSequences.DO &&
-          this.eorBuffer === null
-        ) {
-          this.eorBuffer = Buffer.alloc(0);
-        } else {
-          this.eorBuffer = null;
-        }
-      }
+      //   // Initialize EOR buffer once after successful negotiation
+      //   // or disable the eor buffer if negotiation fails
+      //   if (
+      //     serverOption === TelnetControlSequences.WILL &&
+      //     clientOption === TelnetControlSequences.DO &&
+      //     this.eorBuffer === null
+      //   ) {
+      //     this.eorBuffer = Buffer.alloc(0);
+      //   } else {
+      //     this.eorBuffer = null;
+      //   }
+      // }
+
     });
   }
 
