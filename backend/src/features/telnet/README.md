@@ -25,10 +25,10 @@ The TelnetClient class handles these negotiation commands, regardless of their o
 | Telnet Option                             | Client Support | Client Negotiation | Server Negotiation | Remarks                                                                                                                                                                                                                                                                  | Discussion                                        |
 | ----------------------------------------- | -------------- | ------------------ | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------- |
 | ECHO                                      | Full           | Dynamic            | Dynamic            | Is used in the telnet login flow to hide user input (password). This option is negotiated on the fly and can be enabled or disabled whenever needed.                                                                                                                     |                                                   |
+| SGA (Suppress Go Ahead)                   | Full           | DO                 | WONT               | We offer a DO at startup and can handle changes on the fly. However, Unitopia WONT accept this option for unknown reasons.                                                                                                                                               | https://github.com/unitopia-de/webmud3/issues/115 |
 | NAWS (Negotiate About Window Size)        | Partial        | WILL (+ Sub)       | DO                 | We support this option to subnegotiate the window size. However, we send static values for the window size (80x25) and it does look like Unitopia is ignoring these values.                                                                                              | https://github.com/unitopia-de/webmud3/issues/108 |
 | CHARSET                                   | Partial        | DO / WILL (+ Sub)  | WILL (+ Sub) / DO  | We support this option to subnegotiate the character set with the server. However, we only accept UTF-8. If the server does not subnogitiate for UTF-8, an error will be thrown and the connection will be closed.                                                       | https://github.com/unitopia-de/webmud3/issues/111 |
-| SGA (Suppress Go Ahead)                   | Todo           | Not negotiated     | Not negotiated     | The Telnet Suppress Go Ahead (SGA) option disables the need for "Go Ahead" signals, allowing continuous, uninterrupted data flow in both directions, ideal for interactive applications like remote shells.                                                              | https://github.com/unitopia-de/webmud3/issues/115 |
-| LINEMODE                                  | Todo           | WILL               | DO                 | The Telnet LINEMODE option allows the client to send input line-by-line instead of character-by-character, optimizing bandwidth and reducing network load for text-based applications.                                                                                   | https://github.com/unitopia-de/webmud3/issues/114 |
+| LINEMODE                                  | Partial        | WILL               | DO                 | We support the LINEMODE option. However, the server wants us to send our input buffer whenever ANY ASCII control character is entered (FORWARDMASK), which is unsupported. On the other side, we do support SOFT_TAB and EDIT MODES                                      | https://github.com/unitopia-de/webmud3/issues/114 |
 | EOR (End of Record)                       | Todo           | DONT               | WILL               | Allows for the server to signal the end of a record which is not needed for our client.                                                                                                                                                                                  | https://github.com/unitopia-de/webmud3/issues/112 |
 | MSSP (Mud Server Status Protocol)         | Todo           | DO                 | WILL               | Allows our client to retrieve basic information about the mud, like the current player count or the server name.                                                                                                                                                         |                                                   |
 | TTYPE                                     | Todo           | WILL               | DO                 | Allows the client to send its name to the server.                                                                                                                                                                                                                        |                                                   |
@@ -50,35 +50,63 @@ Define a new TelnetOptionHandler object for the option you want to handle.
 
 ```typescript
 const newOptionHandler: TelnetOptionHandler = {
-  negotiate: () => {
+  negotiate: (socket) => {
     // In this handler you can send a negotiation yourself uppon initialization.
     // Use this if you want the server to enable/disable the option.
   },
-  handleDo: () => {
+  handleDo: (socket, getPreviousNegotiation?) => {
     // Handle the DO command for the new option
     // Return a TelnetNegotiationResult object with the appropriate control sequence and subnegotiation result
   },
-  handleDont: () => {
+  handleDont: (socket, getPreviousNegotiation?) => {
     // Handle the DON'T command for the new option
     // Return a TelnetNegotiationResult object with the appropriate control sequence and subnegotiation result
   },
-  handleWill: () => {
+  handleWill: (socket, getPreviousNegotiation?) => {
     // Handle the WILL command for the new option
     // Return a TelnetNegotiationResult object with the appropriate control sequence and subnegotiation result
   },
-  handleWont: () => {
+  handleWont: (socket, getPreviousNegotiation?) => {
     // Handle the WON'T command for the new option
     // Return a TelnetNegotiationResult object with the appropriate control sequence and subnegotiation result
   },
-  handleSub: (serverChunk: Buffer) => {
+  handleSub: (socket, serverChunk: Buffer) => {
     // Handle the subnegotiation data for the new option
     // Return a TelnetSubnegotiationResult object with the appropriate client chunk and client option
   },
+
+  // Whether this handler is dynamic and can be called again after initial negotiation
+  isDynamic?: boolean,
 };
 ```
+
+_Note_: If you mark an option handler as dynamic, it will be called again after the initial negotiation with the server if the server requests a change to the option. This allows for more flexible and dynamic negotiation of Telnet options between the client and server.
 
 Add the `newOptionHandler` object to the optionsHandler map in your TelnetClient class:
 
 ```typescript
 this.optionsHandler.set(TelnetOptions.TELOPT_LINEMODE, newOptionHandler);
+```
+
+### Accessing Previous Negotiation State
+
+In some cases, you may need to access the previous negotiation state to determine how to respond to a new negotiation command. The `TelnetOptionHandler` provides a way to do this through the `getPreviousNegotiation` function.
+
+The `getPreviousNegotiation` function returns the previous negotiation result, which can be used to determine the current state of the option. This can be useful in cases where the client needs to respond differently depending on the previous state of the option.
+
+Here is an example of how to use `getPreviousNegotiation` in a `TelnetOptionHandler`:
+
+```typescript
+const newOptionHandler: TelnetOptionHandler = {
+  // ...
+  handleDo: (getPreviousNegotiation: () => TelnetNegotiationResult | undefined) => {
+    const previousNegotiation = getPreviousNegotiation();
+    if (previousNegotiation?.client !== undefined) {
+      // Handle the case where the option is already enabled
+    } else {
+      // Handle the case where the option is not enabled
+    }
+  },
+  // ...
+};
 ```

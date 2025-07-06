@@ -1,21 +1,18 @@
-// Das siegreiche Gnomi sagt: Es gibt so ein paar Telnet-Optionen, die m.E.
-//         jeder Client unterstuetzen sollte: NAWS, CHARSET, EOR, ECHO,
-//         STARTTLS.
-// Das siegreiche Gnomi sagt: Ah, und SGA oder LINEMODE
-
 import EventEmitter from 'events';
 import net from 'net';
 import { TelnetSocket } from 'telnet-stream';
 import tls from 'tls';
 
 import { logger } from '../../shared/utils/logger.js';
+import { TelnetOptions } from './models/telnet-options.js';
 import { TelnetControlSequences } from './types/telnet-control-sequences.js';
 import { TelnetNegotiations } from './types/telnet-negotiations.js';
 import { TelnetOptionHandler } from './types/telnet-option-handler.js';
-import { TelnetOptions } from './types/telnet-options.js';
 import { handleCharsetOption } from './utils/handle-charset-option.js';
 import { handleEchoOption } from './utils/handle-echo-option.js';
+import { handleLinemodeOption } from './utils/handle-linemode-option.js';
 import { handleNawsOption } from './utils/handle-naws-option.js';
+import { handleSGAOption } from './utils/handle-sga-option.js';
 import { TelnetSocketWrapper } from './utils/telnet-socket-wrapper.js';
 
 type TelnetClientEvents = {
@@ -75,6 +72,8 @@ export class TelnetClient extends EventEmitter<TelnetClientEvents> {
       [TelnetOptions.TELOPT_CHARSET, handleCharsetOption(this.telnetSocket)],
       [TelnetOptions.TELOPT_ECHO, handleEchoOption(this.telnetSocket)],
       [TelnetOptions.TELOPT_NAWS, handleNawsOption(this.telnetSocket)],
+      [TelnetOptions.TELOPT_SGA, handleSGAOption(this.telnetSocket)],
+      [TelnetOptions.TELOPT_LINEMODE, handleLinemodeOption(this.telnetSocket)],
     ]);
 
     this.telnetSocket.on('connect', () => this.handleConnect());
@@ -96,8 +95,6 @@ export class TelnetClient extends EventEmitter<TelnetClientEvents> {
     this.telnetSocket.on('data', (chunkData: string | Buffer) => {
       this.emit('data', chunkData);
     });
-
-    this.connected = true;
   }
 
   public sendMessage(data: string): void {
@@ -113,7 +110,21 @@ export class TelnetClient extends EventEmitter<TelnetClientEvents> {
   }
 
   private handleConnect(): void {
-    logger.info(`[Telnet-Client] Connected`);
+    logger.info(`[Telnet-Client] Connected. Starting negotiation process.`);
+
+    this.connected = true;
+
+    for (const [option, handler] of this.optionsHandler) {
+      const handlerResult = handler.negotiate?.();
+
+      if (handlerResult !== undefined) {
+        this.updateNegotiations(option, {
+          client: handlerResult.controlSequence,
+          clientChunk: handlerResult.subNegotiationResult?.clientChunk,
+          clientOption: handlerResult.subNegotiationResult?.clientOption,
+        });
+      }
+    }
   }
 
   private handleClose(hadErrors: boolean): void {
@@ -128,6 +139,13 @@ export class TelnetClient extends EventEmitter<TelnetClientEvents> {
     });
 
     const handler = this.optionsHandler.get(option);
+
+    if (
+      this._negotiations[option]?.client !== undefined &&
+      handler?.isDynamic !== true
+    ) {
+      return;
+    }
 
     const handlerResult = handler?.handleDo();
 
@@ -145,19 +163,6 @@ export class TelnetClient extends EventEmitter<TelnetClientEvents> {
       });
     }
 
-    // switch (option) {
-
-    //   case TelnetOptions.TELOPT_TM: {
-    //     this.updateNegotiations(option, {
-    //       server: TelnetControlSequences.DO,
-    //       client: TelnetControlSequences.WILL,
-    //     });
-
-    //     this.telnetSocket.writeWill(option);
-
-    //     return;
-    //   }
-
     return;
   }
 
@@ -167,6 +172,13 @@ export class TelnetClient extends EventEmitter<TelnetClientEvents> {
     });
 
     const handler = this.optionsHandler.get(option);
+
+    if (
+      this._negotiations[option]?.client !== undefined &&
+      handler?.isDynamic !== true
+    ) {
+      return;
+    }
 
     const handlerResult = handler?.handleDont();
 
@@ -192,6 +204,13 @@ export class TelnetClient extends EventEmitter<TelnetClientEvents> {
 
     const handler = this.optionsHandler.get(option);
 
+    if (
+      this._negotiations[option]?.client !== undefined &&
+      handler?.isDynamic !== true
+    ) {
+      return;
+    }
+
     const handlerResult = handler?.handleWill();
 
     if (handlerResult !== undefined) {
@@ -207,20 +226,6 @@ export class TelnetClient extends EventEmitter<TelnetClientEvents> {
         client: TelnetControlSequences.DONT, // we answer negatively but we should DO everything possible
       });
     }
-
-    // switch (option) {
-
-    //   case TelnetOptions.TELOPT_GMCP: {
-    //     this.telnetSocket.writeDo(option);
-
-    //     this.updateNegotiations(option, {
-    //       server: TelnetControlSequences.WILL,
-    //       client: TelnetControlSequences.DO,
-    //     });
-
-    //     return;
-    //   }
-    // }
   }
 
   private handleWont(option: TelnetOptions): void {
@@ -229,6 +234,13 @@ export class TelnetClient extends EventEmitter<TelnetClientEvents> {
     });
 
     const handler = this.optionsHandler.get(option);
+
+    if (
+      this._negotiations[option]?.client !== undefined &&
+      handler?.isDynamic !== true
+    ) {
+      return;
+    }
 
     const handlerResult = handler?.handleWont();
 
@@ -288,28 +300,35 @@ export class TelnetClient extends EventEmitter<TelnetClientEvents> {
     // Update the control sequences for server and client
     const updatedNegotiation = {
       ...existing,
-      ...{
-        server: negotiations.server ?? existing.server,
-        client: negotiations.client ?? existing.client,
+      server: negotiations.server ?? existing.server,
+      client: negotiations.client ?? existing.client,
+      subnegotiation: {
+        // Only define serverChunks if there is a new serverChunk or it already exists
+        ...(existing.subnegotiation?.serverChunks || negotiations.serverChunk
+          ? {
+              serverChunks: [
+                ...(existing.subnegotiation?.serverChunks || []),
+                ...(negotiations.serverChunk
+                  ? [`0x${negotiations.serverChunk.toString('hex')}`]
+                  : []),
+              ],
+            }
+          : {}),
+        // Only define clientChunks if there is a new clientChunk or it already exists
+        ...(existing.subnegotiation?.clientChunks || negotiations.clientChunk
+          ? {
+              clientChunks: [
+                ...(existing.subnegotiation?.clientChunks || []),
+                ...(negotiations.clientChunk
+                  ? [`0x${negotiations.clientChunk.toString('hex')}`]
+                  : []),
+              ],
+            }
+          : {}),
+        clientOption:
+          negotiations.clientOption ?? existing.subnegotiation?.clientOption,
       },
     };
-
-    // Update the subnegotiation properties if they exist
-    if (existing) {
-      updatedNegotiation.subnegotiation = {
-        ...existing.subnegotiation,
-        ...{
-          serverChunk: negotiations.serverChunk
-            ? negotiations.serverChunk.toString()
-            : existing.subnegotiation?.serverChunk,
-          clientChunk: negotiations.clientChunk
-            ? negotiations.clientChunk.toString()
-            : existing.subnegotiation?.clientChunk,
-          clientOption:
-            negotiations.clientOption ?? existing.subnegotiation?.clientOption,
-        },
-      };
-    }
 
     // Update the negotiations object
     this._negotiations[option] = updatedNegotiation;
