@@ -11,7 +11,5 @@ export const useStaticFiles = (app: Express, folder: string) => {
     `[Middleware] [Static-Files] Serving static files from ${assetPath}`,
   );
 
-  app.use(
-    express.static(path.join(Environment.getInstance().projectRoot, folder)),
-  );
+  app.use(express.static(assetPath));
 };
