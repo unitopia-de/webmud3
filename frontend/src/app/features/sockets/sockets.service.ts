@@ -97,6 +97,10 @@ export class SocketsService {
     this.socket.on('setEchoMode', (showEchos: boolean) => {
       this.handleSetEchoMode(showEchos);
     });
+
+    this.socket.on('requestTimingMark', (callback: () => void) => {
+      this.handleTimingMark(callback);
+    });
   }
 
   public connectToMud(): void {
@@ -193,6 +197,12 @@ export class SocketsService {
     console.info('[Sockets] Sockets-Service: Socket Set Echo Mode:', showEchos);
 
     this.onSetEchoMode.emit(showEchos);
+  };
+
+  private handleTimingMark = (callback: () => void) => {
+    console.info('[Sockets] Sockets-Service: Got and answer a Timing Mark');
+
+    callback();
   };
 }
 

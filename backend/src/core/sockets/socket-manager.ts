@@ -208,6 +208,16 @@ export class SocketManager extends Server<
 
                 socket.emit('setEchoMode', true);
               }
+
+              break;
+            }
+
+            case TelnetOptions.TELOPT_TM: {
+              if (negotiation.server === TelnetControlSequences.DO) {
+                socket.emit('requestTimingMark', () => {
+                  this.mudConnections[socket.id].telnet?.sendTimingMark();
+                });
+              }
             }
           }
         });
