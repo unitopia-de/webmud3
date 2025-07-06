@@ -12,6 +12,7 @@ import { TelnetOptionHandler } from './types/telnet-option-handler.js';
 import { handleCharsetOption } from './utils/handle-charset-option.js';
 import { handleEchoOption } from './utils/handle-echo-option.js';
 import { handleLinemodeOption } from './utils/handle-linemode-option.js';
+import { handleMSSPOption } from './utils/handle-mssp-option.js';
 import { handleNawsOption } from './utils/handle-naws-option.js';
 import { handleSGAOption } from './utils/handle-sga-option.js';
 import { handleStatusOption } from './utils/handle-status-option.js';
@@ -87,6 +88,7 @@ export class TelnetClient extends EventEmitter<TelnetClientEvents> {
         handleTTypeOption(this.telnetSocket, clientName),
       ],
       [TelnetOptions.TELOPT_STATUS, handleStatusOption(this.telnetSocket)],
+      [TelnetOptions.TELOPT_MSSP, handleMSSPOption(this.telnetSocket)],
     ]);
 
     this.telnetSocket.on('connect', () => this.handleConnect());
@@ -360,7 +362,7 @@ export class TelnetClient extends EventEmitter<TelnetClientEvents> {
               serverChunks: [
                 ...(existing.subnegotiation?.serverChunks || []),
                 ...(negotiations.serverChunk
-                  ? [`0x${negotiations.serverChunk.toString('hex')}`]
+                  ? [`0x${negotiations.serverChunk.toString()}`]
                   : []),
               ],
             }
@@ -371,7 +373,7 @@ export class TelnetClient extends EventEmitter<TelnetClientEvents> {
               clientChunks: [
                 ...(existing.subnegotiation?.clientChunks || []),
                 ...(negotiations.clientChunk
-                  ? [`0x${negotiations.clientChunk.toString('hex')}`]
+                  ? [`0x${negotiations.clientChunk.toString()}`]
                   : []),
               ],
             }
