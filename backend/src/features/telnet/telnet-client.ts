@@ -5,6 +5,7 @@ import tls from 'tls';
 
 import { logger } from '../../shared/utils/logger.js';
 import { TelnetOptions } from './models/telnet-options.js';
+import { TelnetStatusSubnogiation } from './models/telnet-status-subnogiation.js';
 import { TelnetControlSequences } from './types/telnet-control-sequences.js';
 import { TelnetNegotiations } from './types/telnet-negotiations.js';
 import { TelnetOptionHandler } from './types/telnet-option-handler.js';
@@ -13,6 +14,7 @@ import { handleEchoOption } from './utils/handle-echo-option.js';
 import { handleLinemodeOption } from './utils/handle-linemode-option.js';
 import { handleNawsOption } from './utils/handle-naws-option.js';
 import { handleSGAOption } from './utils/handle-sga-option.js';
+import { handleStatusOption } from './utils/handle-status-option.js';
 import { handleTTypeOption } from './utils/handle-ttype-option.js';
 import { TelnetSocketWrapper } from './utils/telnet-socket-wrapper.js';
 
@@ -84,6 +86,7 @@ export class TelnetClient extends EventEmitter<TelnetClientEvents> {
         TelnetOptions.TELOPT_TTYPE,
         handleTTypeOption(this.telnetSocket, clientName),
       ],
+      [TelnetOptions.TELOPT_STATUS, handleStatusOption(this.telnetSocket)],
     ]);
 
     this.telnetSocket.on('connect', () => this.handleConnect());
@@ -105,10 +108,48 @@ export class TelnetClient extends EventEmitter<TelnetClientEvents> {
     this.telnetSocket.on('data', (chunkData: string | Buffer) => {
       this.emit('data', chunkData);
     });
+
+    this.on('negotiationChanged', (negotiation) => {
+      // Request initial status data after negotiation - we use TTYPE since this is subnegotiated the last
+      // Todo[myst]: Find a better way to do this but its not that easy, since everything is async
+      if (negotiation.option === TelnetOptions.TELOPT_TTYPE) {
+        this.requestStatus();
+      }
+    });
   }
 
   public sendMessage(data: string): void {
     this.telnetSocket.write(data);
+  }
+
+  public requestStatus(): void {
+    const buffer = Buffer.from([TelnetStatusSubnogiation.STATUS_SEND]);
+
+    if (!this.connected) {
+      return;
+    }
+
+    const clientOption =
+      this._negotiations[TelnetOptions.TELOPT_STATUS]?.client;
+
+    const serverOption =
+      this._negotiations[TelnetOptions.TELOPT_STATUS]?.server;
+
+    if (
+      clientOption === undefined ||
+      clientOption !== TelnetControlSequences.DO
+    ) {
+      return;
+    }
+
+    if (
+      serverOption === undefined ||
+      serverOption !== TelnetControlSequences.WILL
+    ) {
+      return;
+    }
+
+    this.telnetSocket.writeSub(TelnetOptions.TELOPT_STATUS, buffer);
   }
 
   public disconnect(): void {
