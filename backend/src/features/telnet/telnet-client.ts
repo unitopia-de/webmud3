@@ -13,6 +13,7 @@ import { handleEchoOption } from './utils/handle-echo-option.js';
 import { handleLinemodeOption } from './utils/handle-linemode-option.js';
 import { handleNawsOption } from './utils/handle-naws-option.js';
 import { handleSGAOption } from './utils/handle-sga-option.js';
+import { handleTTypeOption } from './utils/handle-ttype-option.js';
 import { TelnetSocketWrapper } from './utils/telnet-socket-wrapper.js';
 
 type TelnetClientEvents = {
@@ -54,7 +55,12 @@ export class TelnetClient extends EventEmitter<TelnetClientEvents> {
    * @param {number} telnetPort - The port number of the Telnet server.
    * @param {boolean} useTls - Indicates whether to use TLS encryption for the connection.
    */
-  constructor(telnetHost: string, telnetPort: number, useTls: boolean) {
+  constructor(
+    telnetHost: string,
+    telnetPort: number,
+    useTls: boolean,
+    clientName: string,
+  ) {
     super();
 
     const telnetConnection = createTelnetConnection(
@@ -74,6 +80,10 @@ export class TelnetClient extends EventEmitter<TelnetClientEvents> {
       [TelnetOptions.TELOPT_NAWS, handleNawsOption(this.telnetSocket)],
       [TelnetOptions.TELOPT_SGA, handleSGAOption(this.telnetSocket)],
       [TelnetOptions.TELOPT_LINEMODE, handleLinemodeOption(this.telnetSocket)],
+      [
+        TelnetOptions.TELOPT_TTYPE,
+        handleTTypeOption(this.telnetSocket, clientName),
+      ],
     ]);
 
     this.telnetSocket.on('connect', () => this.handleConnect());
