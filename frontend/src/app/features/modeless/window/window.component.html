@@ -14,19 +14,22 @@
   position="right"
   [keepInViewport]="true"
   appendTo="body"
->
+  >
   <!--{{config.component}}-->
-  <app-dirlist
-    *ngIf="config.component === 'DirlistComponent'"
-    [config]="config"
-  ></app-dirlist>
-  <app-editor
-    *ngIf="config.component === 'EditorComponent'"
-    [config]="config"
-  ></app-editor>
+  @if (config.component === 'DirlistComponent') {
+    <app-dirlist
+      [config]="config"
+    ></app-dirlist>
+  }
+  @if (config.component === 'EditorComponent') {
+    <app-editor
+      [config]="config"
+    ></app-editor>
+  }
   <!-- <app-editor-search *ngIf="config.component==='EditorSearchComponent'" [config]="config"></app-editor-search> -->
-  <app-char-stat
-    *ngIf="config.component === 'CharStatComponent'"
-    [config]="config"
-  ></app-char-stat>
+  @if (config.component === 'CharStatComponent') {
+    <app-char-stat
+      [config]="config"
+    ></app-char-stat>
+  }
 </p-dialog>

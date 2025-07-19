@@ -1,4 +1,7 @@
-import { HttpClientModule } from '@angular/common/http';
+import {
+  provideHttpClient,
+  withInterceptorsFromDi,
+} from '@angular/common/http';
 import { APP_INITIALIZER, NgModule } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
 // import { ServiceWorkerModule } from '@angular/service-worker';
@@ -42,19 +45,8 @@ const features = [
 
 @NgModule({
   declarations: [AppComponent],
-  imports: [
-    PrimeModule,
-    ...features,
-    SharedModule,
-    CoreModule,
-    BrowserModule,
-    HttpClientModule,
-
-    // ServiceWorkerModule.register('ngsw-worker.js', {
-    //   enabled: environment.production,
-    //   registrationStrategy: 'registerImmediately'
-    // })
-  ],
+  bootstrap: [AppComponent],
+  imports: [PrimeModule, ...features, SharedModule, CoreModule, BrowserModule],
   providers: [
     WINDOW_PROVIDERS,
     CookieService,
@@ -64,13 +56,7 @@ const features = [
       deps: [MudConfigService],
       multi: true,
     },
-    {
-      provide: APP_INITIALIZER,
-      useFactory: setupServerConfigServiceFactory,
-      deps: [ServerConfigService],
-      multi: true,
-    },
+    provideHttpClient(withInterceptorsFromDi()),
   ],
-  bootstrap: [AppComponent],
 })
 export class AppModule {}
