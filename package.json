@@ -2,7 +2,7 @@
   "name": "webmud3",
   "version": "1.0.0-alpha",
   "engines": {
-    "node": "20.12.2"
+    "node": "22.17.1"
   },
   "workspaces": [
     "frontend",
