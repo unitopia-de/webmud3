@@ -43,7 +43,7 @@ export const useRoutes = (app: Express) => {
   //   );
   // });
 
-  app.get('*', (req: Request, res: Response) => {
+  app.get('/*path', (req: Request, res: Response) => {
     logger.info(`[Routes] requested * - delivering index.html`);
 
     res.sendFile(
