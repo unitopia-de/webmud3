@@ -6,7 +6,7 @@
     "outDir": "./dist/out-tsc",
     "sourceMap": true,
     "declaration": false,
-    "downlevelIteration": true,
+    "esModuleInterop": true,
     "experimentalDecorators": true,
     "moduleResolution": "node",
     "importHelpers": true,
@@ -16,7 +16,6 @@
     "useDefineForClassFields": false,
     "strict": true,
     "resolveJsonModule": true,
-    "allowSyntheticDefaultImports": true,
     "paths": {
       "@mudlet3/frontend/core": ["src/app/core"],
       "@mudlet3/frontend/shared": ["src/app/shared"],
