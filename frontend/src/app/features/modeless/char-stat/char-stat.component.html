@@ -1,15 +1,22 @@
-<div class="grid" *ngIf="charData!==undefined ; else loading">
+@if (charData!==undefined ) {
+  <div class="grid">
     <div class="col-6">Charaktername:</div>
     <div class="col-6">{{charData.nameAtMud}}</div>
     <div class="col-6">Status:</div>
     <div class="col-6">{{charData.cStatus}}</div>
     <div class="col-6">Vitals:</div>
     <div class="col-6">{{charData.cVitals}}</div>
-</div>
-<ng-template #loading>Daten werden geladen!</ng-template>
-<div *ngIf="charData!==undefined">
-    <div class="grid" *ngFor="let stat of charData.cStats">
+  </div>
+} @else {
+  Daten werden geladen!
+}
+@if (charData!==undefined) {
+  <div>
+    @for (stat of charData.cStats; track stat) {
+      <div class="grid">
         <div class="col-6">{{stat.name}}</div>
         <div class="col-6">{{stat.value}}</div>
-    </div>
-</div>
+      </div>
+    }
+  </div>
+}
