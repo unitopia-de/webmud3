@@ -2,10 +2,10 @@ import { EventEmitter, Injectable } from '@angular/core';
 import { BehaviorSubject } from 'rxjs';
 import { Manager, Socket } from 'socket.io-client';
 
-import { ServerConfigService } from '../../shared/server-config.service';
 import { ClientToServerEvents } from './types/client-to-server-events';
 import { ServerToClientEvents } from './types/server-to-client-events';
 import { isSecureString, SecureString } from '@mudlet3/frontend/shared';
+import { environment } from 'src/environments/environment';
 
 type MudOutputEventArgs = {
   data: string;
@@ -28,9 +28,9 @@ export class SocketsService {
   public readonly connectedToServer$ = this.connectedToServer.asObservable();
   public readonly connectedToMud$ = this.connectedToMud.asObservable();
 
-  public constructor(serverConfigService: ServerConfigService) {
-    const socketUrl = serverConfigService.getBackend();
-    const socketNamespace = serverConfigService.getSocketNamespace();
+  public constructor() {
+    const socketUrl = environment.backendUrl();
+    const socketNamespace = '/socket.io';
 
     console.log('[Sockets] Socket Service init socket', {
       socketUrl,
@@ -205,73 +205,3 @@ export class SocketsService {
     callback();
   };
 }
-
-// Temporär auskommentierte Features
-// this.socket.on('mud-get-naws', (nawsId: string, cb: () => void) => {
-//   this.handleMudGetNaws(mudId, nawsId, cb);
-// });
-// this.socket.on('mud-signal', (sdata: any) => {
-//   this.handleMudSignal(mudId, sdata, observer);
-// });
-// this.socket.on('mud-gmcp-start', (gmcpId: string, gmcp_support: any) => {
-//   this.handleMudGmcpStart(mudId, gmcpId, gmcp_support);
-// });
-// this.socket.on(
-//   'mud-gmcp-incoming',
-//   (incomingId: string, mod: string, msg: string, data: any) => {
-//     this.handleMudGmcpIncoming(mudId, incomingId, mod, msg, data);
-//   },
-// );
-
-// private handleMudGetNaws = (
-//   mudId: string,
-//   nawsId: string,
-//   cb: () => void,
-// ) => {
-//   cb({ height: this.mudConfig.height, width: this.mudConfig.width });
-// };
-
-// private handleMudSignal = (
-//   id: string,
-//   mudId: string,
-//   sdata: any,
-//   observer: Observer<IoResult>,
-// ) => {
-//   observer.next({
-//     IdType: 'IoMud',
-//     Id: mudId,
-//     MsgType: 'mud-signal',
-//     ErrorType: null,
-//     Data: this,
-//     musi: { signal: sdata.signal, id: sdata.id },
-//   });
-// };
-
-// private handleMudGmcpStart = (
-//   id: string,
-//   mudId: string,
-//   gmcpId: string,
-//   gmcp_support: any,
-// ) => {
-//   this.sendGMCP(mudId, 'Core', 'Hello', {
-//     client: this.mudConfig.client,
-//     version: this.mudConfig.version,
-//   });
-// };
-
-// private handleMudGmcpIncoming = (
-//   id: string,
-//   mudId: string,
-//   incomingId: string,
-//   mod: string,
-//   msg: string,
-//   data: any,
-// ) => {
-//   // Handle GMCP incoming messages
-// };
-
-// public sendGMCP(id: string, mod: string, msg: string, data: any): boolean {
-//   if (!this.socket.connected) return false;
-//   this.socket.emit('mud-gmcp-outgoing', id, mod, msg, data);
-//   return true;
-// }

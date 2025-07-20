@@ -2,12 +2,10 @@
   @if (mode === 'text') {
     <textarea
       id="mud-input"
-      pInputTextarea
       class="mud-input"
       (keydown)="onKeyDown($event)"
       (keyup)="onKeyUp($event)"
       formControlName="inpmessage"
-      [autoResize]="true"
       placeholder="Gib hier deine Befehle ein!"
       >
     </textarea>
@@ -15,7 +13,6 @@
   @if (mode === 'password') {
     <input
       id="mud-input-hidden"
-      pInputText
       (keydown)="onKeyDown($event)"
       formControlName="inpmessage"
       type="password"

@@ -14,6 +14,7 @@ import { IMudMessage } from '../../types/mud-message';
   selector: 'app-mud-output',
   templateUrl: './mud-output.component.html',
   styleUrls: ['./mud-output.component.scss'],
+  standalone: false,
 })
 export class MudOutputComponent implements AfterViewChecked, AfterViewInit {
   private readonly linesSubject = new BehaviorSubject<IMudMessage[]>([]);

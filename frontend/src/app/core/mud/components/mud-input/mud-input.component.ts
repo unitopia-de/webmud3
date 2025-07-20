@@ -6,24 +6,23 @@ import {
   ViewChild,
 } from '@angular/core';
 import { FormBuilder, FormGroup } from '@angular/forms';
-import { InputText } from 'primeng/inputtext';
-import { InputTextarea } from 'primeng/inputtextarea';
 import { SecureString } from '@mudlet3/frontend/shared';
 
 @Component({
   selector: 'app-mud-input',
   templateUrl: './mud-input.component.html',
   styleUrls: ['./mud-input.component.scss'],
+  standalone: false,
 })
 export class MudInputComponent {
   private inpHistory: string[] = [];
   private inpPointer = -1;
 
-  @ViewChild(InputTextarea, { static: false })
-  private textarea?: InputTextarea;
+  @ViewChild(HTMLAreaElement, { static: false })
+  private textArea?: HTMLInputElement;
 
-  @ViewChild(InputText, { static: false })
-  private textinput?: InputTextarea;
+  @ViewChild(HTMLInputElement, { static: false })
+  private textInput?: HTMLInputElement;
 
   @Output()
   public readonly messageSent = new EventEmitter<string | SecureString>();
@@ -40,11 +39,7 @@ export class MudInputComponent {
   }
 
   public focus() {
-    (
-      this.textarea?.el.nativeElement as HTMLTextAreaElement | undefined
-    )?.focus();
-
-    (this.textinput?.el.nativeElement as HTMLInputElement | undefined)?.focus();
+    this.textArea?.focus();
   }
 
   protected onKeyDown(event: KeyboardEvent) {
