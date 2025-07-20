@@ -1,5 +1,4 @@
 import { Injectable } from '@angular/core';
-import { MudConfigService } from '@mudlet3/frontend/features/config';
 import { SocketsService } from '@mudlet3/frontend/features/sockets';
 import {
   wordWrap,
@@ -26,10 +25,7 @@ export class MudService {
 
   public readonly showEcho$: Observable<boolean>;
 
-  constructor(
-    private readonly socketsService: SocketsService,
-    private readonly mudConfigService: MudConfigService,
-  ) {
+  constructor(private readonly socketsService: SocketsService) {
     socketsService.onMudOutput.subscribe(({ data }) => {
       const ansiData = mudProcessData(data);
 
@@ -55,9 +51,7 @@ export class MudService {
 
     const isSecure = isSecureString(message);
 
-    const useEcho = this.mudConfigService.webConfig.localEcho;
-
-    if (useEcho && !isSecure) {
+    if (!isSecure) {
       const echoLine: IMudMessage = {
         type: 'echo',
         // Todo[myst]: die Anzahl der Zeichen sollte mit dem Ausgehandelten WordWrap von Uni übereinstimmen

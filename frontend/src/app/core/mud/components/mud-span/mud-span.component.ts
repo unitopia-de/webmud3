@@ -7,6 +7,7 @@ import { IMudMessage } from '../../types/mud-message';
   selector: 'app-mud-span',
   templateUrl: './mud-span.component.html',
   styleUrls: ['./mud-span.component.scss'],
+  standalone: false,
 })
 export class MudspanComponent {
   private readonly lineSubject = new BehaviorSubject<IMudMessage | null>(null);

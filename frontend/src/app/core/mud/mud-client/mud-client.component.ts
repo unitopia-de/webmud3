@@ -10,6 +10,7 @@ import { SecureString } from '@mudlet3/frontend/shared';
   selector: 'app-mud-client',
   templateUrl: './mud-client.component.html',
   styleUrls: ['./mud-client.component.scss'],
+  standalone: false,
 })
 export class MudclientComponent {
   protected readonly output$: Observable<IMudMessage[]>;
