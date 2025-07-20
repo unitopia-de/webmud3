@@ -33,7 +33,8 @@ const features = [
   WidgetsModule,
 ];
 
-@NgModule({ declarations: [AppComponent],
+@NgModule({
+  declarations: [AppComponent],
     bootstrap: [AppComponent], imports: [PrimeModule,
         ...features,
         SharedModule,
