@@ -1,21 +1,30 @@
-<form [formGroup]="form">
-  @if (mode === 'text') {
+<textarea
+  class="mud-input"
+  [(ngModel)]="value"
+  (keydown.enter)="submit($event)"
+  placeholder="Befehl eingeben …"
+></textarea>
+
+<!-- Nur eine der beiden Controls wird gerendert -->
+<!-- @switch (mode) {
+
+
+
+  @case ('text') {
     <textarea
-      id="mud-input"
       class="mud-input"
-      (keydown)="onKeyDown($event)"
-      (keyup)="onKeyUp($event)"
-      formControlName="inpmessage"
-      placeholder="Gib hier deine Befehle ein!"
-      >
-    </textarea>
+      [(ngModel)]="value"
+      (keydown.enter)="submit($event)"
+      placeholder="Befehl eingeben …"
+    ></textarea>
   }
-  @if (mode === 'password') {
+  @case ('password') {
     <input
-      id="mud-input-hidden"
-      (keydown)="onKeyDown($event)"
-      formControlName="inpmessage"
+      *ngIf="mode === 'password'"
+      class="mud-input"
       type="password"
-      />
+      [(ngModel)]="value"
+      (keydown.enter)="submit($event)"
+    />
   }
-</form>
+} -->

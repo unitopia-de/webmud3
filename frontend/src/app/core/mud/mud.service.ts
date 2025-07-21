@@ -1,72 +1,75 @@
+// src/app/mud/mud.service.ts
 import { Injectable } from '@angular/core';
 import { SocketsService } from '@mudlet3/frontend/features/sockets';
-import {
-  wordWrap,
-  isSecureString,
-  SecureString,
-} from '@mudlet3/frontend/shared';
-import { BehaviorSubject, Observable, Subject } from 'rxjs';
-import { IMudMessage } from './types/mud-message';
+import { isSecureString, SecureString } from '@mudlet3/frontend/shared';
+import { FitAddon } from '@xterm/addon-fit';
+import { Terminal } from '@xterm/xterm';
+import { Observable } from 'rxjs';
 
-import { mudProcessData } from './utils/mud-process-data';
-
-@Injectable({
-  providedIn: 'root',
-})
+@Injectable({ providedIn: 'root' })
 export class MudService {
-  private readonly outputLines = new BehaviorSubject<IMudMessage[]>([]);
+  /* ---------------- öffentliche Status-Streams ---------------- */
+  readonly connectedToMud$ = this.socketService.connectedToMud$;
+  /** true = Klartext-Echo, false = Passwort-Echo */
+  readonly showEcho$: Observable<boolean> =
+    this.socketService.onSetEchoMode.asObservable();
 
-  private readonly newMessageToSend: Subject<string> = new Subject();
+  /* ---------------- Terminal-Objekt ---------------- */
+  private term!: Terminal;
+  private fit = new FitAddon();
 
-  public readonly outputLines$: Observable<IMudMessage[]> =
-    this.outputLines.asObservable();
+  constructor(private readonly socketService: SocketsService) {}
 
-  public readonly connectedToMud$: Observable<boolean>;
+  /** 1× im MudOutputComponent aufrufen, um das Terminal einzubetten */
+  initTerminal(host: HTMLElement): void {
+    if (this.term) {
+      return;
+    }
 
-  public readonly showEcho$: Observable<boolean>;
-
-  constructor(private readonly socketsService: SocketsService) {
-    socketsService.onMudOutput.subscribe(({ data }) => {
-      const ansiData = mudProcessData(data);
-
-      const mudLines: IMudMessage[] = ansiData.map((ansi) => ({
-        ...ansi,
-        type: 'mud',
-      }));
-
-      this.addOutputLine(...mudLines);
+    /* Terminal instanzieren */
+    this.term = new Terminal({
+      convertEol: true,
+      fontFamily: 'JetBrainsMono, monospace',
+      theme: { background: '#000', foreground: '#ccc' },
     });
 
-    this.connectedToMud$ = this.socketsService.connectedToMud$;
+    this.socketService.onMudOutput.subscribe(({ data }) => {
+      this.term.write(data); // ANSI kommt 1-zu-1 an
+    });
 
-    this.showEcho$ = socketsService.onSetEchoMode.asObservable();
+    this.term.onData((text) => this.socketService.sendMessage(text));
+
+    this.term.loadAddon(this.fit);
+    this.term.open(host);
+    this.fit.fit();
+
+    /* Resize -> Fit */
+    window.addEventListener('resize', this.onResize);
   }
 
-  public addOutputLine(...line: IMudMessage[]): void {
-    this.outputLines.next([...this.outputLines.value, ...line]);
-  }
+  private onResize = () => this.fit.fit();
 
-  public sendMessage(message: string | SecureString): void {
-    this.socketsService.sendMessage(message);
+  /* ---------------------------------------------------------------- */
 
-    const isSecure = isSecureString(message);
+  sendMessage(msg: string | SecureString): void {
+    this.socketService.sendMessage(msg);
 
-    if (!isSecure) {
-      const echoLine: IMudMessage = {
-        type: 'echo',
-        // Todo[myst]: die Anzahl der Zeichen sollte mit dem Ausgehandelten WordWrap von Uni übereinstimmen
-        text: wordWrap(message, 75) + '\r\n',
-      };
-
-      this.addOutputLine(echoLine);
+    /* Lokales Echo nur bei Klartext */
+    if (!isSecureString(msg)) {
+      this.term?.writeln(msg.toString());
     }
   }
 
-  public connect(): void {
-    this.socketsService.connectToMud();
+  connect(): void {
+    this.socketService.connectToMud();
+  }
+  disconnect(): void {
+    this.socketService.disconnectFromMud();
   }
 
-  public disconnect(): void {
-    this.socketsService.disconnectFromMud();
+  /* Good practice, wenn Service jemals zerstört wird */
+  disposeTerminal(): void {
+    window.removeEventListener('resize', this.onResize);
+    this.term?.dispose();
   }
 }

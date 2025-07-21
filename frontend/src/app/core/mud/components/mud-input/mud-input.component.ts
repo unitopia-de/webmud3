@@ -1,101 +1,27 @@
-import {
-  Component,
-  EventEmitter,
-  Input,
-  Output,
-  ViewChild,
-} from '@angular/core';
-import { FormBuilder, FormGroup } from '@angular/forms';
-import { SecureString } from '@mudlet3/frontend/shared';
-
+import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 @Component({
   selector: 'app-mud-input',
   templateUrl: './mud-input.component.html',
   styleUrls: ['./mud-input.component.scss'],
-  standalone: false,
+  standalone: true,
+  imports: [FormsModule],
 })
 export class MudInputComponent {
-  private inpHistory: string[] = [];
-  private inpPointer = -1;
+  /** 'text' = Klartext-Echo, 'password' = verdeckt */
+  @Input() mode: 'text' | 'password' = 'text';
 
-  @ViewChild(HTMLAreaElement, { static: false })
-  private textArea?: HTMLInputElement;
+  /** Feuert bei <Enter> den aktuellen Inhalt */
+  @Output() submitCommand = new EventEmitter<string>();
 
-  @ViewChild(HTMLInputElement, { static: false })
-  private textInput?: HTMLInputElement;
+  value = '';
 
-  @Output()
-  public readonly messageSent = new EventEmitter<string | SecureString>();
-
-  protected readonly form: FormGroup;
-
-  @Input()
-  public mode: 'text' | 'password' = 'text';
-
-  constructor(fb: FormBuilder) {
-    this.form = fb.group({
-      inpmessage: [''],
-    });
-  }
-
-  public focus() {
-    this.textArea?.focus();
-  }
-
-  protected onKeyDown(event: KeyboardEvent) {
-    if (event.key === 'Enter') {
-      event.preventDefault();
-      this.sendMessage();
-    }
-  }
-
-  protected onKeyUp(event: KeyboardEvent) {
-    if (event.key === 'ArrowUp') {
-      this.navigateHistory(-1);
-    } else if (event.key === 'ArrowDown') {
-      this.navigateHistory(1);
-    }
-  }
-
-  private sendMessage() {
-    const message = this.form.get('inpmessage')?.value as string;
-
-    if (this.mode === 'text') {
-      this.messageSent.emit(message);
-    }
-
-    if (this.mode === 'password') {
-      this.messageSent.emit({ value: message });
-    }
-
-    if (
-      this.inpHistory.length === 0 ||
-      (this.inpHistory.length > 0 && this.inpHistory[0] !== message)
-    ) {
-      this.inpHistory.unshift(message);
-    }
-    this.form.get('inpmessage')?.setValue('');
-    this.inpPointer = -1;
-  }
-
-  private navigateHistory(direction: number) {
-    const messageControl = this.form.get('inpmessage');
-
-    if (!messageControl) return;
-
-    if (direction === -1 && this.inpPointer < this.inpHistory.length - 1) {
-      this.inpPointer++;
-    } else if (direction === 1 && this.inpPointer > -1) {
-      this.inpPointer--;
-    }
-
-    if (this.inpPointer === -1) {
-      messageControl.setValue('');
-    } else if (
-      this.inpPointer >= 0 &&
-      this.inpPointer < this.inpHistory.length
-    ) {
-      messageControl.setValue(this.inpHistory[this.inpPointer]);
+  protected submit(ev: Event) {
+    ev.preventDefault();
+    const trimmed = this.value.trim();
+    if (trimmed) {
+      this.submitCommand.emit(trimmed);
+      this.value = ''; // Eingabe leeren
     }
   }
 }

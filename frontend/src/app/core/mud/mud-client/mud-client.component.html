@@ -1,23 +1,17 @@
-@if (this.output$ | async; as lines) {
-  <app-mud-output
-    [lines]="lines"
-    [foregroundColor]="this.v.stdfg"
-    [backgroundColor]="this.v.stdbg"
-  ></app-mud-output>
-}
+<div class="mud-wrapper">
+  <!-- Terminal -->
+  <app-mud-output class="terminal"></app-mud-output>
 
-@if (this.isConnected$ | async) {
-  <app-mud-input
-    [mode]="(this.showEcho$ | async) ? 'text' : 'password'"
-    (messageSent)="onInputReceived($event)"
-  ></app-mud-input>
-} @else {
-  <div id="disconnected-panel">
-    <p>Disconnected!</p>
-    <button label="reconnect" (click)="this.onConnectClicked()"></button>
-  </div>
-}
-
-
-<!--<p-divider layout="vertical"></p-divider>
-<app-inventory [inv]="invlist" [vheight]="v.ref_height"></app-inventory>-->
+  @if (isConnected$ | async) {
+    <app-mud-input
+      [mode]="(showEcho$ | async) ? 'text' : 'password'"
+      (submitCommand)="onSend($event)"
+    >
+    </app-mud-input>
+  } @else {
+    <div class="disconnected-panel">
+      <p>Disconnected!</p>
+      <button type="button" (click)="connect()">Reconnect</button>
+    </div>
+  }
+</div>

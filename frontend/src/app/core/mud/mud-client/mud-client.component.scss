@@ -1,43 +1,15 @@
-//   table {
-//     width: 100%;
-//   }
-
-//   .mud-test {
-//     font-family: monospace;
-//     font-size: 14px;
-//     background-color: black;
-//     color: white;
-//     padding: 0.5ex;
-//     margin-top: 0;
-//     margin-bottom: 0;
-//     display: inline-block;
-//   }
-:host {
+.mud-wrapper {
   display: flex;
   flex-direction: column;
-  flex: 1 0 100%;
-  overflow: hidden;
+  height: 100%;
+}
 
-  app-mud-menu {
-    flex: 0 1 auto;
-  }
+.terminal {
+  flex: 1 1 auto;
+}
 
-  app-mud-output {
-    flex: 1 1 auto;
-    overflow-y: auto;
-  }
-
-  app-mud-input {
-    flex: 0 0 auto;
-    display: flex;
-    flex-direction: column;
-  }
-
-  #disconnected-panel {
-    display: flex;
-    gap: 32px;
-    padding: 4px;
-    align-items: center;
-    align-self: center;
-  }
+/* Optionales Styling */
+.disconnected-panel {
+  text-align: center;
+  padding: 1rem;
 }

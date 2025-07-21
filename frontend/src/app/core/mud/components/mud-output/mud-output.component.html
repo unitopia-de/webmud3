@@ -1,16 +1,1 @@
-<!-- Todo[myst]: Was ist das? -->
-<!-- <div class="above-scroller" *ngIf="refWidth">
-<div class="scroller" [style.min-width.px]="refWidth"></div>
-</div> -->
-<div
-  #container
-  class="mud-output doselect"
-  [style.background-color]="this.backgroundColor"
-  [style.color]="this.foregroundColor"
-  >
-  @for (mudLine of this.lines$ | async; track mudLine) {
-    <div class="mud-message">
-      <app-mud-span [line]="mudLine"> </app-mud-span>
-    </div>
-  }
-</div>
+<div #host style="height: 100%; width: 100%;"></div>
