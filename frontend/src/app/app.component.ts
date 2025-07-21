@@ -1,5 +1,5 @@
 import { Component } from '@angular/core';
-import { MudClientComponent } from 'src/app/core/mud/mud-client/mud-client.component';
+import { MudClientComponent } from '@mudlet3/frontend/core';
 
 @Component({
   selector: 'app-root',

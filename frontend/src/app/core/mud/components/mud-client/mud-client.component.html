@@ -1,13 +1,14 @@
 <div class="mud-wrapper">
   <!-- Terminal -->
-  <app-mud-output class="terminal"></app-mud-output>
+  <div #host style="height: 100%; width: 100%"></div>
 
   @if (isConnected$ | async) {
-    <app-mud-input
-      [mode]="(showEcho$ | async) ? 'text' : 'password'"
-      (submitCommand)="onSend($event)"
-    >
-    </app-mud-input>
+    <textarea
+      class="mud-input"
+      [(ngModel)]="value"
+      (keydown.enter)="submit($event)"
+      placeholder="Befehl eingeben …"
+    ></textarea>
   } @else {
     <div class="disconnected-panel">
       <p>Disconnected!</p>
