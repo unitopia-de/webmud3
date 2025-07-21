@@ -27,8 +27,11 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
   private readonly terminalFitAddon = new FitAddon();
 
   // Das Element, in dem das Terminal gerendert wird
-  @ViewChild('host', { static: true })
-  private readonly terminalHost!: ElementRef<HTMLDivElement>;
+  @ViewChild('hostRef', { static: true })
+  private readonly terminalRef!: ElementRef<HTMLDivElement>;
+
+  @ViewChild('inputRef')
+  private readonly inputRef?: ElementRef<HTMLTextAreaElement>;
 
   private readonly mudService = inject(MudService);
 
@@ -47,13 +50,14 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
       convertEol: true,
       fontFamily: 'JetBrainsMono, monospace',
       theme: { background: '#000', foreground: '#ccc' },
+      disableStdin: true,
     });
 
     this.mudService.connect(); // beim Laden verbinden
   }
 
   ngAfterViewInit() {
-    this.terminal.open(this.terminalHost.nativeElement);
+    this.terminal.open(this.terminalRef.nativeElement);
     this.terminal.loadAddon(this.terminalFitAddon);
 
     /* Backend → Terminal */
@@ -79,7 +83,7 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
     //   .pipe(debounceTime(150))   // oder throttleTime(200), auditTime(100) …
     //   .subscribe(() => this.terminalFitAddon.fit());
 
-    this.resizeObs.observe(this.terminalHost.nativeElement);
+    this.resizeObs.observe(this.terminalRef.nativeElement);
   }
 
   ngOnDestroy() {

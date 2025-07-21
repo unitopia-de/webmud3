@@ -1,7 +1,8 @@
-<div class="mud-output" #host></div>
+<div class="mud-output" #hostRef></div>
 
 @if (isConnected$ | async) {
   <textarea
+    #inputRef
     class="mud-input"
     [(ngModel)]="value"
     (keydown.enter)="submit($event)"
