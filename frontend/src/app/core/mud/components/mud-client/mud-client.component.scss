@@ -1,15 +1,23 @@
-.mud-wrapper {
+:host {
   display: flex;
   flex-direction: column;
-  height: 100%;
-}
+  min-height: 0;
 
-.terminal {
-  flex: 1 1 auto;
-}
+  .mud-output {
+    flex: 1 1 0;
+    background-color: black;
+    min-height: 0;
+    overflow: hidden;
+  }
 
-/* Optionales Styling */
-.disconnected-panel {
-  text-align: center;
-  padding: 1rem;
+  .mud-input {
+    flex: 0 0 auto;
+  }
+
+  /* Optionales Styling */
+  .disconnected-panel {
+    flex: 0 0 auto;
+    text-align: center;
+    padding: 1rem;
+  }
 }

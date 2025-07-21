@@ -2,13 +2,17 @@ import {
   AfterViewInit,
   Component,
   ElementRef,
+  inject,
   OnDestroy,
   ViewChild,
 } from '@angular/core';
-
-import { MudService } from '../../services/mud.service';
 import { AsyncPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+
+import { Terminal } from '@xterm/xterm';
+import { FitAddon } from '@xterm/addon-fit';
+
+import { MudService } from '../../services/mud.service';
 
 @Component({
   selector: 'app-mud-client',
@@ -18,42 +22,81 @@ import { FormsModule } from '@angular/forms';
   styleUrls: ['./mud-client.component.scss'],
 })
 export class MudClientComponent implements AfterViewInit, OnDestroy {
-  /** Verbindungs- und Echo-Status aus dem Service */
-  readonly isConnected$ = this.mud.connectedToMud$;
-  readonly showEcho$ = this.mud.showEcho$;
+  private readonly terminal: Terminal;
 
+  private readonly terminalFitAddon = new FitAddon();
+
+  // Das Element, in dem das Terminal gerendert wird
   @ViewChild('host', { static: true })
-  host!: ElementRef<HTMLDivElement>;
+  private readonly terminalHost!: ElementRef<HTMLDivElement>;
 
-  constructor(private mud: MudService) {
-    /* Direkt beim Laden verbinden */
-    this.mud.connect();
-  }
+  private readonly mudService = inject(MudService);
 
-  onSend(text: string): void {
-    this.mud.sendMessage(text);
-  }
+  private readonly resizeObs = new ResizeObserver(() => {
+    this.terminalFitAddon.fit();
+  });
 
-  connect(): void {
-    this.mud.connect();
+  protected readonly isConnected$ = this.mudService.connectedToMud$;
+
+  protected readonly showEcho$ = this.mudService.showEcho$;
+
+  protected value = ''; // Eingabepuffer für das Textfeld
+
+  constructor() {
+    this.terminal = new Terminal({
+      convertEol: true,
+      fontFamily: 'JetBrainsMono, monospace',
+      theme: { background: '#000', foreground: '#ccc' },
+    });
+
+    this.mudService.connect(); // beim Laden verbinden
   }
 
   ngAfterViewInit() {
-    this.mud.initTerminal(this.host.nativeElement); // Terminal einbetten
+    this.terminal.open(this.terminalHost.nativeElement);
+    this.terminal.loadAddon(this.terminalFitAddon);
+
+    /* Backend → Terminal */
+    this.mudService.mudOutput$.subscribe(({ data }) =>
+      this.terminal.write(data),
+    );
+
+    /* Terminal-Eingaben → Backend */
+    this.terminal.onData((text) => this.mudService.sendMessage(text));
+
+    // Todo Limitieren der Masse an Events:
+
+    //   const resize$ = fromEventPattern<ResizeObserverEntry[]>(
+    //   handler => {
+    //     const ro = new ResizeObserver(handler);
+    //     ro.observe(this.terminalHost.nativeElement);
+    //     return ro;               // fürs Unsubscribe
+    //   },
+    //   (handler, ro) => ro.disconnect()
+    // );
+
+    // this.sub = resize$
+    //   .pipe(debounceTime(150))   // oder throttleTime(200), auditTime(100) …
+    //   .subscribe(() => this.terminalFitAddon.fit());
+
+    this.resizeObs.observe(this.terminalHost.nativeElement);
   }
 
   ngOnDestroy() {
-    this.mud.disposeTerminal(); // sauber aufräumen
+    this.resizeObs.disconnect();
+    this.terminal.dispose();
   }
-
-  value = '';
 
   protected submit(ev: Event) {
     ev.preventDefault();
-    const trimmed = this.value.trim();
-    if (trimmed) {
-      this.onSend(trimmed);
-      this.value = ''; // Eingabe leeren
-    }
+
+    // Wir schicken alles 1:1 an den Server, egal ob es leer ist oder nicht
+    this.mudService.sendMessage(this.value);
+
+    this.value = ''; // Eingabepuffer leeren
+  }
+
+  protected connect() {
+    this.mudService.connect();
   }
 }

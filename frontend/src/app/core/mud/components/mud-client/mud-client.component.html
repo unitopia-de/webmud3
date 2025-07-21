@@ -1,18 +1,15 @@
-<div class="mud-wrapper">
-  <!-- Terminal -->
-  <div #host style="height: 100%; width: 100%"></div>
+<div class="mud-output" #host></div>
 
-  @if (isConnected$ | async) {
-    <textarea
-      class="mud-input"
-      [(ngModel)]="value"
-      (keydown.enter)="submit($event)"
-      placeholder="Befehl eingeben …"
-    ></textarea>
-  } @else {
-    <div class="disconnected-panel">
-      <p>Disconnected!</p>
-      <button type="button" (click)="connect()">Reconnect</button>
-    </div>
-  }
-</div>
+@if (isConnected$ | async) {
+  <textarea
+    class="mud-input"
+    [(ngModel)]="value"
+    (keydown.enter)="submit($event)"
+    placeholder="Befehl eingeben …"
+  ></textarea>
+} @else {
+  <div class="disconnected-panel">
+    <p>Disconnected!</p>
+    <button type="button" (click)="connect()">Reconnect</button>
+  </div>
+}
