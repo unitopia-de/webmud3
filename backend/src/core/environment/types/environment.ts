@@ -7,4 +7,5 @@ export interface IEnvironment {
   readonly socketRoot: string;
   readonly socketTimeout: number;
   readonly environment: 'production' | 'development';
+  readonly corsAllowList: string[];
 }
