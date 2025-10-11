@@ -12,7 +12,11 @@
 
 docker build -f Dockerfile -t myonara/webmud3:latest .
 
+docker push myonara/webmud3:latest
+
 docker build -f dockerfiles/ng_unitopia_test.dockerfile -t myonara/webmud3:unitopiatest .
+
+docker push myonara/webmud3:unitopiatest
 
 ### To run the docker containers in a swarm:
 
@@ -54,6 +58,10 @@ podman-compose -f dockerfiles/w3_docker_compose_sb.yml -p webmud_seifenblase dow
 podman-compose -f dockerfiles/w3_docker_compose_test.yml -p webmud_test down
     
 podman-compose -f dockerfiles/w3_docker_compose_test_neu.yml -p webmud_test down
+
+docker logs --follow webmud_test_web_1
+
+docker image ls --all --history --no-trunc
     
 ####  to get new imges:
 

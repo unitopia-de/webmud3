@@ -3,7 +3,7 @@
 const url = require('url');
 
 const dbglvl = ['TRACE','DEBUG','INFO','LOG','WARN','ERROR','FATAL','OFF'];
-var outputlevel = 0; // Errors,Fatals...
+var outputlevel = 2; // Errors,Fatals...
 
 // var NGXLogger = class NGXLogger {
 module.exports = {
@@ -38,14 +38,17 @@ module.exports = {
 
     log2string : function (log){
     // function log2srting(log) {
-        var outpline =log.timestamp+" "+dbglvl[log.level]+" ["+log.fileName+":"+log.lineNumber+']'+log.real_ip+'\r\n'+(log.message||'(####)')+' ';
-        log.additional.forEach(function(val,idx,arr){
-            if (typeof val !== 'string') {
-                outpline = outpline + JSON.stringify(val,undefined,"\r");
-            } else {
-                outpline = outpline + val;
-            }
-        })
+        var outpline =log.timestamp+" "+dbglvl[log.level]+" ["+log.fileName+":"+log.lineNumber+']'+log.real_ip+'\n'+(log.message||'(####)')+' ';
+        if (typeof log.additional === 'undefined') {
+            return outpline;
+        }
+        if (!Array.isArray(log.additional)) {
+            log.additional = [log.additional];
+        }
+        if (log.additional.length == 0) {
+            return outpline;
+        }
+        outpline = outpline + JSON.stringify(log.additional,undefined,2);
         return outpline;
     },
     log2console : function (log) {

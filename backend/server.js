@@ -140,10 +140,10 @@ if (cfg.tls) {
         cert: fs.readFileSync(cfg.tls_cert)
       };
     http = require('https').Server(options,app);
-    console.log("INIT: https active");
     logger.addAndShowLog('SRV://5000',"DEBUG",'INIT: https active',[]);
 } else {
     http = require('http').Server(app);
+    logger.addAndShowLog('SRV://5000',"DEBUG",'INIT: https inactive',[]);
 }
 //const io = require('socket.io')(http,{'path':'/socket.io','transports': ['websocket']});
 const io = require('socket.io')(http,{'path':scfg.mySocketPath,'transports': ['websocket']});
@@ -174,35 +174,35 @@ app.get('/socket.io-client/dist/*', (req,res) => {
     res.sendFile(path.join(__dirname, 'node_modules'+mypath));
 });
 
-
-app.get("/manifest.webmanifest", function(req, res) {
-    var ip = req.headers['x-forwarded-for'] || 
-     req.connection.remoteAddress || 
-     req.socket.remoteAddress ||
-     (req.connection.socket ? req.connection.socket.remoteAddress : null);
-    var manif = "manifest.webmanifest";
-     switch (process.env.WEBMUD3_DISTRIBUTION_TYPE) {
-         case "unitopia-prod":
-            manif = "manifest.unitopia.webmanifest";
-            break;
-         case "unitopia-test":
-            manif = "manifest.unitopia-test.webmanifest";
-            break;
-         case "seifenblase":
-            manif = "manifest.seifenblase.webmanifest";
-            break;
-         default:
-     }
-    logger.addAndShowLog('SRV:'+ip,"DEBUG",'manifest:',[manif]);
-    fs.readFile(path.join(__dirname, "dist",manif), function(err, data) {
-        if (err) {
-            res.sendStatus(404);
-        } else {
-            // modify the data here, then send it
-            res.send(data);
-        }
-    });
-});
+// V0.6.2 deactivated!
+// app.get("/manifest.webmanifest", function(req, res) {
+//     var ip = req.headers['x-forwarded-for'] || 
+//      req.connection.remoteAddress || 
+//      req.socket.remoteAddress ||
+//      (req.connection.socket ? req.connection.socket.remoteAddress : null);
+//     var manif = "manifest.webmanifest";
+//      switch (process.env.WEBMUD3_DISTRIBUTION_TYPE) {
+//          case "unitopia-prod":
+//             manif = "manifest.unitopia.webmanifest";
+//             break;
+//          case "unitopia-test":
+//             manif = "manifest.unitopia-test.webmanifest";
+//             break;
+//          case "seifenblase":
+//             manif = "manifest.seifenblase.webmanifest";
+//             break;
+//          default:
+//      }
+//     logger.addAndShowLog('SRV:'+ip,"DEBUG",'manifest:',[manif]);
+//     fs.readFile(path.join(__dirname, "dist",manif), function(err, data) {
+//         if (err) {
+//             res.sendStatus(404);
+//         } else {
+//             // modify the data here, then send it
+//             res.send(data);
+//         }
+//     });
+// });
 
 app.use(express.static(path.join(__dirname, 'dist')));
 
@@ -225,7 +225,7 @@ app.get("/config/mud_config.json", (req,res) => {
      req.connection.remoteAddress || 
      req.socket.remoteAddress ||
      (req.connection.socket ? req.connection.socket.remoteAddress : null);
-    logger.addAndShowLog('SRV:'+ip,"DEBUG",'mud_config.json',[]);
+    logger.addAndShowLog('SRV:'+ip,"DEBUG",'mud_config.json sent',[]);
     res.json(mcfg);
     res.status(200);
 });
@@ -255,7 +255,7 @@ io.on('connection', (socket) => { // nsp /mysocket.io/ instead of /
     logger.addAndShowLog('SRV:'+real_ip,"LOG",'S01-socket user connected',[socket.id]);
     if (typeof Socket2Mud === 'undefined' || typeof Socket2Mud[socket.id] === 'undefined') {
         socket.emit('connecting',socket.id,real_ip,UNIQUE_SERVER_ID,function(action,oMudOb) {
-            logger.addAndShowLog('SRV:'+real_ip,"INFO",'S02-connecting:',[action,oMudOb]);
+            logger.addAndShowLog('SRV:'+real_ip,"INFO",'S02-connecting:',[action]);
         });
     } else {
         socket.emit('disconnecting',socket.id,real_ip,UNIQUE_SERVER_ID,function(action) {
@@ -280,7 +280,7 @@ io.on('connection', (socket) => { // nsp /mysocket.io/ instead of /
                 }
                 mudOb = mudConn.mudOb;
                 if (typeof mudOb !== 'undefined') {
-                    logger.addAndShowLog('SRV:'+real_ip,"ERROR",'S01-socket socket-disconnect-mudOb',[socket.id,mudOb]);
+                    logger.addAndShowLog('SRV:'+real_ip,"ERROR",'S01-socket socket-disconnect',[socket.id]);
                 }
             }
             delete MudConnections[id];
@@ -297,7 +297,7 @@ io.on('connection', (socket) => { // nsp /mysocket.io/ instead of /
         logger.addAndShowLog('SRV:'+real_ip,"INFO",'S01-socket reconnect_attempt',[socket.id,attemptNumber]);
     });
     socket.on("keep-alive",function(level,callback){
-        logger.addAndShowLog('SRV:'+real_ip,"INFO",'S01-socket keep alive ',[socket.id,level]);
+        //logger.addAndShowLog('SRV:'+real_ip,"INFO",'S01-socket keep alive ',[socket.id,level]);
         callback(level);
     });
 
@@ -331,16 +331,16 @@ io.on('connection', (socket) => { // nsp /mysocket.io/ instead of /
     socket.on('mud-connect', function(mudOb,callback)  {
         const id = uuidv4(); // random, unique id!
         var tsocket,mudcfg;
-        logger.addAndShowLog('SRV:'+real_ip,"INFO",'mud-connect',[socket.id,mudOb]);
+        logger.addAndShowLog('SRV:'+real_ip,"INFO",'mud-connect',[socket.id]);
         if (typeof mudOb.mudname === 'undefined') {
-            logger.addAndShowLog('SRV:'+real_ip,"FATAL",'Undefined mudname',[socket.id,mudOb]);
+            logger.addAndShowLog('SRV:'+real_ip,"FATAL",'Undefined mudname',[socket.id]);
             callback({error:'Missing mudname'});
             return;
         }
         if (mcfg.muds.hasOwnProperty(mudOb.mudname)) {
             mudcfg = mcfg.muds[mudOb.mudname];
         } else {
-            logger.addAndShowLog('SRV:'+real_ip,"FATAL",'Unknown mudnameUnknown mudname',[socket.id,mudOb]);
+            logger.addAndShowLog('SRV:'+real_ip,"FATAL",'Unknown mudnameUnknown mudname',[socket.id]);
             return;
         }
         mudOb.real_ip = real_ip;
@@ -357,7 +357,7 @@ io.on('connection', (socket) => { // nsp /mysocket.io/ instead of /
             }
         }
         try {
-            logger.addAndShowLog('SRV:'+real_ip,"INFO",'S02-socket-open',[socket.id,mudcfg]);
+            logger.addAndShowLog('SRV:'+real_ip,"INFO",'S02-socket-open',[socket.id]);
             if (mudcfg.ssl === true) {
                 tsocket = tls.connect({
                     host:mudcfg.host,
@@ -385,7 +385,7 @@ io.on('connection', (socket) => { // nsp /mysocket.io/ instead of /
             } else {
                 Socket2Mud[socket.id].push[id];
             }
-            logger.addAndShowLog('SRV:'+real_ip,"INFO",'S02-socket mud-connect:',[socket.id,mudOb]);
+            logger.addAndShowLog('SRV:'+real_ip,"INFO",'S02-socket mud-connect:',[socket.id]);
             callback({id:id,socketID:socket.id,serverID:UNIQUE_SERVER_ID});
         } catch (error) {
             logger.addAndShowLog('SRV:'+real_ip,"ERROR",'mud-connect catch',[socket.id,error]);
@@ -427,7 +427,7 @@ io.on('connection', (socket) => { // nsp /mysocket.io/ instead of /
         if (Socket2Mud[socket.id].length == 0) {
             delete Socket2Mud[socket.id];
         }
-        logger.addAndShowLog('SRV:'+real_ip,"INFO",'mud-disconnected',[socket.id,mudOb]);
+        logger.addAndShowLog('SRV:'+real_ip,"INFO",'mud-disconnected',[socket.id]);
         socket.emit("mud-disconnected",id);
         delete MudConnections[id];
         cb(undefined,id);
@@ -445,7 +445,7 @@ io.on('connection', (socket) => { // nsp /mysocket.io/ instead of /
         // console.log('mudOptions: ',mudOptions);
         if (typeof inpline !== 'undefined' && inpline !== null) {
             mudSocket.write(inpline.toString(mudOptions.charset)+"\r\n");
-            logger.addAndShowLog('SRV:'+real_ip,"TRACE",'mud-input',[inpline]);
+            // logger.addAndShowLog('SRV:'+real_ip,"TRACE",'mud-input',[inpline]);
         }
     });
     socket.on('mud-gmcp-outgoing', (id,mod,msg,data) => {
@@ -467,7 +467,7 @@ io.on('connection', (socket) => { // nsp /mysocket.io/ instead of /
         let b1 = Buffer.from(gheader);
         let b2 = Buffer.from(jsdata);
         let buf = Buffer.concat([b1,b2],b1.length+b2.length);
-        logger.addAndShowLog('SRV:'+real_ip,"DEBUG",'mud-gmcp-outgoing',[socket.id,mod,msg,data]);
+        // logger.addAndShowLog('SRV:'+real_ip,"DEBUG",'mud-gmcp-outgoing',[socket.id,mod,msg,data]);
         mudSocket.writeSub(201 /*TELOPT_GMCP*/, buf);
     });
 
@@ -493,7 +493,7 @@ io.on('connection', (socket) => { // nsp /mysocket.io/ instead of /
         logger.log2console(log);
     });
     socket.emit('connected',socket.id,real_ip,UNIQUE_SERVER_ID,function(action,oMudOb) {
-        logger.addAndShowLog('SRV:'+real_ip,"INFO",'S02-connected:',[action,oMudOb]);
+        logger.addAndShowLog('SRV:'+real_ip,"INFO",'S02-connected:',[action]);
     });
 });
 
@@ -515,7 +515,6 @@ function myCleanup() {
 }
 
 http.listen(5000, () => {
-    // logger.addAndShowLog
-    console.log('SRV//:5000',"INFO",'INIT: Server\'backend\' started on port 5000:',UNIQUE_SERVER_ID);
+    logger.addAndShowLog('SRV//:5000',"INFO",'Server\'backend\' started on port 5000:',UNIQUE_SERVER_ID);
 });
 

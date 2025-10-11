@@ -1,0 +1,11 @@
+<p-checkbox value="Farben invertieren" [(ngModel)]="cs.invert" [binary]="true" (click)="onClick($event)"></p-checkbox><br/>
+<p-checkbox value="Schwarz auf Weiss" [(ngModel)]="cs.blackOnWhite" [binary]="true" (click)="onClick($event)"></p-checkbox><br/>
+<p-checkbox value="Farben aus" [(ngModel)]="cs.colorOff" [binary]="true" (click)="onClick($event)"></p-checkbox><br/>
+<p-checkbox value="Lokales Echo" [(ngModel)]="cs.localEchoActive" [binary]="true" (click)="onClick($event)"></p-checkbox><br/>
+<p-colorPicker [(ngModel)]="cs.localEchoColor" [inline]="true" (click)="onClick($event)"></p-colorPicker>
+<p-colorPicker [(ngModel)]="cs.localEchoBackground" [inline]="true" (click)="onClick($event)"></p-colorPicker><br/>
+<span [style.color]="cs.localEchoColor" [style.background]="cs.localEchoBackground" style.align="center">Ergebnis</span><br/>
+
+<div class="center">
+    <p-button type="button" label="Schliessen" icon="pi pi-times" (click)="closeDialog({ buttonType: 'Close' })" />
+</div>

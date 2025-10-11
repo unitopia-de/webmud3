@@ -55,3 +55,7 @@ https://stackoverflow.com/questions/38112891/angular-2-set-base-href-dynamically
 missing packets:
     "ngx-device-detector": "^6.0.2",
 "primeng": "^16.7.0",
+
+### ng build with filters in bash:
+npm run build &> errors_color.txt
+cat errors_color.txt | sed -r "s/\x1B\[([0-9]{1,3}(;[0-9]{1,3})*)?[mGK]//g" | grep -E "ERROR|src" > errors.txt

@@ -1,0 +1,45 @@
+<p-tabs value="0" scrollable>
+   <p-tablist>
+         <p-tab value="0">Ohne</p-tab>
+         <p-tab value="1">Umschalt</p-tab>
+         <p-tab value="2">Strg</p-tab>
+         <p-tab value="3">Alt</p-tab>
+         <p-tab value="4">Meta</p-tab>
+         <p-tab value="5">UmschaltStrg</p-tab>
+         <p-tab value="6">UmschaltAlt</p-tab>
+         <p-tab value="7">UmschaltMeta</p-tab>
+         <p-tab value="8">UmschaltStrgAlt</p-tab>
+   </p-tablist>
+   <p-tabpanels>
+       <p-tabpanel value="0">
+         <app-keypad [keypad]="keypad.getLevel('')" (keyAction)="keyAction($event)"></app-keypad>
+       </p-tabpanel>
+       <p-tabpanel value="1">
+         <app-keypad [keypad]="keypad.getLevel('Shift')" (keyAction)="keyAction($event)"></app-keypad>
+       </p-tabpanel>
+       <p-tabpanel value="2">
+         <app-keypad [keypad]="keypad.getLevel('Ctrl')" (keyAction)="keyAction($event)"></app-keypad>
+       </p-tabpanel>
+       <p-tabpanel value="3">
+         <app-keypad [keypad]="keypad.getLevel('Alt')" (keyAction)="keyAction($event)"></app-keypad>
+       </p-tabpanel>
+       <p-tabpanel value="4">
+         <app-keypad [keypad]="keypad.getLevel('Meta')" (keyAction)="keyAction($event)"></app-keypad>
+       </p-tabpanel>
+       <p-tabpanel value="5">
+         <app-keypad [keypad]="keypad.getLevel('ShiftCtrl')" (keyAction)="keyAction($event)"></app-keypad>
+       </p-tabpanel>
+       <p-tabpanel value="6">
+         <app-keypad [keypad]="keypad.getLevel('ShiftAlt')" (keyAction)="keyAction($event)"></app-keypad>
+       </p-tabpanel>
+       <p-tabpanel value="7">
+         <app-keypad [keypad]="keypad.getLevel('ShiftMeta')" (keyAction)="keyAction($event)"></app-keypad>
+       </p-tabpanel>
+       <p-tabpanel value="8">
+         <app-keypad [keypad]="keypad.getLevel('ShiftCtrlAlt')" (keyAction)="keyAction($event)"></app-keypad>
+       </p-tabpanel>
+   </p-tabpanels>
+</p-tabs>
+<div class="center">
+   <p-button type="button" label="Schliessen" icon="pi pi-times" (click)="closeDialog({ buttonType: 'Close' })" />
+</div>
