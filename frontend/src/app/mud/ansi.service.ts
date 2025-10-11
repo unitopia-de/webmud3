@@ -466,6 +466,10 @@ export class AnsiService {
           case 0:
             display = false;
             break;
+          case 7:
+            console.log(String.fromCharCode(7));
+            display = false;
+            break;
           case 10:
             break;
           case 13:
