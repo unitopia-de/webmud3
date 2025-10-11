@@ -1,18 +1,26 @@
-FROM node:20.12.2
+FROM node:20.19-alpine3.20 AS ng-build-stage
 
 # Setze das Arbeitsverzeichnis im Container
 WORKDIR /usr/src/app
 
-# Clone specific branch from GitHub
-RUN git clone -b develop https://github.com/unitopia-de/webmud3.git . && \
-    npm install && \
-    npm run build:prod && \
-    mv backend/dist/* . && \
-    rm -rf frontend \
-    rm -rf backend
+# sourcen kopieren ausser .dockerignore
+COPY . /usr/src/app/
 
-# Installiere die Abhängigkeiten
-RUN npm install --no-package-lock --include=prod
+# use local sources
+RUN npm install && \
+    npm run build:prod
+    
+# fresh small image
+FROM node:20.19-alpine3.20 AS webmud3
+
+# Setze das Arbeitsverzeichnis im Container
+WORKDIR /usr/src/app
+
+# kopiere NUR das kompilat
+COPY --from=ng-build-stage /usr/src/app/backend/dist /usr/src/app 
+
+# nondev dependencies mitnehmen
+RUN npm install --no-package-lock --omit dev
 
 # Setze die Umgebungsvariable PORT
 ENV PORT=5000
@@ -22,3 +30,4 @@ EXPOSE 5000
 
 # Starte die Anwendung
 CMD ["node", "main.js"]
+# testing CMD ["/bin/sh"]

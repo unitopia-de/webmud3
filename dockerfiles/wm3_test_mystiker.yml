@@ -1,7 +1,6 @@
+version: "3.7"
 services:
   web:
-    # docker build -f Dockerfile -t myonara/webmud3:develop .
-    # docker compose -f dockerfiles/wm_dev_mystiker.yml -p webmud3dev up -d
     image: myonara/webmud3:develop
     environment: 
       NODE_ENV: 'production'
@@ -10,24 +9,29 @@ services:
       TELNET_HOST: 'unitopia.de'
       TELNET_PORT: 9988
       TELNET_TLS: 'true'
-      SOCKET_ROOT: '/mysocket.io'
+      SOCKET_ROOT: '/mysocket-test.io'
       SOCKET_TIMEOUT: 900000
-    # command: --tls-cert=/run/secrets/cert.pem --tls-key=/run/secrets/privkey.pem
+    # volumes:
+    #   - "/UNItopia/ftpwww/webmud3/run:/run"
     deploy:
       replicas: 1
       resources:
         limits:
           cpus: "0.1"
           memory: 50M
+      labels:
+        com.docker.lb.hosts: www.unitopia.de
+        com.docker.lb.network: webnet
+        com.docker.lb.port: 2019
       restart_policy:
         condition: on-failure
         delay: 20s
         max_attempts: 2 
         window: 3600s
     ports:
-      - "5000:5000"
+      - "2019:5000"
     networks:
       - webnet
 networks:
   webnet:
-    driver: bridge
+    attachable: true
