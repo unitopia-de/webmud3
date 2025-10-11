@@ -9,7 +9,7 @@ services:
       TELNET_HOST: 'unitopia.de'
       TELNET_PORT: 9988
       TELNET_TLS: 'true'
-      SOCKET_ROOT: '/socket.io'
+      SOCKET_ROOT: '/mysocket.io'
       SOCKET_TIMEOUT: 900000
     # command: --tls-cert=/run/secrets/cert.pem --tls-key=/run/secrets/privkey.pem
     deploy:
