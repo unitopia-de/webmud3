@@ -2,7 +2,7 @@ import { EventEmitter, Injectable } from '@angular/core';
 import { BehaviorSubject } from 'rxjs';
 import { Manager, Socket } from 'socket.io-client';
 
-import { ServerConfigService } from '../../shared/server-config.service';
+import { ServerConfigService } from '../../features/serverconfig/server-config.service';
 import { ClientToServerEvents } from './types/client-to-server-events';
 import { ServerToClientEvents } from './types/server-to-client-events';
 import { isSecureString, SecureString } from '@mudlet3/frontend/shared';
@@ -29,7 +29,7 @@ export class SocketsService {
   public readonly connectedToMud$ = this.connectedToMud.asObservable();
 
   public constructor(serverConfigService: ServerConfigService) {
-    const socketUrl = serverConfigService.getBackend();
+    const socketUrl = serverConfigService.getBackendUrl();
     const socketNamespace = serverConfigService.getSocketNamespace();
 
     console.log('[Sockets] Socket Service init socket', {
