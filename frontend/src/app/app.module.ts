@@ -16,12 +16,19 @@ import { MudConfigService } from './features/config/mud-config.service';
 import { ModelessModule } from './features/modeless/modeless.module';
 import { PrimeModule } from './shared/prime.module';
 import { WINDOW_PROVIDERS } from './shared/WINDOW_PROVIDERS';
+import { ServerConfigService } from './features/serverconfig/server-config.service';
 
 /* eslint @typescript-eslint/ban-types: "warn" */
 export function setupAppConfigServiceFactory(
   service: MudConfigService,
 ): Function {
   // console.log("LOADING Config");
+  return () => service.load();
+}
+
+export function setupServerConfigServiceFactory(
+  service: ServerConfigService,
+): Function {
   return () => service.load();
 }
 
@@ -55,6 +62,12 @@ const features = [
       provide: APP_INITIALIZER,
       useFactory: setupAppConfigServiceFactory,
       deps: [MudConfigService],
+      multi: true,
+    },
+    {
+      provide: APP_INITIALIZER,
+      useFactory: setupServerConfigServiceFactory,
+      deps: [ServerConfigService],
       multi: true,
     },
   ],

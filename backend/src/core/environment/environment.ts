@@ -22,6 +22,7 @@ export class Environment implements IEnvironment {
   public readonly socketTimeout: number;
   public readonly environment: 'production' | 'development';
   public readonly name: string;
+  public readonly corsAllowList: string[];
 
   /**
    * Private constructor to enforce singleton pattern.
@@ -66,6 +67,19 @@ export class Environment implements IEnvironment {
     this.projectRoot = resolveModulePath('../../../main.js');
 
     this.name = String(getEnvironmentVariable('NAME', false, 'webmud3b'));
+
+    const corsAllowList = getEnvironmentVariable(
+      'CORS_ALLOWED_ORIGINS',
+      false,
+    );
+
+    this.corsAllowList =
+      corsAllowList === null
+        ? []
+        : corsAllowList
+            .split(',')
+            .map((origin) => origin.trim())
+            .filter((origin) => origin.length > 0);
 
     logger.info('[Environment] initialized', this);
   }

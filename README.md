@@ -76,14 +76,16 @@ You need to set the following environment variables to configure the backend con
 Example .env file:
 
 ```bash
-TELNET_HOST=127.0.0.1       # Required | the IP of your MUD
-TELNET_PORT=23              # Required | the PORT of your MUD
-SOCKET_ROOT=/socket.io      # Required | the named socket for
-NAME=webmud3                # Optional | defaults to 'webmud3'        | the name of the client
-HOST=0.0.0.0                # Optional | defaults to '0.0.0.0'        | the IP the backend will listen for
-PORT=5000                   # Optional | defaults to 5000             | the PORT the backend will listen for
-TELNET_TLS=false            # Optional | defaults to 'false'          | set this to true if you want a secure connection
-SOCKET_TIMEOUT=900000       # Optional | defaults to 900000 (15 min)  | timeout for any lost frontend <-> backend connection
+HOST=0.0.0.0                                # Optional | defaults to '0.0.0.0'        | the IP the backend will listen for
+PORT=5000                                   # Optional | defaults to 5000             | the PORT the backend will listen for
+NAME=webmud3                                # Optional | defaults to 'webmud3'        | the name of the client
+TELNET_HOST=127.0.0.1                       # Required | the IP of your MUD
+TELNET_PORT=23                              # Required | the PORT of your MUD
+TELNET_TLS=false                            # Optional | defaults to 'false'          | set this to true if you want a secure connection
+SOCKET_TIMEOUT=900000                       # Optional | defaults to 900000 (15 min)  | timeout for any lost frontend <-> backend connection
+SOCKET_ROOT=/socket.io                      # Required | URL for the socket connection. e.g. 'https://mud.example.com/socket.io'
+ENVIRONMENT='development'                   # Optional | accepts values 'development' or 'production' | defaults to 'production' | Enables Debug REST Endpoint /api/info and allows for permissive CORS if set to 'development'
+CORS_ALLOWED_ORIGINS='8.8.8.8,12.12.12.12' # Optional | comma separated list of origins that are allowed when ENVIRONMENT=production
 ```
 
 > [!TIP]
