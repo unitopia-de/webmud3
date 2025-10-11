@@ -1,4 +1,7 @@
-FROM node:20.19-alpine3.20 AS ng-build-stage
+FROM node:22.20-alpine3.21 AS ng-build-stage
+
+# node:20.19-alpine3.20
+# 22.20-alpine3.21
 
 # Setze das Arbeitsverzeichnis im Container
 WORKDIR /usr/src/app
@@ -11,7 +14,7 @@ RUN npm install && \
     npm run build:prod
     
 # fresh small image
-FROM node:20.19-alpine3.20 AS webmud3
+FROM node:22.20-alpine3.21 AS webmud3
 
 # Setze das Arbeitsverzeichnis im Container
 WORKDIR /usr/src/app
