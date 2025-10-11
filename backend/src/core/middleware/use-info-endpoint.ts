@@ -5,10 +5,7 @@ import { TelnetControlSequences } from '../../features/telnet/types/telnet-contr
 import { logger } from '../../shared/utils/logger.js';
 import { SocketManager } from '../sockets/socket-manager.js';
 
-export const useRestEndpoints = (
-  app: Express,
-  socketManager: SocketManager,
-) => {
+export const useInfoEndpoint = (app: Express, socketManager: SocketManager) => {
   app.use('/api/info', (req: Request, res: Response) => {
     logger.info(`[Middleware] [Rest] requested /api/info`);
 

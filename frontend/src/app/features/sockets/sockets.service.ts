@@ -2,10 +2,10 @@ import { EventEmitter, Injectable } from '@angular/core';
 import { BehaviorSubject } from 'rxjs';
 import { Manager, Socket } from 'socket.io-client';
 
+import { ServerConfigService } from '../../features/serverconfig/server-config.service';
 import { ClientToServerEvents } from './types/client-to-server-events';
 import { ServerToClientEvents } from './types/server-to-client-events';
 import { isSecureString, SecureString } from '@mudlet3/frontend/shared';
-import { environment } from 'src/environments/environment';
 
 type MudOutputEventArgs = {
   data: string;
@@ -28,9 +28,9 @@ export class SocketsService {
   public readonly connectedToServer$ = this.connectedToServer.asObservable();
   public readonly connectedToMud$ = this.connectedToMud.asObservable();
 
-  public constructor() {
-    const socketUrl = environment.backendUrl();
-    const socketNamespace = '/socket.io';
+  public constructor(serverConfigService: ServerConfigService) {
+    const socketUrl = serverConfigService.getBackendUrl();
+    const socketNamespace = serverConfigService.getSocketNamespace();
 
     console.log('[Sockets] Socket Service init socket', {
       socketUrl,
