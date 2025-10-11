@@ -9,7 +9,7 @@ on:
 env:
   AZURE_WEBAPP_NAME: unitopia-client
   AZURE_WEBAPP_PACKAGE_PATH: "backend/dist"
-  NODE_VERSION: "20.12.2"
+  NODE_VERSION: "22.20.0"
 
 jobs:
   deploy:
