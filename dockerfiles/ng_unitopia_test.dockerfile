@@ -1,5 +1,5 @@
 # based on node 10, alpine for least resource requirements.
-FROM node:20-alpine3.20 AS ng-build-stage
+FROM node:20.19-alpine3.20 AS ng-build-stage
 
 # working dir in build stage
 WORKDIR /app
@@ -23,7 +23,7 @@ COPY ./frontend/ /app/
 RUN ng build --configuration development-unitopia --output-path=dist/out
 
 # produces the final node.js immage.
-FROM node:20-alpine3.20 AS webmud3
+FROM node:20.19-alpine3.20 AS webmud3
 
 # again a working dir...
 WORKDIR /app
@@ -32,7 +32,7 @@ WORKDIR /app
 COPY ./backend/ /app/
 
 #fetch the angular distribution for serving from node.js
-COPY --from=ng-build-stage /app/dist/out/ /app/dist/
+COPY --from=ng-build-stage /app/dist/out/browser/ /app/dist/
 
 # mkdir runs
 RUN mkdir /run/secrets \
@@ -40,3 +40,4 @@ RUN mkdir /run/secrets \
     && npm install --only=prod 
 
 CMD ["node","server.js"]
+# testing-sh: CMD ["/bin/sh"]

@@ -434,6 +434,21 @@ export class AnsiService {
     return data;
   }
 
+  beep() {
+    const audioContext = new AudioContext();
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    
+    oscillator.frequency.value = 800; // Frequency in Hz
+    gainNode.gain.value = 0.3; // Volume (0-1)
+    
+    oscillator.start();
+    oscillator.stop(audioContext.currentTime + 0.1); // Duration 100ms
+  }
+
   public processAnsi(data: AnsiData): AnsiData[] {
     const result: AnsiData[] = [];
     data = Object.assign({}, data);
@@ -467,7 +482,7 @@ export class AnsiService {
             display = false;
             break;
           case 7:
-            console.log(String.fromCharCode(7));
+            this.beep();
             display = false;
             break;
           case 10:

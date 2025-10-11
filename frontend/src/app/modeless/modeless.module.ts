@@ -3,9 +3,9 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
 import { Button } from 'primeng/button';
-import { ConfirmPopup } from 'primeng/confirmpopup';
+import { ConfirmPopupModule } from 'primeng/confirmpopup';
 import { DialogModule } from 'primeng/dialog';
-import { DropdownModule } from 'primeng/dropdown';
+import { SelectModule } from 'primeng/select';
 import { Menubar } from 'primeng/menubar';
 import { TabsModule } from 'primeng/tabs';
 // import { TabPanel } from 'primeng/tabview';
@@ -40,10 +40,10 @@ import { ConfirmationService } from 'primeng/api';
     CommonModule, 
     FormsModule,
     Button,
-    ConfirmPopup,
+    ConfirmPopupModule,
     DialogModule,
-    DropdownModule,
     Menubar,
+    SelectModule,
     TabsModule,
     // TabPanel,
     Toolbar,
