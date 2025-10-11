@@ -1,4 +1,4 @@
-import { APP_INITIALIZER, enableProdMode } from '@angular/core';
+import { enableProdMode, inject, provideAppInitializer } from '@angular/core';
 
 import { environment } from './environments/environment';
 import {
@@ -13,20 +13,13 @@ if (environment.production) {
   enableProdMode();
 }
 
-export function setupServerConfigServiceFactory(
-  service: ServerConfigService,
-): Function {
-  return () => service.load();
-}
-
 bootstrapApplication(AppComponent, {
   providers: [
-    {
-      provide: APP_INITIALIZER,
-      useFactory: setupServerConfigServiceFactory,
-      deps: [ServerConfigService],
-      multi: true,
-    },
-    provideHttpClient(withInterceptorsFromDi()), // war früher in providers[]
+    provideHttpClient(withInterceptorsFromDi()),
+    provideAppInitializer(() => {
+      const config = inject(ServerConfigService);
+
+      return config.load();
+    }),
   ],
 }).catch((err) => console.error(err));
