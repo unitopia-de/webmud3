@@ -5,6 +5,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { Environment } from './core/environment/environment.js';
 import { useBodyParser } from './core/middleware/use-body-parser.js';
 import { useConfigEndpoint } from './core/middleware/use-config-endpoint.js';
+import { useCors } from './core/middleware/use-cors.js';
 import { useInfoEndpoint } from './core/middleware/use-info-endpoint.js';
 import { useSockets } from './core/middleware/use-sockets.js';
 import { useStaticFiles } from './core/middleware/use-static-files.js';
@@ -21,6 +22,8 @@ const app = express();
 const UNIQUE_SERVER_ID = uuidv4();
 
 const httpServer = createHttpServer(app, {});
+
+useCors(app, environment);
 
 useBodyParser(app);
 

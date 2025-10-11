@@ -105,4 +105,22 @@ describe('Environment', () => {
 
     expect(env.projectRoot).toBe('/path/to/project/root');
   });
+
+  it('should parse CORS allowed origins into a list', async () => {
+    process.env.TELNET_HOST = 'localhost';
+
+    process.env.TELNET_PORT = '3000';
+
+    process.env.SOCKET_ROOT = '/socket.io';
+
+    process.env.CORS_ALLOWED_ORIGINS =
+      'https://example.com, https://another.example';
+
+    const env = await getFreshEnvironmentInstance();
+
+    expect(env.corsAllowList).toEqual([
+      'https://example.com',
+      'https://another.example',
+    ]);
+  });
 });
