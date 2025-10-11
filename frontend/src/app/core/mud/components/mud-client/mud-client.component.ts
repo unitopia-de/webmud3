@@ -47,10 +47,10 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
 
   constructor() {
     this.terminal = new Terminal({
-      convertEol: true,
       fontFamily: 'JetBrainsMono, monospace',
       theme: { background: '#000', foreground: '#ccc' },
       disableStdin: true,
+      screenReaderMode: true,
     });
 
     this.mudService.connect(); // beim Laden verbinden
@@ -64,9 +64,6 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
     this.mudService.mudOutput$.subscribe(({ data }) =>
       this.terminal.write(data),
     );
-
-    /* Terminal-Eingaben → Backend */
-    this.terminal.onData((text) => this.mudService.sendMessage(text));
 
     // Todo Limitieren der Masse an Events:
 
