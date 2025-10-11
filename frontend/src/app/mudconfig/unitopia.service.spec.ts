@@ -6,7 +6,7 @@ describe('UnitopiaService', () => {
   beforeEach(() => TestBed.configureTestingModule({}));
 
   it('should be created', () => {
-    const service: UnitopiaService = TestBed.get(UnitopiaService);
+    const service: UnitopiaService = TestBed.inject(UnitopiaService);
     expect(service).toBeTruthy();
   });
 });

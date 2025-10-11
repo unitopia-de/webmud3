@@ -6,7 +6,7 @@ describe('GmcpService', () => {
   beforeEach(() => TestBed.configureTestingModule({}));
 
   it('should be created', () => {
-    const service: GmcpService = TestBed.get(GmcpService);
+    const service: GmcpService = TestBed.inject(GmcpService);
     expect(service).toBeTruthy();
   });
 });
