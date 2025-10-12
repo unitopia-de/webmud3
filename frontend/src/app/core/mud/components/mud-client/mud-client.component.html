@@ -1,14 +1,6 @@
 <div class="mud-output" #hostRef></div>
 
-@if (isConnected$ | async) {
-  <textarea
-    #inputRef
-    class="mud-input"
-    [(ngModel)]="value"
-    (keydown.enter)="submit($event)"
-    placeholder="Befehl eingeben …"
-  ></textarea>
-} @else {
+@if (!(isConnected$ | async)) {
   <div class="disconnected-panel">
     <p>Disconnected!</p>
     <button type="button" (click)="connect()">Reconnect</button>
