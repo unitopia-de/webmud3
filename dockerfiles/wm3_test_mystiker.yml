@@ -1,0 +1,38 @@
+version: "3.7"
+services:
+  web:
+    image: myonara/webmud3:develop
+    environment: 
+      NODE_ENV: 'production'
+      HOST: '0.0.0.0'
+      PORT: 5000
+      TELNET_HOST: 'unitopia.de'
+      TELNET_PORT: 9988
+      TELNET_TLS: 'true'
+      SOCKET_ROOT: '/mysocket-test.io'
+      SOCKET_TIMEOUT: 900000
+      CORS_ALLOWED_ORIGINS: 'unitopia.de,www.unitopia.de'
+    # volumes:
+    #   - "/UNItopia/ftpwww/webmud3/run:/run"
+    deploy:
+      replicas: 1
+      resources:
+        limits:
+          cpus: "0.1"
+          memory: 50M
+      labels:
+        com.docker.lb.hosts: www.unitopia.de
+        com.docker.lb.network: webnet
+        com.docker.lb.port: 2019
+      restart_policy:
+        condition: on-failure
+        delay: 20s
+        max_attempts: 2 
+        window: 3600s
+    ports:
+      - "2019:5000"
+    networks:
+      - webnet
+networks:
+  webnet:
+    attachable: true
