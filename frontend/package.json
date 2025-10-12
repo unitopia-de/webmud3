@@ -3,7 +3,7 @@
   "version": "1.0.0-alpha",
   "description": "Webmud3 Frontend",
   "engines": {
-    "node": "20.12.2"
+    "node": ">=20.12.2"
   },
   "scripts": {
     "format": "prettier --write \"src/**/*.ts\"",

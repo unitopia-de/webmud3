@@ -5,6 +5,8 @@
 
 ### To build the docker images 
 
+docker build -f Dockerfile -t myonara/webmud3:develop .
+
 docker build -f Dockerfile -t myonara/webmud3:latest .
 
 docker build -f dockerfiles/ng_unitopia_test.dockerfile -t myonara/webmud3:unitopiatest .
@@ -31,6 +33,8 @@ docker run -d -p 50000:80 --name helloplain -P nginxdemos/hello:plain-text
 
 ### Alternative podman compose
 #### to start
+
+docker compose -f dockerfiles/wm_dev_mystiker.yml -p webmud3dev up -d
 
 podman-compose -f dockerfiles/w3_docker_compose.yml -p webmud_unitopia up -d
 
