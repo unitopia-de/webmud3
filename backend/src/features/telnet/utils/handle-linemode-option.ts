@@ -1,19 +1,29 @@
+import EventEmitter from 'events';
 import { TelnetSocket } from 'telnet-stream';
 
-import { logger } from '../../../shared/utils/logger.js';
 import { TelnetOptions } from '../models/telnet-options.js';
 import { TelnetControlSequences } from '../types/telnet-control-sequences.js';
 import { TelnetOptionHandler } from '../types/telnet-option-handler.js';
 import { TelnetOptionResult } from '../types/telnet-option-result.js';
 import { TelnetSubnegotiationResult } from '../types/telnet-subnegotiation-result.js';
 
-enum LinemodeSubnegotiationCommand {
+export type LinemodeState = {
+  mode: number;
+  edit: boolean;
+  trapsig: boolean;
+  softTab: boolean;
+  literalEcho: boolean;
+  forwardMask: number[];
+  forwardMaskDescription: string;
+};
+
+enum SubnegotiationCommand {
   MODE = 1,
   FORWARDMASK = 2,
   SLC = 3,
 }
 
-enum LinemodeModeMask {
+enum ModeBits {
   EDIT = 0x01,
   TRAPSIG = 0x02,
   MODE_ACK = 0x04,
@@ -21,14 +31,11 @@ enum LinemodeModeMask {
   LIT_ECHO = 0x10,
 }
 
-enum LinemodeSlcFlags {
-  SLC_ACK = 0x80,
+enum SlcFlags {
+  ACK = 0x80,
 }
 
-const DEFAULT_MODE =
-  LinemodeModeMask.EDIT |
-  LinemodeModeMask.TRAPSIG |
-  LinemodeModeMask.SOFT_TAB;
+const DEFAULT_MODE = ModeBits.EDIT | ModeBits.TRAPSIG | ModeBits.SOFT_TAB;
 
 const DEFAULT_FORWARD_MASK_CODES = [10 /* LF */, 13 /* CR */];
 
@@ -46,415 +53,370 @@ const CONTROL_LABELS: Record<number, string> = {
   26: 'SUB',
 };
 
-const createForwardMask = (chars: number[]): Buffer => {
-  if (chars.length === 0) {
-    return Buffer.alloc(0);
-  }
+const sanitizeMode = (mask: number): number => {
+  let result = mask | ModeBits.TRAPSIG;
 
-  const maxChar = Math.max(...chars);
-  const size = Math.floor(maxChar / 8) + 1;
-
-  const mask = Buffer.alloc(size, 0);
-
-  for (const char of chars) {
-    if (char < 0) {
-      continue;
-    }
-
-    const index = Math.floor(char / 8);
-    const bitPosition = char % 8;
-    const bit = 0x80 >> bitPosition;
-
-    mask[index] |= bit;
-  }
-
-  return mask;
-};
-
-const DEFAULT_FORWARD_MASK = createForwardMask(DEFAULT_FORWARD_MASK_CODES);
-
-const buildModeMessage = (mode: number, acknowledge = false): Buffer => {
-  const mask = acknowledge ? mode | LinemodeModeMask.MODE_ACK : mode;
-
-  return Buffer.from([LinemodeSubnegotiationCommand.MODE, mask]);
-};
-
-const buildForwardMaskMessage = (mask: Buffer): Buffer => {
-  return Buffer.concat(
-    [Buffer.from([LinemodeSubnegotiationCommand.FORWARDMASK]), mask],
-    mask.length + 1,
-  );
-};
-
-const trimTrailingZeros = (mask: Buffer): Buffer => {
-  let end = mask.length;
-
-  while (end > 0 && mask[end - 1] === 0) {
-    end -= 1;
-  }
-
-  return mask.subarray(0, end);
-};
-
-const buffersEqual = (left: Buffer, right: Buffer): boolean => {
-  return left.length === right.length && left.equals(right);
-};
-
-const modeToString = (mode: number): string => {
-  const parts: string[] = [];
-
-  if ((mode & LinemodeModeMask.EDIT) !== 0) {
-    parts.push('EDIT');
-  }
-
-  if ((mode & LinemodeModeMask.TRAPSIG) !== 0) {
-    parts.push('TRAPSIG');
-  }
-
-  if ((mode & LinemodeModeMask.SOFT_TAB) !== 0) {
-    parts.push('SOFT_TAB');
-  }
-
-  if ((mode & LinemodeModeMask.LIT_ECHO) !== 0) {
-    parts.push('LIT_ECHO');
-  }
-
-  return parts.join(' | ') || 'NONE';
-};
-
-const extractControlCodes = (mask: Buffer): number[] => {
-  const codes: number[] = [];
-
-  mask.forEach((byte, byteIndex) => {
-    for (let bit = 0; bit < 8; bit += 1) {
-      if ((byte & (0x80 >> bit)) !== 0) {
-        codes.push(byteIndex * 8 + bit);
-      }
-    }
-  });
-
-  return codes;
-};
-
-const forwardMaskToString = (mask: Buffer): string => {
-  const codes = extractControlCodes(mask);
-
-  if (codes.length === 0) {
-    return 'none';
-  }
-
-  return codes
-    .map((code) => CONTROL_LABELS[code] ?? `0x${code.toString(16)}`)
-    .join(', ');
-};
-
-const ensureMandatoryModeBits = (mode: number): number => {
-  let result = mode;
-
-  result |= LinemodeModeMask.EDIT;
-  result |= LinemodeModeMask.TRAPSIG;
-
-  if ((DEFAULT_MODE & LinemodeModeMask.SOFT_TAB) !== 0) {
-    result |= LinemodeModeMask.SOFT_TAB;
+  if ((DEFAULT_MODE & ModeBits.SOFT_TAB) !== 0) {
+    result |= ModeBits.SOFT_TAB;
   }
 
   return result;
 };
 
-const handleLinemodeDo =
-  (
-    socket: TelnetSocket,
-    sendMode: (mode: number, acknowledge?: boolean) => Buffer,
-    sendForwardMask: (mask: Buffer) => Buffer,
-    desiredMode: () => number,
-    desiredForwardMask: () => Buffer,
-  ) =>
-  (): TelnetOptionResult => {
-    socket.writeWill(TelnetOptions.TELOPT_LINEMODE);
+const buildForwardMask = (codes: number[]): Buffer => {
+  if (codes.length === 0) {
+    return Buffer.alloc(0);
+  }
 
-    const mode = desiredMode();
-    sendMode(mode);
+  const maxCode = Math.max(...codes);
 
-    sendForwardMask(desiredForwardMask());
+  const buffer = Buffer.alloc(Math.floor(maxCode / 8) + 1, 0);
 
-    const summary = `MODE=${modeToString(mode)};FORWARDMASK=${forwardMaskToString(
-      desiredForwardMask(),
-    )}`;
+  for (const code of codes) {
+    if (code < 0) {
+      continue;
+    }
+
+    const byteIndex = Math.floor(code / 8);
+
+    const bitIndex = code % 8;
+
+    buffer[byteIndex] |= 0x80 >> bitIndex;
+  }
+
+  return buffer;
+};
+
+const trimRightZeros = (buffer: Buffer): Buffer => {
+  let end = buffer.length;
+
+  while (end > 0 && buffer[end - 1] === 0) {
+    end -= 1;
+  }
+
+  return buffer.subarray(0, end);
+};
+
+const describeForwardMask = (mask: Buffer): string => {
+  const labels: string[] = [];
+
+  mask.forEach((byte, byteIndex) => {
+    for (let bit = 0; bit < 8; bit += 1) {
+      if (byte & (0x80 >> bit)) {
+        const code = byteIndex * 8 + bit;
+
+        labels.push(CONTROL_LABELS[code] ?? `0x${code.toString(16)}`);
+      }
+    }
+  });
+
+  return labels.length > 0 ? labels.join(', ') : 'none';
+};
+
+class LinemodeNegotiator {
+  private modeMask = sanitizeMode(DEFAULT_MODE);
+  private forwardMask = trimRightZeros(
+    buildForwardMask(DEFAULT_FORWARD_MASK_CODES),
+  );
+  private readonly emitter = new EventEmitter();
+
+  constructor(private readonly socket: TelnetSocket) {}
+
+  public getState(): LinemodeState {
+    const trimmed = trimRightZeros(this.forwardMask);
+
+    return {
+      mode: this.modeMask,
+      edit: (this.modeMask & ModeBits.EDIT) !== 0,
+      trapsig: (this.modeMask & ModeBits.TRAPSIG) !== 0,
+      softTab: (this.modeMask & ModeBits.SOFT_TAB) !== 0,
+      literalEcho: (this.modeMask & ModeBits.LIT_ECHO) !== 0,
+      forwardMask: [...trimmed.values()],
+      forwardMaskDescription: describeForwardMask(trimmed),
+    };
+  }
+
+  public onStateChange(listener: (state: LinemodeState) => void): void {
+    this.emitter.on('state', listener);
+
+    listener(this.getState());
+  }
+
+  public offStateChange(listener: (state: LinemodeState) => void): void {
+    this.emitter.off('state', listener);
+  }
+
+  public handleDo(): TelnetOptionResult {
+    this.socket.writeWill(TelnetOptions.TELOPT_LINEMODE);
+
+    this.pushMode(this.modeMask);
+
+    this.pushForwardMask(this.forwardMask);
+
+    this.notify();
 
     return {
       controlSequence: TelnetControlSequences.WILL,
       subNegotiationResult: {
-        clientChunk: Buffer.from(summary, 'utf-8'),
-        clientOption: summary,
+        clientChunk: Buffer.from(this.describe()),
+        clientOption: this.describe(),
       },
     };
-  };
+  }
 
-const handleLinemodeDont = (socket: TelnetSocket) => (): TelnetOptionResult => {
-  socket.writeWont(TelnetOptions.TELOPT_LINEMODE);
+  public handleDont(): TelnetOptionResult {
+    this.socket.writeWont(TelnetOptions.TELOPT_LINEMODE);
 
-  return { controlSequence: TelnetControlSequences.WONT };
-};
+    return { controlSequence: TelnetControlSequences.WONT };
+  }
 
-const handleLinemodeWill = (socket: TelnetSocket) => (): TelnetOptionResult => {
-  socket.writeDo(TelnetOptions.TELOPT_LINEMODE);
+  public handleWill(): TelnetOptionResult {
+    this.socket.writeDo(TelnetOptions.TELOPT_LINEMODE);
 
-  return { controlSequence: TelnetControlSequences.DO };
-};
+    return { controlSequence: TelnetControlSequences.DO };
+  }
 
-const handleLinemodeWont =
-  (socket: TelnetSocket) => (): TelnetOptionResult => {
-    socket.writeDont(TelnetOptions.TELOPT_LINEMODE);
+  public handleWont(): TelnetOptionResult {
+    this.socket.writeDont(TelnetOptions.TELOPT_LINEMODE);
 
     return { controlSequence: TelnetControlSequences.DONT };
-  };
+  }
 
-const handleModeSubnegotiation =
-  (
-    socket: TelnetSocket,
-    sendMode: (mode: number, acknowledge?: boolean) => Buffer,
-    updateMode: (mode: number) => void,
-  ) =>
-  (serverChunk: Buffer): TelnetSubnegotiationResult => {
-    if (serverChunk.length < 2) {
+  public handleSubnegotiation(
+    chunk: Buffer,
+  ): TelnetSubnegotiationResult | null {
+    if (chunk.length === 0) {
       return null;
     }
 
-    const [, rawMode] = serverChunk;
+    const command = chunk[0];
 
-    const isAcknowledged =
-      (rawMode & LinemodeModeMask.MODE_ACK) === LinemodeModeMask.MODE_ACK;
+    if (command === SubnegotiationCommand.MODE) {
+      return this.processModeChange(chunk);
+    }
 
-    const requestedMode = ensureMandatoryModeBits(
-      rawMode & ~LinemodeModeMask.MODE_ACK,
-    );
+    if (
+      command === TelnetControlSequences.DO ||
+      command === TelnetControlSequences.DONT ||
+      command === TelnetControlSequences.WILL ||
+      command === TelnetControlSequences.WONT
+    ) {
+      const option = chunk[1];
 
-    if (isAcknowledged) {
-      updateMode(requestedMode);
+      return option === SubnegotiationCommand.FORWARDMASK
+        ? this.processForwardMaskNegotiation(command)
+        : null;
+    }
+
+    if (command === SubnegotiationCommand.FORWARDMASK) {
+      return this.processForwardMaskUpdate(chunk.subarray(1));
+    }
+
+    if (command === SubnegotiationCommand.SLC) {
+      return this.acknowledgeSlc(chunk);
+    }
+
+    return null;
+  }
+
+  private processModeChange(chunk: Buffer): TelnetSubnegotiationResult {
+    if (chunk.length < 2) {
       return null;
     }
 
-    updateMode(requestedMode);
-    sendMode(requestedMode, true);
-    const description = modeToString(requestedMode);
+    const rawMask = chunk[1];
+
+    const acknowledge = (rawMask & ModeBits.MODE_ACK) !== 0;
+
+    const requestedMask = sanitizeMode(rawMask & ~ModeBits.MODE_ACK);
+
+    this.setMode(requestedMask);
+
+    if (!acknowledge) {
+      this.pushMode(this.modeMask, true);
+    }
 
     return {
-      clientChunk: Buffer.from(description, 'utf-8'),
-      clientOption: description,
+      clientChunk: Buffer.from(this.describeMode()),
+      clientOption: this.describeMode(),
     };
-  };
+  }
 
-const handleForwardMaskNegotiation =
-  (
-    socket: TelnetSocket,
-    sendForwardMask: (mask: Buffer) => Buffer,
-    updateForwardMask: (mask: Buffer) => void,
-    desiredForwardMask: () => Buffer,
-  ) =>
-  (
+  private processForwardMaskNegotiation(
     command: TelnetControlSequences,
-    payload: Buffer,
-  ): TelnetSubnegotiationResult | null => {
+  ): TelnetSubnegotiationResult | null {
     switch (command) {
       case TelnetControlSequences.DO: {
-        const acknowledgement = Buffer.from([
-          TelnetControlSequences.WILL,
-          LinemodeSubnegotiationCommand.FORWARDMASK,
-        ]);
-
-        socket.writeSub(
+        this.socket.writeSub(
           TelnetOptions.TELOPT_LINEMODE,
-          acknowledgement,
+          Buffer.from([
+            TelnetControlSequences.WILL,
+            SubnegotiationCommand.FORWARDMASK,
+          ]),
         );
 
-        updateForwardMask(desiredForwardMask());
+        this.pushForwardMask(this.forwardMask);
 
-        sendForwardMask(desiredForwardMask());
-        const maskDescription = forwardMaskToString(desiredForwardMask());
-
-        logger.verbose('[Telnet-Linemode] Negotiated FORWARDMASK with server', {
-          requestedMask: forwardMaskToString(trimTrailingZeros(payload)),
-          negotiatedMask: maskDescription,
-        });
+        this.notify();
 
         return {
-          clientChunk: Buffer.from(maskDescription, 'utf-8'),
-          clientOption: maskDescription,
+          clientChunk: Buffer.from(this.describeForwardMask()),
+          clientOption: this.describeForwardMask(),
         };
       }
-      case TelnetControlSequences.DONT: {
-        const acknowledgement = Buffer.from([
-          TelnetControlSequences.WONT,
-          LinemodeSubnegotiationCommand.FORWARDMASK,
-        ]);
 
-        socket.writeSub(
+      case TelnetControlSequences.DONT: {
+        this.socket.writeSub(
           TelnetOptions.TELOPT_LINEMODE,
-          acknowledgement,
+          Buffer.from([
+            TelnetControlSequences.WONT,
+            SubnegotiationCommand.FORWARDMASK,
+          ]),
         );
 
-        updateForwardMask(Buffer.alloc(0));
+        this.setForwardMask(Buffer.alloc(0));
 
         return {
-          clientChunk: Buffer.from('forwardmask disabled', 'utf-8'),
+          clientChunk: Buffer.from('forwardmask disabled'),
           clientOption: 'forwardmask disabled',
         };
       }
+
       default:
         return null;
     }
-  };
+  }
 
-const handleForwardMaskUpdate =
-  (
-    socket: TelnetSocket,
-    sendForwardMask: (mask: Buffer) => Buffer,
-    updateForwardMask: (mask: Buffer) => void,
-    desiredForwardMask: () => Buffer,
-  ) =>
-  (serverMask: Buffer): TelnetSubnegotiationResult | null => {
-    const trimmedMask = trimTrailingZeros(serverMask);
+  private processForwardMaskUpdate(
+    serverMask: Buffer,
+  ): TelnetSubnegotiationResult | null {
+    const trimmed = trimRightZeros(serverMask);
 
-    if (buffersEqual(trimmedMask, desiredForwardMask())) {
-      updateForwardMask(trimmedMask);
+    if (trimmed.equals(this.forwardMask)) {
       return null;
     }
 
-    logger.verbose('[Telnet-Linemode] Server requested unsupported FORWARDMASK', {
-      serverMask: forwardMaskToString(trimmedMask),
-      overriddenMask: forwardMaskToString(desiredForwardMask()),
-    });
-
-    updateForwardMask(desiredForwardMask());
-
-    sendForwardMask(desiredForwardMask());
-    const maskDescription = forwardMaskToString(desiredForwardMask());
+    this.pushForwardMask(this.forwardMask);
 
     return {
-      clientChunk: Buffer.from(maskDescription, 'utf-8'),
-      clientOption: maskDescription,
+      clientChunk: Buffer.from(this.describeForwardMask()),
+      clientOption: this.describeForwardMask(),
     };
-  };
+  }
 
-const acknowledgeSlc =
-  (socket: TelnetSocket) =>
-  (serverChunk: Buffer): TelnetSubnegotiationResult | null => {
-    if ((serverChunk.length - 1) % 3 !== 0) {
+  private acknowledgeSlc(chunk: Buffer): TelnetSubnegotiationResult | null {
+    if ((chunk.length - 1) % 3 !== 0) {
       return null;
     }
 
-    const response = Buffer.from(serverChunk);
+    const response = Buffer.from(chunk);
 
     for (let index = 1; index < response.length; index += 3) {
-      response[index] |= LinemodeSlcFlags.SLC_ACK;
+      response[index] |= SlcFlags.ACK;
     }
 
-    socket.writeSub(TelnetOptions.TELOPT_LINEMODE, response);
+    this.socket.writeSub(TelnetOptions.TELOPT_LINEMODE, response);
 
     return {
-      clientChunk: Buffer.from('slc ack', 'utf-8'),
+      clientChunk: Buffer.from('slc ack'),
       clientOption: 'slc ack',
     };
-  };
+  }
+
+  private pushMode(mode: number, acknowledge = false) {
+    const payload = Buffer.from([
+      SubnegotiationCommand.MODE,
+      acknowledge ? mode | ModeBits.MODE_ACK : mode,
+    ]);
+
+    this.socket.writeSub(TelnetOptions.TELOPT_LINEMODE, payload);
+  }
+
+  private pushForwardMask(mask: Buffer) {
+    const payload = Buffer.concat(
+      [Buffer.from([SubnegotiationCommand.FORWARDMASK]), mask],
+      mask.length + 1,
+    );
+
+    this.socket.writeSub(TelnetOptions.TELOPT_LINEMODE, payload);
+  }
+
+  private setMode(mode: number) {
+    const sanitized = sanitizeMode(mode);
+
+    if (this.modeMask === sanitized) {
+      return;
+    }
+
+    this.modeMask = sanitized;
+
+    this.notify();
+  }
+
+  private setForwardMask(mask: Buffer) {
+    const trimmed = trimRightZeros(Buffer.from(mask));
+
+    if (this.forwardMask.equals(trimmed)) {
+      return;
+    }
+
+    this.forwardMask = trimmed;
+
+    this.notify();
+  }
+
+  private notify() {
+    const state = this.getState();
+
+    this.emitter.emit('state', state);
+  }
+
+  private describeMode(): string {
+    const state = this.getState();
+
+    const parts: string[] = [];
+
+    if (state.edit) {
+      parts.push('EDIT');
+    }
+
+    if (state.trapsig) {
+      parts.push('TRAPSIG');
+    }
+
+    if (state.softTab) {
+      parts.push('SOFT_TAB');
+    }
+
+    if (state.literalEcho) {
+      parts.push('LIT_ECHO');
+    }
+
+    return parts.length > 0 ? parts.join(' | ') : 'NONE';
+  }
+
+  private describeForwardMask(): string {
+    return `forwardmask: ${this.getState().forwardMaskDescription}`;
+  }
+
+  private describe(): string {
+    return `MODE=${this.describeMode()}; ${this.describeForwardMask()}`;
+  }
+}
 
 export const handleLinemodeOption = (
   socket: TelnetSocket,
-): TelnetOptionHandler => {
-  let negotiatedMode = DEFAULT_MODE;
-  let negotiatedForwardMask = Buffer.from(DEFAULT_FORWARD_MASK);
-
-  const sendMode = (mode: number, acknowledge = false) => {
-    const message = buildModeMessage(mode, acknowledge);
-
-    socket.writeSub(TelnetOptions.TELOPT_LINEMODE, message);
-
-    return message;
-  };
-
-  const sendForwardMask = (mask: Buffer) => {
-    const message = buildForwardMaskMessage(mask);
-
-    socket.writeSub(TelnetOptions.TELOPT_LINEMODE, message);
-
-    return message;
-  };
-
-  const openLinemode =
-    handleLinemodeDo(
-      socket,
-      sendMode,
-      sendForwardMask,
-      () => negotiatedMode,
-      () => negotiatedForwardMask,
-    );
-
-  const modeHandler = handleModeSubnegotiation(socket, sendMode, (mode) => {
-    negotiatedMode = mode;
-  });
-
-  const forwardMaskNegotiation = handleForwardMaskNegotiation(
-    socket,
-    sendForwardMask,
-    (mask) => {
-      negotiatedForwardMask = Buffer.from(mask);
-    },
-    () => negotiatedForwardMask,
-  );
-
-  const forwardMaskUpdate = handleForwardMaskUpdate(
-    socket,
-    sendForwardMask,
-    (mask) => {
-      negotiatedForwardMask = Buffer.from(mask);
-    },
-    () => negotiatedForwardMask,
-  );
-
-  const slcAcknowledgement = acknowledgeSlc(socket);
+): TelnetOptionHandler<LinemodeState> => {
+  const negotiator = new LinemodeNegotiator(socket);
 
   return {
-    handleDo: openLinemode,
-    handleDont: handleLinemodeDont(socket),
-    handleWill: handleLinemodeWill(socket),
-    handleWont: handleLinemodeWont(socket),
-    handleSub: (serverChunk: Buffer) => {
-      if (serverChunk.length === 0) {
-        return null;
-      }
-
-      const command = serverChunk[0];
-
-      if (command === LinemodeSubnegotiationCommand.MODE) {
-        return modeHandler(serverChunk);
-      }
-
-      if (
-        command === TelnetControlSequences.DO ||
-        command === TelnetControlSequences.DONT ||
-        command === TelnetControlSequences.WILL ||
-        command === TelnetControlSequences.WONT
-      ) {
-        const subCommand = serverChunk[1];
-
-        if (subCommand !== LinemodeSubnegotiationCommand.FORWARDMASK) {
-          return null;
-        }
-
-        return forwardMaskNegotiation(
-          command,
-          serverChunk.subarray(2),
-        );
-      }
-
-      if (command === LinemodeSubnegotiationCommand.FORWARDMASK) {
-        return forwardMaskUpdate(serverChunk.subarray(1));
-      }
-
-      if (command === LinemodeSubnegotiationCommand.SLC) {
-        return slcAcknowledgement(serverChunk);
-      }
-
-      return null;
-    },
+    handleDo: () => negotiator.handleDo(),
+    handleDont: () => negotiator.handleDont(),
+    handleWill: () => negotiator.handleWill(),
+    handleWont: () => negotiator.handleWont(),
+    handleSub: (chunk) => negotiator.handleSubnegotiation(chunk),
+    getState: () => negotiator.getState(),
+    onStateChange: (listener) => negotiator.onStateChange(listener),
+    offStateChange: (listener) => negotiator.offStateChange(listener),
   };
 };

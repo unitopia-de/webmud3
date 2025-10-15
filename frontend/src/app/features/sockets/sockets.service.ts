@@ -5,6 +5,7 @@ import { Manager, Socket } from 'socket.io-client';
 import { ServerConfigService } from '../../features/serverconfig/server-config.service';
 import { ClientToServerEvents } from './types/client-to-server-events';
 import { ServerToClientEvents } from './types/server-to-client-events';
+import { LinemodeState } from './types/linemode-state';
 import { isSecureString, SecureString } from '@mudlet3/frontend/shared';
 
 type MudOutputEventArgs = {
@@ -24,6 +25,7 @@ export class SocketsService {
   public onMudDisconnect = new EventEmitter();
   public onMudOutput = new EventEmitter<MudOutputEventArgs>();
   public onSetEchoMode = new EventEmitter<boolean>();
+  public onSetLinemode = new EventEmitter<LinemodeState>();
 
   public readonly connectedToServer$ = this.connectedToServer.asObservable();
   public readonly connectedToMud$ = this.connectedToMud.asObservable();
@@ -96,6 +98,10 @@ export class SocketsService {
 
     this.socket.on('setEchoMode', (showEchos: boolean) => {
       this.handleSetEchoMode(showEchos);
+    });
+
+    this.socket.on('setLinemode', (state: LinemodeState) => {
+      this.handleSetLinemode(state);
     });
 
     this.socket.on('requestTimingMark', (callback: () => void) => {
@@ -197,6 +203,12 @@ export class SocketsService {
     console.info('[Sockets] Sockets-Service: Socket Set Echo Mode:', showEchos);
 
     this.onSetEchoMode.emit(showEchos);
+  };
+
+  private handleSetLinemode = (state: LinemodeState) => {
+    console.info('[Sockets] Sockets-Service: Socket Set Linemode:', state);
+
+    this.onSetLinemode.emit(state);
   };
 
   private handleTimingMark = (callback: () => void) => {

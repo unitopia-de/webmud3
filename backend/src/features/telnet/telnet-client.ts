@@ -30,6 +30,12 @@ type TelnetClientEvents = {
       client?: TelnetControlSequences;
     },
   ];
+  optionStateChanged: [
+    {
+      option: TelnetOptions;
+      state: unknown;
+    },
+  ];
 };
 
 /**
@@ -45,7 +51,14 @@ export class TelnetClient extends EventEmitter<TelnetClientEvents> {
 
   private connected: boolean = false;
 
-  private optionsHandler: Map<TelnetOptions, TelnetOptionHandler>;
+  private readonly optionsHandler: Map<TelnetOptions, TelnetOptionHandler>;
+
+  private readonly optionStateMap = new Map<TelnetOptions, unknown>();
+
+  private optionStateListeners: Array<{
+    handler: TelnetOptionHandler;
+    listener: (state: unknown) => void;
+  }> = [];
 
   public get isConnected(): boolean {
     return this.connected;
@@ -58,11 +71,14 @@ export class TelnetClient extends EventEmitter<TelnetClientEvents> {
   /**
    * Constructs a new instance of the TelnetClient class.
    *
+   * @param {string} socketId - The unique identifier for the socket connection to the client.
    * @param {string} telnetHost - The hostname or IP address of the Telnet server.
    * @param {number} telnetPort - The port number of the Telnet server.
    * @param {boolean} useTls - Indicates whether to use TLS encryption for the connection.
+   * @param {string} clientName - The name of the client, used for TTYPE negotiation.
    */
   constructor(
+    private readonly socketId: string,
     telnetHost: string,
     telnetPort: number,
     useTls: boolean,
@@ -76,10 +92,33 @@ export class TelnetClient extends EventEmitter<TelnetClientEvents> {
       telnetPort,
     );
 
-    this.telnetSocket = new TelnetSocketWrapper(telnetConnection, {
-      // Todo[myst]: Is this the right buffer size? Is it needed anyway?
-      bufferSize: 65536,
-    });
+    if (useTls) {
+      logger.info(
+        `[${this.socketId}] [Telnet-Client] created https connection for telnet`,
+        {
+          host: telnetHost,
+          port: telnetPort,
+          rejectUnauthorized: true,
+        },
+      );
+    } else {
+      logger.info(
+        `[${this.socketId}] [Telnet-Client] created http connection for telnet`,
+        {
+          host: telnetHost,
+          port: telnetPort,
+        },
+      );
+    }
+
+    this.telnetSocket = new TelnetSocketWrapper(
+      this.socketId,
+      telnetConnection,
+      {
+        // Todo[myst]: Is this the right buffer size? Is it needed anyway?
+        bufferSize: 65536,
+      },
+    );
 
     this.optionsHandler = new Map([
       [TelnetOptions.TELOPT_CHARSET, handleCharsetOption(this.telnetSocket)],
@@ -95,6 +134,8 @@ export class TelnetClient extends EventEmitter<TelnetClientEvents> {
       [TelnetOptions.TELOPT_MSSP, handleMSSPOption(this.telnetSocket)],
       [TelnetOptions.TELOPT_EOR, handleEorOption(this.telnetSocket)],
     ]);
+
+    this.setupOptionStateTracking();
 
     this.telnetSocket.on('connect', () => this.handleConnect());
 
@@ -134,10 +175,6 @@ export class TelnetClient extends EventEmitter<TelnetClientEvents> {
         if (this.eorBuffer !== null) {
           this.emit('data', this.eorBuffer);
 
-          const data = this.eorBuffer.toString('utf-8');
-
-          console.log(data);
-
           this.eorBuffer = Buffer.alloc(0);
         }
       }
@@ -176,6 +213,12 @@ export class TelnetClient extends EventEmitter<TelnetClientEvents> {
     this.telnetSocket.write(data);
   }
 
+  public getOptionState<TState = unknown>(
+    option: TelnetOptions,
+  ): TState | undefined {
+    return this.optionStateMap.get(option) as TState | undefined;
+  }
+
   public requestStatus(): void {
     const buffer = Buffer.from([TelnetStatusSubnogiation.STATUS_SEND]);
 
@@ -211,17 +254,23 @@ export class TelnetClient extends EventEmitter<TelnetClientEvents> {
   }
 
   public disconnect(): void {
-    logger.info(`[Telnet-Client] Disconnect`);
+    this.teardownOptionStateTracking();
 
     this.telnetSocket.end();
 
     this.connected = false;
+
+    logger.info(`[${this.socketId}] [Telnet-Client] Disconnected`);
   }
 
   private handleConnect(): void {
-    logger.info(`[Telnet-Client] Connected. Starting negotiation process.`);
+    logger.info(
+      `[${this.socketId}] [Telnet-Client] Connected. Starting negotiation process.`,
+    );
 
     this.connected = true;
+
+    this.setupOptionStateTracking();
 
     for (const [option, handler] of this.optionsHandler) {
       const handlerResult = handler.negotiate?.();
@@ -238,6 +287,8 @@ export class TelnetClient extends EventEmitter<TelnetClientEvents> {
 
   private handleClose(hadErrors: boolean): void {
     this.connected = false;
+
+    this.teardownOptionStateTracking();
 
     this.emit('close', hadErrors);
   }
@@ -279,6 +330,40 @@ export class TelnetClient extends EventEmitter<TelnetClientEvents> {
     }
 
     return;
+  }
+
+  private setupOptionStateTracking(): void {
+    this.teardownOptionStateTracking();
+
+    for (const [option, handler] of this.optionsHandler.entries()) {
+      const state = handler.getState?.();
+
+      if (state !== undefined) {
+        this.optionStateMap.set(option, state);
+      }
+
+      if (handler.onStateChange) {
+        const listener = (state: unknown) => {
+          this.optionStateMap.set(option, state);
+
+          this.emit('optionStateChanged', { option, state });
+        };
+
+        handler.onStateChange(listener);
+
+        this.optionStateListeners.push({ handler, listener });
+      }
+    }
+  }
+
+  private teardownOptionStateTracking(): void {
+    for (const { handler, listener } of this.optionStateListeners) {
+      handler.offStateChange?.(listener);
+    }
+
+    this.optionStateListeners = [];
+
+    this.optionStateMap.clear();
   }
 
   private handleDont(option: TelnetOptions): void {
@@ -470,19 +555,8 @@ function createTelnetConnection(
       port: telnetPort,
       rejectUnauthorized: true,
     });
-
-    logger.info(`[Socket-Manager] created https connection for telnet`, {
-      host: telnetHost,
-      port: telnetPort,
-      rejectUnauthorized: true,
-    });
   } else {
     socket = net.createConnection({
-      host: telnetHost,
-      port: telnetPort,
-    });
-
-    logger.info(`[Socket-Manager] created http connection for telnet`, {
       host: telnetHost,
       port: telnetPort,
     });

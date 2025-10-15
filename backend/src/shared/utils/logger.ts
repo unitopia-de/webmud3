@@ -1,14 +1,17 @@
 import winston from 'winston';
 
-// Comment this in if you want to log metadata
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const metadataFormat = winston.format((info) => {
-  if (info.metadata && Object.keys(info.metadata).length > 0) {
-    info.message += `\n${JSON.stringify(info.metadata)}`;
-  }
+const logMetadata = (enable: boolean) =>
+  winston.format((info) => {
+    if (!enable) {
+      return info;
+    }
 
-  return info;
-});
+    if (info.metadata && Object.keys(info.metadata).length > 0) {
+      info.message += `\n${JSON.stringify(info.metadata)}`;
+    }
+
+    return info;
+  })();
 
 /**
  * Hinweis zu den unterstützen Log-Leveln in der Priotiätsreihenfolge:
@@ -30,7 +33,7 @@ const logger = winston.createLogger({
     winston.format.metadata({
       fillExcept: ['message', 'level', 'timestamp', 'label'],
     }),
-    metadataFormat(),
+    logMetadata(false),
     winston.format.printf(
       (info) => `[${info.timestamp}] [${info.level}] ${info.message}`,
     ),
@@ -42,7 +45,7 @@ const logger = winston.createLogger({
       format: winston.format.combine(
         winston.format.colorize(),
         winston.format.printf(
-          (info) => `[${info.timestamp}] [${info.level}] ${info.message}`,
+          (info) => `[${info.timestamp}] [${info.level}]\t${info.message}`,
         ),
       ),
     }),

@@ -12,7 +12,9 @@ import { FitAddon } from '@xterm/addon-fit';
 import { IDisposable, Terminal } from '@xterm/xterm';
 import { Subscription } from 'rxjs';
 
+import { LinemodeState } from '@mudlet3/frontend/features/sockets';
 import { MudService } from '../../services/mud.service';
+import { SecureString } from '@mudlet3/frontend/shared';
 
 type SocketListener = EventListener;
 
@@ -98,9 +100,12 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
   });
 
   private showEchoSubscription?: Subscription;
+  private linemodeSubscription?: Subscription;
   private inputBuffer = '';
   private lastInputWasCarriageReturn = false;
   private localEchoEnabled = true;
+  private currentShowEcho = true;
+  private isEditMode = true;
 
   @ViewChild('hostRef', { static: true })
   private readonly terminalRef!: ElementRef<HTMLDivElement>;
@@ -130,8 +135,13 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
     );
 
     this.showEchoSubscription = this.showEcho$.subscribe((showEcho) => {
-      this.localEchoEnabled = showEcho;
+      this.currentShowEcho = showEcho;
+      this.updateLocalEcho(showEcho);
     });
+
+    this.linemodeSubscription = this.mudService.linemode$.subscribe((state) =>
+      this.setLinemode(state),
+    );
 
     this.resizeObs.observe(this.terminalRef.nativeElement);
   }
@@ -141,6 +151,7 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
 
     this.terminalDisposables.forEach((disposable) => disposable.dispose());
     this.showEchoSubscription?.unsubscribe();
+    this.linemodeSubscription?.unsubscribe();
 
     this.terminalAttachAddon.dispose();
     this.socketAdapter.dispose();
@@ -152,6 +163,14 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
   }
 
   private handleInput(data: string) {
+    if (!this.isEditMode) {
+      if (data.length > 0) {
+        this.mudService.sendMessage(data);
+      }
+
+      return;
+    }
+
     for (let index = 0; index < data.length; index += 1) {
       const char = data[index];
 
@@ -199,6 +218,30 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
     }
   }
 
+  private setLinemode(state: LinemodeState) {
+    const wasEditMode = this.isEditMode;
+
+    this.isEditMode = state.edit;
+
+    if (!this.isEditMode) {
+      if (wasEditMode && this.inputBuffer.length > 0) {
+        this.mudService.sendMessage(this.inputBuffer);
+      }
+
+      this.inputBuffer = '';
+      this.lastInputWasCarriageReturn = false;
+    } else if (!wasEditMode) {
+      this.inputBuffer = '';
+      this.lastInputWasCarriageReturn = false;
+    }
+
+    this.updateLocalEcho(this.currentShowEcho);
+  }
+
+  private updateLocalEcho(showEcho: boolean) {
+    this.localEchoEnabled = this.isEditMode && showEcho;
+  }
+
   private applyBackspace() {
     if (this.inputBuffer.length === 0) {
       return;
@@ -221,7 +264,11 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
       this.terminal.write('\r\n');
     }
 
-    this.mudService.sendMessage(message);
+    const securedString: string | SecureString = this.localEchoEnabled
+      ? message
+      : { value: message };
+
+    this.mudService.sendMessage(securedString);
   }
 
   private skipEscapeSequence(sequence: string): number {

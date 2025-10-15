@@ -14,7 +14,7 @@
     "clean": "npm run clean:dist && npm run clean:packages",
     "clean:dist": "npm run clean:dist --workspaces",
     "clean:packages": "npm run clean:packages --workspaces && rimraf node_modules",
-    "integrate-client": "npx cpy 'frontend/dist/frontend/browser/**' backend/dist/wwwroot --recursive",
+    "integrate-client": "npx cpy \"frontend/dist/frontend/browser/**\" backend/dist/wwwroot --recursive",
     "postbuild": "npm run integrate-client",
     "start": "npm run build && npm run serve --workspace backend",
     "start:prod": "npm run build:prod && npm run serve --workspace backend",
