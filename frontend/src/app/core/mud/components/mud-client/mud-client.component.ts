@@ -12,9 +12,20 @@ import { FitAddon } from '@xterm/addon-fit';
 import { IDisposable, Terminal } from '@xterm/xterm';
 import { Subscription } from 'rxjs';
 
-import { LinemodeState } from '@mudlet3/frontend/features/sockets';
 import { MudService } from '../../services/mud.service';
 import { SecureString } from '@mudlet3/frontend/shared';
+import { LinemodeState } from '@mudlet3/frontend/features/sockets';
+import {
+  CTRL,
+  CSI_REGEX,
+  SS3,
+  SS3_LEN,
+  backspaceErase,
+  cursorLeft,
+  cursorRight,
+  resetLine,
+  sequence,
+} from '@mudlet3/frontend/features/terminal';
 
 type SocketListener = EventListener;
 type MudSocketAdapterHooks = {
@@ -107,14 +118,11 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
 
   private readonly terminal: Terminal;
   private readonly terminalFitAddon = new FitAddon();
-  private readonly socketAdapter = new MudSocketAdapter(
-    this.mudService,
-    {
-      transformMessage: (data) => this.transformMudOutput(data),
-      beforeMessage: (data) => this.beforeMudOutput(data),
-      afterMessage: (data) => this.afterMudOutput(data),
-    },
-  );
+  private readonly socketAdapter = new MudSocketAdapter(this.mudService, {
+    transformMessage: (data) => this.transformMudOutput(data),
+    beforeMessage: (data) => this.beforeMudOutput(data),
+    afterMessage: (data) => this.afterMudOutput(data),
+  });
   private readonly terminalAttachAddon = new AttachAddon(
     this.socketAdapter as unknown as WebSocket,
     { bidirectional: false },
@@ -128,6 +136,7 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
   private showEchoSubscription?: Subscription;
   private linemodeSubscription?: Subscription;
   private inputBuffer = '';
+  private inputCursor = 0;
   private lastInputWasCarriageReturn = false;
   private localEchoEnabled = true;
   private currentShowEcho = true;
@@ -241,42 +250,30 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
       const char = data[index];
 
       switch (char) {
-        case '\r':
+        case CTRL.CR:
           this.commitBuffer();
           this.lastInputWasCarriageReturn = true;
           break;
-        case '\n':
+        case CTRL.LF:
           if (!this.lastInputWasCarriageReturn) {
             this.commitBuffer();
           }
 
           this.lastInputWasCarriageReturn = false;
           break;
-        case '\b':
-        case '\u007f':
+        case CTRL.BS:
+        case CTRL.DEL:
           this.applyBackspace();
           this.lastInputWasCarriageReturn = false;
           break;
-        case '\u001b': {
-          const consumed = this.skipEscapeSequence(data.slice(index));
+        case CTRL.ESC: {
+          const consumed = this.handleEscapeSequence(data.slice(index));
           index += consumed - 1;
           this.lastInputWasCarriageReturn = false;
           break;
         }
         default: {
-          const charCode = char.charCodeAt(0);
-
-          if (charCode < 32 && char !== '\t') {
-            // Ignore unsupported control characters (e.g. CTRL+C)
-            break;
-          }
-
-          this.inputBuffer += char;
-
-          if (this.localEchoEnabled) {
-            this.terminal.write(char);
-          }
-
+          this.insertCharacter(char);
           this.lastInputWasCarriageReturn = false;
           break;
         }
@@ -295,9 +292,11 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
       }
 
       this.inputBuffer = '';
+      this.inputCursor = 0;
       this.lastInputWasCarriageReturn = false;
     } else if (!wasEditMode) {
       this.inputBuffer = '';
+      this.inputCursor = 0;
       this.lastInputWasCarriageReturn = false;
     }
 
@@ -313,14 +312,86 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
   }
 
   private applyBackspace() {
-    if (this.inputBuffer.length === 0) {
+    if (this.inputCursor === 0) {
       return;
     }
 
-    this.inputBuffer = this.inputBuffer.slice(0, -1);
+    const before = this.inputBuffer.slice(0, this.inputCursor - 1);
+    const after = this.inputBuffer.slice(this.inputCursor);
+
+    this.inputBuffer = before + after;
+    this.inputCursor -= 1;
 
     if (this.localEchoEnabled) {
-      this.terminal.write('\b \b');
+      if (after.length > 0) {
+        this.terminal.write(sequence(CTRL.BS, after, ' '));
+        this.terminal.write(cursorLeft(after.length + 1));
+      } else {
+        this.terminal.write(backspaceErase);
+      }
+    }
+  }
+
+  private insertCharacter(char: string) {
+    const charCode = char.charCodeAt(0);
+
+    if (charCode < 32 && char !== CTRL.TAB) {
+      // Ignore unsupported control characters (e.g. CTRL+C)
+      return;
+    }
+
+    const before = this.inputBuffer.slice(0, this.inputCursor);
+    const after = this.inputBuffer.slice(this.inputCursor);
+
+    this.inputBuffer = before + char + after;
+    this.inputCursor += 1;
+
+    if (!this.localEchoEnabled) {
+      return;
+    }
+
+    this.terminal.write(sequence(char, after));
+
+    if (after.length > 0) {
+      this.terminal.write(cursorLeft(after.length));
+    }
+  }
+
+  private moveCursorLeft(amount: number) {
+    if (amount <= 0) {
+      return;
+    }
+
+    const target = Math.max(0, this.inputCursor - amount);
+    const delta = this.inputCursor - target;
+
+    if (delta === 0) {
+      return;
+    }
+
+    this.inputCursor = target;
+
+    if (this.localEchoEnabled) {
+      this.terminal.write(cursorLeft(delta));
+    }
+  }
+
+  private moveCursorRight(amount: number) {
+    if (amount <= 0) {
+      return;
+    }
+
+    const target = Math.min(this.inputBuffer.length, this.inputCursor + amount);
+    const delta = target - this.inputCursor;
+
+    if (delta === 0) {
+      return;
+    }
+
+    this.inputCursor = target;
+
+    if (this.localEchoEnabled) {
+      this.terminal.write(cursorRight(delta));
     }
   }
 
@@ -328,10 +399,11 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
     const message = this.inputBuffer;
 
     this.inputBuffer = '';
+    this.inputCursor = 0;
     this.lastInputWasCarriageReturn = false;
 
     if (this.localEchoEnabled) {
-      this.terminal.write('\r\n');
+      this.terminal.write(sequence(CTRL.CR, CTRL.LF));
     }
 
     const securedString: string | SecureString = this.localEchoEnabled
@@ -341,15 +413,63 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
     this.mudService.sendMessage(securedString);
   }
 
-  private skipEscapeSequence(sequence: string): number {
-    const match = sequence.match(/^\u001b\[[0-9;]*[A-Za-z~]/);
+  private handleEscapeSequence(segment: string): number {
+    if (segment.startsWith(SS3) && segment.length >= SS3_LEN) {
+      const control = segment[2];
+
+      switch (control) {
+        case 'C':
+          this.moveCursorRight(1);
+          break;
+        case 'D':
+          this.moveCursorLeft(1);
+          break;
+        default:
+          break;
+      }
+
+      return SS3_LEN;
+    }
+
+    const match = segment.match(CSI_REGEX);
+
+    if (!match) {
+      return CTRL.ESC.length;
+    }
+
+    const token = match[0];
+    const finalChar = token[token.length - 1];
+    const params = token.slice(2, -1);
+    const amount =
+      params.length === 0 ? 1 : Number.parseInt(params.split(';')[0], 10) || 1;
+
+    switch (finalChar) {
+      case 'C':
+        this.moveCursorRight(amount);
+        break;
+      case 'D':
+        this.moveCursorLeft(amount);
+        break;
+      default:
+        break;
+    }
+
+    return token.length;
+  }
+
+  private skipEscapeSequence(segment: string): number {
+    if (segment.startsWith(SS3) && segment.length >= SS3_LEN) {
+      return SS3_LEN;
+    }
+
+    const match = segment.match(CSI_REGEX);
 
     if (match) {
       return match[0].length;
     }
 
     // Default to consuming only the ESC character
-    return 1;
+    return CTRL.ESC.length;
   }
 
   private beforeMudOutput(_data: string) {
@@ -366,7 +486,7 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
     this.hiddenPrompt = this.serverLineBuffer;
     this.serverLineBuffer = '';
     this.leadingLineBreaksToStrip = 1;
-    this.terminal.write('\r\u001b[2K');
+    this.terminal.write(resetLine);
     this.editLineHidden = true;
   }
 
@@ -401,16 +521,26 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
       return;
     }
 
-    this.terminal.write('\r\u001b[2K');
+    this.terminal.write(resetLine);
 
     const prefix =
-      this.serverLineBuffer.length > 0 ? this.serverLineBuffer : this.hiddenPrompt;
+      this.serverLineBuffer.length > 0
+        ? this.serverLineBuffer
+        : this.hiddenPrompt;
 
     if (prefix.length > 0) {
       this.terminal.write(prefix);
     }
 
+    this.inputCursor = Math.min(this.inputCursor, this.inputBuffer.length);
     this.terminal.write(this.inputBuffer);
+
+    const moveLeft = this.inputBuffer.length - this.inputCursor;
+
+    if (moveLeft > 0) {
+      this.terminal.write(cursorLeft(moveLeft));
+    }
+
     this.editLineHidden = false;
     this.hiddenPrompt = '';
     this.serverLineBuffer = prefix;
@@ -428,13 +558,13 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
     while (startIndex < data.length && remainingBreaks > 0) {
       const char = data[startIndex];
 
-      if (char === '\n') {
+      if (char === CTRL.LF) {
         remainingBreaks -= 1;
         startIndex += 1;
         continue;
       }
 
-      if (char === '\r') {
+      if (char === CTRL.CR) {
         startIndex += 1;
         continue;
       }
@@ -463,24 +593,24 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
     while (index < data.length) {
       const char = data[index];
 
-      if (char === '\r' || char === '\n') {
+      if (char === CTRL.CR || char === CTRL.LF) {
         this.serverLineBuffer = '';
         index += 1;
         continue;
       }
 
-      if (char === '\b' || char === '\u007f') {
+      if (char === CTRL.BS || char === CTRL.DEL) {
         this.serverLineBuffer = this.serverLineBuffer.slice(0, -1);
         index += 1;
         continue;
       }
 
-      if (char === '\u001b') {
+      if (char === CTRL.ESC) {
         const consumed = this.skipEscapeSequence(data.slice(index));
-        const sequence =
+        const parsedSequence =
           consumed > 0 ? data.slice(index, index + consumed) : char;
 
-        this.serverLineBuffer += sequence;
+        this.serverLineBuffer += parsedSequence;
         index += Math.max(consumed, 1);
         continue;
       }
