@@ -109,9 +109,12 @@ export class SocketsService {
     });
   }
 
-  public connectToMud(): void {
+  public connectToMud(initialViewPort: {
+    columns: number;
+    rows: number;
+  }): void {
     console.log(`[Sockets] Sockets-Service: 'connectToMud'`);
-    this.socket.emit('mudConnect');
+    this.socket.emit('mudConnect', initialViewPort);
   }
 
   public disconnectFromMud() {
@@ -126,6 +129,15 @@ export class SocketsService {
     } else {
       this.socket.emit('mudInput', message.value);
     }
+  }
+
+  public updateViewportSize(columns: number, rows: number): void {
+    console.log(`[Sockets] Sockets-Service: 'mudViewportSize'`, {
+      columns,
+      rows,
+    });
+
+    this.socket.emit('mudViewportSize', columns, rows);
   }
 
   public sendGmcp(/*id: string, mod: string, msg: string, data: any*/): boolean {

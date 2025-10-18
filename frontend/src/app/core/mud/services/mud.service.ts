@@ -18,8 +18,8 @@ export class MudService {
   /** Roh-Ausgabe-Stream vom Server (ANSI-Bytes/String) */
   public readonly mudOutput$ = this.sockets.onMudOutput.asObservable();
 
-  public connect() {
-    this.sockets.connectToMud();
+  public connect(initialViewPort: { columns: number; rows: number }) {
+    this.sockets.connectToMud(initialViewPort);
   }
 
   public disconnect() {
@@ -28,5 +28,9 @@ export class MudService {
 
   public sendMessage(msg: string | SecureString) {
     this.sockets.sendMessage(msg);
+  }
+
+  public updateViewportSize(columns: number, rows: number) {
+    this.sockets.updateViewportSize(columns, rows);
   }
 }

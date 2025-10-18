@@ -14,7 +14,10 @@ import { handleEchoOption } from './utils/handle-echo-option.js';
 import { handleEorOption } from './utils/handle-eor-option.js';
 import { handleLinemodeOption } from './utils/handle-linemode-option.js';
 import { handleMSSPOption } from './utils/handle-mssp-option.js';
-import { handleNawsOption } from './utils/handle-naws-option.js';
+import {
+  handleNawsOption,
+  NawsOptionHandler,
+} from './utils/handle-naws-option.js';
 import { handleSGAOption } from './utils/handle-sga-option.js';
 import { handleStatusOption } from './utils/handle-status-option.js';
 import { handleTTypeOption } from './utils/handle-ttype-option.js';
@@ -30,7 +33,7 @@ type TelnetClientEvents = {
       client?: TelnetControlSequences;
     },
   ];
-  optionStateChanged: [
+  negotiationStateChanged: [
     {
       option: TelnetOptions;
       state: unknown;
@@ -83,6 +86,7 @@ export class TelnetClient extends EventEmitter<TelnetClientEvents> {
     telnetPort: number,
     useTls: boolean,
     clientName: string,
+    extraOptions?: { initialViewPort: { columns: number; rows: number } },
   ) {
     super();
 
@@ -123,7 +127,10 @@ export class TelnetClient extends EventEmitter<TelnetClientEvents> {
     this.optionsHandler = new Map([
       [TelnetOptions.TELOPT_CHARSET, handleCharsetOption(this.telnetSocket)],
       [TelnetOptions.TELOPT_ECHO, handleEchoOption(this.telnetSocket)],
-      [TelnetOptions.TELOPT_NAWS, handleNawsOption(this.telnetSocket)],
+      [
+        TelnetOptions.TELOPT_NAWS,
+        handleNawsOption(this.telnetSocket, extraOptions?.initialViewPort),
+      ],
       [TelnetOptions.TELOPT_SGA, handleSGAOption(this.telnetSocket)],
       [TelnetOptions.TELOPT_LINEMODE, handleLinemodeOption(this.telnetSocket)],
       [
@@ -211,6 +218,23 @@ export class TelnetClient extends EventEmitter<TelnetClientEvents> {
 
   public sendMessage(data: string): void {
     this.telnetSocket.write(data);
+  }
+
+  public updateViewportSize(columns: number, rows: number): void {
+    const handler = this.optionsHandler.get(TelnetOptions.TELOPT_NAWS) as
+      | NawsOptionHandler
+      | undefined;
+
+    const subnegotiation = handler?.updateViewportSize(columns, rows);
+
+    if (subnegotiation === undefined || subnegotiation === null) {
+      return;
+    }
+
+    this.updateNegotiations(TelnetOptions.TELOPT_NAWS, {
+      clientChunk: subnegotiation.clientChunk,
+      clientOption: subnegotiation.clientOption,
+    });
   }
 
   public getOptionState<TState = unknown>(
@@ -346,7 +370,7 @@ export class TelnetClient extends EventEmitter<TelnetClientEvents> {
         const listener = (state: unknown) => {
           this.optionStateMap.set(option, state);
 
-          this.emit('optionStateChanged', { option, state });
+          this.emit('negotiationStateChanged', { option, state });
         };
 
         handler.onStateChange(listener);

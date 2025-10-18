@@ -96,7 +96,7 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
 
   private readonly terminalDisposables: IDisposable[] = [];
   private readonly resizeObs = new ResizeObserver(() => {
-    this.terminalFitAddon.fit();
+    this.handleTerminalResize();
   });
 
   private showEchoSubscription?: Subscription;
@@ -106,6 +106,7 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
   private localEchoEnabled = true;
   private currentShowEcho = true;
   private isEditMode = true;
+  private lastViewportSize?: { columns: number; rows: number };
 
   @ViewChild('hostRef', { static: true })
   private readonly terminalRef!: ElementRef<HTMLDivElement>;
@@ -120,8 +121,6 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
       disableStdin: false,
       screenReaderMode: true,
     });
-
-    this.mudService.connect();
   }
 
   ngAfterViewInit() {
@@ -144,6 +143,11 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
     );
 
     this.resizeObs.observe(this.terminalRef.nativeElement);
+
+    const columns = this.terminal.cols;
+    const rows = this.terminal.rows + 1;
+
+    this.mudService.connect({ columns, rows });
   }
 
   ngOnDestroy() {
@@ -159,7 +163,37 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
   }
 
   protected connect() {
-    this.mudService.connect();
+    const columns = this.terminal.cols;
+    const rows = this.terminal.rows;
+
+    this.mudService.connect({ columns, rows });
+  }
+
+  private handleTerminalResize() {
+    this.terminalFitAddon.fit();
+
+    const columns = this.terminal.cols;
+    const rows = this.terminal.rows;
+
+    if (
+      !Number.isFinite(columns) ||
+      !Number.isFinite(rows) ||
+      columns <= 0 ||
+      rows <= 0
+    ) {
+      return;
+    }
+
+    if (
+      this.lastViewportSize?.columns === columns &&
+      this.lastViewportSize?.rows === rows
+    ) {
+      return;
+    }
+
+    this.lastViewportSize = { columns, rows };
+
+    this.mudService.updateViewportSize(columns, rows);
   }
 
   private handleInput(data: string) {
