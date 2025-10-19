@@ -17,6 +17,13 @@ import { SecureString } from '@mudlet3/frontend/shared';
 import { LinemodeState } from '@mudlet3/frontend/features/sockets';
 import { MudInputController, MudPromptContext, MudPromptManager, MudSocketAdapter } from '@mudlet3/frontend/features/terminal';
 
+type MudClientState = {
+  isEditMode: boolean;
+  showEcho: boolean;
+  localEchoEnabled: boolean;
+  terminalReady: boolean;
+};
+
 @Component({
   selector: 'app-mud-client',
   standalone: true,
@@ -48,11 +55,13 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
 
   private showEchoSubscription?: Subscription;
   private linemodeSubscription?: Subscription;
-  private localEchoEnabled = true;
-  private currentShowEcho = true;
-  private isEditMode = true;
+  private state: MudClientState = {
+    isEditMode: true,
+    showEcho: true,
+    localEchoEnabled: true,
+    terminalReady: false,
+  };
   private lastViewportSize?: { columns: number; rows: number };
-  private terminalReady = false;
 
   @ViewChild('hostRef', { static: true })
   private readonly terminalRef!: ElementRef<HTMLDivElement>;
@@ -71,7 +80,7 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
     this.inputController = new MudInputController(this.terminal, ({ message, echoed }) =>
       this.handleCommittedInput(message, echoed),
     );
-    this.inputController.setLocalEcho(this.localEchoEnabled);
+    this.inputController.setLocalEcho(this.state.localEchoEnabled);
 
     this.promptManager = new MudPromptManager(this.terminal, this.inputController);
   }
@@ -87,7 +96,6 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
     );
 
     this.showEchoSubscription = this.showEcho$.subscribe((showEcho) => {
-      this.currentShowEcho = showEcho;
       this.updateLocalEcho(showEcho);
     });
 
@@ -96,7 +104,7 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
     );
 
     this.resizeObs.observe(this.terminalRef.nativeElement);
-    this.terminalReady = true;
+    this.setState({ terminalReady: true });
 
     const columns = this.terminal.cols;
     const rows = this.terminal.rows + 1;
@@ -157,7 +165,7 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
   }
 
   private handleInput(data: string) {
-    if (!this.isEditMode) {
+    if (!this.state.isEditMode) {
       if (data.length > 0) {
         this.mudService.sendMessage(data);
       }
@@ -169,11 +177,9 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
   }
 
   private setLinemode(state: LinemodeState) {
-    const wasEditMode = this.isEditMode;
+    const wasEditMode = this.state.isEditMode;
 
-    this.isEditMode = state.edit;
-
-    if (!this.isEditMode) {
+    if (!state.edit) {
       if (wasEditMode) {
         const pending = this.inputController.flush();
 
@@ -187,16 +193,17 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
       this.inputController.reset();
     }
 
+    this.setState({ isEditMode: state.edit });
     this.promptManager.reset();
-    this.updateLocalEcho(this.currentShowEcho);
+    this.updateLocalEcho(this.state.showEcho);
   }
 
   private updateLocalEcho(showEcho: boolean) {
-    this.localEchoEnabled = this.isEditMode && showEcho;
-    this.inputController.setLocalEcho(this.localEchoEnabled);
+    const localEchoEnabled = this.state.isEditMode && showEcho;
+
+    this.setState({ showEcho, localEchoEnabled });
+    this.inputController.setLocalEcho(localEchoEnabled);
   }
-
-
 
   private beforeMudOutput(_data: string) {
     this.promptManager.beforeServerOutput(this.getPromptContext());
@@ -212,17 +219,16 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
 
   private getPromptContext(): MudPromptContext {
     return {
-      isEditMode: this.isEditMode,
-      terminalReady: this.terminalReady,
-      localEchoEnabled: this.localEchoEnabled,
+      isEditMode: this.state.isEditMode,
+      terminalReady: this.state.terminalReady,
+      localEchoEnabled: this.state.localEchoEnabled,
     };
   }
 
-
-
+  private setState(patch: Partial<MudClientState>): void {
+    this.state = { ...this.state, ...patch };
+  }
 
 }
-
-
 
 

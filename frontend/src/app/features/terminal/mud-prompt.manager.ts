@@ -84,9 +84,17 @@ export class MudPromptManager {
       !context.isEditMode ||
       !context.terminalReady ||
       !context.localEchoEnabled ||
-      !this.inputController.hasContent() ||
       this.lineHidden
     ) {
+      return;
+    }
+
+    const hasLineContent =
+      this.inputController.hasContent() ||
+      this.serverLineBuffer.length > 0 ||
+      this.hiddenPrompt.length > 0;
+
+    if (!hasLineContent) {
       return;
     }
 
@@ -104,8 +112,15 @@ export class MudPromptManager {
       !this.lineHidden ||
       !context.isEditMode ||
       !context.terminalReady ||
-      !context.localEchoEnabled ||
-      !this.inputController.hasContent()
+      !context.localEchoEnabled
+    ) {
+      return;
+    }
+
+    if (
+      !this.inputController.hasContent() &&
+      this.hiddenPrompt.length === 0 &&
+      this.serverLineBuffer.length === 0
     ) {
       return;
     }
@@ -128,11 +143,6 @@ export class MudPromptManager {
     }
 
     const snapshot = this.inputController.getSnapshot();
-
-    if (snapshot.buffer.length === 0) {
-      this.lineHidden = false;
-      return;
-    }
 
     this.terminal.write(resetLine);
 
