@@ -20,12 +20,10 @@ import {
   CSI_REGEX,
   SS3,
   SS3_LEN,
-  backspaceErase,
   cursorLeft,
-  cursorRight,
   resetLine,
-  sequence,
 } from '@mudlet3/frontend/features/terminal';
+import { MudInputController } from '@mudlet3/frontend/features/terminal';
 
 type SocketListener = EventListener;
 type MudSocketAdapterHooks = {
@@ -117,6 +115,7 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
   private readonly mudService = inject(MudService);
 
   private readonly terminal: Terminal;
+  private readonly inputController: MudInputController;
   private readonly terminalFitAddon = new FitAddon();
   private readonly socketAdapter = new MudSocketAdapter(this.mudService, {
     transformMessage: (data) => this.transformMudOutput(data),
@@ -135,9 +134,6 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
 
   private showEchoSubscription?: Subscription;
   private linemodeSubscription?: Subscription;
-  private inputBuffer = '';
-  private inputCursor = 0;
-  private lastInputWasCarriageReturn = false;
   private localEchoEnabled = true;
   private currentShowEcho = true;
   private isEditMode = true;
@@ -161,6 +157,11 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
       disableStdin: false,
       screenReaderMode: true,
     });
+
+    this.inputController = new MudInputController(this.terminal, ({ message, echoed }) =>
+      this.handleCommittedInput(message, echoed),
+    );
+    this.inputController.setLocalEcho(this.localEchoEnabled);
   }
 
   ngAfterViewInit() {
@@ -237,6 +238,12 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
     this.mudService.updateViewportSize(columns, rows);
   }
 
+  private handleCommittedInput(message: string, echoed: boolean) {
+    const payload: string | SecureString = echoed ? message : { value: message };
+
+    this.mudService.sendMessage(payload);
+  }
+
   private handleInput(data: string) {
     if (!this.isEditMode) {
       if (data.length > 0) {
@@ -246,39 +253,7 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
       return;
     }
 
-    for (let index = 0; index < data.length; index += 1) {
-      const char = data[index];
-
-      switch (char) {
-        case CTRL.CR:
-          this.commitBuffer();
-          this.lastInputWasCarriageReturn = true;
-          break;
-        case CTRL.LF:
-          if (!this.lastInputWasCarriageReturn) {
-            this.commitBuffer();
-          }
-
-          this.lastInputWasCarriageReturn = false;
-          break;
-        case CTRL.BS:
-        case CTRL.DEL:
-          this.applyBackspace();
-          this.lastInputWasCarriageReturn = false;
-          break;
-        case CTRL.ESC: {
-          const consumed = this.handleEscapeSequence(data.slice(index));
-          index += consumed - 1;
-          this.lastInputWasCarriageReturn = false;
-          break;
-        }
-        default: {
-          this.insertCharacter(char);
-          this.lastInputWasCarriageReturn = false;
-          break;
-        }
-      }
-    }
+    this.inputController.handleData(data);
   }
 
   private setLinemode(state: LinemodeState) {
@@ -287,17 +262,17 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
     this.isEditMode = state.edit;
 
     if (!this.isEditMode) {
-      if (wasEditMode && this.inputBuffer.length > 0) {
-        this.mudService.sendMessage(this.inputBuffer);
+      if (wasEditMode) {
+        const pending = this.inputController.flush();
+
+        if (pending) {
+          this.handleCommittedInput(pending.message, pending.echoed);
+        }
       }
 
-      this.inputBuffer = '';
-      this.inputCursor = 0;
-      this.lastInputWasCarriageReturn = false;
+      this.inputController.reset();
     } else if (!wasEditMode) {
-      this.inputBuffer = '';
-      this.inputCursor = 0;
-      this.lastInputWasCarriageReturn = false;
+      this.inputController.reset();
     }
 
     this.editLineHidden = false;
@@ -309,152 +284,7 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
 
   private updateLocalEcho(showEcho: boolean) {
     this.localEchoEnabled = this.isEditMode && showEcho;
-  }
-
-  private applyBackspace() {
-    if (this.inputCursor === 0) {
-      return;
-    }
-
-    const before = this.inputBuffer.slice(0, this.inputCursor - 1);
-    const after = this.inputBuffer.slice(this.inputCursor);
-
-    this.inputBuffer = before + after;
-    this.inputCursor -= 1;
-
-    if (this.localEchoEnabled) {
-      if (after.length > 0) {
-        this.terminal.write(sequence(CTRL.BS, after, ' '));
-        this.terminal.write(cursorLeft(after.length + 1));
-      } else {
-        this.terminal.write(backspaceErase);
-      }
-    }
-  }
-
-  private insertCharacter(char: string) {
-    const charCode = char.charCodeAt(0);
-
-    if (charCode < 32 && char !== CTRL.TAB) {
-      // Ignore unsupported control characters (e.g. CTRL+C)
-      return;
-    }
-
-    const before = this.inputBuffer.slice(0, this.inputCursor);
-    const after = this.inputBuffer.slice(this.inputCursor);
-
-    this.inputBuffer = before + char + after;
-    this.inputCursor += 1;
-
-    if (!this.localEchoEnabled) {
-      return;
-    }
-
-    this.terminal.write(sequence(char, after));
-
-    if (after.length > 0) {
-      this.terminal.write(cursorLeft(after.length));
-    }
-  }
-
-  private moveCursorLeft(amount: number) {
-    if (amount <= 0) {
-      return;
-    }
-
-    const target = Math.max(0, this.inputCursor - amount);
-    const delta = this.inputCursor - target;
-
-    if (delta === 0) {
-      return;
-    }
-
-    this.inputCursor = target;
-
-    if (this.localEchoEnabled) {
-      this.terminal.write(cursorLeft(delta));
-    }
-  }
-
-  private moveCursorRight(amount: number) {
-    if (amount <= 0) {
-      return;
-    }
-
-    const target = Math.min(this.inputBuffer.length, this.inputCursor + amount);
-    const delta = target - this.inputCursor;
-
-    if (delta === 0) {
-      return;
-    }
-
-    this.inputCursor = target;
-
-    if (this.localEchoEnabled) {
-      this.terminal.write(cursorRight(delta));
-    }
-  }
-
-  private commitBuffer() {
-    const message = this.inputBuffer;
-
-    this.inputBuffer = '';
-    this.inputCursor = 0;
-    this.lastInputWasCarriageReturn = false;
-
-    if (this.localEchoEnabled) {
-      this.terminal.write(sequence(CTRL.CR, CTRL.LF));
-    }
-
-    const securedString: string | SecureString = this.localEchoEnabled
-      ? message
-      : { value: message };
-
-    this.mudService.sendMessage(securedString);
-  }
-
-  private handleEscapeSequence(segment: string): number {
-    if (segment.startsWith(SS3) && segment.length >= SS3_LEN) {
-      const control = segment[2];
-
-      switch (control) {
-        case 'C':
-          this.moveCursorRight(1);
-          break;
-        case 'D':
-          this.moveCursorLeft(1);
-          break;
-        default:
-          break;
-      }
-
-      return SS3_LEN;
-    }
-
-    const match = segment.match(CSI_REGEX);
-
-    if (!match) {
-      return CTRL.ESC.length;
-    }
-
-    const token = match[0];
-    const finalChar = token[token.length - 1];
-    const params = token.slice(2, -1);
-    const amount =
-      params.length === 0 ? 1 : Number.parseInt(params.split(';')[0], 10) || 1;
-
-    switch (finalChar) {
-      case 'C':
-        this.moveCursorRight(amount);
-        break;
-      case 'D':
-        this.moveCursorLeft(amount);
-        break;
-      default:
-        break;
-    }
-
-    return token.length;
+    this.inputController.setLocalEcho(this.localEchoEnabled);
   }
 
   private skipEscapeSequence(segment: string): number {
@@ -477,7 +307,7 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
       !this.isEditMode ||
       !this.terminalReady ||
       !this.localEchoEnabled ||
-      this.inputBuffer.length === 0 ||
+      !this.inputController.hasContent() ||
       this.editLineHidden
     ) {
       return;
@@ -498,7 +328,7 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
       !this.isEditMode ||
       !this.terminalReady ||
       !this.localEchoEnabled ||
-      this.inputBuffer.length === 0
+      !this.inputController.hasContent()
     ) {
       return;
     }
@@ -511,12 +341,14 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
       return;
     }
 
-    if (
-      !this.isEditMode ||
-      !this.terminalReady ||
-      !this.localEchoEnabled ||
-      this.inputBuffer.length === 0
-    ) {
+    if (!this.isEditMode || !this.terminalReady || !this.localEchoEnabled) {
+      this.editLineHidden = false;
+      return;
+    }
+
+    const snapshot = this.inputController.getSnapshot();
+
+    if (snapshot.buffer.length === 0) {
       this.editLineHidden = false;
       return;
     }
@@ -532,10 +364,9 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
       this.terminal.write(prefix);
     }
 
-    this.inputCursor = Math.min(this.inputCursor, this.inputBuffer.length);
-    this.terminal.write(this.inputBuffer);
+    this.terminal.write(snapshot.buffer);
 
-    const moveLeft = this.inputBuffer.length - this.inputCursor;
+    const moveLeft = snapshot.buffer.length - snapshot.cursor;
 
     if (moveLeft > 0) {
       this.terminal.write(cursorLeft(moveLeft));
