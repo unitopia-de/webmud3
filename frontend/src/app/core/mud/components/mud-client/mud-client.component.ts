@@ -16,14 +16,10 @@ import { MudService } from '../../services/mud.service';
 import { SecureString } from '@mudlet3/frontend/shared';
 import { LinemodeState } from '@mudlet3/frontend/features/sockets';
 import {
-  CTRL,
-  CSI_REGEX,
-  SS3,
-  SS3_LEN,
-  cursorLeft,
-  resetLine,
+  MudInputController,
+  MudPromptManager,
+  MudPromptContext,
 } from '@mudlet3/frontend/features/terminal';
-import { MudInputController } from '@mudlet3/frontend/features/terminal';
 
 type SocketListener = EventListener;
 type MudSocketAdapterHooks = {
@@ -116,6 +112,7 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
 
   private readonly terminal: Terminal;
   private readonly inputController: MudInputController;
+  private readonly promptManager: MudPromptManager;
   private readonly terminalFitAddon = new FitAddon();
   private readonly socketAdapter = new MudSocketAdapter(this.mudService, {
     transformMessage: (data) => this.transformMudOutput(data),
@@ -139,10 +136,6 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
   private isEditMode = true;
   private lastViewportSize?: { columns: number; rows: number };
   private terminalReady = false;
-  private editLineHidden = false;
-  private serverLineBuffer = '';
-  private hiddenPrompt = '';
-  private leadingLineBreaksToStrip = 0;
 
   @ViewChild('hostRef', { static: true })
   private readonly terminalRef!: ElementRef<HTMLDivElement>;
@@ -162,6 +155,8 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
       this.handleCommittedInput(message, echoed),
     );
     this.inputController.setLocalEcho(this.localEchoEnabled);
+
+    this.promptManager = new MudPromptManager(this.terminal, this.inputController);
   }
 
   ngAfterViewInit() {
@@ -275,10 +270,7 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
       this.inputController.reset();
     }
 
-    this.editLineHidden = false;
-    this.serverLineBuffer = '';
-    this.hiddenPrompt = '';
-    this.leadingLineBreaksToStrip = 0;
+    this.promptManager.reset();
     this.updateLocalEcho(this.currentShowEcho);
   }
 
@@ -287,167 +279,31 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
     this.inputController.setLocalEcho(this.localEchoEnabled);
   }
 
-  private skipEscapeSequence(segment: string): number {
-    if (segment.startsWith(SS3) && segment.length >= SS3_LEN) {
-      return SS3_LEN;
-    }
 
-    const match = segment.match(CSI_REGEX);
-
-    if (match) {
-      return match[0].length;
-    }
-
-    // Default to consuming only the ESC character
-    return CTRL.ESC.length;
-  }
 
   private beforeMudOutput(_data: string) {
-    if (
-      !this.isEditMode ||
-      !this.terminalReady ||
-      !this.localEchoEnabled ||
-      !this.inputController.hasContent() ||
-      this.editLineHidden
-    ) {
-      return;
-    }
-
-    this.hiddenPrompt = this.serverLineBuffer;
-    this.serverLineBuffer = '';
-    this.leadingLineBreaksToStrip = 1;
-    this.terminal.write(resetLine);
-    this.editLineHidden = true;
+    this.promptManager.beforeServerOutput(this.getPromptContext());
   }
 
   private afterMudOutput(data: string) {
-    this.trackServerLine(data);
-
-    if (
-      !this.editLineHidden ||
-      !this.isEditMode ||
-      !this.terminalReady ||
-      !this.localEchoEnabled ||
-      !this.inputController.hasContent()
-    ) {
-      return;
-    }
-
-    queueMicrotask(() => this.restoreEditInput());
-  }
-
-  private restoreEditInput() {
-    if (!this.editLineHidden) {
-      return;
-    }
-
-    if (!this.isEditMode || !this.terminalReady || !this.localEchoEnabled) {
-      this.editLineHidden = false;
-      return;
-    }
-
-    const snapshot = this.inputController.getSnapshot();
-
-    if (snapshot.buffer.length === 0) {
-      this.editLineHidden = false;
-      return;
-    }
-
-    this.terminal.write(resetLine);
-
-    const prefix =
-      this.serverLineBuffer.length > 0
-        ? this.serverLineBuffer
-        : this.hiddenPrompt;
-
-    if (prefix.length > 0) {
-      this.terminal.write(prefix);
-    }
-
-    this.terminal.write(snapshot.buffer);
-
-    const moveLeft = snapshot.buffer.length - snapshot.cursor;
-
-    if (moveLeft > 0) {
-      this.terminal.write(cursorLeft(moveLeft));
-    }
-
-    this.editLineHidden = false;
-    this.hiddenPrompt = '';
-    this.serverLineBuffer = prefix;
-    this.leadingLineBreaksToStrip = 0;
+    this.promptManager.afterServerOutput(data, this.getPromptContext());
   }
 
   private transformMudOutput(data: string): string {
-    if (this.leadingLineBreaksToStrip === 0 || data.length === 0) {
-      return data;
-    }
-
-    let startIndex = 0;
-    let remainingBreaks = this.leadingLineBreaksToStrip;
-
-    while (startIndex < data.length && remainingBreaks > 0) {
-      const char = data[startIndex];
-
-      if (char === CTRL.LF) {
-        remainingBreaks -= 1;
-        startIndex += 1;
-        continue;
-      }
-
-      if (char === CTRL.CR) {
-        startIndex += 1;
-        continue;
-      }
-
-      break;
-    }
-
-    this.leadingLineBreaksToStrip = remainingBreaks;
-
-    if (startIndex === 0) {
-      this.leadingLineBreaksToStrip = 0;
-      return data;
-    }
-
-    if (startIndex >= data.length) {
-      return '';
-    }
-
-    this.leadingLineBreaksToStrip = 0;
-    return data.slice(startIndex);
+    return this.promptManager.transformOutput(data);
   }
 
-  private trackServerLine(data: string) {
-    let index = 0;
-
-    while (index < data.length) {
-      const char = data[index];
-
-      if (char === CTRL.CR || char === CTRL.LF) {
-        this.serverLineBuffer = '';
-        index += 1;
-        continue;
-      }
-
-      if (char === CTRL.BS || char === CTRL.DEL) {
-        this.serverLineBuffer = this.serverLineBuffer.slice(0, -1);
-        index += 1;
-        continue;
-      }
-
-      if (char === CTRL.ESC) {
-        const consumed = this.skipEscapeSequence(data.slice(index));
-        const parsedSequence =
-          consumed > 0 ? data.slice(index, index + consumed) : char;
-
-        this.serverLineBuffer += parsedSequence;
-        index += Math.max(consumed, 1);
-        continue;
-      }
-
-      this.serverLineBuffer += char;
-      index += 1;
-    }
+  private getPromptContext(): MudPromptContext {
+    return {
+      isEditMode: this.isEditMode,
+      terminalReady: this.terminalReady,
+      localEchoEnabled: this.localEchoEnabled,
+    };
   }
+
+
+
+
 }
+
+
