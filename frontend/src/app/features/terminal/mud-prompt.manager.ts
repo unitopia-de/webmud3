@@ -10,6 +10,9 @@ import {
 } from './models/escapes';
 import type { MudInputController } from './mud-input.controller';
 
+/**
+ * Minimal context required to decide whether the prompt may be hidden/restored.
+ */
 export type MudPromptContext = {
   isEditMode: boolean;
   terminalReady: boolean;
@@ -19,6 +22,8 @@ export type MudPromptContext = {
 /**
  * Keeps track of prompt / current line state so that we can temporarily hide
  * the local edit buffer while server output is rendered and then restore it.
+ * The manager stores visual state (prompt characters already printed by the
+ * server) and collaborates with the {@link MudInputController} for user input.
  */
 export class MudPromptManager {
   private serverLineBuffer = '';
@@ -26,11 +31,19 @@ export class MudPromptManager {
   private leadingLineBreaksToStrip = 0;
   private lineHidden = false;
 
+  /**
+   * @param terminal xterm instance that receives redraw commands.
+   * @param inputController input controller used to fetch the editable buffer.
+   */
   constructor(
     private readonly terminal: Terminal,
     private readonly inputController: MudInputController,
   ) {}
 
+  /**
+   * Clears all tracked prompt state.  Typically invoked when the editing mode
+   * changes or the terminal is reinitialised.
+   */
   public reset(): void {
     this.serverLineBuffer = '';
     this.hiddenPrompt = '';
@@ -38,6 +51,10 @@ export class MudPromptManager {
     this.lineHidden = false;
   }
 
+  /**
+   * Strips leading CR/LF characters that belong to a previously hidden prompt so
+   * the restored line does not produce blank rows when the server pushes output.
+   */
   public transformOutput(data: string): string {
     if (this.leadingLineBreaksToStrip === 0 || data.length === 0) {
       return data;
@@ -79,6 +96,10 @@ export class MudPromptManager {
     return data.slice(startIndex);
   }
 
+  /**
+   * Records the current prompt/input line and clears it from the terminal so
+   * that incoming server output appears in the correct position.
+   */
   public beforeServerOutput(context: MudPromptContext): void {
     if (
       !context.isEditMode ||
@@ -105,6 +126,11 @@ export class MudPromptManager {
     this.lineHidden = true;
   }
 
+  /**
+   * Restores a hidden prompt after new server output has been flushed.  The
+   * restoration happens asynchronously (next microtask) to ensure the terminal
+  * has finished rendering the server chunk first.
+   */
   public afterServerOutput(data: string, context: MudPromptContext): void {
     this.trackServerLine(data);
 
@@ -128,6 +154,10 @@ export class MudPromptManager {
     queueMicrotask(() => this.restoreLine(context));
   }
 
+  /**
+   * Replays prompt and local input back to the terminal.  Cursor positioning is
+   * recalculated from the last input snapshot to maintain the editing position.
+   */
   private restoreLine(context: MudPromptContext): void {
     if (!this.lineHidden) {
       return;
@@ -166,9 +196,13 @@ export class MudPromptManager {
     this.lineHidden = false;
     this.hiddenPrompt = '';
     this.serverLineBuffer = prefix;
-    this.leadingLineBreaksToStrip = 0;
+   this.leadingLineBreaksToStrip = 0;
   }
 
+  /**
+   * Tracks server-provided characters for the current line so that we can
+   * rebuild the prompt later.  Escape sequences are preserved as-is.
+   */
   private trackServerLine(chunk: string): void {
     let index = 0;
 
@@ -202,6 +236,9 @@ export class MudPromptManager {
     }
   }
 
+  /**
+   * @returns number of characters that belong to an escape sequence (CSI/SS3).
+   */
   private skipEscapeSequence(segment: string): number {
     if (segment.startsWith(SS3) && segment.length >= SS3_LEN) {
       return SS3_LEN;

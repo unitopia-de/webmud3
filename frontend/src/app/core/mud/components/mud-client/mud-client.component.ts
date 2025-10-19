@@ -17,6 +17,9 @@ import { SecureString } from '@mudlet3/frontend/shared';
 import { LinemodeState } from '@mudlet3/frontend/features/sockets';
 import { MudInputController, MudPromptContext, MudPromptManager, MudSocketAdapter } from '@mudlet3/frontend/features/terminal';
 
+/**
+ * Component-internal shape that bundles the mutable Mud client flags.
+ */
 type MudClientState = {
   isEditMode: boolean;
   showEcho: boolean;
@@ -24,6 +27,10 @@ type MudClientState = {
   terminalReady: boolean;
 };
 
+/**
+ * Angular wrapper around the xterm-based MUD client.  The component hosts the terminal,
+ * wires the input/prompt helpers together and mirrors socket events to the view.
+ */
 @Component({
   selector: 'app-mud-client',
   standalone: true,
@@ -69,6 +76,10 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
   protected readonly isConnected$ = this.mudService.connectedToMud$;
   protected readonly showEcho$ = this.mudService.showEcho$;
 
+  /**
+   * Instantiates the terminal plus helper controllers.  All services (input/prompt)
+   * share the same terminal instance.
+   */
   constructor() {
     this.terminal = new Terminal({
       fontFamily: 'JetBrainsMono, monospace',
@@ -85,6 +96,10 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
     this.promptManager = new MudPromptManager(this.terminal, this.inputController);
   }
 
+  /**
+   * Bootstraps the terminal after the view is ready: attaches addons, subscribes
+   * to socket events and reports the initial viewport dimensions to the server.
+   */
   ngAfterViewInit() {
     this.terminal.open(this.terminalRef.nativeElement);
     this.terminal.loadAddon(this.terminalFitAddon);
@@ -112,6 +127,9 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
     this.mudService.connect({ columns, rows });
   }
 
+  /**
+   * Cleans up subscriptions and disposes terminal resources.
+   */
   ngOnDestroy() {
     this.resizeObs.disconnect();
 
@@ -131,6 +149,10 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
     this.mudService.connect({ columns, rows });
   }
 
+  /**
+   * Handles DOM resize events, updating xterm and notifying the backend whenever
+   * the viewport size actually changes.
+   */
   private handleTerminalResize() {
     this.terminalFitAddon.fit();
 
@@ -158,12 +180,19 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
     this.mudService.updateViewportSize(columns, rows);
   }
 
+  /**
+   * Sends a committed line (or secure string) to the server.
+   */
   private handleCommittedInput(message: string, echoed: boolean) {
     const payload: string | SecureString = echoed ? message : { value: message };
 
     this.mudService.sendMessage(payload);
   }
 
+  /**
+   * Routes terminal keystrokes either directly to the socket (when not in edit mode)
+   * or through the {@link MudInputController}.
+   */
   private handleInput(data: string) {
     if (!this.state.isEditMode) {
       if (data.length > 0) {
@@ -176,6 +205,10 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
     this.inputController.handleData(data);
   }
 
+  /**
+   * Applies the negotiated LINEMODE.  Pending local input is flushed before
+   * leaving edit mode; both prompt and controller state are reset afterwards.
+   */
   private setLinemode(state: LinemodeState) {
     const wasEditMode = this.state.isEditMode;
 
@@ -198,6 +231,10 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
     this.updateLocalEcho(this.state.showEcho);
   }
 
+  /**
+   * Enables/disables local echo and informs the input controller.  The effective
+   * value depends on both LINEMODE and the server-provided flag.
+   */
   private updateLocalEcho(showEcho: boolean) {
     const localEchoEnabled = this.state.isEditMode && showEcho;
 
@@ -205,18 +242,30 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
     this.inputController.setLocalEcho(localEchoEnabled);
   }
 
+  /**
+   * Delegates to the prompt manager so it can temporarily hide the local prompt.
+   */
   private beforeMudOutput(_data: string) {
     this.promptManager.beforeServerOutput(this.getPromptContext());
   }
 
+  /**
+   * Restores prompt and user input after the server chunk has been rendered.
+   */
   private afterMudOutput(data: string) {
     this.promptManager.afterServerOutput(data, this.getPromptContext());
   }
 
+  /**
+   * Lets the prompt manager strip redundant CR/LF characters.
+   */
   private transformMudOutput(data: string): string {
     return this.promptManager.transformOutput(data);
   }
 
+  /**
+   * Builds the prompt context consumed by the prompt manager.
+   */
   private getPromptContext(): MudPromptContext {
     return {
       isEditMode: this.state.isEditMode,
@@ -225,6 +274,9 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
     };
   }
 
+  /**
+   * Convenience helper for patching the local state object.
+   */
   private setState(patch: Partial<MudClientState>): void {
     this.state = { ...this.state, ...patch };
   }

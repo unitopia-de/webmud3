@@ -11,14 +11,18 @@ import {
   sequence,
 } from './models/escapes';
 
+/**
+ * Callback signature used whenever a buffered line is ready to be sent to the server.
+ */
 export type MudInputCommitHandler = (payload: {
   message: string;
   echoed: boolean;
 }) => void;
 
 /**
- * Encapsulates client-side editing state for LINEMODE input.
- * Keeps track of the text buffer, cursor position and terminal echo updates.
+ * Encapsulates client-side editing state for LINEMODE input.  The controller keeps
+ * track of the text buffer and cursor position, applies terminal side-effects
+ * when local echo is enabled, and turns user keystrokes into commit events.
  */
 export class MudInputController {
   private buffer = '';
@@ -26,11 +30,19 @@ export class MudInputController {
   private lastWasCarriageReturn = false;
   private localEchoEnabled = true;
 
+  /**
+   * @param terminal Reference to the xterm instance we mirror the editing state to.
+   * @param onCommit Callback that receives a flushed line (with echo information).
+   */
   constructor(
     private readonly terminal: Terminal,
     private readonly onCommit: MudInputCommitHandler,
   ) {}
 
+  /**
+   * Processes raw terminal data.  Each character (or escape sequence) updates the
+   * internal buffer/cursor state and performs the corresponding terminal writes.
+   */
   public handleData(data: string): void {
     for (let index = 0; index < data.length; index += 1) {
       const char = data[index];
@@ -66,24 +78,41 @@ export class MudInputController {
     }
   }
 
+  /**
+   * Enables or disables local echo.  When disabled we still update the buffer,
+   * but no characters are written back to the terminal.
+   */
   public setLocalEcho(enabled: boolean): void {
     this.localEchoEnabled = enabled;
   }
 
+  /**
+   * Clears all editing state (buffer, cursor, carriage-return tracker).
+   */
   public reset(): void {
     this.buffer = '';
     this.cursor = 0;
     this.lastWasCarriageReturn = false;
   }
 
+  /**
+   * @returns `true` when the buffer currently contains user input.
+   */
   public hasContent(): boolean {
     return this.buffer.length > 0;
   }
 
+  /**
+   * @returns immutable snapshot of buffer + cursor position used for redraws.
+   */
   public getSnapshot(): { buffer: string; cursor: number } {
     return { buffer: this.buffer, cursor: this.cursor };
   }
 
+  /**
+   * Flushes the buffer and resets the controller.  When nothing has been typed
+   * the call is a no-op and `null` is returned.
+   */
   public flush(): { message: string; echoed: boolean } | null {
     if (!this.hasContent()) {
       this.lastWasCarriageReturn = false;
@@ -100,6 +129,10 @@ export class MudInputController {
     return payload;
   }
 
+  /**
+   * Commits the current buffer to the consumer and resets editing state.  Local
+   * echo is honoured by writing CRLF before the callback is fired.
+   */
   private commitBuffer(): void {
     const message = this.buffer;
 
@@ -112,6 +145,10 @@ export class MudInputController {
     this.onCommit({ message, echoed: this.localEchoEnabled });
   }
 
+  /**
+   * Inserts a printable character at the current cursor position and, when echo
+   * is enabled, rewrites the tail of the line and moves the cursor back.
+   */
   private insertCharacter(char: string): void {
     const charCode = char.charCodeAt(0);
 
@@ -136,6 +173,10 @@ export class MudInputController {
     }
   }
 
+  /**
+   * Removes a character left of the cursor and reflows the remaining suffix so
+   * that the terminal visually matches the updated buffer.
+   */
   private applyBackspace(): void {
     if (this.cursor === 0) {
       return;
@@ -159,6 +200,9 @@ export class MudInputController {
     }
   }
 
+  /**
+   * Moves the logical cursor to the left and emits the matching terminal escape.
+   */
   private moveCursorLeft(amount: number): void {
     if (amount <= 0) {
       return;
@@ -178,6 +222,9 @@ export class MudInputController {
     }
   }
 
+  /**
+   * Moves the logical cursor to the right and emits the matching terminal escape.
+   */
   private moveCursorRight(amount: number): void {
     if (amount <= 0) {
       return;
@@ -197,6 +244,12 @@ export class MudInputController {
     }
   }
 
+  /**
+   * Parses an escape sequence (CSI or SS3) emitted by the terminal for arrow keys.
+   * Cursor keys are translated into logical cursor movements.
+   *
+   * @returns number of characters consumed from the segment.
+   */
   private handleEscapeSequence(segment: string): number {
     if (segment.startsWith(SS3) && segment.length >= SS3_LEN) {
       const control = segment[2];

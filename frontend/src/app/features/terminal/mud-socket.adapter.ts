@@ -1,5 +1,8 @@
 import { Observable, Subscription } from 'rxjs';
 
+/**
+ * Optional hooks invoked while processing a chunk of MUD output.
+ */
 export type MudSocketAdapterHooks = {
   transformMessage?: (data: string) => string;
   beforeMessage?: (data: string) => void;
@@ -10,8 +13,9 @@ type SocketListener = EventListener;
 
 /**
  * Minimal WebSocket-like adapter that feeds xterm's AttachAddon with the
- * server output stream coming from the MudService. It translates output$
- * emissions into `message` events for the addon.
+ * server output stream coming from the MudService. Each emission from the
+ * observable is converted into a `message` event, with optional transform
+ * hooks to intercept or mutate the payload.
  */
 export class MudSocketAdapter {
   public binaryType: BinaryType = 'arraybuffer';
@@ -20,6 +24,10 @@ export class MudSocketAdapter {
   private readonly listeners = new Map<string, Set<SocketListener>>();
   private readonly subscription: Subscription;
 
+  /**
+   * @param output$ Observable delivering MUD output chunks.
+   * @param hooks Optional callbacks invoked before/after transforming emissions.
+   */
   constructor(
     output$: Observable<{ data: string }>,
     private readonly hooks?: MudSocketAdapterHooks,
@@ -40,6 +48,9 @@ export class MudSocketAdapter {
     });
   }
 
+  /**
+   * Registers a listener for the given event type (only `message` is relevant).
+   */
   public addEventListener(type: string, listener: SocketListener) {
     if (!this.listeners.has(type)) {
       this.listeners.set(type, new Set());
@@ -48,6 +59,9 @@ export class MudSocketAdapter {
     this.listeners.get(type)!.add(listener);
   }
 
+  /**
+   * Removes a previously registered listener, cleaning up empty buckets.
+   */
   public removeEventListener(type: string, listener: SocketListener) {
     const listeners = this.listeners.get(type);
     if (!listeners) {
@@ -65,15 +79,24 @@ export class MudSocketAdapter {
     // Input handling is managed separately via terminal.onData
   }
 
+  /**
+   * Closes the adapter by disposing the subscription (alias of {@link dispose}).
+   */
   public close() {
     this.dispose();
   }
 
+  /**
+   * Removes all listeners and unsubscribes from the output stream.
+   */
   public dispose() {
     this.subscription.unsubscribe();
     this.listeners.clear();
   }
 
+  /**
+   * Dispatches a cloned event to all listeners of the given type.
+   */
   private dispatch(type: string, event: Event) {
     const listeners = this.listeners.get(type);
 
