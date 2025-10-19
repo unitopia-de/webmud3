@@ -261,6 +261,12 @@ export class MudInputController {
         case 'D':
           this.moveCursorLeft(1);
           break;
+        case 'H':
+          this.moveCursorToStart();
+          break;
+        case 'F':
+          this.moveCursorToEnd();
+          break;
         default:
           break;
       }
@@ -287,10 +293,68 @@ export class MudInputController {
       case 'D':
         this.moveCursorLeft(amount);
         break;
+      case 'H':
+        this.moveCursorToStart();
+        break;
+      case 'F':
+        this.moveCursorToEnd();
+        break;
+      case '~':
+        switch (amount) {
+          case 1:
+          case 7:
+            this.moveCursorToStart();
+            break;
+          case 4:
+          case 8:
+            this.moveCursorToEnd();
+            break;
+          case 3:
+            this.applyDelete();
+            break;
+          default:
+            break;
+        }
+        break;
       default:
         break;
     }
 
     return token.length;
+  }
+
+  /**
+   * Removes the character at the cursor position without moving the cursor.
+   * The suffix is reflowed to keep the terminal in sync with the buffer.
+   */
+  private applyDelete(): void {
+    if (this.cursor >= this.buffer.length) {
+      return;
+    }
+
+    const before = this.buffer.slice(0, this.cursor);
+    const after = this.buffer.slice(this.cursor + 1);
+
+    this.buffer = before + after;
+
+    if (!this.localEchoEnabled) {
+      return;
+    }
+
+    if (after.length > 0) {
+      this.terminal.write(sequence(after, ' '));
+      this.terminal.write(cursorLeft(after.length + 1));
+    } else {
+      this.terminal.write(' ');
+      this.terminal.write(cursorLeft(1));
+    }
+  }
+
+  private moveCursorToStart(): void {
+    this.moveCursorLeft(this.cursor);
+  }
+
+  private moveCursorToEnd(): void {
+    this.moveCursorRight(this.buffer.length - this.cursor);
   }
 }

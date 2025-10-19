@@ -15,7 +15,13 @@ import { Subscription } from 'rxjs';
 import { MudService } from '../../services/mud.service';
 import { SecureString } from '@mudlet3/frontend/shared';
 import { LinemodeState } from '@mudlet3/frontend/features/sockets';
-import { MudInputController, MudPromptContext, MudPromptManager, MudSocketAdapter } from '@mudlet3/frontend/features/terminal';
+import {
+  CTRL,
+  MudInputController,
+  MudPromptContext,
+  MudPromptManager,
+  MudSocketAdapter,
+} from '@mudlet3/frontend/features/terminal';
 
 /**
  * Component-internal shape that bundles the mutable Mud client flags.
@@ -26,6 +32,8 @@ type MudClientState = {
   localEchoEnabled: boolean;
   terminalReady: boolean;
 };
+
+const DELETE_SEQUENCE = `${CTRL.ESC}[3~`;
 
 /**
  * Angular wrapper around the xterm-based MUD client.  The component hosts the terminal,
@@ -45,11 +53,14 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
   private readonly inputController: MudInputController;
   private readonly promptManager: MudPromptManager;
   private readonly terminalFitAddon = new FitAddon();
-  private readonly socketAdapter = new MudSocketAdapter(this.mudService.mudOutput$, {
-    transformMessage: (data) => this.transformMudOutput(data),
-    beforeMessage: (data) => this.beforeMudOutput(data),
-    afterMessage: (data) => this.afterMudOutput(data),
-  });
+  private readonly socketAdapter = new MudSocketAdapter(
+    this.mudService.mudOutput$,
+    {
+      transformMessage: (data) => this.transformMudOutput(data),
+      beforeMessage: (data) => this.beforeMudOutput(data),
+      afterMessage: (data) => this.afterMudOutput(data),
+    },
+  );
   private readonly terminalAttachAddon = new AttachAddon(
     this.socketAdapter as unknown as WebSocket,
     { bidirectional: false },
@@ -88,12 +99,16 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
       screenReaderMode: true,
     });
 
-    this.inputController = new MudInputController(this.terminal, ({ message, echoed }) =>
-      this.handleCommittedInput(message, echoed),
+    this.inputController = new MudInputController(
+      this.terminal,
+      ({ message, echoed }) => this.handleCommittedInput(message, echoed),
     );
     this.inputController.setLocalEcho(this.state.localEchoEnabled);
 
-    this.promptManager = new MudPromptManager(this.terminal, this.inputController);
+    this.promptManager = new MudPromptManager(
+      this.terminal,
+      this.inputController,
+    );
   }
 
   /**
@@ -184,7 +199,9 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
    * Sends a committed line (or secure string) to the server.
    */
   private handleCommittedInput(message: string, echoed: boolean) {
-    const payload: string | SecureString = echoed ? message : { value: message };
+    const payload: string | SecureString = echoed
+      ? message
+      : { value: message };
 
     this.mudService.sendMessage(payload);
   }
@@ -196,7 +213,8 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
   private handleInput(data: string) {
     if (!this.state.isEditMode) {
       if (data.length > 0) {
-        this.mudService.sendMessage(data);
+        const rewritten = this.rewriteBackspaceToDelete(data);
+        this.mudService.sendMessage(rewritten);
       }
 
       return;
@@ -281,6 +299,17 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
     this.state = { ...this.state, ...patch };
   }
 
+  /**
+   * Maps DEL to BACKSPACE for non-edit mode
+   */
+  private rewriteBackspaceToDelete(data: string): string {
+    const containsDelete = data.includes(CTRL.DEL);
+
+    if (containsDelete) {
+      // Many terminals internally map Backspace to Delete; mirror that when bypassing edit mode.
+      return CTRL.BS;
+    }
+
+    return data;
+  }
 }
-
-
