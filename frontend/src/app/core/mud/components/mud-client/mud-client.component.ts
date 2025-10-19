@@ -15,90 +15,7 @@ import { Subscription } from 'rxjs';
 import { MudService } from '../../services/mud.service';
 import { SecureString } from '@mudlet3/frontend/shared';
 import { LinemodeState } from '@mudlet3/frontend/features/sockets';
-import {
-  MudInputController,
-  MudPromptManager,
-  MudPromptContext,
-} from '@mudlet3/frontend/features/terminal';
-
-type SocketListener = EventListener;
-type MudSocketAdapterHooks = {
-  transformMessage?: (data: string) => string;
-  beforeMessage?: (data: string) => void;
-  afterMessage?: (data: string) => void;
-};
-
-class MudSocketAdapter {
-  public binaryType: BinaryType = 'arraybuffer';
-  public readyState = WebSocket.OPEN;
-
-  private readonly listeners = new Map<string, Set<SocketListener>>();
-  private readonly subscription: Subscription;
-
-  constructor(
-    private readonly mudService: MudService,
-    private readonly hooks?: MudSocketAdapterHooks,
-  ) {
-    this.subscription = this.mudService.mudOutput$.subscribe(({ data }) => {
-      this.hooks?.beforeMessage?.(data);
-
-      const transformed = this.hooks?.transformMessage?.(data) ?? data;
-
-      if (transformed.length > 0) {
-        this.dispatch(
-          'message',
-          new MessageEvent('message', { data: transformed }),
-        );
-      }
-
-      this.hooks?.afterMessage?.(transformed);
-    });
-  }
-
-  public addEventListener(type: string, listener: SocketListener) {
-    if (!this.listeners.has(type)) {
-      this.listeners.set(type, new Set());
-    }
-
-    this.listeners.get(type)!.add(listener);
-  }
-
-  public removeEventListener(type: string, listener: SocketListener) {
-    const listeners = this.listeners.get(type);
-    if (!listeners) {
-      return;
-    }
-
-    listeners.delete(listener);
-
-    if (listeners.size === 0) {
-      this.listeners.delete(type);
-    }
-  }
-
-  public send(): void {
-    // Input handling is managed separately via terminal.onData
-  }
-
-  public close() {
-    this.dispose();
-  }
-
-  public dispose() {
-    this.subscription.unsubscribe();
-    this.listeners.clear();
-  }
-
-  private dispatch(type: string, event: Event) {
-    const listeners = this.listeners.get(type);
-
-    if (!listeners) {
-      return;
-    }
-
-    listeners.forEach((listener) => listener.call(this, event));
-  }
-}
+import { MudInputController, MudPromptContext, MudPromptManager, MudSocketAdapter } from '@mudlet3/frontend/features/terminal';
 
 @Component({
   selector: 'app-mud-client',
@@ -114,7 +31,7 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
   private readonly inputController: MudInputController;
   private readonly promptManager: MudPromptManager;
   private readonly terminalFitAddon = new FitAddon();
-  private readonly socketAdapter = new MudSocketAdapter(this.mudService, {
+  private readonly socketAdapter = new MudSocketAdapter(this.mudService.mudOutput$, {
     transformMessage: (data) => this.transformMudOutput(data),
     beforeMessage: (data) => this.beforeMudOutput(data),
     afterMessage: (data) => this.afterMudOutput(data),
@@ -305,5 +222,7 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
 
 
 }
+
+
 
 
