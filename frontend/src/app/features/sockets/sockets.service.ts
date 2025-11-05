@@ -16,10 +16,20 @@ type MudOutputEventArgs = {
   providedIn: 'root',
 })
 export class SocketsService {
+  private static readonly SESSION_STORAGE_KEY = 'webmud-session-id';
+  private static readonly OUTPUT_STORAGE_KEY_PREFIX = 'webmud-output';
+  private static readonly OUTPUT_STORAGE_LIMIT = 500;
+
+  private readonly localStorageRef: Storage | null;
+  private readonly sessionId: string;
+  private readonly storageKey: string;
   private readonly manager: Manager;
   private readonly socket: Socket<ServerToClientEvents, ClientToServerEvents>;
   private readonly connectedToServer = new BehaviorSubject<boolean>(false);
   private readonly connectedToMud = new BehaviorSubject<boolean>(false);
+  private storageAvailable: boolean;
+  private storedOutputCache: string[] = [];
+  private skipDuplicateOutputsQueue: string[] = [];
 
   public onMudConnect = new EventEmitter();
   public onMudDisconnect = new EventEmitter();
@@ -31,12 +41,22 @@ export class SocketsService {
   public readonly connectedToMud$ = this.connectedToMud.asObservable();
 
   public constructor(serverConfigService: ServerConfigService) {
+    this.localStorageRef = this.tryGetLocalStorage();
+    this.storageAvailable = this.localStorageRef !== null;
+
+    this.sessionId = this.resolveSessionId();
+    this.storageKey = this.buildOutputStorageKey(this.sessionId);
+
+    this.storedOutputCache = this.restoreStoredOutputs();
+    this.skipDuplicateOutputsQueue = [...this.storedOutputCache];
+
     const socketUrl = serverConfigService.getBackendUrl();
     const socketNamespace = serverConfigService.getSocketNamespace();
 
     console.log('[Sockets] Socket Service init socket', {
       socketUrl,
       socketNamespace,
+      sessionId: this.sessionId,
     });
 
     this.manager = new Manager(socketUrl, {
@@ -74,7 +94,13 @@ export class SocketsService {
       this.handlePing();
     });
 
-    this.socket = this.manager.socket('/');
+    this.socket = this.manager.socket('/', {
+      auth: {
+        sessionId: this.sessionId,
+      },
+    });
+
+    this.socket.auth = { sessionId: this.sessionId };
 
     this.socket.on('connect', () => {
       this.handleConnect();
@@ -107,6 +133,16 @@ export class SocketsService {
     this.socket.on('requestTimingMark', (callback: () => void) => {
       this.handleTimingMark(callback);
     });
+
+    if (this.storedOutputCache.length > 0) {
+      setTimeout(() => {
+        for (const output of this.storedOutputCache) {
+          this.onMudOutput.emit({
+            data: output,
+          });
+        }
+      }, 0);
+    }
   }
 
   public connectToMud(initialViewPort: {
@@ -160,9 +196,23 @@ export class SocketsService {
   };
 
   private handleMudOutput = (output: string) => {
+    if (this.skipDuplicateOutputsQueue.length > 0) {
+      const expected = this.skipDuplicateOutputsQueue[0];
+
+      if (expected === output) {
+        this.skipDuplicateOutputsQueue.shift();
+
+        return;
+      }
+
+      this.skipDuplicateOutputsQueue = [];
+    }
+
     this.onMudOutput.emit({
       data: output,
     });
+
+    this.appendOutputToStorage(output);
   };
 
   private handleClose() {
@@ -228,4 +278,168 @@ export class SocketsService {
 
     callback();
   };
+
+  private resolveSessionId(): string {
+    if (this.localStorageRef === null) {
+      return this.generateSessionId();
+    }
+
+    try {
+      const existing = this.localStorageRef.getItem(
+        SocketsService.SESSION_STORAGE_KEY,
+      );
+
+      if (existing !== null && existing.trim().length > 0) {
+        return existing;
+      }
+
+      const newSessionId = this.generateSessionId();
+
+      this.localStorageRef.setItem(
+        SocketsService.SESSION_STORAGE_KEY,
+        newSessionId,
+      );
+
+      return newSessionId;
+    } catch (error) {
+      console.warn(
+        '[Sockets] Sockets-Service: Unable to persist session id. Falling back to in-memory session.',
+        error,
+      );
+
+      this.storageAvailable = false;
+
+      return this.generateSessionId();
+    }
+  }
+
+  private generateSessionId(): string {
+    if (
+      typeof window !== 'undefined' &&
+      window.crypto !== undefined &&
+      typeof window.crypto.randomUUID === 'function'
+    ) {
+      return window.crypto.randomUUID();
+    }
+
+    if (
+      typeof crypto !== 'undefined' &&
+      typeof (crypto as { randomUUID?: () => string }).randomUUID === 'function'
+    ) {
+      return (crypto as { randomUUID: () => string }).randomUUID();
+    }
+
+    return `${Date.now().toString(36)}-${Math.random()
+      .toString(36)
+      .slice(2, 10)}`;
+  }
+
+  private buildOutputStorageKey(sessionId: string): string {
+    return `${SocketsService.OUTPUT_STORAGE_KEY_PREFIX}:${sessionId}`;
+  }
+
+  private tryGetLocalStorage(): Storage | null {
+    if (typeof window === 'undefined' || window.localStorage === undefined) {
+      return null;
+    }
+
+    try {
+      const storage = window.localStorage;
+      storage.getItem('__webmud_localstorage_probe__');
+
+      return storage;
+    } catch (error) {
+      console.warn(
+        '[Sockets] Sockets-Service: localStorage not available. Persisted output history disabled.',
+        error,
+      );
+
+      return null;
+    }
+  }
+
+  private restoreStoredOutputs(): string[] {
+    if (this.localStorageRef === null) {
+      return [];
+    }
+
+    try {
+      const raw = this.localStorageRef.getItem(this.storageKey);
+
+      if (raw === null) {
+        return [];
+      }
+
+      const parsed = JSON.parse(raw);
+
+      if (!Array.isArray(parsed)) {
+        return [];
+      }
+
+      const outputs = parsed.filter(
+        (entry): entry is string => typeof entry === 'string',
+      );
+
+      if (outputs.length > SocketsService.OUTPUT_STORAGE_LIMIT) {
+        const trimmed = outputs.slice(
+          outputs.length - SocketsService.OUTPUT_STORAGE_LIMIT,
+        );
+
+        this.localStorageRef.setItem(
+          this.storageKey,
+          JSON.stringify(trimmed),
+        );
+
+        return trimmed;
+      }
+
+      return outputs;
+    } catch (error) {
+      console.warn(
+        '[Sockets] Sockets-Service: Failed to restore stored output history.',
+        error,
+      );
+
+      this.storageAvailable = false;
+
+      return [];
+    }
+  }
+
+  private appendOutputToStorage(output: string): void {
+    if (!this.storageAvailable || this.localStorageRef === null) {
+      return;
+    }
+
+    this.storedOutputCache.push(output);
+
+    if (this.storedOutputCache.length > SocketsService.OUTPUT_STORAGE_LIMIT) {
+      this.storedOutputCache.splice(
+        0,
+        this.storedOutputCache.length - SocketsService.OUTPUT_STORAGE_LIMIT,
+      );
+    }
+
+    this.persistStoredOutputs();
+  }
+
+  private persistStoredOutputs(): void {
+    if (!this.storageAvailable || this.localStorageRef === null) {
+      return;
+    }
+
+    try {
+      this.localStorageRef.setItem(
+        this.storageKey,
+        JSON.stringify(this.storedOutputCache),
+      );
+    } catch (error) {
+      console.warn(
+        '[Sockets] Sockets-Service: Failed to persist output history. Disabling local history.',
+        error,
+      );
+
+      this.storageAvailable = false;
+    }
+  }
 }
