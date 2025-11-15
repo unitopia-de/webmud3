@@ -1,0 +1,12 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+
+  .mud-output {
+    flex: 1 1 0;
+    background-color: black;
+    min-height: 0;
+    overflow: hidden;
+  }
+}
