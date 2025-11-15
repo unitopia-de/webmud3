@@ -10,7 +10,7 @@ import { AsyncPipe } from '@angular/common';
 import { AttachAddon } from '@xterm/addon-attach';
 import { FitAddon } from '@xterm/addon-fit';
 import { IDisposable, Terminal } from '@xterm/xterm';
-import { Subscription } from 'rxjs';
+import { of, Subscription } from 'rxjs';
 
 import { MudService } from '../../services/mud.service';
 import { SecureString } from '@mudlet3/frontend/shared';
@@ -48,23 +48,14 @@ const DELETE_SEQUENCE = `${CTRL.ESC}[3~`;
 })
 export class MudClientComponent implements AfterViewInit, OnDestroy {
   private readonly mudService = inject(MudService);
+  private readonly isStaticTerminalMode = true;
 
   private readonly terminal: Terminal;
-  private readonly inputController: MudInputController;
-  private readonly promptManager: MudPromptManager;
+  private readonly inputController?: MudInputController;
+  private readonly promptManager?: MudPromptManager;
   private readonly terminalFitAddon = new FitAddon();
-  private readonly socketAdapter = new MudSocketAdapter(
-    this.mudService.mudOutput$,
-    {
-      transformMessage: (data) => this.transformMudOutput(data),
-      beforeMessage: (data) => this.beforeMudOutput(data),
-      afterMessage: (data) => this.afterMudOutput(data),
-    },
-  );
-  private readonly terminalAttachAddon = new AttachAddon(
-    this.socketAdapter as unknown as WebSocket,
-    { bidirectional: false },
-  );
+  private readonly socketAdapter?: MudSocketAdapter;
+  private readonly terminalAttachAddon?: AttachAddon;
 
   private readonly terminalDisposables: IDisposable[] = [];
   private readonly resizeObs = new ResizeObserver(() => {
@@ -84,8 +75,12 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
   @ViewChild('hostRef', { static: true })
   private readonly terminalRef!: ElementRef<HTMLDivElement>;
 
-  protected readonly isConnected$ = this.mudService.connectedToMud$;
-  protected readonly showEcho$ = this.mudService.showEcho$;
+  protected readonly isConnected$ = this.isStaticTerminalMode
+    ? of(true)
+    : this.mudService.connectedToMud$;
+  protected readonly showEcho$ = this.isStaticTerminalMode
+    ? of(true)
+    : this.mudService.showEcho$;
 
   /**
    * Instantiates the terminal plus helper controllers.  All services (input/prompt)
@@ -95,20 +90,32 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
     this.terminal = new Terminal({
       fontFamily: 'JetBrainsMono, monospace',
       theme: { background: '#000', foreground: '#ccc' },
-      disableStdin: false,
+      disableStdin: this.isStaticTerminalMode,
       screenReaderMode: true,
     });
 
-    this.inputController = new MudInputController(
-      this.terminal,
-      ({ message, echoed }) => this.handleCommittedInput(message, echoed),
-    );
-    this.inputController.setLocalEcho(this.state.localEchoEnabled);
+    if (!this.isStaticTerminalMode) {
+      this.socketAdapter = new MudSocketAdapter(this.mudService.mudOutput$, {
+        transformMessage: (data) => this.transformMudOutput(data),
+        beforeMessage: (data) => this.beforeMudOutput(data),
+        afterMessage: (data) => this.afterMudOutput(data),
+      });
+      this.terminalAttachAddon = new AttachAddon(
+        this.socketAdapter as unknown as WebSocket,
+        { bidirectional: false },
+      );
 
-    this.promptManager = new MudPromptManager(
-      this.terminal,
-      this.inputController,
-    );
+      this.inputController = new MudInputController(
+        this.terminal,
+        ({ message, echoed }) => this.handleCommittedInput(message, echoed),
+      );
+      this.inputController.setLocalEcho(this.state.localEchoEnabled);
+
+      this.promptManager = new MudPromptManager(
+        this.terminal,
+        this.inputController,
+      );
+    }
   }
 
   /**
@@ -118,7 +125,16 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
   ngAfterViewInit() {
     this.terminal.open(this.terminalRef.nativeElement);
     this.terminal.loadAddon(this.terminalFitAddon);
-    this.terminal.loadAddon(this.terminalAttachAddon);
+    this.terminalFitAddon.fit();
+    this.resizeObs.observe(this.terminalRef.nativeElement);
+    this.setState({ terminalReady: true });
+
+    if (this.isStaticTerminalMode) {
+      this.renderStaticDemoText();
+      return;
+    }
+
+    this.terminal.loadAddon(this.terminalAttachAddon!);
     this.terminal.focus();
 
     this.terminalDisposables.push(
@@ -132,9 +148,6 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
     this.linemodeSubscription = this.mudService.linemode$.subscribe((state) =>
       this.setLinemode(state),
     );
-
-    this.resizeObs.observe(this.terminalRef.nativeElement);
-    this.setState({ terminalReady: true });
 
     const columns = this.terminal.cols;
     const rows = this.terminal.rows + 1;
@@ -152,12 +165,16 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
     this.showEchoSubscription?.unsubscribe();
     this.linemodeSubscription?.unsubscribe();
 
-    this.terminalAttachAddon.dispose();
-    this.socketAdapter.dispose();
+    this.terminalAttachAddon?.dispose();
+    this.socketAdapter?.dispose();
     this.terminal.dispose();
   }
 
   protected connect() {
+    if (this.isStaticTerminalMode) {
+      return;
+    }
+
     const columns = this.terminal.cols;
     const rows = this.terminal.rows;
 
@@ -170,6 +187,9 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
    */
   private handleTerminalResize() {
     this.terminalFitAddon.fit();
+    if (this.isStaticTerminalMode) {
+      return;
+    }
 
     const columns = this.terminal.cols;
     const rows = this.terminal.rows;
@@ -199,6 +219,10 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
    * Sends a committed line (or secure string) to the server.
    */
   private handleCommittedInput(message: string, echoed: boolean) {
+    if (this.isStaticTerminalMode) {
+      return;
+    }
+
     const payload: string | SecureString = echoed
       ? message
       : { value: message };
@@ -211,6 +235,10 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
    * or through the {@link MudInputController}.
    */
   private handleInput(data: string) {
+    if (!this.inputController) {
+      return;
+    }
+
     if (!this.state.isEditMode) {
       if (data.length > 0) {
         const rewritten = this.rewriteBackspaceToDelete(data);
@@ -232,20 +260,20 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
 
     if (!state.edit) {
       if (wasEditMode) {
-        const pending = this.inputController.flush();
+        const pending = this.inputController?.flush();
 
         if (pending) {
           this.handleCommittedInput(pending.message, pending.echoed);
         }
       }
 
-      this.inputController.reset();
+      this.inputController?.reset();
     } else if (!wasEditMode) {
-      this.inputController.reset();
+      this.inputController?.reset();
     }
 
     this.setState({ isEditMode: state.edit });
-    this.promptManager.reset();
+    this.promptManager?.reset();
     this.updateLocalEcho(this.state.showEcho);
   }
 
@@ -257,28 +285,28 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
     const localEchoEnabled = this.state.isEditMode && showEcho;
 
     this.setState({ showEcho, localEchoEnabled });
-    this.inputController.setLocalEcho(localEchoEnabled);
+    this.inputController?.setLocalEcho(localEchoEnabled);
   }
 
   /**
    * Delegates to the prompt manager so it can temporarily hide the local prompt.
    */
   private beforeMudOutput(_data: string) {
-    this.promptManager.beforeServerOutput(this.getPromptContext());
+    this.promptManager?.beforeServerOutput(this.getPromptContext());
   }
 
   /**
    * Restores prompt and user input after the server chunk has been rendered.
    */
   private afterMudOutput(data: string) {
-    this.promptManager.afterServerOutput(data, this.getPromptContext());
+    this.promptManager?.afterServerOutput(data, this.getPromptContext());
   }
 
   /**
    * Lets the prompt manager strip redundant CR/LF characters.
    */
   private transformMudOutput(data: string): string {
-    return this.promptManager.transformOutput(data);
+    return this.promptManager?.transformOutput(data) ?? data;
   }
 
   /**
@@ -311,5 +339,21 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
     }
 
     return data;
+  }
+
+  /**
+   * Renders a short static sample without connecting to the backend.
+   */
+  private renderStaticDemoText(): void {
+    this.terminal.writeln('');
+    this.terminal.writeln('Willkommen zum barrierefreien Testlauf.');
+    this.terminal.writeln('Die Verbindung zum Server ist deaktiviert.');
+    this.terminal.writeln(
+      'Das Terminal zeigt ausschließlich diesen statischen Text an.',
+    );
+    this.terminal.writeln('');
+    this.terminal.writeln(
+      'Drücken von Tasten hat in diesem Modus keine Wirkung.',
+    );
   }
 }
