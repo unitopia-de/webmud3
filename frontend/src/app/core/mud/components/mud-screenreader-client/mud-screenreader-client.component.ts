@@ -11,7 +11,8 @@ import { IDisposable, Terminal } from '@xterm/xterm';
 /**
  * Lightweight xterm wrapper that is decoupled from the backend and is optimized
  * for screen-reader experiments.  It renders a static intro text and mirrors any
- * user input back to the terminal with a simple prompt (`> `).
+ * user input back to the terminal, including a delayed echo so assistive tech can
+ * be tested without talking to the backend.
  */
 @Component({
   selector: 'app-mud-screenreader-client',
@@ -25,7 +26,7 @@ export class MudScreenreaderClientComponent
   private readonly terminal = new Terminal({
     fontFamily: 'JetBrainsMono, monospace',
     theme: { background: '#000', foreground: '#ccc' },
-    // cursorBlink: true,
+    cursorBlink: true,
     screenReaderMode: true,
   });
 
@@ -33,8 +34,8 @@ export class MudScreenreaderClientComponent
   private readonly terminalDisposables: IDisposable[] = [];
   private readonly resizeObs = new ResizeObserver(() => this.handleResize());
 
-  private readonly promptLabel = '> ';
   private currentInput = '';
+  private readonly pendingEchoTimeouts: number[] = [];
 
   @ViewChild('hostRef', { static: true })
   private readonly terminalRef!: ElementRef<HTMLDivElement>;
@@ -46,7 +47,6 @@ export class MudScreenreaderClientComponent
     this.resizeObs.observe(this.terminalRef.nativeElement);
 
     this.renderStaticIntro();
-    this.renderPrompt();
     this.terminal.focus();
 
     this.terminalDisposables.push(
@@ -56,6 +56,8 @@ export class MudScreenreaderClientComponent
 
   ngOnDestroy(): void {
     this.resizeObs.disconnect();
+    this.pendingEchoTimeouts.forEach((timeoutId) => clearTimeout(timeoutId));
+    this.pendingEchoTimeouts.length = 0;
 
     this.terminalDisposables.forEach((disposable) => disposable.dispose());
     this.terminal.dispose();
@@ -103,13 +105,11 @@ export class MudScreenreaderClientComponent
 
   private commitInput(): void {
     this.terminal.write('\r\n');
-    this.terminal.writeln(`Eingabe: ${this.currentInput}`);
+    const inputSnapshot = this.currentInput;
+    this.terminal.writeln(`Eingabe: ${inputSnapshot}`);
+    this.scheduleEcho(inputSnapshot);
     this.currentInput = '';
-    this.renderPrompt();
-  }
-
-  private renderPrompt(): void {
-    this.terminal.write(this.promptLabel);
+    this.terminal.writeln('');
   }
 
   private renderStaticIntro(): void {
@@ -117,7 +117,7 @@ export class MudScreenreaderClientComponent
     this.terminal.writeln('Die Verbindung zum Server ist deaktiviert.');
     this.terminal.writeln('');
     this.terminal.writeln(
-      'Tippen Sie Ihre Eingabe nach dem Prompt (>) und bestätigen Sie mit Enter.',
+      'Tippen Sie Ihre Eingabe und bestaetigen Sie mit Enter.',
     );
     this.terminal.writeln('');
   }
@@ -125,5 +125,17 @@ export class MudScreenreaderClientComponent
   private isPrintable(char: string): boolean {
     const code = char.charCodeAt(0);
     return code >= 0x20 && code !== 0x7f;
+  }
+
+  private scheduleEcho(message: string): void {
+    const timeoutId = window.setTimeout(() => {
+      this.terminal.writeln(`Echo: ${message}`);
+      const idx = this.pendingEchoTimeouts.indexOf(timeoutId);
+      if (idx >= 0) {
+        this.pendingEchoTimeouts.splice(idx, 1);
+      }
+    }, 5000);
+
+    this.pendingEchoTimeouts.push(timeoutId);
   }
 }
