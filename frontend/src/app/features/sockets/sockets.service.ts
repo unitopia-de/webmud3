@@ -47,7 +47,7 @@ export class SocketsService {
     this.sessionId = this.resolveSessionId();
     this.storageKey = this.buildOutputStorageKey(this.sessionId);
 
-    this.storedOutputCache = this.restoreStoredOutputs();
+    // this.storedOutputCache = this.restoreStoredOutputs();
     this.skipDuplicateOutputsQueue = [...this.storedOutputCache];
 
     const socketUrl = serverConfigService.getBackendUrl();
@@ -385,10 +385,7 @@ export class SocketsService {
           outputs.length - SocketsService.OUTPUT_STORAGE_LIMIT,
         );
 
-        this.localStorageRef.setItem(
-          this.storageKey,
-          JSON.stringify(trimmed),
-        );
+        this.localStorageRef.setItem(this.storageKey, JSON.stringify(trimmed));
 
         return trimmed;
       }
