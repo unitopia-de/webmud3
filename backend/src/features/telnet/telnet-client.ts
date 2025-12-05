@@ -148,6 +148,13 @@ export class TelnetClient extends EventEmitter<TelnetClientEvents> {
 
     this.telnetSocket.on('close', (hadErrors) => this.handleClose(hadErrors));
 
+    this.telnetSocket.on('error', (error: Error) => {
+      logger.error(
+        `[${this.socketId}] [Telnet-Client] Socket error (will close connection): ${error.message}`,
+        { error },
+      );
+    });
+
     this.telnetSocket.on('do', (option) => this.handleDo(option));
 
     this.telnetSocket.on('dont', (option) => this.handleDont(option));
@@ -585,6 +592,9 @@ function createTelnetConnection(
       port: telnetPort,
     });
   }
+
+  // Keep-alive helps avoid idle disconnects on intermediate proxies/LBs
+  socket.setKeepAlive(true, 60_000);
 
   return socket;
 }
