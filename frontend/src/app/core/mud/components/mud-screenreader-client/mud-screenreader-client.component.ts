@@ -26,6 +26,9 @@ import { MudService } from '../../services/mud.service';
 export class MudScreenreaderClientComponent
   implements AfterViewInit, OnDestroy
 {
+  private bootstrapDone = false;
+  private bootstrapBuffer = '';
+
   private readonly mudService = inject(MudService);
 
   private readonly terminal = new Terminal({
@@ -47,6 +50,7 @@ export class MudScreenreaderClientComponent
 
   ngAfterViewInit(): void {
     this.terminal.open(this.terminalRef.nativeElement);
+    this.setLiveRegion('off');
     this.terminal.loadAddon(this.fitAddon);
     this.fitAddon.fit();
     this.resizeObs.observe(this.terminalRef.nativeElement);
@@ -164,6 +168,56 @@ export class MudScreenreaderClientComponent
   private handleMudData(data: string): void {
     this.logRawMudOutput(data);
 
+    // --- Bootstrap: bis zum ersten Clear nichts ansagen (und optional nichts rendern) ---
+    if (!this.bootstrapDone) {
+      this.bootstrapBuffer += data;
+
+      const hasClear =
+        this.bootstrapBuffer.includes('\x1b[H\x1b[J') ||
+        this.bootstrapBuffer.includes('\x1b[2J') ||
+        // oft kommt H und J getrennt / mit Parametern, grob abfangen:
+        (this.bootstrapBuffer.includes('\x1b[') &&
+          (this.bootstrapBuffer.includes('[2J') ||
+            this.bootstrapBuffer.includes('[J')));
+
+      if (!hasClear) {
+        // WICHTIG: solange off, damit NVDA nicht den Bootstrap-Müll ansagt
+        return;
+      }
+
+      // Ab hier: wir betrachten das als "ab jetzt echter Screen"
+      this.bootstrapDone = true;
+
+      // Alles vor dem letzten Clear wegwerfen (damit HTTP/Location nicht im DOM landet)
+      const lastHj = this.bootstrapBuffer.lastIndexOf('\x1b[H\x1b[J');
+      const last2j = this.bootstrapBuffer.lastIndexOf('\x1b[2J');
+      const cut = Math.max(lastHj, last2j);
+
+      const afterClear =
+        cut >= 0 ? this.bootstrapBuffer.slice(cut) : this.bootstrapBuffer;
+
+      this.bootstrapBuffer = '';
+
+      // Live-Region jetzt an, aber polite (nicht assertive)
+      this.setLiveRegion('polite');
+
+      this.terminal.write(afterClear);
+      return;
+    }
+
+    // --- Normalbetrieb ---
     this.terminal.write(data);
+  }
+
+  private getLiveRegionEl(): HTMLElement | null {
+    return this.terminalRef.nativeElement.querySelector(
+      '.xterm-accessibility .live-region',
+    ) as HTMLElement | null;
+  }
+
+  private setLiveRegion(mode: 'off' | 'polite' | 'assertive'): void {
+    const el = this.getLiveRegionEl();
+    if (!el) return;
+    el.setAttribute('aria-live', mode);
   }
 }
