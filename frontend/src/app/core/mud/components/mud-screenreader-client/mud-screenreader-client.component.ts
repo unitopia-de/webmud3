@@ -52,7 +52,7 @@ export class MudScreenreaderClientComponent
     this.resizeObs.observe(this.terminalRef.nativeElement);
 
     this.mudOutputSubscription = this.mudService.mudOutput$.subscribe(
-      ({ data }) => this.terminal.write(data),
+      ({ data }) => this.handleMudData(data),
     );
 
     this.terminal.focus();
@@ -141,5 +141,29 @@ export class MudScreenreaderClientComponent
     const rows = this.terminal.rows;
 
     this.mudService.connect({ columns, rows });
+  }
+
+  /**
+   * Logs raw MUD output without letting ANSI sequences affect the console.
+   * Control chars are shown as escaped hex codes so they stay visible.
+   */
+  private logRawMudOutput(data: string): void {
+    const visible = data.replace(/[\x00-\x1f\x7f-\x9f]/g, (char) => {
+      if (char === '\x1b') return '\\x1b';
+      if (char === '\r') return '\\r';
+      if (char === '\n') return '\\n';
+      if (char === '\t') return '\\t';
+      const code = char.charCodeAt(0).toString(16).padStart(2, '0');
+      return `\\x${code}`;
+    });
+
+    // Keep raw payload visible in browser devtools without ANSI formatting.
+    console.log('[mud raw]', visible);
+  }
+
+  private handleMudData(data: string): void {
+    this.logRawMudOutput(data);
+
+    this.terminal.write(data);
   }
 }

@@ -1,5 +1,5 @@
 {
-  "$schema": "./node_modules/@angular/cli/lib/config/schema.json",
+  "$schema": "./../node_modules/@angular/cli/lib/config/schema.json",
   "version": 1,
   "newProjectRoot": "projects",
   "projects": {
@@ -19,7 +19,12 @@
               "socket.io-client"
             ],
             "optimization": false,
-            "sourceMap": true,
+            "sourceMap": {
+              "scripts":  true,
+              "sourcesContent": true,
+              "styles": true,
+              "vendor": true
+            },
             "namedChunks": true,
             "extractLicenses": false,
             "budgets": [
