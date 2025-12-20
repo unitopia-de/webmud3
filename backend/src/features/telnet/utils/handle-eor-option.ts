@@ -6,9 +6,9 @@ import { TelnetOptionHandler } from '../types/telnet-option-handler.js';
 import { TelnetOptionResult } from '../types/telnet-option-result.js';
 
 const handleEorDo = (socket: TelnetSocket) => (): TelnetOptionResult => {
-  socket.writeWill(TelnetOptions.TELOPT_EOR);
+  socket.writeWont(TelnetOptions.TELOPT_EOR);
 
-  return { controlSequence: TelnetControlSequences.WILL };
+  return { controlSequence: TelnetControlSequences.WONT };
 };
 
 const handleEorDont = (socket: TelnetSocket) => (): TelnetOptionResult => {
@@ -18,9 +18,9 @@ const handleEorDont = (socket: TelnetSocket) => (): TelnetOptionResult => {
 };
 
 const handleEorWill = (socket: TelnetSocket) => (): TelnetOptionResult => {
-  socket.writeDo(TelnetOptions.TELOPT_EOR);
+  socket.writeDont(TelnetOptions.TELOPT_EOR);
 
-  return { controlSequence: TelnetControlSequences.DO };
+  return { controlSequence: TelnetControlSequences.DONT };
 };
 
 const handleEorWont = (socket: TelnetSocket) => (): TelnetOptionResult => {

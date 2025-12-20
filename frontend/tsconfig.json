@@ -6,29 +6,53 @@
     "outDir": "./dist/out-tsc",
     "sourceMap": true,
     "declaration": false,
-    "downlevelIteration": true,
+    "esModuleInterop": true,
     "experimentalDecorators": true,
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "importHelpers": true,
     "target": "ES2022",
     "module": "es2020",
-    "lib": ["es2018", "dom"],
+    "lib": [
+      "es2018",
+      "dom"
+    ],
     "useDefineForClassFields": false,
     "strict": true,
     "resolveJsonModule": true,
-    "allowSyntheticDefaultImports": true,
     "paths": {
-      "@mudlet3/frontend/core": ["src/app/core"],
-      "@mudlet3/frontend/shared": ["src/app/shared"],
-      "@mudlet3/frontend/features/ansi": ["src/app/features/ansi"],
-      "@mudlet3/frontend/features/config": ["src/app/features/config"],
-      "@mudlet3/frontend/features/files": ["src/app/features/files"],
-      "@mudlet3/frontend/features/gmcp": ["src/app/features/gmcp"],
-      "@mudlet3/frontend/features/modeless": ["src/app/features/modeless"],
-      "@mudlet3/frontend/features/mudconfig": ["src/app/features/mudconfig"],
-      "@mudlet3/frontend/features/settings": ["src/app/features/settings"],
-      "@mudlet3/frontend/features/sockets": ["src/app/features/sockets"],
-      "@mudlet3/frontend/features/widgets": ["src/app/features/widgets"]
+      "@mudlet3/frontend/core": [
+        "src/app/core"
+      ],
+      "@mudlet3/frontend/shared": [
+        "src/app/shared"
+      ],
+      "@mudlet3/frontend/features/ansi": [
+        "src/app/features/ansi"
+      ],
+      "@mudlet3/frontend/features/config": [
+        "src/app/features/config"
+      ],
+      "@mudlet3/frontend/features/files": [
+        "src/app/features/files"
+      ],
+      "@mudlet3/frontend/features/gmcp": [
+        "src/app/features/gmcp"
+      ],
+      "@mudlet3/frontend/features/modeless": [
+        "src/app/features/modeless"
+      ],
+      "@mudlet3/frontend/features/mudconfig": [
+        "src/app/features/mudconfig"
+      ],
+      "@mudlet3/frontend/features/settings": [
+        "src/app/features/settings"
+      ],
+      "@mudlet3/frontend/features/sockets": [
+        "src/app/features/sockets"
+      ],
+      "@mudlet3/frontend/features/widgets": [
+        "src/app/features/widgets"
+      ]
     }
   },
   "angularCompilerOptions": {

@@ -1,16 +1,20 @@
 /* You can add global styles to this file, and also import other style files */
-@import "~normalize.css";
+@import "normalize.css";
+
+@import "@xterm/xterm/css/xterm.css";
 
 html,
 body {
   height: 100%;
   width: 100%;
-  font-size: 16px;
+}
+
+body {
+  display: flex;
+  flex-direction: column;
 }
 
 app-root {
-  height: 100%;
-  width: 100%;
-  display: flex;
-  flex-direction: column;
+  flex: 1 1 0;
+  min-height: 0;
 }

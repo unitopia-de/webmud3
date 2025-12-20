@@ -24,26 +24,26 @@ export const useRoutes = (app: Express) => {
     );
   });
 
-  app.get('/ace/*', (req: Request, res: Response) => {
-    const ip =
-      req.headers['x-forwarded-for'] ||
-      req.connection.remoteAddress ||
-      req.socket.remoteAddress ||
-      (req.socket ? req.socket.remoteAddress : null);
+  // app.get('/ace/*', (req: Request, res: Response) => {
+  //   const ip =
+  //     req.headers['x-forwarded-for'] ||
+  //     req.connection.remoteAddress ||
+  //     req.socket.remoteAddress ||
+  //     (req.socket ? req.socket.remoteAddress : null);
 
-    const mypath = req.path.substr(5);
+  //   const mypath = req.path.substr(5);
 
-    logger.debug('ACE Path:', { real_ip: ip, path: mypath });
+  //   logger.debug('ACE Path:', { real_ip: ip, path: mypath });
 
-    res.sendFile(
-      path.join(
-        __dirname,
-        'node_modules/ace-builds/src-min-noconflict/' + mypath,
-      ),
-    );
-  });
+  //   res.sendFile(
+  //     path.join(
+  //       __dirname,
+  //       'node_modules/ace-builds/src-min-noconflict/' + mypath,
+  //     ),
+  //   );
+  // });
 
-  app.get('*', (req: Request, res: Response) => {
+  app.get('/*path', (req: Request, res: Response) => {
     logger.info(`[Routes] requested * - delivering index.html`);
 
     res.sendFile(
