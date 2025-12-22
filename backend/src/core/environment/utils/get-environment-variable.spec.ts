@@ -1,5 +1,5 @@
-import { EnvironmentKeys } from '../types/environment-keys';
-import { getEnvironmentVariable } from './get-environment-variable';
+import { EnvironmentKeys } from '../types/environment-keys.js';
+import { getEnvironmentVariable } from './get-environment-variable.js';
 
 describe('getEnvironmentVariable', () => {
   const ENV_KEY = 'TEST_ENV_KEY' as EnvironmentKeys;

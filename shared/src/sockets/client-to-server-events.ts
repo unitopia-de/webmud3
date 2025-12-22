@@ -1,0 +1,21 @@
+/**
+ * Socket.IO events the frontend client can emit to the backend.
+ */
+export interface ClientToServerEvents {
+  /**
+   * Requests a telnet connection using the provided initial viewport size.
+   */
+  mudConnect: (initialViewPort: { columns: number; rows: number }) => void;
+  /**
+   * Requests that the server tears down the active telnet connection.
+   */
+  mudDisconnect: () => void;
+  /**
+   * Sends user input to the MUD server.
+   */
+  mudInput: (data: string) => void;
+  /**
+   * Updates the server with the client's current terminal dimensions.
+   */
+  mudViewportSize: (columns: number, rows: number) => void;
+}

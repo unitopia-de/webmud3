@@ -2,10 +2,13 @@
   "name": "@webmud3/frontend",
   "version": "1.0.0-alpha",
   "description": "Webmud3 Frontend",
+  "license": "MIT",
+  "authors": ["Myonara", "Felag"],
   "engines": {
     "node": "~22.20.0"
   },
   "scripts": {
+    "prebuild": "npm run build --workspace @webmud3/shared",
     "build": "ng build",
     "build:prod": "ng build --configuration=production",
     "clean:dist": "npx rimraf dist",
@@ -20,6 +23,7 @@
   },
   "private": true,
   "dependencies": {
+    "@webmud3/shared": "1.0.0-alpha",
     "@angular-eslint/schematics": "~20.3.0",
     "@angular/animations": "~20.3.4",
     "@angular/common": "~20.3.4",

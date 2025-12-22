@@ -11,6 +11,10 @@ module.exports = {
         diagnostics: {
           ignoreCodes: [1343],
         },
+        // We use jest in old-school CommonJS mode, so we need to tell ts-jest to
+        // compile to CommonJS as well, otherwise we get errors about Jest not
+        // being able to handle ES modules.
+        tsconfig: "tsconfig.jest.json",
         astTransformers: {
           before: [
             {
@@ -30,6 +34,7 @@ module.exports = {
   testEnvironment: "node",
   // Notwendig, damit die Dateiendung .js nicht an den Dateinamen angehängt wird
   moduleNameMapper: {
-    "^(.+).js$": "$1",
+    "^(.+)\\.js$": "$1"
   },
+
 };

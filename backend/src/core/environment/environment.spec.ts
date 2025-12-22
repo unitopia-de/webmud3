@@ -19,7 +19,7 @@ describe('Environment', () => {
 
   const getFreshEnvironmentInstance = async () => {
     // Dynamically import the Environment class to ensure a fresh instance
-    const { Environment } = await import('./environment');
+    const { Environment } = await import('./environment.js');
 
     return Environment.getInstance();
   };
@@ -33,7 +33,7 @@ describe('Environment', () => {
 
     const env = await getFreshEnvironmentInstance();
 
-    const { Environment } = await import('./environment');
+    const { Environment } = await import('./environment.js');
 
     expect(env).toBeInstanceOf(Environment);
   });

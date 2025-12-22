@@ -1,3 +1,8 @@
+import type {
+  ClientToServerEvents,
+  LinemodeState,
+  ServerToClientEvents,
+} from '@webmud3/shared';
 import { Server as HttpServer } from 'http';
 import { Server as HttpsServer } from 'https';
 import { Server, Socket } from 'socket.io';
@@ -5,18 +10,15 @@ import { Server, Socket } from 'socket.io';
 import { TelnetOptions } from '../../features/telnet/models/telnet-options.js';
 import { TelnetClient } from '../../features/telnet/telnet-client.js';
 import { TelnetControlSequences } from '../../features/telnet/types/telnet-control-sequences.js';
+import { EchoState } from '../../features/telnet/utils/handle-echo-option.js';
 import { logger } from '../../shared/utils/logger.js';
 import { mapToServerEncodings } from '../../shared/utils/supported-encodings.js';
 import { Environment } from '../environment/environment.js';
-import { ClientToServerEvents } from './types/client-to-server-events.js';
-import { InterServerEvents } from './types/inter-server-events.js';
-import { MudConnections } from './types/mud-connections.js';
-import { ServerToClientEvents } from './types/server-to-client-events.js';
+import type { MudConnections } from './types/mud-connections.js';
 
 export class SocketManager extends Server<
   ClientToServerEvents,
-  ServerToClientEvents,
-  InterServerEvents
+  ServerToClientEvents
 > {
   public readonly mudConnections: MudConnections = {};
 
@@ -39,30 +41,34 @@ export class SocketManager extends Server<
     });
 
     this.on('connection', (socket) => {
-      logger.info(`[Socket-Manager] [Client] ${socket.id} connected`, {
+      logger.info(`[${socket.id}] [Socket-Manager] Client connected`, {
         socketId: socket.id,
       });
 
       this.handleClientConnection(socket);
 
       if (this.mudConnections[socket.id] !== undefined) {
-        logger.info(`[Socket-Manager] [Client] ${socket.id} was reconnecting`, {
+        logger.info(`[${socket.id}] [Socket-Manager] Client was reconnecting`, {
           socketId: socket.id,
         });
 
-        if (this.mudConnections[socket.id].telnet !== undefined) {
+        const existingTelnet = this.mudConnections[socket.id].telnet;
+
+        if (existingTelnet !== undefined) {
           logger.info(
-            `[Socket-Manager] [Client] ${socket.id} allready got an established telnet connection. Emitting 'mudConnected'`,
+            `[${socket.id}] [Socket-Manager] Client already got an established telnet connection. Emitting 'mudConnected'`,
             {
               socketId: socket.id,
             },
           );
 
           socket.emit('mudConnected');
+
+          this.emitCurrentOptionStates(existingTelnet, socket);
         }
 
         logger.info(
-          `[Socket-Manager] [Client] ${socket.id} resetting logout (statue in mud) timer`,
+          `[${socket.id}] [Socket-Manager] Client resetting logout (statue in mud) timer`,
           {
             socketId: socket.id,
           },
@@ -78,48 +84,51 @@ export class SocketManager extends Server<
   }
 
   private handleClientConnection(
-    socket: Socket<
-      ClientToServerEvents,
-      ServerToClientEvents,
-      InterServerEvents
-    >,
+    socket: Socket<ClientToServerEvents, ServerToClientEvents>,
   ) {
+    if (this.mudConnections[socket.id] === undefined) {
+      this.mudConnections[socket.id] = {
+        telnet: undefined,
+        connectionTimer: undefined,
+      };
+    }
+
     socket.on('error', (error: Error) => {
-      logger.error(`[Socket-Manager] [Client] ${socket.id} error`, {
+      logger.error(`[${socket.id}] [Socket-Manager] Client error`, {
         socketId: socket.id,
         error: error,
       });
     });
 
     socket.on('disconnect', (reason: string) => {
-      logger.info(`[Socket-Manager] [Client] ${socket.id} disconnect`, {
+      logger.info(`[${socket.id}] [Socket-Manager] Client disconnected`, {
         reason,
       });
 
       logger.info(
-        `[Socket-Manager] [Client] ${socket.id} starting timer to close telnet connection in ${Environment.getInstance().socketTimeout}ms`,
+        `[${socket.id}] [Socket-Manager] Client starting timer to close telnet connection in ${Environment.getInstance().socketTimeout}ms`,
         {
           socketId: socket.id,
         },
       );
 
-      this.mudConnections[socket.id].connectionTimer = setTimeout(() => {
+      const connection = this.mudConnections[socket.id];
+
+      if (connection === undefined) {
+        return;
+      }
+
+      connection.connectionTimer = setTimeout(() => {
         this.closeTelnetConnections(socket.id);
       }, Environment.getInstance().socketTimeout);
     });
 
     socket.on('mudInput', (data: string) => {
-      const inputEcho = this.mudConnections[socket.id].echo;
-
-      logger.info(`[Socket-Manager] [Client] ${socket.id} mudInput`, {
-        input: inputEcho ? data : '**OBSFUSCATED**',
-      });
-
       const telnetClient = this.mudConnections[socket.id].telnet;
 
       if (telnetClient === undefined || telnetClient.isConnected === false) {
         logger.error(
-          `[Socket-Manager] [Client] ${socket.id} no telnet connection established - can not send message to mud!`,
+          `[${socket.id}] [Socket-Manager] Client has no telnet connection established - can not send message to mud!`,
           {
             socketId: socket.id,
           },
@@ -128,25 +137,92 @@ export class SocketManager extends Server<
         return;
       }
 
-      telnetClient.sendMessage(`${data}\r\n`);
+      const echoState = telnetClient.getOptionState<EchoState>(
+        TelnetOptions.TELOPT_ECHO,
+      );
+
+      const shouldEchoLocally = echoState?.localEchoEnabled ?? true;
+
+      logger.info(`[${socket.id}] [Socket-Manager] Client input received`, {
+        input: shouldEchoLocally ? data : '**OBSFUSCATED**',
+      });
+
+      const linemode = telnetClient.getOptionState<LinemodeState>(
+        TelnetOptions.TELOPT_LINEMODE,
+      );
+
+      // In linemode with edit disabled, we send the data as-is (user pressed enter already)
+      // In all other modes, we append a carriage return to simulate the enter key
+      if (linemode !== undefined && linemode.edit === false) {
+        telnetClient.sendMessage(data);
+      } else {
+        telnetClient.sendMessage(`${data}\r`);
+      }
     });
 
-    socket.on('mudConnect', () => {
-      logger.info(`[Socket-Manager] [Client] ${socket.id} mudConnect`);
+    socket.on('mudViewportSize', (columns: number, rows: number) => {
+      const connection = this.mudConnections[socket.id];
 
-      const telnetClient = this.mudConnections[socket.id]?.telnet;
+      if (connection === undefined) {
+        return;
+      }
 
-      if (telnetClient === undefined || telnetClient.isConnected === false) {
+      if (connection.telnet !== undefined) {
+        connection.telnet.updateViewportSize(columns, rows);
+      }
+    });
+
+    socket.on(
+      'mudConnect',
+      (initialViewPort: { columns: number; rows: number }) => {
         logger.info(
-          `[Socket-Manager] [Client] ${socket.id} had no active telnet connection .. creating new one..`,
+          `[${socket.id}] [Socket-Manager] Client want to connect to mud`,
+        );
+
+        const existingClient = this.mudConnections[socket.id]?.telnet;
+
+        if (existingClient !== undefined && existingClient.isConnected) {
+          logger.info(
+            `[${socket.id}] [Socket-Manager] Client is reusing existing telnet connection. Emitting 'mudConnected'`,
+          );
+
+          existingClient.updateViewportSize(
+            initialViewPort.columns,
+            initialViewPort.rows,
+          );
+
+          socket.emit('mudConnected');
+
+          this.emitCurrentOptionStates(existingClient, socket);
+
+          return;
+        }
+
+        logger.info(
+          `[${socket.id}] [Socket-Manager] Client had no active telnet connection .. creating new one..`,
         );
 
         const telnetClient = new TelnetClient(
+          socket.id,
           this.managerOptions.telnetHost,
           this.managerOptions.telnetPort,
           this.managerOptions.useTelnetTls,
           this.managerOptions.clientName,
+          {
+            initialViewPort,
+          },
         );
+
+        const previousConnection = this.mudConnections[socket.id];
+
+        if (previousConnection?.connectionTimer !== undefined) {
+          clearTimeout(previousConnection.connectionTimer);
+        }
+
+        this.mudConnections[socket.id] = {
+          telnet: telnetClient,
+          connectionTimer: undefined,
+        };
 
         telnetClient.on('data', (data: string | Buffer) => {
           const mudCharset =
@@ -156,7 +232,7 @@ export class SocketManager extends Server<
 
           if (mudCharset === undefined) {
             logger.warn(
-              '[Socket-Manager] [Client] no charset negotiated before sending data. Default to utf-8',
+              `[${socket.id}] [Socket-Manager] Client has no charset negotiated before sending data. Default to utf-8`,
             );
 
             socket.emit('mudOutput', data.toString('utf-8'));
@@ -173,7 +249,7 @@ export class SocketManager extends Server<
           }
 
           logger.warn(
-            `[Socket-Manager] [Client] unknown charset ${mudCharset}. Default to utf-8`,
+            `[Socket-Manager] [Client] ${socket.id} unknown charset ${mudCharset}. Default to utf-8`,
           );
 
           socket.emit('mudOutput', data.toString('utf-8'));
@@ -181,7 +257,7 @@ export class SocketManager extends Server<
 
         telnetClient.on('close', () => {
           logger.info(
-            `[Socket-Manager] [Client] ${socket.id} telnet connection closed. Emitting 'mudDisconnected'`,
+            `[${socket.id}] [Socket-Manager] Client telnet connection closed. Emitting 'mudDisconnected'`,
           );
 
           this.mudConnections[socket.id].telnet = undefined;
@@ -190,56 +266,69 @@ export class SocketManager extends Server<
         });
 
         telnetClient.on('negotiationChanged', (negotiation) => {
-          logger.verbose(
-            `[Socket-Manager] [Client] ${socket.id} telnet negotiation changed. Emitting 'negotiationChanged'`,
-            negotiation,
-          );
+          if (
+            negotiation.option === TelnetOptions.TELOPT_TM &&
+            negotiation.server === TelnetControlSequences.DO
+          ) {
+            socket.emit('requestTimingMark', () => {
+              this.mudConnections[socket.id].telnet?.sendTimingMark();
+            });
+          }
+        });
 
-          switch (negotiation.option) {
+        telnetClient.on('negotiationStateChanged', ({ option, state }) => {
+          switch (option) {
             case TelnetOptions.TELOPT_ECHO: {
-              if (negotiation.server === TelnetControlSequences.WILL) {
-                this.mudConnections[socket.id].echo = false;
+              const echoState = state as EchoState;
 
-                socket.emit('setEchoMode', false);
-              }
+              logger.verbose(
+                `[${socket.id}] [Socket-Manager] Telnet Option Echo has changed. Emitting 'setEchoMode'`,
+                {
+                  name: TelnetOptions[TelnetOptions.TELOPT_ECHO],
+                  state: state,
+                },
+              );
 
-              if (negotiation.server === TelnetControlSequences.WONT) {
-                this.mudConnections[socket.id].echo = true;
-
-                socket.emit('setEchoMode', true);
-              }
+              socket.emit('setEchoMode', echoState.localEchoEnabled);
 
               break;
             }
 
-            case TelnetOptions.TELOPT_TM: {
-              if (negotiation.server === TelnetControlSequences.DO) {
-                socket.emit('requestTimingMark', () => {
-                  this.mudConnections[socket.id].telnet?.sendTimingMark();
-                });
-              }
+            case TelnetOptions.TELOPT_LINEMODE: {
+              const linemodeState = state as LinemodeState;
+
+              logger.verbose(
+                `[${socket.id}] [Socket-Manager] Telnet Option Linemode has changed. Emitting 'setLinemode'`,
+                {
+                  name: TelnetOptions[TelnetOptions.TELOPT_LINEMODE],
+                  state: state,
+                },
+              );
+
+              socket.emit('setLinemode', linemodeState);
+
+              break;
             }
+
+            default:
+              break;
           }
         });
 
-        this.mudConnections[socket.id] = {
-          telnet: telnetClient,
-          connectionTimer: undefined,
-          echo: true,
-        };
-
         logger.info(
-          `[Socket-Manager] [Client] ${socket.id} .. telnet connection established. Emitting 'mudConnected'`,
+          `[${socket.id}] [Socket-Manager] Client .. telnet connection established. Emitting 'mudConnected'`,
         );
 
         socket.emit('mudConnected');
 
-        return;
-      }
-    });
+        this.emitCurrentOptionStates(telnetClient, socket);
+      },
+    );
 
     socket.on('mudDisconnect', () => {
-      logger.info(`[Socket-Manager] [Client] ${socket.id} mudDisconnect`);
+      logger.info(
+        `[${socket.id}] [Socket-Manager] Client disconnecting from mud`,
+      );
 
       this.closeTelnetConnections(socket.id);
     });
@@ -251,7 +340,35 @@ export class SocketManager extends Server<
     if (telnetClient !== undefined && telnetClient.isConnected) {
       telnetClient.disconnect();
 
+      if (this.mudConnections[socketId].connectionTimer !== undefined) {
+        clearTimeout(this.mudConnections[socketId].connectionTimer);
+
+        this.mudConnections[socketId].connectionTimer = undefined;
+      }
+
       this.mudConnections[socketId].telnet = undefined;
+    }
+  }
+
+  // Todo: Hier wird immer alles doppelt gesendet, auch wenn sich nichts geändert hat. Besser direkt beim State-Change emittieren
+  private emitCurrentOptionStates(
+    telnetClient: TelnetClient,
+    socket: Socket<ClientToServerEvents, ServerToClientEvents>,
+  ): void {
+    const echoState = telnetClient.getOptionState<EchoState>(
+      TelnetOptions.TELOPT_ECHO,
+    );
+
+    if (echoState !== undefined) {
+      socket.emit('setEchoMode', echoState.localEchoEnabled);
+    }
+
+    const linemodeState = telnetClient.getOptionState<LinemodeState>(
+      TelnetOptions.TELOPT_LINEMODE,
+    );
+
+    if (linemodeState !== undefined) {
+      socket.emit('setLinemode', linemodeState);
     }
   }
 }

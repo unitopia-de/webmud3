@@ -3,9 +3,14 @@ import { BehaviorSubject } from 'rxjs';
 import { Manager, Socket } from 'socket.io-client';
 
 import { ServerConfigService } from '../../features/serverconfig/server-config.service';
-import { ClientToServerEvents } from './types/client-to-server-events';
-import { ServerToClientEvents } from './types/server-to-client-events';
-import { isSecureString, SecureString } from '@mudlet3/frontend/shared';
+import { SecureString } from '@webmud3/frontend/shared/types/secure-string';
+import { isSecureString } from '@webmud3/frontend/shared/utils/is-secure-string';
+
+import type {
+  ClientToServerEvents,
+  ServerToClientEvents,
+  LinemodeState,
+} from '@webmud3/shared';
 
 type MudOutputEventArgs = {
   data: string;
@@ -24,6 +29,7 @@ export class SocketsService {
   public onMudDisconnect = new EventEmitter();
   public onMudOutput = new EventEmitter<MudOutputEventArgs>();
   public onSetEchoMode = new EventEmitter<boolean>();
+  public onSetLinemode = new EventEmitter<LinemodeState>();
 
   public readonly connectedToServer$ = this.connectedToServer.asObservable();
   public readonly connectedToMud$ = this.connectedToMud.asObservable();
@@ -98,14 +104,21 @@ export class SocketsService {
       this.handleSetEchoMode(showEchos);
     });
 
+    this.socket.on('setLinemode', (state: LinemodeState) => {
+      this.handleSetLinemode(state);
+    });
+
     this.socket.on('requestTimingMark', (callback: () => void) => {
       this.handleTimingMark(callback);
     });
   }
 
-  public connectToMud(): void {
+  public connectToMud(initialViewPort: {
+    columns: number;
+    rows: number;
+  }): void {
     console.log(`[Sockets] Sockets-Service: 'connectToMud'`);
-    this.socket.emit('mudConnect');
+    this.socket.emit('mudConnect', initialViewPort);
   }
 
   public disconnectFromMud() {
@@ -120,6 +133,15 @@ export class SocketsService {
     } else {
       this.socket.emit('mudInput', message.value);
     }
+  }
+
+  public updateViewportSize(columns: number, rows: number): void {
+    console.log(`[Sockets] Sockets-Service: 'mudViewportSize'`, {
+      columns,
+      rows,
+    });
+
+    this.socket.emit('mudViewportSize', columns, rows);
   }
 
   public sendGmcp(/*id: string, mod: string, msg: string, data: any*/): boolean {
@@ -197,6 +219,12 @@ export class SocketsService {
     console.info('[Sockets] Sockets-Service: Socket Set Echo Mode:', showEchos);
 
     this.onSetEchoMode.emit(showEchos);
+  };
+
+  private handleSetLinemode = (state: LinemodeState) => {
+    console.info('[Sockets] Sockets-Service: Socket Set Linemode:', state);
+
+    this.onSetLinemode.emit(state);
   };
 
   private handleTimingMark = (callback: () => void) => {
