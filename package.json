@@ -10,14 +10,14 @@
     "build": "npm run build --workspace shared && npm run build --workspace frontend && npm run build --workspace backend",
     "build:prod": "npm run build --workspace shared && npm run build:prod --workspace frontend && npm run build --workspace backend && npm run postbuild",
     "clean": "npm run clean:dist && npm run clean:packages",
-    "clean:dist": "npm run clean:dist --workspaces",
-    "clean:packages": "npm run clean:packages --workspaces && rimraf node_modules",
+    "clean:dist": "npm run clean:dist --workspaces --if-present",
+    "clean:packages": "npm run clean:packages --workspaces --if-present && rimraf node_modules",
     "integrate-client": "npx cpy \"frontend/dist/frontend/browser/**\" backend/dist/wwwroot --recursive",
     "postbuild": "npm run integrate-client",
     "start": "npm run build && npm run serve --workspace backend",
     "start:prod": "npm run build:prod && npm run serve --workspace backend",
-    "test": "npm run test --workspaces",
-    "lint": "npm run lint --workspaces"
+    "test": "npm run test --workspaces --if-present",
+    "lint": "npm run lint --workspaces --if-present"
   },
   "devDependencies": {
     "cpy-cli": "~6.0.0"
