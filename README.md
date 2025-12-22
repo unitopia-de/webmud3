@@ -20,6 +20,10 @@ Please note: most of these features have been tested against [UNItopia](https://
 - ANSI support
 
   The received text is displayed with ANSI color codes, providing a colorful and user-friendly representation in the frontend.
+  Screen altering commands like Clear Screen are also supported
+
+  The client applies a web-optimized ANSI color palette compliant with WCAG AAA.  
+  Low-contrast foreground/background combinations are detected and corrected automatically to maintain readability.
 
   There is [work in progress](https://github.com/unitopia-de/webmud3/milestone/11).
 
@@ -41,7 +45,11 @@ We are currently working on the following features:
 
 - GMCP Support
 
-  _Not planned yet_
+  [Milestone](https://github.com/unitopia-de/webmud3/milestone/17)
+
+- Screenreader Support
+
+  [Milestone](https://github.com/unitopia-de/webmud3/milestone/15)
 
 ## Deployments
 
