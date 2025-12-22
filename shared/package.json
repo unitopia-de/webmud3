@@ -1,0 +1,36 @@
+{
+  "name": "@webmud3/shared",
+  "private": true,
+  "version": "1.0.0-alpha",
+  "description": "Shared types and utilities for webmud3",
+  "type": "module",
+  "authors": ["Myonara", "Felag"],
+  "license": "MIT",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/unitopia-de/webmud3.git"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "prebuild": "npm run clean:dist",
+    "build": "tsc -p tsconfig.json",
+    "clean": "npm run clean:dist && npm run clean:packages",
+    "clean:dist": "rimraf dist",
+    "clean:packages": "npx rimraf node_modules"
+  },
+  "devDependencies": {
+    "rimraf": "~6.0.1",
+    "typescript": "~5.9.3"
+  }
+}

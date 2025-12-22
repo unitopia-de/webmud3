@@ -29,7 +29,7 @@ export class Environment implements IEnvironment {
    * Initializes the environment variables.
    */
   private constructor() {
-    configureEnvironment();
+    configureEnvironment({ quiet: true });
 
     this.host = String(getEnvironmentVariable('HOST', false, '0.0.0.0'));
 
@@ -68,10 +68,7 @@ export class Environment implements IEnvironment {
 
     this.name = String(getEnvironmentVariable('NAME', false, 'webmud3b'));
 
-    const corsAllowList = getEnvironmentVariable(
-      'CORS_ALLOWED_ORIGINS',
-      false,
-    );
+    const corsAllowList = getEnvironmentVariable('CORS_ALLOWED_ORIGINS', false);
 
     this.corsAllowList =
       corsAllowList === null

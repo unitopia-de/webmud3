@@ -1,16 +1,14 @@
 {
   "name": "webmud3",
+  "private": true,
   "version": "1.0.0-alpha",
   "engines": {
     "node": "~22.20.0"
   },
-  "workspaces": [
-    "frontend",
-    "backend"
-  ],
+  "workspaces": ["frontend", "backend", "shared"],
   "scripts": {
-    "build": "npm run build --workspaces",
-    "build:prod": "npm run build:prod --workspace frontend && npm run build --workspace backend && npm run postbuild",
+    "build": "npm run build --workspace shared && npm run build --workspace frontend && npm run build --workspace backend",
+    "build:prod": "npm run build --workspace shared && npm run build:prod --workspace frontend && npm run build --workspace backend && npm run postbuild",
     "clean": "npm run clean:dist && npm run clean:packages",
     "clean:dist": "npm run clean:dist --workspaces",
     "clean:packages": "npm run clean:packages --workspaces && rimraf node_modules",

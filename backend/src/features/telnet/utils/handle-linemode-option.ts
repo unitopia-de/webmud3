@@ -1,3 +1,4 @@
+import type { LinemodeState } from '@webmud3/shared';
 import EventEmitter from 'events';
 import { TelnetSocket } from 'telnet-stream';
 
@@ -6,16 +7,6 @@ import { TelnetControlSequences } from '../types/telnet-control-sequences.js';
 import { TelnetOptionHandler } from '../types/telnet-option-handler.js';
 import { TelnetOptionResult } from '../types/telnet-option-result.js';
 import { TelnetSubnegotiationResult } from '../types/telnet-subnegotiation-result.js';
-
-export type LinemodeState = {
-  mode: number;
-  edit: boolean;
-  trapsig: boolean;
-  softTab: boolean;
-  literalEcho: boolean;
-  forwardMask: number[];
-  forwardMaskDescription: string;
-};
 
 enum SubnegotiationCommand {
   MODE = 1,

@@ -12,9 +12,9 @@ import { FitAddon } from '@xterm/addon-fit';
 import { IDisposable, Terminal } from '@xterm/xterm';
 import { Subscription } from 'rxjs';
 
-import { LinemodeState } from '@mudlet3/frontend/features/sockets';
 import { MudService } from '../../services/mud.service';
-import { SecureString } from '@mudlet3/frontend/shared';
+import { SecureString } from '@webmud3/frontend/shared/types/secure-string';
+import type { LinemodeState } from '@webmud3/shared';
 
 type SocketListener = EventListener;
 type MudSocketAdapterHooks = {
@@ -107,14 +107,11 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
 
   private readonly terminal: Terminal;
   private readonly terminalFitAddon = new FitAddon();
-  private readonly socketAdapter = new MudSocketAdapter(
-    this.mudService,
-    {
-      transformMessage: (data) => this.transformMudOutput(data),
-      beforeMessage: (data) => this.beforeMudOutput(data),
-      afterMessage: (data) => this.afterMudOutput(data),
-    },
-  );
+  private readonly socketAdapter = new MudSocketAdapter(this.mudService, {
+    transformMessage: (data) => this.transformMudOutput(data),
+    beforeMessage: (data) => this.beforeMudOutput(data),
+    afterMessage: (data) => this.afterMudOutput(data),
+  });
   private readonly terminalAttachAddon = new AttachAddon(
     this.socketAdapter as unknown as WebSocket,
     { bidirectional: false },
@@ -404,7 +401,9 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
     this.terminal.write('\r\u001b[2K');
 
     const prefix =
-      this.serverLineBuffer.length > 0 ? this.serverLineBuffer : this.hiddenPrompt;
+      this.serverLineBuffer.length > 0
+        ? this.serverLineBuffer
+        : this.hiddenPrompt;
 
     if (prefix.length > 0) {
       this.terminal.write(prefix);

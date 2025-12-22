@@ -1,3 +1,8 @@
+import type {
+  ClientToServerEvents,
+  LinemodeState,
+  ServerToClientEvents,
+} from '@webmud3/shared';
 import { Server as HttpServer } from 'http';
 import { Server as HttpsServer } from 'https';
 import { Server, Socket } from 'socket.io';
@@ -6,13 +11,10 @@ import { TelnetOptions } from '../../features/telnet/models/telnet-options.js';
 import { TelnetClient } from '../../features/telnet/telnet-client.js';
 import { TelnetControlSequences } from '../../features/telnet/types/telnet-control-sequences.js';
 import { EchoState } from '../../features/telnet/utils/handle-echo-option.js';
-import { LinemodeState } from '../../features/telnet/utils/handle-linemode-option.js';
 import { logger } from '../../shared/utils/logger.js';
 import { mapToServerEncodings } from '../../shared/utils/supported-encodings.js';
 import { Environment } from '../environment/environment.js';
-import { ClientToServerEvents } from './types/client-to-server-events.js';
-import { MudConnections } from './types/mud-connections.js';
-import { ServerToClientEvents } from './types/server-to-client-events.js';
+import type { MudConnections } from './types/mud-connections.js';
 
 export class SocketManager extends Server<
   ClientToServerEvents,

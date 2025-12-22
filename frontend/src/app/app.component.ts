@@ -1,5 +1,5 @@
 import { Component } from '@angular/core';
-import { MudClientComponent } from './core/mud';
+import { MudClientComponent } from '@webmud3/frontend/core/mud/components/mud-client/mud-client.component';
 
 @Component({
   selector: 'app-root',

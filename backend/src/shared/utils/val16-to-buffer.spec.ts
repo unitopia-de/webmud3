@@ -1,4 +1,4 @@
-import { val16ToBuffer } from './val16-to-buffer';
+import { val16ToBuffer } from './val16-to-buffer.js';
 
 describe('val16ToBuffer', () => {
   it('should convert a number to two bytes and add to the array', () => {

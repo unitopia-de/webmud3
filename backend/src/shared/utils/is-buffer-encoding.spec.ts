@@ -1,4 +1,4 @@
-import { isBufferEncoding } from './is-buffer-encoding';
+import { isBufferEncoding } from './is-buffer-encoding.js';
 
 describe('isBufferEncoding', () => {
   // Test für gültige BufferEncodings

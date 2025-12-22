@@ -1,6 +1,6 @@
 import { inject, Injectable } from '@angular/core';
-import { SocketsService } from '@mudlet3/frontend/features/sockets';
-import { SecureString } from '@mudlet3/frontend/shared';
+import { SocketsService } from '@webmud3/frontend/features/sockets/sockets.service';
+import { SecureString } from '@webmud3/frontend/shared/types/secure-string';
 
 @Injectable({ providedIn: 'root' })
 export class MudService {
