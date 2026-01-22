@@ -1,6 +1,6 @@
 /**
  * Centralized ANSI/terminal control sequences & helpers.
- *
+ */
 
 /** ASCII / terminal control characters. */
 export const CTRL = {

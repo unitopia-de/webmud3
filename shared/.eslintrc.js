@@ -41,7 +41,7 @@ module.exports = {
     {
       files: ["*.ts"],
       parserOptions: {
-        project: ["./tsconfig.app.json"],
+        project: ["./tsconfig.json"],
         tsconfigRootDir: __dirname,
         sourceType: "module",
         ecmaVersion: "latest",
@@ -72,20 +72,6 @@ module.exports = {
         "import/first": "warn",
         "import/newline-after-import": "warn",
         "import/no-duplicates": "warn",
-      },
-    },
-    {
-      files: ["*.html"],
-      extends: [
-        "plugin:prettier/recommended",
-      ],
-      rules: {
-        "prettier/prettier": [
-          "error",
-          {
-            parser: "angular",
-          },
-        ],
       },
     },
   ],

@@ -78,19 +78,14 @@ export class MudSocketAdapter {
 
   /**
    * This is a no-op since input flows via terminal.onData. We need to implement this to satisfy
-   * the WebSocket interface, but since this adapter is output-only we just log a warning.
+   * the WebSocket interface, but since this adapter is output-only calls to send() are ignored.
    */
   public send(): void {
     if (this.readyState !== WebSocket.OPEN) {
       console.warn(
         'MudSocketAdapter.send(): adapter is closed; input is output-only',
       );
-      return;
     }
-
-    console.warn(
-      'MudSocketAdapter.send(): no-op (output-only adapter; input flows via terminal.onData)',
-    );
   }
 
   /**

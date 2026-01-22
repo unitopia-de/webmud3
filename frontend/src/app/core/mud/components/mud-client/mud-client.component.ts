@@ -16,12 +16,12 @@ import { MudService } from '../../services/mud.service';
 import { SecureString } from '@webmud3/frontend/shared/types/secure-string';
 import type { LinemodeState } from '@webmud3/shared';
 import {
-  CTRL,
   MudInputController,
   MudPromptManager,
+  MudScreenReaderAnnouncer,
   MudSocketAdapter,
   MudPromptContext,
-  MudScreenReaderAnnouncer,
+  CTRL,
 } from '../../../../features/terminal';
 
 /**
@@ -33,8 +33,6 @@ type MudClientState = {
   localEchoEnabled: boolean;
   terminalReady: boolean;
 };
-
-const DELETE_SEQUENCE = `${CTRL.ESC}[3~`;
 
 /**
  * Angular wrapper around the xterm-based MUD client.  The component hosts the terminal,
