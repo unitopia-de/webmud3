@@ -1,4 +1,4 @@
-import { sizeToBuffer } from './size-to-buffer';
+import { sizeToBuffer } from './size-to-buffer.js';
 
 describe('sizeToBuffer', () => {
   it('should convert width and height into a buffer of four bytes', () => {

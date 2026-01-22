@@ -1,8 +1,8 @@
 import { inject, Injectable } from '@angular/core';
-import { ServerConfiguration } from './types/server-config';
 import { firstValueFrom } from 'rxjs';
 import { environment } from 'src/environments/environment';
 import { HttpClient } from '@angular/common/http';
+import type { ServerConfig } from '@webmud3/shared';
 
 @Injectable({
   providedIn: 'root',
@@ -12,7 +12,7 @@ export class ServerConfigService {
 
   private readonly configUrl = this.buildBackendUrl('/api/config');
 
-  private serverConfiguration: ServerConfiguration | null = null;
+  private serverConfiguration: ServerConfig | null = null;
 
   /**
    * Loads the server configuration from the backend before the application bootstraps.
@@ -22,7 +22,7 @@ export class ServerConfigService {
    */
   async load(): Promise<void> {
     const configuration = await firstValueFrom(
-      this.httpClient.get<ServerConfiguration>(this.configUrl),
+      this.httpClient.get<ServerConfig>(this.configUrl),
     );
 
     this.serverConfiguration = configuration;

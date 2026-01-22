@@ -3,10 +3,14 @@ import { BehaviorSubject } from 'rxjs';
 import { Manager, Socket } from 'socket.io-client';
 
 import { ServerConfigService } from '../../features/serverconfig/server-config.service';
-import { ClientToServerEvents } from './types/client-to-server-events';
-import { ServerToClientEvents } from './types/server-to-client-events';
-import { LinemodeState } from './types/linemode-state';
-import { isSecureString, SecureString } from '@mudlet3/frontend/shared';
+import { SecureString } from '@webmud3/frontend/shared/types/secure-string';
+import { isSecureString } from '@webmud3/frontend/shared/utils/is-secure-string';
+
+import type {
+  ClientToServerEvents,
+  ServerToClientEvents,
+  LinemodeState,
+} from '@webmud3/shared';
 
 type MudOutputEventArgs = {
   data: string;

@@ -3,8 +3,9 @@
   "version": "1.0.0-alpha",
   "description": "Webmud3 Backend Service",
   "type": "module",
-  "author": "Myonara",
+  "authors": ["Myonara", "Felag"],
   "license": "MIT",
+  "private": true,
   "engines": {
     "node": "~22.20.0"
   },
@@ -17,6 +18,7 @@
     "dist"
   ],
   "scripts": {
+    "prebuild": "npm run build --workspace @webmud3/shared",
     "build": "npm run clean:dist && tsc",
     "build:watch": "npm run clean:dist && tsc --watch",
     "clean": "npm run clean:dist && npm run clean:packages",
@@ -31,6 +33,7 @@
     "test": "jest --config=jest.config.cjs"
   },
   "dependencies": {
+    "@webmud3/shared": "1.0.0-alpha",
     "body-parser": "~2.2.0",
     "cors": "~2.8.5",
     "dotenv": "~17.2.3",

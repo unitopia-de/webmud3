@@ -13,15 +13,15 @@ import { IDisposable, Terminal } from '@xterm/xterm';
 import { Subscription } from 'rxjs';
 
 import { MudService } from '../../services/mud.service';
-import { SecureString } from '@mudlet3/frontend/shared';
-import { LinemodeState } from '@mudlet3/frontend/features/sockets';
+import { SecureString } from '@webmud3/frontend/shared/types/secure-string';
+import type { LinemodeState } from '@webmud3/shared';
 import {
   CTRL,
   MudInputController,
-  MudPromptContext,
   MudPromptManager,
   MudSocketAdapter,
-} from '@mudlet3/frontend/features/terminal';
+  MudPromptContext,
+} from '../../../../features/terminal';
 
 /**
  * Component-internal shape that bundles the mutable Mud client flags.

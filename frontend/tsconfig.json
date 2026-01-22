@@ -17,13 +17,7 @@
     "strict": true,
     "resolveJsonModule": true,
     "paths": {
-      "@mudlet3/frontend/core": ["src/app/core"],
-      "@mudlet3/frontend/shared": ["src/app/shared"],
-      "@mudlet3/frontend/features/sockets": ["src/app/features/sockets"],
-      "@mudlet3/frontend/features/serverconfig": [
-        "src/app/features/serverconfig"
-      ],
-      "@mudlet3/frontend/features/terminal": ["src/app/features/terminal"]
+      "@webmud3/frontend/*": ["src/app/*"]
     }
   },
   "angularCompilerOptions": {
