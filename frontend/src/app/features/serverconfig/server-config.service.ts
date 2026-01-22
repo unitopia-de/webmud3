@@ -20,7 +20,7 @@ export class ServerConfigService {
    * @returns {Promise<void>} resolves once the configuration has been loaded (or a fallback was used).
    * @memberof ServerConfigService
    */
-  async load(): Promise<void> {
+  public async load(): Promise<void> {
     const configuration = await firstValueFrom(
       this.httpClient.get<ServerConfig>(this.configUrl),
     );

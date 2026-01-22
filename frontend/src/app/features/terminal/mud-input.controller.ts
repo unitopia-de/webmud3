@@ -29,6 +29,8 @@ export class MudInputController {
   private cursor = 0;
   private lastWasCarriageReturn = false;
   private localEchoEnabled = true;
+  // Holds a partially received escape sequence to be completed by the next chunk.
+  private pendingEscape = '';
 
   /**
    * @param terminal Reference to the xterm instance we mirror the editing state to.
@@ -44,8 +46,11 @@ export class MudInputController {
    * internal buffer/cursor state and performs the corresponding terminal writes.
    */
   public handleData(data: string): void {
-    for (let index = 0; index < data.length; index += 1) {
-      const char = data[index];
+    const stream = this.pendingEscape + data;
+    this.pendingEscape = '';
+
+    for (let index = 0; index < stream.length; index += 1) {
+      const char = stream[index];
 
       switch (char) {
         case CTRL.CR:
@@ -65,7 +70,15 @@ export class MudInputController {
           this.lastWasCarriageReturn = false;
           break;
         case CTRL.ESC: {
-          const consumed = this.handleEscapeSequence(data.slice(index));
+          const consumed = this.handleEscapeSequence(stream.slice(index));
+
+          // Incomplete escape sequence: buffer it and stop processing
+          if (consumed === 0) {
+            this.pendingEscape = stream.slice(index);
+            index = stream.length; // break loop
+            break;
+          }
+
           index += consumed - 1;
           this.lastWasCarriageReturn = false;
           break;
@@ -93,6 +106,7 @@ export class MudInputController {
     this.buffer = '';
     this.cursor = 0;
     this.lastWasCarriageReturn = false;
+    this.pendingEscape = '';
   }
 
   /**
@@ -251,7 +265,11 @@ export class MudInputController {
    * @returns number of characters consumed from the segment.
    */
   private handleEscapeSequence(segment: string): number {
-    if (segment.startsWith(SS3) && segment.length >= SS3_LEN) {
+    if (segment.startsWith(SS3)) {
+      if (segment.length < SS3_LEN) {
+        return 0; // incomplete SS3
+      }
+
       const control = segment[2];
 
       switch (control) {
@@ -277,6 +295,12 @@ export class MudInputController {
     const match = segment.match(CSI_REGEX);
 
     if (!match) {
+      // Incomplete CSI (ESC [ ... without terminator)
+      if (segment.startsWith(CTRL.ESC + '[')) {
+        return 0;
+      }
+
+      // Unknown sequence: consume ESC to avoid locking up
       return CTRL.ESC.length;
     }
 

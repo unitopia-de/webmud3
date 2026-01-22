@@ -19,7 +19,8 @@ type SocketListener = EventListener;
  */
 export class MudSocketAdapter {
   public binaryType: BinaryType = 'arraybuffer';
-  public readyState = WebSocket.OPEN;
+  // Mimics WebSocket state; set to CLOSED when dispose/close is called.
+  public readyState: number = WebSocket.OPEN;
 
   private readonly listeners = new Map<string, Set<SocketListener>>();
   private readonly subscription: Subscription;
@@ -75,8 +76,21 @@ export class MudSocketAdapter {
     }
   }
 
+  /**
+   * This is a no-op since input flows via terminal.onData. We need to implement this to satisfy
+   * the WebSocket interface, but since this adapter is output-only we just log a warning.
+   */
   public send(): void {
-    // Input handling is managed separately via terminal.onData
+    if (this.readyState !== WebSocket.OPEN) {
+      console.warn(
+        'MudSocketAdapter.send(): adapter is closed; input is output-only',
+      );
+      return;
+    }
+
+    console.warn(
+      'MudSocketAdapter.send(): no-op (output-only adapter; input flows via terminal.onData)',
+    );
   }
 
   /**
@@ -92,6 +106,7 @@ export class MudSocketAdapter {
   public dispose() {
     this.subscription.unsubscribe();
     this.listeners.clear();
+    this.readyState = WebSocket.CLOSED;
   }
 
   /**
