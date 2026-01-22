@@ -4,7 +4,10 @@
   "version": "1.0.0-alpha",
   "description": "Shared types and utilities for webmud3",
   "type": "module",
-  "authors": ["Myonara", "Felag"],
+  "authors": [
+    "Myonara",
+    "Felag"
+  ],
   "license": "MIT",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -27,7 +30,10 @@
     "build": "tsc -p tsconfig.json",
     "clean": "npm run clean:dist && npm run clean:packages",
     "clean:dist": "rimraf dist",
-    "clean:packages": "npx rimraf node_modules"
+    "clean:packages": "npx rimraf node_modules",
+    "format": "prettier --write \"src/**/*.ts\"",
+    "lint": "eslint ./src --ext .ts",
+    "lint:fix": "eslint ./src --ext .ts --fix"
   },
   "devDependencies": {
     "rimraf": "~6.0.1",

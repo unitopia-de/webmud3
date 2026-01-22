@@ -21,6 +21,7 @@ import {
   MudPromptManager,
   MudSocketAdapter,
   MudPromptContext,
+  MudScreenReaderAnnouncer,
 } from '../../../../features/terminal';
 
 /**
@@ -37,7 +38,9 @@ const DELETE_SEQUENCE = `${CTRL.ESC}[3~`;
 
 /**
  * Angular wrapper around the xterm-based MUD client.  The component hosts the terminal,
- * wires the input/prompt helpers together and mirrors socket events to the view.
+ * wires the input/prompt helpers together and mirrors socket events to the view. A
+ * custom screenreader announcer replaces xterm's built-in screenReaderMode to avoid
+ * duplicated output and replaying history after reconnects.
  */
 @Component({
   selector: 'app-mud-client',
@@ -52,19 +55,10 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
   private readonly terminal: Terminal;
   private readonly inputController: MudInputController;
   private readonly promptManager: MudPromptManager;
+  private screenReader?: MudScreenReaderAnnouncer;
   private readonly terminalFitAddon = new FitAddon();
-  private readonly socketAdapter = new MudSocketAdapter(
-    this.mudService.mudOutput$,
-    {
-      transformMessage: (data) => this.transformMudOutput(data),
-      beforeMessage: (data) => this.beforeMudOutput(data),
-      afterMessage: (data) => this.afterMudOutput(data),
-    },
-  );
-  private readonly terminalAttachAddon = new AttachAddon(
-    this.socketAdapter as unknown as WebSocket,
-    { bidirectional: false },
-  );
+  private socketAdapter?: MudSocketAdapter;
+  private terminalAttachAddon?: AttachAddon;
 
   private readonly terminalDisposables: IDisposable[] = [];
   private readonly resizeObs = new ResizeObserver(() => {
@@ -84,6 +78,12 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
   @ViewChild('hostRef', { static: true })
   private readonly terminalRef!: ElementRef<HTMLDivElement>;
 
+  @ViewChild('liveRegionRef', { static: true })
+  private readonly liveRegionRef!: ElementRef<HTMLDivElement>;
+
+  @ViewChild('historyRegionRef', { static: true })
+  private readonly historyRegionRef!: ElementRef<HTMLElement>;
+
   protected readonly isConnected$ = this.mudService.connectedToMud$;
   protected readonly showEcho$ = this.mudService.showEcho$;
 
@@ -96,7 +96,7 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
       fontFamily: 'JetBrainsMono, monospace',
       theme: { background: '#000', foreground: '#ccc' },
       disableStdin: false,
-      screenReaderMode: true,
+      screenReaderMode: false,
     });
 
     this.inputController = new MudInputController(
@@ -116,6 +116,28 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
    * to socket events and reports the initial viewport dimensions to the server.
    */
   ngAfterViewInit() {
+    // Initialize screenreader announcer before terminal/socket setup
+    // to ensure we capture the session start BEFORE any output arrives
+    this.screenReader = new MudScreenReaderAnnouncer(
+      this.liveRegionRef.nativeElement,
+      this.historyRegionRef.nativeElement,
+    );
+    console.debug(
+      '[MudClient] Screenreader announcer initialized, live region:',
+      this.liveRegionRef.nativeElement,
+    );
+
+    // Now initialize socket adapter AFTER screenreader is ready
+    this.socketAdapter = new MudSocketAdapter(this.mudService.mudOutput$, {
+      transformMessage: (data) => this.transformMudOutput(data),
+      beforeMessage: (data) => this.beforeMudOutput(data),
+      afterMessage: (data) => this.afterMudOutput(data),
+    });
+    this.terminalAttachAddon = new AttachAddon(
+      this.socketAdapter as unknown as WebSocket,
+      { bidirectional: false },
+    );
+
     this.terminal.open(this.terminalRef.nativeElement);
     this.terminal.loadAddon(this.terminalFitAddon);
     this.terminal.loadAddon(this.terminalAttachAddon);
@@ -152,15 +174,17 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
     this.showEchoSubscription?.unsubscribe();
     this.linemodeSubscription?.unsubscribe();
 
-    this.terminalAttachAddon.dispose();
-    this.socketAdapter.dispose();
+    this.terminalAttachAddon?.dispose();
+    this.socketAdapter?.dispose();
     this.terminal.dispose();
+    this.screenReader?.dispose();
   }
 
   protected connect() {
     const columns = this.terminal.cols;
     const rows = this.terminal.rows;
 
+    this.screenReader?.markSessionStart();
     this.mudService.connect({ columns, rows });
   }
 
@@ -202,6 +226,10 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
     const payload: string | SecureString = echoed
       ? message
       : { value: message };
+
+    if (typeof payload === 'string') {
+      this.screenReader?.appendToHistory(payload);
+    }
 
     this.mudService.sendMessage(payload);
   }
@@ -272,6 +300,8 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
    */
   private afterMudOutput(data: string) {
     this.promptManager.afterServerOutput(data, this.getPromptContext());
+    this.announceToScreenReader(data);
+    this.screenReader?.appendToHistory(data);
   }
 
   /**
@@ -290,6 +320,23 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
       terminalReady: this.state.terminalReady,
       localEchoEnabled: this.state.localEchoEnabled,
     };
+  }
+
+  /**
+   * Announces new server output via the custom screenreader announcer.
+   * Called AFTER prompt restoration so we announce the final visible text.
+   */
+  private announceToScreenReader(data: string): void {
+    if (!this.screenReader) {
+      return;
+    }
+
+    console.debug('[MudClient] Announcing to screenreader:', {
+      rawLength: data.length,
+      raw: data,
+    });
+
+    this.screenReader.announce(data);
   }
 
   /**

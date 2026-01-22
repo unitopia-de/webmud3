@@ -1,3 +1,13 @@
+<div
+  class="sr-announcer"
+  aria-live="polite"
+  aria-atomic="true"
+  aria-relevant="additions"
+  #liveRegionRef
+></div>
+
+<div class="sr-history" role="log" aria-live="off" #historyRegionRef></div>
+
 <div class="mud-output" #hostRef></div>
 
 @if (!(isConnected$ | async)) {
