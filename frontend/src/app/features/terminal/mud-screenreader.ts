@@ -1,4 +1,5 @@
 const DEFAULT_CLEAR_DELAY_MS = 300;
+const INPUT_CLEAR_DELAY_MS = 150;
 const ANSI_ESCAPE_PATTERN = /\x1B\[[0-9;?]*[ -\/]*[@-~]/g;
 const CONTROL_CHAR_PATTERN = /[\x00-\x08\x0B-\x1F\x7F]/g;
 
@@ -121,7 +122,7 @@ export class MudScreenReaderAnnouncer {
   /**
    * Announces only the change in the input buffer (delta).
    * Each character typed results in a separate announcement.
-   * The region is auto-cleared after a short delay to prevent double announcements.
+   * Uses appendChild instead of textContent to ensure VoiceOver detects DOM mutations.
    */
   public announceInput(buffer: string): void {
     if (!this.inputRegion) {
@@ -142,7 +143,12 @@ export class MudScreenReaderAnnouncer {
         newestChar,
       });
 
-      this.inputRegion.textContent = newestChar;
+      // Create a new span element for better VoiceOver detection
+      // appendChild triggers DOM mutation events that VoiceOver responds to better
+      const charSpan = this.inputRegion.ownerDocument.createElement('span');
+      charSpan.textContent = newestChar;
+      this.inputRegion.appendChild(charSpan);
+
       this.scheduleInputClear();
     }
 
@@ -187,7 +193,7 @@ export class MudScreenReaderAnnouncer {
 
     this.inputClearTimer = window.setTimeout(() => {
       this.clearInputRegion();
-    }, 250);
+    }, INPUT_CLEAR_DELAY_MS);
   }
 
   private cancelClearTimer(): void {
