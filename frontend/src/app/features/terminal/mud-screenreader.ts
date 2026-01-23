@@ -1,5 +1,5 @@
 const DEFAULT_CLEAR_DELAY_MS = 300;
-const INPUT_CLEAR_DELAY_MS = 150;
+const INPUT_CLEAR_DELAY_MS = 400;
 const ANSI_ESCAPE_PATTERN = /\x1B\[[0-9;?]*[ -\/]*[@-~]/g;
 const CONTROL_CHAR_PATTERN = /[\x00-\x08\x0B-\x1F\x7F]/g;
 
@@ -120,38 +120,29 @@ export class MudScreenReaderAnnouncer {
   }
 
   /**
-   * Announces only the change in the input buffer (delta).
-   * Each character typed results in a separate announcement.
-   * Uses appendChild instead of textContent to ensure VoiceOver detects DOM mutations.
+   * Announces the full current input buffer (not just delta).
+   * Uses textContent so VoiceOver can read the entire buffer, aided by aria-atomic.
    */
   public announceInput(buffer: string): void {
     if (!this.inputRegion) {
       return;
     }
 
-    // Detect what changed from lastAnnouncedBuffer to current buffer
-    const lastLength = this.lastAnnouncedBuffer.length;
-    const currentLength = buffer.length;
+    const normalized = this.normalize(buffer);
 
-    if (currentLength > lastLength) {
-      // Character(s) added - announce only the newest character
-      const newestChar = buffer[currentLength - 1];
+    console.debug('[ScreenReader] Announcing input buffer:', {
+      raw: buffer.substring(0, 100),
+      normalized: normalized.substring(0, 100),
+    });
 
-      console.debug('[ScreenReader] Announcing input delta:', {
-        lastLength,
-        currentLength,
-        newestChar,
-      });
-
-      // Create a new span element for better VoiceOver detection
-      // appendChild triggers DOM mutation events that VoiceOver responds to better
-      const charSpan = this.inputRegion.ownerDocument.createElement('span');
-      charSpan.textContent = newestChar;
-      this.inputRegion.appendChild(charSpan);
-
-      this.scheduleInputClear();
+    if (!normalized) {
+      this.clearInputRegion();
+      this.lastAnnouncedBuffer = buffer;
+      return;
     }
 
+    this.inputRegion.textContent = normalized;
+    this.scheduleInputClear();
     this.lastAnnouncedBuffer = buffer;
   }
 
