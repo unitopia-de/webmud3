@@ -31,11 +31,11 @@ export type MudPromptContext = {
  * ## State Machine
  * ```
  * ┌─────────┐  beforeServerOutput()  ┌────────┐
- * │ VISIBLE │ ────────────────────> │ HIDDEN │
+ * │ VISIBLE │ ────────────────────>  │ HIDDEN │
  * │         │                        │        │
  * │ User is │                        │ Server │
  * │ typing  │                        │ writes │
- * │         │ <──────────────────── │        │
+ * │         │ <───────────────────-  │        │
  * └─────────┘   restoreLine()        └────────┘
  *               (async via queueMicrotask)
  * ```

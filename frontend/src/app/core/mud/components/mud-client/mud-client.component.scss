@@ -24,15 +24,12 @@
   }
 
   .sr-history {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    padding: 0;
-    margin: -1px;
-    overflow: hidden;
-    clip: rect(0, 0, 0, 0);
-    white-space: pre-wrap;
-    border: 0;
+    position: relative;
+    width: auto;
+    height: 200px;
+    overflow: auto;
+    clip: auto;
+    margin: 0;
   }
 
   .sr-log-item {
