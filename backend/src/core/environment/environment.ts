@@ -1,6 +1,6 @@
 import { config as configureEnvironment } from 'dotenv';
 
-import { logger } from '../../shared/utils/logger.js';
+import { logger, setLogLevel } from '../../shared/utils/logger.js';
 import { IEnvironment } from './types/environment.js';
 import { getEnvironmentVariable } from './utils/get-environment-variable.js';
 import { resolveModulePath } from './utils/resolve-modulepath.js';
@@ -23,6 +23,7 @@ export class Environment implements IEnvironment {
   public readonly environment: 'production' | 'development';
   public readonly name: string;
   public readonly corsAllowList: string[];
+  public readonly logLevel: string;
 
   /**
    * Private constructor to enforce singleton pattern.
@@ -77,6 +78,10 @@ export class Environment implements IEnvironment {
             .split(',')
             .map((origin) => origin.trim())
             .filter((origin) => origin.length > 0);
+
+    this.logLevel = String(getEnvironmentVariable('LOG_LEVEL', false, 'debug'));
+
+    setLogLevel(this.logLevel);
 
     logger.info('[Environment] initialized', this);
   }
