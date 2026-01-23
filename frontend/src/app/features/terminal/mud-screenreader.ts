@@ -13,11 +13,13 @@ const CONTROL_CHAR_PATTERN = /[\x00-\x08\x0B-\x1F\x7F]/g;
 export class MudScreenReaderAnnouncer {
   private clearTimer: number | undefined;
   private sessionStartedAt: number;
+  private lastAnnouncedBuffer = '';
 
   constructor(
     private readonly liveRegion: HTMLElement,
     private readonly historyRegion?: HTMLElement,
     private readonly inputRegion?: HTMLElement,
+    private readonly inputCommittedRegion?: HTMLElement,
     private readonly clearDelayMs: number = DEFAULT_CLEAR_DELAY_MS,
   ) {
     this.sessionStartedAt = Date.now();
@@ -115,32 +117,64 @@ export class MudScreenReaderAnnouncer {
   }
 
   /**
-   * Announces the current input buffer to the input region.
-   * Used to inform screen reader users of their live typing.
-   * Unlike server output announcements, input is NOT auto-cleared
-   * to allow users to review what they typed.
+   * Announces only the change in the input buffer (delta).
+   * Each character typed results in a separate announcement.
    */
   public announceInput(buffer: string): void {
     if (!this.inputRegion) {
       return;
     }
 
+    // Detect what changed from lastAnnouncedBuffer to current buffer
+    const lastLength = this.lastAnnouncedBuffer.length;
+    const currentLength = buffer.length;
+
+    let announcement = '';
+
+    if (currentLength > lastLength) {
+      // Character(s) added
+      const addedChars = buffer.substring(lastLength);
+      for (const char of addedChars) {
+        announcement += char + ' ';
+      }
+    }
+
+    console.debug('[ScreenReader] Announcing input delta:', {
+      lastLength,
+      currentLength,
+      announcement,
+    });
+
+    if (announcement) {
+      this.inputRegion.textContent = announcement;
+    }
+
+    this.lastAnnouncedBuffer = buffer;
+  }
+
+  /**
+   * Announces the complete, committed input after user presses Enter.
+   * This reads back the entire line so the user can verify what they typed.
+   */
+  public announceInputCommitted(buffer: string): void {
+    if (!this.inputCommittedRegion) {
+      return;
+    }
+
     const normalized = this.normalize(buffer);
 
-    console.debug('[ScreenReader] Announcing input:', {
+    console.debug('[ScreenReader] Announcing committed input:', {
       raw: buffer.substring(0, 100),
       normalized: normalized.substring(0, 100),
     });
 
     if (!normalized) {
-      this.inputRegion.textContent = '';
       return;
     }
 
-    // Show buffer with cursor indicator (helpful for users to know where they are)
-    // Format: "typed text (cursor at position X)"
-    const display = `${normalized}`;
-    this.inputRegion.textContent = display;
+    this.inputCommittedRegion.textContent = `${normalized}`;
+    // Reset buffer tracker since we're starting fresh after commit
+    this.lastAnnouncedBuffer = '';
   }
 
   private scheduleClear(): void {

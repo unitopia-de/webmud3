@@ -82,6 +82,9 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
   @ViewChild('inputRegionRef', { static: true })
   private readonly inputRegionRef!: ElementRef<HTMLDivElement>;
 
+  @ViewChild('inputCommittedRegionRef', { static: true })
+  private readonly inputCommittedRegionRef!: ElementRef<HTMLElement>;
+
   @ViewChild('historyRegionRef', { static: true })
   private readonly historyRegionRef!: ElementRef<HTMLElement>;
 
@@ -124,6 +127,7 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
       this.liveRegionRef.nativeElement,
       this.historyRegionRef.nativeElement,
       this.inputRegionRef.nativeElement,
+      this.inputCommittedRegionRef.nativeElement,
     );
     console.debug(
       '[MudClient] Screenreader announcer initialized, live region:',
@@ -232,6 +236,8 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
 
     if (typeof payload === 'string') {
       this.screenReader?.appendToHistory(payload);
+      // Announce the complete input so user can verify what they typed
+      this.screenReader?.announceInputCommitted(payload);
     }
 
     this.mudService.sendMessage(payload);
