@@ -11,15 +11,30 @@ export function createHttpServer(
   settings: { tls?: { cert: string; key: string } },
 ): HttpServer | HttpsServer {
   if (settings.tls !== undefined) {
-    const options = {
-      key: fs.readFileSync(settings.tls.key),
-      cert: fs.readFileSync(settings.tls.cert),
-    };
+    try {
+      const options = {
+        key: fs.readFileSync(settings.tls.key),
+        cert: fs.readFileSync(settings.tls.cert),
+      };
 
-    logger.debug('SRV://5000 : INIT: https active');
+      logger.debug('[HTTP-Server] HTTPS active', {
+        certPath: settings.tls.cert,
+        keyPath: settings.tls.key,
+      });
 
-    return new HttpsServer(options, app);
+      return new HttpsServer(options, app);
+    } catch (error) {
+      logger.error('[HTTP-Server] Failed to read TLS certificate or key', {
+        error: error instanceof Error ? error.message : String(error),
+        certPath: settings.tls.cert,
+        keyPath: settings.tls.key,
+      });
+
+      throw error;
+    }
   } else {
+    logger.debug('[HTTP-Server] HTTP mode (no TLS)');
+
     return new HttpServer(app);
   }
 }
