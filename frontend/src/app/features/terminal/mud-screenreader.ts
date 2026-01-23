@@ -17,6 +17,7 @@ export class MudScreenReaderAnnouncer {
   constructor(
     private readonly liveRegion: HTMLElement,
     private readonly historyRegion?: HTMLElement,
+    private readonly inputRegion?: HTMLElement,
     private readonly clearDelayMs: number = DEFAULT_CLEAR_DELAY_MS,
   ) {
     this.sessionStartedAt = Date.now();
@@ -111,6 +112,35 @@ export class MudScreenReaderAnnouncer {
     if (this.historyRegion) {
       this.historyRegion.textContent = '';
     }
+  }
+
+  /**
+   * Announces the current input buffer to the input region.
+   * Used to inform screen reader users of their live typing.
+   * Unlike server output announcements, input is NOT auto-cleared
+   * to allow users to review what they typed.
+   */
+  public announceInput(buffer: string): void {
+    if (!this.inputRegion) {
+      return;
+    }
+
+    const normalized = this.normalize(buffer);
+
+    console.debug('[ScreenReader] Announcing input:', {
+      raw: buffer.substring(0, 100),
+      normalized: normalized.substring(0, 100),
+    });
+
+    if (!normalized) {
+      this.inputRegion.textContent = '';
+      return;
+    }
+
+    // Show buffer with cursor indicator (helpful for users to know where they are)
+    // Format: "typed text (cursor at position X)"
+    const display = `${normalized}`;
+    this.inputRegion.textContent = display;
   }
 
   private scheduleClear(): void {

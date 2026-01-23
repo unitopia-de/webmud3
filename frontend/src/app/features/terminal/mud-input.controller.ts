@@ -20,6 +20,13 @@ export type MudInputCommitHandler = (payload: {
 }) => void;
 
 /**
+ * Callback signature for notifying about input buffer changes.
+ * Called whenever the buffer is modified (character inserted, deleted, etc.)
+ * but NOT for cursor-only movements.
+ */
+export type MudInputChangeHandler = (payload: { buffer: string }) => void;
+
+/**
  * Encapsulates client-side editing state for LINEMODE input.  The controller keeps
  * track of the text buffer and cursor position, applies terminal side-effects
  * when local echo is enabled, and turns user keystrokes into commit events.
@@ -35,10 +42,12 @@ export class MudInputController {
   /**
    * @param terminal Reference to the xterm instance we mirror the editing state to.
    * @param onCommit Callback that receives a flushed line (with echo information).
+   * @param onInputChange Optional callback for input buffer changes (screen reader announcements).
    */
   constructor(
     private readonly terminal: Terminal,
     private readonly onCommit: MudInputCommitHandler,
+    private readonly onInputChange?: MudInputChangeHandler,
   ) {}
 
   /**
@@ -176,6 +185,10 @@ export class MudInputController {
     this.buffer = before + char + after;
     this.cursor += 1;
 
+    this.onInputChange?.({
+      buffer: this.buffer,
+    });
+
     if (!this.localEchoEnabled) {
       return;
     }
@@ -201,6 +214,10 @@ export class MudInputController {
 
     this.buffer = before + after;
     this.cursor -= 1;
+
+    this.onInputChange?.({
+      buffer: this.buffer,
+    });
 
     if (!this.localEchoEnabled) {
       return;
@@ -360,6 +377,10 @@ export class MudInputController {
     const after = this.buffer.slice(this.cursor + 1);
 
     this.buffer = before + after;
+
+    this.onInputChange?.({
+      buffer: this.buffer,
+    });
 
     if (!this.localEchoEnabled) {
       return;

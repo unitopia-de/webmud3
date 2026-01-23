@@ -79,6 +79,9 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
   @ViewChild('liveRegionRef', { static: true })
   private readonly liveRegionRef!: ElementRef<HTMLDivElement>;
 
+  @ViewChild('inputRegionRef', { static: true })
+  private readonly inputRegionRef!: ElementRef<HTMLDivElement>;
+
   @ViewChild('historyRegionRef', { static: true })
   private readonly historyRegionRef!: ElementRef<HTMLElement>;
 
@@ -100,6 +103,7 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
     this.inputController = new MudInputController(
       this.terminal,
       ({ message, echoed }) => this.handleCommittedInput(message, echoed),
+      ({ buffer }) => this.announceInputToScreenReader(buffer),
     );
     this.inputController.setLocalEcho(this.state.localEchoEnabled);
 
@@ -119,6 +123,7 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
     this.screenReader = new MudScreenReaderAnnouncer(
       this.liveRegionRef.nativeElement,
       this.historyRegionRef.nativeElement,
+      this.inputRegionRef.nativeElement,
     );
     console.debug(
       '[MudClient] Screenreader announcer initialized, live region:',
@@ -230,6 +235,15 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
     }
 
     this.mudService.sendMessage(payload);
+  }
+
+  /**
+   * Announces input buffer changes to the screen reader announcer.
+   * Called whenever the user types, deletes, etc. (but not for cursor-only moves).
+   * This ensures screen reader users can hear their input in real-time.
+   */
+  private announceInputToScreenReader(buffer: string): void {
+    this.screenReader?.announceInput(buffer);
   }
 
   /**
