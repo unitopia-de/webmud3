@@ -12,6 +12,7 @@ const CONTROL_CHAR_PATTERN = /[\x00-\x08\x0B-\x1F\x7F]/g;
  */
 export class MudScreenReaderAnnouncer {
   private clearTimer: number | undefined;
+  private inputClearTimer: number | undefined;
   private sessionStartedAt: number;
   private lastAnnouncedBuffer = '';
 
@@ -83,6 +84,7 @@ export class MudScreenReaderAnnouncer {
    */
   public dispose(): void {
     this.clear();
+    this.cancelInputClearTimer();
   }
 
   /**
@@ -119,6 +121,7 @@ export class MudScreenReaderAnnouncer {
   /**
    * Announces only the change in the input buffer (delta).
    * Each character typed results in a separate announcement.
+   * The region is auto-cleared after a short delay to prevent double announcements.
    */
   public announceInput(buffer: string): void {
     if (!this.inputRegion) {
@@ -129,24 +132,18 @@ export class MudScreenReaderAnnouncer {
     const lastLength = this.lastAnnouncedBuffer.length;
     const currentLength = buffer.length;
 
-    let announcement = '';
-
     if (currentLength > lastLength) {
-      // Character(s) added
-      const addedChars = buffer.substring(lastLength);
-      for (const char of addedChars) {
-        announcement += char + ' ';
-      }
-    }
+      // Character(s) added - announce only the newest character
+      const newestChar = buffer[currentLength - 1];
 
-    console.debug('[ScreenReader] Announcing input delta:', {
-      lastLength,
-      currentLength,
-      announcement,
-    });
+      console.debug('[ScreenReader] Announcing input delta:', {
+        lastLength,
+        currentLength,
+        newestChar,
+      });
 
-    if (announcement) {
-      this.inputRegion.textContent = announcement;
+      this.inputRegion.textContent = newestChar;
+      this.scheduleInputClear();
     }
 
     this.lastAnnouncedBuffer = buffer;
@@ -185,10 +182,31 @@ export class MudScreenReaderAnnouncer {
     }, this.clearDelayMs);
   }
 
+  private scheduleInputClear(): void {
+    this.cancelInputClearTimer();
+
+    this.inputClearTimer = window.setTimeout(() => {
+      this.clearInputRegion();
+    }, 100);
+  }
+
   private cancelClearTimer(): void {
     if (this.clearTimer !== undefined) {
       window.clearTimeout(this.clearTimer);
       this.clearTimer = undefined;
+    }
+  }
+
+  private cancelInputClearTimer(): void {
+    if (this.inputClearTimer !== undefined) {
+      window.clearTimeout(this.inputClearTimer);
+      this.inputClearTimer = undefined;
+    }
+  }
+
+  private clearInputRegion(): void {
+    if (this.inputRegion) {
+      this.inputRegion.textContent = '';
     }
   }
 
