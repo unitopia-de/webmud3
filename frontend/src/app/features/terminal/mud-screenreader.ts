@@ -1,5 +1,5 @@
 const DEFAULT_CLEAR_DELAY_MS = 300;
-const INPUT_CLEAR_DELAY_MS = 400;
+const INPUT_CLEAR_DELAY_MS = 700;
 const ANSI_ESCAPE_PATTERN = /\x1B\[[0-9;?]*[ -\/]*[@-~]/g;
 const CONTROL_CHAR_PATTERN = /[\x00-\x08\x0B-\x1F\x7F]/g;
 
@@ -122,27 +122,28 @@ export class MudScreenReaderAnnouncer {
   /**
    * Announces the full current input buffer (not just delta).
    * Uses textContent so VoiceOver can read the entire buffer, aided by aria-atomic.
+   * For VoiceOver iOS: we do NOT auto-clear here to avoid dropping queued speech.
    */
   public announceInput(buffer: string): void {
     if (!this.inputRegion) {
       return;
     }
 
-    const normalized = this.normalize(buffer);
+    const normalized = this.normalizeInput(buffer);
 
     console.debug('[ScreenReader] Announcing input buffer:', {
       raw: buffer.substring(0, 100),
       normalized: normalized.substring(0, 100),
     });
 
-    if (!normalized) {
-      this.clearInputRegion();
+    if (normalized.length === 0) {
+      // Avoid announcing empty string; leave prior text as-is
       this.lastAnnouncedBuffer = buffer;
       return;
     }
 
     this.inputRegion.textContent = normalized;
-    this.scheduleInputClear();
+    // No auto-clear: let the screen reader finish reading.
     this.lastAnnouncedBuffer = buffer;
   }
 
@@ -179,19 +180,20 @@ export class MudScreenReaderAnnouncer {
     }, this.clearDelayMs);
   }
 
+  private cancelClearTimer(): void {
+    if (this.clearTimer !== undefined) {
+      window.clearTimeout(this.clearTimer);
+      this.clearTimer = undefined;
+    }
+  }
+
+  // Input clear helpers are retained for potential future use (currently unused)
   private scheduleInputClear(): void {
     this.cancelInputClearTimer();
 
     this.inputClearTimer = window.setTimeout(() => {
       this.clearInputRegion();
     }, INPUT_CLEAR_DELAY_MS);
-  }
-
-  private cancelClearTimer(): void {
-    if (this.clearTimer !== undefined) {
-      window.clearTimeout(this.clearTimer);
-      this.clearTimer = undefined;
-    }
   }
 
   private cancelInputClearTimer(): void {
@@ -207,6 +209,17 @@ export class MudScreenReaderAnnouncer {
     }
   }
 
+  private normalizeInput(raw: string): string {
+    if (raw === undefined || raw === null) {
+      return '';
+    }
+
+    // Do not trim for input to preserve spaces; still strip ANSI/control chars.
+    const unifiedNewlines = raw.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+    const withoutAnsi = unifiedNewlines.replace(ANSI_ESCAPE_PATTERN, '');
+    const withoutControl = withoutAnsi.replace(CONTROL_CHAR_PATTERN, '');
+    return withoutControl;
+  }
   private normalize(raw: string): string {
     if (!raw) {
       return '';
