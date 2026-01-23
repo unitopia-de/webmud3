@@ -187,7 +187,7 @@ export class MudScreenReaderAnnouncer {
 
     this.inputClearTimer = window.setTimeout(() => {
       this.clearInputRegion();
-    }, 100);
+    }, 250);
   }
 
   private cancelClearTimer(): void {
