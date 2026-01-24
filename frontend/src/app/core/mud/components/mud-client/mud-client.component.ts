@@ -82,6 +82,9 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
   @ViewChild('inputRegionRef', { static: true })
   private readonly inputRegionRef!: ElementRef<HTMLDivElement>;
 
+  @ViewChild('inputBufferRef', { static: true })
+  private readonly inputBufferRef!: ElementRef<HTMLInputElement>;
+
   @ViewChild('historyRegionRef', { static: true })
   private readonly historyRegionRef!: ElementRef<HTMLElement>;
 
@@ -246,6 +249,7 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
    */
   private announceInputToScreenReader(buffer: string): void {
     this.screenReader?.announceInput(buffer);
+    this.inputBufferRef.nativeElement.value = buffer;
   }
 
   /**
