@@ -120,30 +120,37 @@ export class MudScreenReaderAnnouncer {
   }
 
   /**
-   * Announces the full current input buffer (not just delta).
-   * Uses textContent so VoiceOver can read the entire buffer, aided by aria-atomic.
-   * For VoiceOver iOS: we do NOT auto-clear here to avoid dropping queued speech.
+   * Announces only the newest character (delta) to avoid re-reading the full buffer.
+   * Uses textContent (not appendChild) so VO/NVDA get a simple change event.
+   * No auto-clear to give VO time; if needed we can add a small debounce later.
    */
   public announceInput(buffer: string): void {
     if (!this.inputRegion) {
       return;
     }
 
-    const normalized = this.normalizeInput(buffer);
+    const lastLength = this.lastAnnouncedBuffer.length;
+    const currentLength = buffer.length;
 
-    console.debug('[ScreenReader] Announcing input buffer:', {
-      raw: buffer.substring(0, 100),
-      normalized: normalized.substring(0, 100),
-    });
+    if (currentLength > lastLength) {
+      const newestChar = buffer[currentLength - 1];
+      const normalized = this.normalizeInput(newestChar);
 
-    if (normalized.length === 0) {
-      // Avoid announcing empty string; leave prior text as-is
-      this.lastAnnouncedBuffer = buffer;
-      return;
+      console.debug('[ScreenReader] Announcing input char:', {
+        newestChar,
+        normalized,
+        lastLength,
+        currentLength,
+      });
+
+      if (normalized.length === 0) {
+        this.lastAnnouncedBuffer = buffer;
+        return;
+      }
+
+      this.inputRegion.textContent = normalized;
     }
 
-    this.inputRegion.textContent = normalized;
-    // No auto-clear: let the screen reader finish reading.
     this.lastAnnouncedBuffer = buffer;
   }
 
