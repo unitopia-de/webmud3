@@ -153,25 +153,35 @@ export class MudScreenReaderAnnouncer {
 
       // (b) Check if we just completed a word (whitespace as delimiter)
       if (/\s/.test(newestChar)) {
+        // First announce the whitespace token to ensure SR picks up the change
+        this.inputRegion.textContent = this.describeChar(newestChar);
+
         const lastWord = this.extractLastWord(buffer);
-        if (lastWord) {
-          const normalizedWord = this.normalizeInput(lastWord);
-          console.debug(
-            '[ScreenReader] Word boundary detected, announcing word:',
-            {
-              lastWord,
-              normalizedWord,
-            },
-          );
-          this.inputRegion.textContent = normalizedWord;
-        }
+        const normalizedWord = lastWord ? this.normalizeInput(lastWord) : '';
+
+        console.debug('[ScreenReader] Word boundary detected:', {
+          lastWord,
+          normalizedWord,
+        });
+
+        // Announce the word (or fallback to the whitespace token if empty)
+        this.inputRegion.textContent =
+          normalizedWord || this.describeChar(newestChar);
       }
     } else if (currentLength < lastLength) {
-      // Backspace/delete: silently track, no "gelöscht" announcement
+      // Backspace/delete: announce the removed character (best-effort diff)
       console.debug('[ScreenReader] Buffer shortened (backspace/delete):', {
         lastLength,
         currentLength,
       });
+
+      const removedSegment = this.lastAnnouncedBuffer.slice(currentLength);
+      const removedChar = removedSegment[0];
+      const token = removedChar ? this.describeChar(removedChar) : '';
+
+      if (token && this.inputRegion) {
+        this.inputRegion.textContent = token;
+      }
     }
 
     this.lastAnnouncedBuffer = buffer;
@@ -214,6 +224,26 @@ export class MudScreenReaderAnnouncer {
     }
 
     return trimmedFromRight.slice(wordStart, lastNonWhitespace + 1);
+  }
+
+  /**
+   * Maps characters to speakable tokens for screen readers.
+   */
+  private describeChar(char: string): string {
+    if (char === ' ') {
+      return 'Leerzeichen';
+    }
+
+    if (char === '\n') {
+      return 'Zeilenumbruch';
+    }
+
+    if (char === '\t') {
+      return 'Tab';
+    }
+
+    const normalized = this.normalizeInput(char);
+    return normalized || '';
   }
 
   /**
