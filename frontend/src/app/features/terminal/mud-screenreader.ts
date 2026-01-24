@@ -22,6 +22,7 @@ export class MudScreenReaderAnnouncer {
     private readonly historyRegion?: HTMLElement,
     private readonly inputRegion?: HTMLElement,
     private readonly inputCommittedRegion?: HTMLElement,
+    private readonly inputBufferRegion?: HTMLElement,
     private readonly clearDelayMs: number = DEFAULT_CLEAR_DELAY_MS,
   ) {
     this.sessionStartedAt = Date.now();
@@ -34,6 +35,7 @@ export class MudScreenReaderAnnouncer {
     this.sessionStartedAt = timestamp;
     this.clear();
     this.clearHistory();
+    this.lastAnnouncedBuffer = '';
   }
 
   /**
@@ -149,9 +151,29 @@ export class MudScreenReaderAnnouncer {
       }
 
       this.inputRegion.textContent = normalized;
+    } else if (currentLength < lastLength) {
+      // Provide deletion feedback when buffer shrinks
+      console.debug('[ScreenReader] Announcing deletion (backspace/delete):', {
+        lastLength,
+        currentLength,
+      });
+      this.inputRegion.textContent = 'gelöscht';
     }
 
     this.lastAnnouncedBuffer = buffer;
+  }
+
+  /**
+   * Mirrors the full current input buffer into a non-live, navigable region
+   * so users can review their input via rotor without live announcements.
+   */
+  public updateInputBuffer(buffer: string): void {
+    if (!this.inputBufferRegion) {
+      return;
+    }
+
+    const normalized = this.normalizeInput(buffer);
+    this.inputBufferRegion.textContent = normalized;
   }
 
   /**

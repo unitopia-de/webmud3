@@ -1,12 +1,28 @@
 <div class="sr-announcer" aria-live="assertive" #liveRegionRef></div>
 
-<div class="sr-input" role="status" aria-live="assertive" #inputRegionRef></div>
+<div
+  class="sr-input"
+  role="status"
+  aria-live="assertive"
+  aria-relevant="additions text"
+  #inputRegionRef
+></div>
 
 <div
   class="sr-input-committed"
   role="region"
   aria-live="polite"
+  aria-atomic="true"
   #inputCommittedRegionRef
+></div>
+
+<div
+  class="sr-input-buffer"
+  role="region"
+  aria-live="off"
+  tabindex="0"
+  aria-label="Aktuelle Eingabe"
+  #inputBufferRegionRef
 ></div>
 
 <div class="sr-history" role="region" aria-live="off" #historyRegionRef></div>
