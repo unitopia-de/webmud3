@@ -106,6 +106,13 @@ export class MudPromptManager {
   }
 
   /**
+   * Exposes the currently tracked prompt (ANSI included).
+   */
+  public getCurrentPrompt(): string {
+    return this.currentPrompt;
+  }
+
+  /**
    * Strips leading CRLF sequence from server output after a line was hidden.
    *
    * **Purpose:** When we hide the user's line, the terminal cursor is at column 0.

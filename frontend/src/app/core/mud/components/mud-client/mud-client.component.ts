@@ -82,11 +82,10 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
   @ViewChild('inputRegionRef', { static: true })
   private readonly inputRegionRef!: ElementRef<HTMLDivElement>;
 
-  @ViewChild('inputBufferRef', { static: true })
-  private readonly inputBufferRef!: ElementRef<HTMLInputElement>;
-
   @ViewChild('historyRegionRef', { static: true })
   private readonly historyRegionRef!: ElementRef<HTMLElement>;
+
+  private helperTextarea: HTMLTextAreaElement | null = null;
 
   protected readonly isConnected$ = this.mudService.connectedToMud$;
   protected readonly showEcho$ = this.mudService.showEcho$;
@@ -148,6 +147,12 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
     this.terminal.loadAddon(this.terminalFitAddon);
     this.terminal.loadAddon(this.terminalAttachAddon);
     this.terminal.focus();
+
+    // Cache helper textarea created by xterm (used to mirror prompt + input)
+    this.helperTextarea =
+      (this.terminalRef.nativeElement.querySelector(
+        '.xterm-helper-textarea',
+      ) as HTMLTextAreaElement | null) ?? null;
 
     this.terminalDisposables.push(
       this.terminal.onData((data) => this.handleInput(data)),
@@ -240,6 +245,9 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
     }
 
     this.mudService.sendMessage(payload);
+
+    // Clear helper textarea after commit
+    this.updateHelperTextarea('');
   }
 
   /**
@@ -249,7 +257,7 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
    */
   private announceInputToScreenReader(buffer: string): void {
     this.screenReader?.announceInput(buffer);
-    this.inputBufferRef.nativeElement.value = buffer;
+    this.updateHelperTextarea(buffer);
   }
 
   /**
@@ -320,6 +328,7 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
     this.promptManager.afterServerOutput(data, this.getPromptContext());
     this.announceToScreenReader(data);
     this.screenReader?.appendToHistory(data);
+    this.updateHelperTextarea();
   }
 
   /**
@@ -376,5 +385,21 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
     }
 
     return data;
+  }
+
+  /**
+   * Mirrors the current prompt + buffer into xterm's helper textarea
+   * so screen readers can inspect the input line.
+   */
+  private updateHelperTextarea(buffer?: string): void {
+    if (!this.helperTextarea) {
+      return;
+    }
+
+    const prompt = this.promptManager.getCurrentPrompt();
+    const effectiveBuffer =
+      buffer !== undefined ? buffer : this.inputController.getSnapshot().buffer;
+
+    this.helperTextarea.value = `${prompt}${effectiveBuffer ?? ''}`;
   }
 }
