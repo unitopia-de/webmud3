@@ -21,8 +21,6 @@ export class MudScreenReaderAnnouncer {
     private readonly liveRegion: HTMLElement,
     private readonly historyRegion?: HTMLElement,
     private readonly inputRegion?: HTMLElement,
-    private readonly inputCommittedRegion?: HTMLElement,
-    private readonly inputBufferRegion?: HTMLElement,
     private readonly clearDelayMs: number = DEFAULT_CLEAR_DELAY_MS,
   ) {
     this.sessionStartedAt = Date.now();
@@ -122,9 +120,12 @@ export class MudScreenReaderAnnouncer {
   }
 
   /**
-   * Announces only the newest character (delta) to avoid re-reading the full buffer.
-   * Uses textContent (not appendChild) so VO/NVDA get a simple change event.
-   * No auto-clear to give VO time; if needed we can add a small debounce later.
+   * Announces input changes with three levels:
+   * (a) Per-character: announce the newest character
+   * (b) Per-word: when whitespace is encountered, announce the complete word
+   * (c) On commit: full line is announced via announceInputCommitted()
+   *
+   * No "gelöscht" feedback; backspace silently updates the buffer tracker.
    */
   public announceInput(buffer: string): void {
     if (!this.inputRegion) {
@@ -145,43 +146,83 @@ export class MudScreenReaderAnnouncer {
         currentLength,
       });
 
-      if (normalized.length === 0) {
-        this.lastAnnouncedBuffer = buffer;
-        return;
+      // (a) Announce the newest character
+      if (normalized.length > 0) {
+        this.inputRegion.textContent = normalized;
       }
 
-      this.inputRegion.textContent = normalized;
+      // (b) Check if we just completed a word (whitespace as delimiter)
+      if (/\s/.test(newestChar)) {
+        const lastWord = this.extractLastWord(buffer);
+        if (lastWord) {
+          const normalizedWord = this.normalizeInput(lastWord);
+          console.debug(
+            '[ScreenReader] Word boundary detected, announcing word:',
+            {
+              lastWord,
+              normalizedWord,
+            },
+          );
+          this.inputRegion.textContent = normalizedWord;
+        }
+      }
     } else if (currentLength < lastLength) {
-      // Provide deletion feedback when buffer shrinks
-      console.debug('[ScreenReader] Announcing deletion (backspace/delete):', {
+      // Backspace/delete: silently track, no "gelöscht" announcement
+      console.debug('[ScreenReader] Buffer shortened (backspace/delete):', {
         lastLength,
         currentLength,
       });
-      this.inputRegion.textContent = 'gelöscht';
     }
 
     this.lastAnnouncedBuffer = buffer;
   }
 
   /**
-   * Mirrors the full current input buffer into a non-live, navigable region
-   * so users can review their input via rotor without live announcements.
+   * Extracts the last word from the buffer (text before the last whitespace).
+   * Used for per-word announcements when user types a space.
    */
-  public updateInputBuffer(buffer: string): void {
-    if (!this.inputBufferRegion) {
-      return;
+  private extractLastWord(buffer: string): string {
+    if (!buffer) return '';
+
+    // Find the last whitespace
+    const trimmedFromRight = buffer.trimEnd();
+    if (trimmedFromRight === buffer) {
+      // No trailing whitespace, return empty
+      return '';
     }
 
-    const normalized = this.normalizeInput(buffer);
-    this.inputBufferRegion.textContent = normalized;
+    // Find position of last word (before trailing whitespace)
+    let lastNonWhitespace = -1;
+    for (let i = trimmedFromRight.length - 1; i >= 0; i--) {
+      if (/\S/.test(trimmedFromRight[i])) {
+        lastNonWhitespace = i;
+        break;
+      }
+    }
+
+    if (lastNonWhitespace === -1) {
+      return '';
+    }
+
+    // Find the start of the last word (after previous whitespace)
+    let wordStart = 0;
+    for (let i = lastNonWhitespace; i >= 0; i--) {
+      if (/\s/.test(trimmedFromRight[i])) {
+        wordStart = i + 1;
+        break;
+      }
+    }
+
+    return trimmedFromRight.slice(wordStart, lastNonWhitespace + 1);
   }
 
   /**
-   * Announces the complete, committed input after user presses Enter.
-   * This reads back the entire line so the user can verify what they typed.
+   * (c) Announces the complete, committed input after user presses Enter.
+   * Reads back the entire line so the user can verify what they typed.
+   * Auto-clears after a delay to reset for the next input line.
    */
   public announceInputCommitted(buffer: string): void {
-    if (!this.inputCommittedRegion) {
+    if (!this.inputRegion) {
       return;
     }
 
@@ -193,10 +234,15 @@ export class MudScreenReaderAnnouncer {
     });
 
     if (!normalized) {
+      this.lastAnnouncedBuffer = '';
       return;
     }
 
-    this.inputCommittedRegion.textContent = `${normalized}`;
+    this.inputRegion.textContent = normalized;
+
+    // Auto-clear after delay so user gets confirmation but next input starts fresh
+    this.scheduleInputClear();
+
     // Reset buffer tracker since we're starting fresh after commit
     this.lastAnnouncedBuffer = '';
   }
