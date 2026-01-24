@@ -194,8 +194,8 @@ export class MudScreenReaderAnnouncer {
   private extractLastWord(buffer: string): string {
     if (!buffer) return '';
 
-    // Find the last whitespace
-    const trimmedFromRight = buffer.trimEnd();
+    // Find the last whitespace (remove trailing whitespace)
+    const trimmedFromRight = buffer.replace(/\s+$/, '');
     if (trimmedFromRight === buffer) {
       // No trailing whitespace, return empty
       return '';
