@@ -121,11 +121,13 @@ export class MudScreenReaderAnnouncer {
 
   /**
    * Announces input changes with three levels:
-   * (a) Per-character: announce the newest character
+   * (a) Per-character: textarea is read automatically by SR; no manual announcement
    * (b) Per-word: when whitespace is encountered, announce the complete word
    * (c) On commit: full line is announced via announceInputCommitted()
    *
-   * No "gelöscht" feedback; backspace silently updates the buffer tracker.
+   * Note: Per-character feedback is handled by the helper textarea being read
+   * by the screen reader automatically, so we skip manual textContent updates
+   * for individual chars to avoid double announcements.
    */
   public announceInput(buffer: string): void {
     if (!this.inputRegion) {
@@ -137,25 +139,15 @@ export class MudScreenReaderAnnouncer {
 
     if (currentLength > lastLength) {
       const newestChar = buffer[currentLength - 1];
-      const normalized = this.normalizeInput(newestChar);
 
-      console.debug('[ScreenReader] Announcing input char:', {
+      console.debug('[ScreenReader] Input changed:', {
         newestChar,
-        normalized,
         lastLength,
         currentLength,
       });
 
-      // (a) Announce the newest character
-      if (normalized.length > 0) {
-        this.inputRegion.textContent = normalized;
-      }
-
       // (b) Check if we just completed a word (whitespace as delimiter)
       if (/\s/.test(newestChar)) {
-        // First announce the whitespace token to ensure SR picks up the change
-        this.inputRegion.textContent = this.describeChar(newestChar);
-
         const lastWord = this.extractLastWord(buffer);
         const normalizedWord = lastWord ? this.normalizeInput(lastWord) : '';
 
@@ -169,19 +161,11 @@ export class MudScreenReaderAnnouncer {
           normalizedWord || this.describeChar(newestChar);
       }
     } else if (currentLength < lastLength) {
-      // Backspace/delete: announce the removed character (best-effort diff)
+      // Backspace/delete: silently track, textarea is read by SR automatically
       console.debug('[ScreenReader] Buffer shortened (backspace/delete):', {
         lastLength,
         currentLength,
       });
-
-      const removedSegment = this.lastAnnouncedBuffer.slice(currentLength);
-      const removedChar = removedSegment[0];
-      const token = removedChar ? this.describeChar(removedChar) : '';
-
-      if (token && this.inputRegion) {
-        this.inputRegion.textContent = token;
-      }
     }
 
     this.lastAnnouncedBuffer = buffer;
