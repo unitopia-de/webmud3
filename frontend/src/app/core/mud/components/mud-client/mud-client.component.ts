@@ -154,6 +154,11 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
         '.xterm-helper-textarea',
       ) as HTMLTextAreaElement | null) ?? null;
 
+    // Set aria-label on helper textarea for better screen reader context
+    if (this.helperTextarea) {
+      this.helperTextarea.setAttribute('aria-label', 'Eingabe');
+    }
+
     this.terminalDisposables.push(
       this.terminal.onData((data) => this.handleInput(data)),
     );
