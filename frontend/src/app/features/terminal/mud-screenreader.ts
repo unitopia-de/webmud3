@@ -107,7 +107,7 @@ export class MudScreenReaderAnnouncer {
     item.className = 'sr-log-item';
     item.textContent = normalized;
     item.role = 'text';
-    item.tabIndex = 0;
+    // item.tabIndex = 0;
 
     this.historyRegion.appendChild(item);
   }

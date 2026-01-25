@@ -36,20 +36,21 @@
   }
 
   .sr-history {
-    flex: 0 0 80vh;
+    // flex: 0 0 100vh;
     min-height: 0;
+    width: 100%;
+    height: 100vh;
     overflow: auto;
-    // position: relative;
-    -webkit-overflow-scrolling: touch;
+    position: absolute;
+    top: 0;
+    left: 0;
     z-index: 9999;
+    opacity: 0.001;
+    pointer-events: none;
     // background: white;
     // color: black;
     // border: 3px solid red;
   }
-
-  // .sr-log-item {
-  //   white-space: pre-wrap;
-  // }
 
   /* Optionales Styling */
   .disconnected-panel {
