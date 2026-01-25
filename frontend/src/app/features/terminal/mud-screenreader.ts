@@ -103,8 +103,7 @@ export class MudScreenReaderAnnouncer {
 
     const doc = this.historyRegion.ownerDocument;
 
-    const item = doc.createElement('div');
-    item.role = 'listitem';
+    const item = doc.createElement('li');
     item.className = 'sr-log-item';
     item.textContent = normalized;
 
