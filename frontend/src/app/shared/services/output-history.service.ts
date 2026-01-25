@@ -3,6 +3,17 @@ import { Injectable } from '@angular/core';
 const MAX_STORAGE_BYTES = 30 * 1024 * 1024; // 30MB
 const STORAGE_KEY = 'webmud3-history';
 
+export type HistoryEntry =
+  | { type: 'server'; data: string; seq: number; sessionToken: string }
+  | { type: 'input'; data: string };
+
+type HistoryStore = {
+  entries: HistoryEntry[];
+  meta: {
+    lastSeqSeenBySession: Record<string, number>;
+  };
+};
+
 /**
  * Service for persisting MUD output history to localStorage.
  * Stores output as a simple string array.
@@ -11,95 +22,84 @@ const STORAGE_KEY = 'webmud3-history';
   providedIn: 'root',
 })
 export class OutputHistoryService {
-  /**
-   * Saves output lines to localStorage.
-   * Enforces a ~30MB limit by removing oldest lines if needed.
-   */
-  public saveLines(lines: string[]): void {
-    if (!this.isStorageAvailable()) {
-      console.warn('[OutputHistory] localStorage not available');
+  // Public API for structured history
+  public loadEntries(): HistoryEntry[] {
+    const store = this.loadStore();
+    return store.entries;
+  }
+
+  public appendServerEntry(
+    sessionToken: string,
+    data: string,
+    seq: number,
+  ): void {
+    const store = this.loadStore();
+    const last = store.meta.lastSeqSeenBySession[sessionToken] ?? 0;
+
+    if (seq <= last) {
+      // Duplicate or old entry; ignore
       return;
     }
 
-    try {
-      const serialized = JSON.stringify(lines);
-
-      // Check size limit
-      const sizeBytes = new Blob([serialized]).size;
-      if (sizeBytes > MAX_STORAGE_BYTES) {
-        console.warn(
-          `[OutputHistory] Data exceeds ${MAX_STORAGE_BYTES} bytes, trimming...`,
-        );
-        const trimmedLines = this.trimToSize(lines, MAX_STORAGE_BYTES);
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(trimmedLines));
-      } else {
-        localStorage.setItem(STORAGE_KEY, serialized);
-      }
-
-      console.debug(
-        `[OutputHistory] Saved ${lines.length} lines (${sizeBytes} bytes)`,
-      );
-    } catch (error) {
-      console.error('[OutputHistory] Failed to save lines:', error);
-      // If QuotaExceededError, try to trim
-      if (
-        error instanceof DOMException &&
-        error.name === 'QuotaExceededError'
-      ) {
-        this.handleQuotaExceeded(lines);
-      }
-    }
+    store.entries.push({ type: 'server', data, seq, sessionToken });
+    store.meta.lastSeqSeenBySession[sessionToken] = seq;
+    this.saveStore(store);
   }
 
-  /**
-   * Loads output lines from localStorage.
-   * Returns an empty array if no data exists or an error occurs.
-   */
-  public loadLines(): string[] {
-    if (!this.isStorageAvailable()) {
-      return [];
-    }
-
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-
-      if (!stored) {
-        console.debug('[OutputHistory] No stored lines found');
-        return [];
-      }
-
-      const lines = JSON.parse(stored) as string[];
-      console.debug(`[OutputHistory] Loaded ${lines.length} lines`);
-      return lines;
-    } catch (error) {
-      console.error('[OutputHistory] Failed to load lines:', error);
-      return [];
-    }
+  public appendInputLine(line: string): void {
+    const store = this.loadStore();
+    store.entries.push({ type: 'input', data: line });
+    this.saveStore(store);
   }
 
-  /**
-   * Clears all stored output lines.
-   */
-  public clearLines(): void {
-    if (!this.isStorageAvailable()) {
-      return;
-    }
+  public getLastSeqSeen(sessionToken: string): number {
+    const store = this.loadStore();
+    return store.meta.lastSeqSeenBySession[sessionToken] ?? 0;
+  }
 
+  public setLastSeqSeen(sessionToken: string, seq: number): void {
+    const store = this.loadStore();
+    store.meta.lastSeqSeenBySession[sessionToken] = seq;
+    this.saveStore(store);
+  }
+
+  public clearAll(): void {
+    if (!this.isStorageAvailable()) return;
     try {
       localStorage.removeItem(STORAGE_KEY);
-      console.debug('[OutputHistory] Cleared all lines');
+      console.debug('[OutputHistory] Cleared all entries');
     } catch (error) {
-      console.error('[OutputHistory] Failed to clear lines:', error);
+      console.error('[OutputHistory] Failed to clear entries:', error);
     }
   }
 
-  /**
-   * Appends new lines to existing stored lines.
-   */
+  // Backward-compat wrappers (no-ops or adapters)
+  public saveLines(_lines: string[]): void {
+    // Deprecated: use structured API
+    console.warn('[OutputHistory] saveLines is deprecated');
+  }
+
+  public loadLines(): string[] {
+    // Map structured entries back to flat strings
+    const entries = this.loadEntries();
+    return entries.map((e) => e.data);
+  }
+
+  public clearLines(): void {
+    this.clearAll();
+  }
+
   public appendLines(newLines: string[]): void {
-    const existingLines = this.loadLines();
-    const combinedLines = [...existingLines, ...newLines];
-    this.saveLines(combinedLines);
+    const store = this.loadStore();
+    for (const line of newLines) {
+      store.entries.push({
+        type: 'server',
+        data: line,
+        seq: 0,
+        sessionToken: '',
+      });
+    }
+    this.saveStore(store);
   }
 
   /**
@@ -120,41 +120,89 @@ export class OutputHistoryService {
    * Trims lines array to fit within the specified byte size.
    * Removes oldest lines (from the beginning) until size is acceptable.
    */
-  private trimToSize(lines: string[], maxBytes: number): string[] {
-    let trimmedLines = [...lines];
+  private trimStoreToSize(store: HistoryStore, maxBytes: number): HistoryStore {
+    let entries = [...store.entries];
+    let serialized = JSON.stringify({ entries, meta: store.meta });
+    let sizeBytes = new Blob([serialized]).size;
 
-    while (trimmedLines.length > 0) {
-      const serialized = JSON.stringify(trimmedLines);
-      const sizeBytes = new Blob([serialized]).size;
-
-      if (sizeBytes <= maxBytes) {
-        break;
-      }
-
-      // Remove oldest 10% of lines at a time for efficiency
-      const removeCount = Math.max(1, Math.floor(trimmedLines.length * 0.1));
-      trimmedLines = trimmedLines.slice(removeCount);
+    while (entries.length > 0 && sizeBytes > maxBytes) {
+      const removeCount = Math.max(1, Math.floor(entries.length * 0.1));
+      entries = entries.slice(removeCount);
+      serialized = JSON.stringify({ entries, meta: store.meta });
+      sizeBytes = new Blob([serialized]).size;
     }
 
     console.debug(
-      `[OutputHistory] Trimmed from ${lines.length} to ${trimmedLines.length} lines`,
+      `[OutputHistory] Trimmed store to ${entries.length} entries (${sizeBytes} bytes)`,
     );
-    return trimmedLines;
+    return { entries, meta: store.meta };
   }
 
   /**
    * Handles QuotaExceededError by trimming lines and retrying.
    */
-  private handleQuotaExceeded(lines: string[]): void {
+  private handleQuotaExceeded(store: HistoryStore): void {
     console.warn(
       '[OutputHistory] Quota exceeded, attempting to trim and retry',
     );
-    const trimmedLines = this.trimToSize(lines, MAX_STORAGE_BYTES * 0.8); // Use 80% of limit
+    const trimmedStore = this.trimStoreToSize(store, MAX_STORAGE_BYTES * 0.8); // Use 80% of limit
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(trimmedLines));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(trimmedStore));
       console.debug('[OutputHistory] Successfully saved after trimming');
     } catch (error) {
       console.error('[OutputHistory] Failed even after trimming:', error);
+    }
+  }
+
+  private loadStore(): HistoryStore {
+    if (!this.isStorageAvailable()) {
+      return { entries: [], meta: { lastSeqSeenBySession: {} } };
+    }
+
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      if (!stored) {
+        return { entries: [], meta: { lastSeqSeenBySession: {} } };
+      }
+      const parsed = JSON.parse(stored) as HistoryStore | string[];
+      if (Array.isArray(parsed)) {
+        // Migrate from legacy string[] format
+        return {
+          entries: parsed.map((data) => ({
+            type: 'server',
+            data,
+            seq: 0,
+            sessionToken: '',
+          })),
+          meta: { lastSeqSeenBySession: {} },
+        };
+      }
+      return parsed;
+    } catch (error) {
+      console.error('[OutputHistory] Failed to load store:', error);
+      return { entries: [], meta: { lastSeqSeenBySession: {} } };
+    }
+  }
+
+  private saveStore(store: HistoryStore): void {
+    if (!this.isStorageAvailable()) return;
+    try {
+      let toSave = store;
+      const serialized = JSON.stringify(toSave);
+      const sizeBytes = new Blob([serialized]).size;
+      if (sizeBytes > MAX_STORAGE_BYTES) {
+        console.warn('[OutputHistory] Store exceeds limit, trimming...');
+        toSave = this.trimStoreToSize(store, MAX_STORAGE_BYTES);
+      }
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave));
+    } catch (error) {
+      console.error('[OutputHistory] Failed to save store:', error);
+      if (
+        error instanceof DOMException &&
+        error.name === 'QuotaExceededError'
+      ) {
+        this.handleQuotaExceeded(store);
+      }
     }
   }
 }

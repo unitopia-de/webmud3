@@ -7,7 +7,11 @@ export interface ServerToClientEvents {
   /**
    * Sends rendered MUD output to the connected client.
    */
-  mudOutput: (data: string) => void;
+  mudOutput: (data: string, seq: number) => void;
+  /**
+   * Sends a batch of buffered outputs (used on reconnect recovery).
+   */
+  mudOutputBatch?: (entries: Array<{ data: string; seq: number }>) => void;
   /**
    * Signals that the MUD connection was closed.
    */

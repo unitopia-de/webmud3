@@ -76,18 +76,23 @@ export class SocketManager extends Server<
 
             this.emitCurrentOptionStates(existingTelnet, socket);
 
-            const bufferedLines =
-              existingConnection.outputLineBuffer.getLines();
+            const bufferedEntries =
+              existingConnection.outputLineBuffer.getEntries();
 
-            if (bufferedLines.length > 0) {
+            if (bufferedEntries.length > 0) {
               logger.info(
-                `[${socket.id}] [Socket-Manager] Sending ${bufferedLines.length} buffered lines to reconnected client`,
+                `[${socket.id}] [Socket-Manager] Sending ${bufferedEntries.length} buffered entries to reconnected client`,
                 {
                   socketId: socket.id,
                 },
               );
 
-              socket.emit('mudOutput', bufferedLines.join(''));
+              // Send buffered entries as batch with sequence numbers
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              (socket as unknown as any).emit(
+                'mudOutputBatch',
+                bufferedEntries,
+              );
             }
           }
         }
@@ -240,18 +245,22 @@ export class SocketManager extends Server<
 
             this.emitCurrentOptionStates(existingClient, socket);
 
-            const bufferedLines =
-              existingConnection.outputLineBuffer.getLines();
+            const bufferedEntries =
+              existingConnection.outputLineBuffer.getEntries();
 
-            if (bufferedLines.length > 0) {
+            if (bufferedEntries.length > 0) {
               logger.info(
-                `[${socket.id}] [Socket-Manager] Sending ${bufferedLines.length} buffered lines to reconnected client`,
+                `[${socket.id}] [Socket-Manager] Sending ${bufferedEntries.length} buffered entries to reconnected client`,
                 {
                   socketId: socket.id,
                 },
               );
 
-              socket.emit('mudOutput', bufferedLines.join(''));
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              (socket as unknown as any).emit(
+                'mudOutputBatch',
+                bufferedEntries,
+              );
             }
 
             return;
@@ -318,7 +327,7 @@ export class SocketManager extends Server<
           }
 
           // ALWAYS buffer the output, regardless of socket connection status
-          outputBuffer.addLine(outputString);
+          const seq = outputBuffer.addData(outputString);
 
           // Emit to socket only if connected
           const currentSocket = this.getSocketById(
@@ -326,7 +335,12 @@ export class SocketManager extends Server<
           );
 
           if (currentSocket !== undefined) {
-            currentSocket.emit('mudOutput', outputString);
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            (currentSocket as unknown as any).emit(
+              'mudOutput',
+              outputString,
+              seq,
+            );
           }
         });
 

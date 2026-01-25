@@ -112,9 +112,22 @@ export class SocketsService {
       this.handleMudDisconnect();
     });
 
-    this.socket.on('mudOutput', (output: string) => {
-      this.handleMudOutput(output);
-    });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (this.socket as unknown as any).on(
+      'mudOutput',
+      (output: string, seq: number) => {
+        this.handleMudOutput(output, seq);
+      },
+    );
+
+    // Optional batch replay on reconnect
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (this.socket as unknown as any).on(
+      'mudOutputBatch',
+      (entries: Array<{ data: string; seq: number }>) => {
+        this.handleMudOutputBatch(entries);
+      },
+    );
 
     this.socket.on('setEchoMode', (showEchos: boolean) => {
       this.handleSetEchoMode(showEchos);
@@ -208,24 +221,42 @@ export class SocketsService {
 
     // Clear history when MUD connection is closed
     console.log('[Sockets] Clearing history after MUD disconnect');
-    this.outputHistoryService.clearLines();
+    this.outputHistoryService.clearAll();
 
     this.connectedToMud.next(false);
 
     this.onMudDisconnect.emit();
   };
 
-  private handleMudOutput = (output: string) => {
-    this.onMudOutput.emit({
-      data: output,
-    });
+  private handleMudOutput = (output: string, seq?: number) => {
+    // Accept only if seq gating passes (or seq missing for compatibility)
+    if (typeof seq === 'number') {
+      const last = this.outputHistoryService.getLastSeqSeen(this.sessionToken);
+      if (seq <= last) {
+        // Old replay; drop silently
+        return;
+      }
+      // Persist and emit
+      this.outputHistoryService.appendServerEntry(
+        this.sessionToken,
+        output,
+        seq,
+      );
+    }
 
-    // Save output to localStorage
-    this.outputHistoryService.appendLines([output]);
+    this.onMudOutput.emit({ data: output });
 
-    // Flush queued input after receiving output (including buffered output after reconnect)
     if (this.inputQueue.length > 0) {
       this.flushInputQueue();
+    }
+  };
+
+  private handleMudOutputBatch = (
+    entries: Array<{ data: string; seq: number }>,
+  ) => {
+    // Process in order; persist and emit only new ones
+    for (const { data, seq } of entries) {
+      this.handleMudOutput(data, seq);
     }
   };
 

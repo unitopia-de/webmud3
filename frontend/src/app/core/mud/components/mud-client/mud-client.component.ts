@@ -256,6 +256,18 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
 
     this.mudService.sendMessage(payload);
 
+    // Save the current prompt to history for session persistence
+    const currentPrompt = this.promptManager.getCurrentPrompt();
+
+    if (typeof payload === 'string') {
+      // Persist with CRLF to match server formatting faithfully
+      const storedMessage = `${currentPrompt}${payload}\r\n`;
+      console.debug(
+        `[MudClient] Saving input with prompt: ${currentPrompt} ${message}`,
+      );
+      this.outputHistoryService.appendInputLine(storedMessage);
+    }
+
     // Clear helper textarea after commit
     this.updateHelperTextarea('');
   }
@@ -389,20 +401,19 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
   private loadHistoryIfAvailable(): void {
     console.log('[MudClient] Loading history from localStorage');
 
-    const historyLines = this.outputHistoryService.loadLines();
+    const entries = this.outputHistoryService.loadEntries();
 
-    if (historyLines.length === 0) {
+    if (entries.length === 0) {
       console.log('[MudClient] No history found');
       return;
     }
 
-    console.log(
-      `[MudClient] Restoring ${historyLines.length} lines from history`,
-    );
+    console.log(`[MudClient] Restoring ${entries.length} entries from history`);
 
-    // Write all history lines to terminal
-    const historyData = historyLines.join('');
-    this.terminal.write(historyData);
+    // Write all history entries to terminal in order
+    for (const entry of entries) {
+      this.terminal.write(entry.data);
+    }
   }
 
   /**
