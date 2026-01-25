@@ -8,7 +8,12 @@ describe('MudScreenReaderAnnouncer', () => {
     jest.useFakeTimers();
     liveRegion = document.createElement('div');
     // Explicitly skip history region while overriding clear delay for tests
-    announcer = new MudScreenReaderAnnouncer(liveRegion, undefined, 100);
+    announcer = new MudScreenReaderAnnouncer(
+      liveRegion,
+      undefined,
+      undefined,
+      100,
+    );
   });
 
   afterEach(() => {
