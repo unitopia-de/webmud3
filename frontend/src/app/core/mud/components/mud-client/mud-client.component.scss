@@ -41,10 +41,9 @@
     top: 0;
     width: 100%;
     height: 40vh;
-    visibility: hidden;
+    opacity: 0.001; /* SR-accessible, visually hidden */
     pointer-events: none;
     overflow: auto;
-    z-index: 0;
   }
 
   .sr-log-item {
