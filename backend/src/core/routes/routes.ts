@@ -16,6 +16,11 @@ export const useRoutes = (app: Express) => {
       path.join(__dirname, 'dist', 'manifest.webmanifest'),
       function (err, data) {
         if (err) {
+          logger.error('[Routes] Failed to read manifest.webmanifest', {
+            error: err.message,
+            path: path.join(__dirname, 'dist', 'manifest.webmanifest'),
+          });
+
           res.sendStatus(404);
         } else {
           res.send(data);
@@ -48,6 +53,16 @@ export const useRoutes = (app: Express) => {
 
     res.sendFile(
       path.join(Environment.getInstance().projectRoot, 'wwwroot/index.html'),
+      (err) => {
+        if (err) {
+          logger.error('[Routes] Failed to send index.html', {
+            error: err.message,
+            path: req.path,
+          });
+
+          res.sendStatus(500);
+        }
+      },
     );
   });
 };
