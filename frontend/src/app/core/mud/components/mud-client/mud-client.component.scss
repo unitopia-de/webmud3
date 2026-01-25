@@ -9,6 +9,7 @@
     background-color: black;
     min-height: 0;
     overflow: hidden;
+    z-index: 1;
   }
 
   .sr-announcer {
@@ -44,9 +45,13 @@
     position: absolute;
     top: 0;
     left: 0;
-    z-index: 9999;
-    opacity: 0.001;
-    pointer-events: none;
+    z-index: 0;
+
+    // opacity: 0.001;
+    // pointer-events: none;
+
+    color: transparent;
+    background: transparent;
     // background: white;
     // color: black;
     // border: 3px solid red;
