@@ -33,7 +33,7 @@ const logger = winston.createLogger({
     winston.format.metadata({
       fillExcept: ['message', 'level', 'timestamp', 'label'],
     }),
-    logMetadata(false),
+    logMetadata(true),
     winston.format.printf(
       (info) => `[${info.timestamp}] [${info.level}] ${info.message}`,
     ),

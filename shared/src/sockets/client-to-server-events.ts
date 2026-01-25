@@ -4,8 +4,13 @@
 export interface ClientToServerEvents {
   /**
    * Requests a telnet connection using the provided initial viewport size.
+   * @param initialViewPort - Client's terminal dimensions
+   * @param sessionToken - Persistent session identifier (UUID) across socket reconnections
    */
-  mudConnect: (initialViewPort: { columns: number; rows: number }) => void;
+  mudConnect: (
+    initialViewPort: { columns: number; rows: number },
+    sessionToken: string,
+  ) => void;
   /**
    * Requests that the server tears down the active telnet connection.
    */

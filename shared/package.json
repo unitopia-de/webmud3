@@ -26,7 +26,6 @@
     "dist"
   ],
   "scripts": {
-    "prebuild": "npm run clean:dist",
     "build": "tsc -p tsconfig.json",
     "clean": "npm run clean:dist && npm run clean:packages",
     "clean:dist": "rimraf dist",

@@ -1,10 +1,11 @@
-import { EventEmitter, Injectable } from '@angular/core';
+import { EventEmitter, inject, Injectable } from '@angular/core';
 import { BehaviorSubject } from 'rxjs';
 import { Manager, Socket } from 'socket.io-client';
 
 import { ServerConfigService } from '../../features/serverconfig/server-config.service';
 import { SecureString } from '@webmud3/frontend/shared/types/secure-string';
 import { isSecureString } from '@webmud3/frontend/shared/utils/is-secure-string';
+import { OutputHistoryService } from '@webmud3/frontend/shared/services/output-history.service';
 
 import type {
   ClientToServerEvents,
@@ -20,12 +21,16 @@ type MudOutputEventArgs = {
   providedIn: 'root',
 })
 export class SocketsService {
+  private readonly outputHistoryService = inject(OutputHistoryService);
   private readonly manager: Manager;
   private readonly socket: Socket<ServerToClientEvents, ClientToServerEvents>;
   private readonly connectedToServer = new BehaviorSubject<boolean>(false);
   private readonly connectedToMud = new BehaviorSubject<boolean>(false);
+  private readonly inputQueue: string[] = [];
+  private isReconnecting = false;
+  private sessionToken: string;
 
-  public onMudConnect = new EventEmitter();
+  public onMudConnect = new EventEmitter<boolean>(); // Emits isNewConnection
   public onMudDisconnect = new EventEmitter();
   public onMudOutput = new EventEmitter<MudOutputEventArgs>();
   public onSetEchoMode = new EventEmitter<boolean>();
@@ -38,9 +43,13 @@ export class SocketsService {
     const socketUrl = serverConfigService.getBackendUrl();
     const socketNamespace = serverConfigService.getSocketNamespace();
 
+    // Initialize or retrieve persistent session token
+    this.sessionToken = this.initializeSessionToken();
+
     console.log('[Sockets] Socket Service init socket', {
       socketUrl,
       socketNamespace,
+      sessionToken: this.sessionToken,
     });
 
     this.manager = new Manager(socketUrl, {
@@ -78,7 +87,11 @@ export class SocketsService {
       this.handlePing();
     });
 
-    this.socket = this.manager.socket('/');
+    this.socket = this.manager.socket('/', {
+      auth: {
+        sessionToken: this.sessionToken,
+      },
+    });
 
     this.socket.on('connect', () => {
       this.handleConnect();
@@ -88,9 +101,12 @@ export class SocketsService {
       this.handleDisconnect(reason);
     });
 
-    this.socket.on('mudConnected', () => {
-      this.handleMudConnect();
-    });
+    this.socket.on(
+      'mudConnected',
+      (isNewConnection: boolean, sessionToken: string) => {
+        this.handleMudConnect(isNewConnection, sessionToken);
+      },
+    );
 
     this.socket.on('mudDisconnected', () => {
       this.handleMudDisconnect();
@@ -117,8 +133,10 @@ export class SocketsService {
     columns: number;
     rows: number;
   }): void {
-    console.log(`[Sockets] Sockets-Service: 'connectToMud'`);
-    this.socket.emit('mudConnect', initialViewPort);
+    console.log(
+      `[Sockets] Sockets-Service: 'connectToMud' with sessionToken: ${this.sessionToken}`,
+    );
+    this.socket.emit('mudConnect', initialViewPort, this.sessionToken);
   }
 
   public disconnectFromMud() {
@@ -127,6 +145,16 @@ export class SocketsService {
   }
 
   public sendMessage(message: string | SecureString) {
+    // Queue the message if disconnected or reconnecting
+    if (!this.connectedToServer.value || this.isReconnecting) {
+      const messageToQueue = !isSecureString(message) ? message : message.value;
+      this.inputQueue.push(messageToQueue);
+      console.log(
+        `[Sockets] Sockets-Service: Message queued (${this.inputQueue.length} in queue)`,
+      );
+      return;
+    }
+
     if (!isSecureString(message)) {
       console.log(`[Sockets] Sockets-Service: 'sendMessage'`, { message });
       this.socket.emit('mudInput', message);
@@ -149,14 +177,38 @@ export class SocketsService {
     throw new Error('Method not implemented.');
   }
 
-  private handleMudConnect = () => {
-    this.connectedToMud.next(true);
+  private handleMudConnect = (
+    isNewConnection: boolean,
+    sessionToken: string,
+  ) => {
+    console.log(
+      '[Sockets] Sockets-Service: mudConnected, isNewConnection:',
+      isNewConnection,
+      'sessionToken:',
+      sessionToken,
+    );
 
-    this.onMudConnect.emit();
+    // Update session token if received from server
+    if (sessionToken) {
+      this.sessionToken = sessionToken;
+      this.saveSessionToken(sessionToken);
+      this.socket.auth = { sessionToken };
+    }
+
+    // Don't clear history here - it would clear on every page reload
+    // since isNewConnection=true even when just the socket-id changed
+    // History is only cleared on explicit mudDisconnect
+
+    this.connectedToMud.next(true);
+    this.onMudConnect.emit(isNewConnection);
   };
 
   private handleMudDisconnect = () => {
     console.log(`[Sockets] Sockets-Service: received 'mudDisconnected'`);
+
+    // Clear history when MUD connection is closed
+    console.log('[Sockets] Clearing history after MUD disconnect');
+    this.outputHistoryService.clearLines();
 
     this.connectedToMud.next(false);
 
@@ -167,6 +219,14 @@ export class SocketsService {
     this.onMudOutput.emit({
       data: output,
     });
+
+    // Save output to localStorage
+    this.outputHistoryService.appendLines([output]);
+
+    // Flush queued input after receiving output (including buffered output after reconnect)
+    if (this.inputQueue.length > 0) {
+      this.flushInputQueue();
+    }
   };
 
   private handleClose() {
@@ -183,10 +243,15 @@ export class SocketsService {
 
   private handleReconnect = (attempt: number) => {
     console.info('[Sockets] Sockets-Service: Reconnect:', attempt);
+    this.isReconnecting = false;
+
+    // Flush queued input after reconnection
+    this.flushInputQueue();
   };
 
   private handleReconnectAttempt = (attempt: number) => {
     console.info('[Sockets] Sockets-Service: Reconnect Attempt:', attempt);
+    this.isReconnecting = true;
   };
 
   private handleReconnectError = (error: Error) => {
@@ -232,4 +297,68 @@ export class SocketsService {
 
     callback();
   };
+
+  /**
+   * Flushes the input queue by sending all queued messages to the server
+   */
+  private flushInputQueue = () => {
+    if (this.inputQueue.length === 0) {
+      return;
+    }
+
+    console.log(
+      `[Sockets] Sockets-Service: Flushing ${this.inputQueue.length} queued messages`,
+    );
+
+    while (this.inputQueue.length > 0) {
+      const message = this.inputQueue.shift();
+      if (message !== undefined) {
+        this.socket.emit('mudInput', message);
+      }
+    }
+  };
+
+  /**
+   * Initializes or retrieves the persistent session token from localStorage
+   */
+  private initializeSessionToken(): string {
+    const STORAGE_KEY = 'webmud3-session-token';
+    let token = localStorage.getItem(STORAGE_KEY);
+
+    if (!token) {
+      // Generate new UUID v4
+      token = this.generateUUID();
+      this.saveSessionToken(token);
+    }
+
+    return token;
+  }
+
+  /**
+   * Saves the session token to localStorage
+   */
+  private saveSessionToken(token: string): void {
+    try {
+      localStorage.setItem('webmud3-session-token', token);
+    } catch (error) {
+      console.error(
+        '[Sockets] Failed to save session token to localStorage:',
+        error,
+      );
+    }
+  }
+
+  /**
+   * Generates a UUID v4 string
+   */
+  private generateUUID(): string {
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(
+      /[xy]/g,
+      function (c) {
+        const r = (Math.random() * 16) | 0;
+        const v = c === 'x' ? r : (r & 0x3) | 0x8;
+        return v.toString(16);
+      },
+    );
+  }
 }

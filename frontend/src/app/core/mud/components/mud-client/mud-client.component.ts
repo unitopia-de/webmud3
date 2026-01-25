@@ -14,6 +14,7 @@ import { Subscription } from 'rxjs';
 
 import { MudService } from '../../services/mud.service';
 import { SecureString } from '@webmud3/frontend/shared/types/secure-string';
+import { OutputHistoryService } from '@webmud3/frontend/shared/services/output-history.service';
 import type { LinemodeState } from '@webmud3/shared';
 import {
   MudInputController,
@@ -49,6 +50,7 @@ type MudClientState = {
 })
 export class MudClientComponent implements AfterViewInit, OnDestroy {
   private readonly mudService = inject(MudService);
+  private readonly outputHistoryService = inject(OutputHistoryService);
 
   private readonly terminal: Terminal;
   private readonly inputController: MudInputController;
@@ -173,6 +175,9 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
 
     this.resizeObs.observe(this.terminalRef.nativeElement);
     this.setState({ terminalReady: true });
+
+    // Load history BEFORE connecting to MUD to ensure it appears before new output
+    this.loadHistoryIfAvailable();
 
     const columns = this.terminal.cols;
     const rows = this.terminal.rows + 1;
@@ -376,6 +381,28 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
    */
   private setState(patch: Partial<MudClientState>): void {
     this.state = { ...this.state, ...patch };
+  }
+
+  /**
+   * Loads and displays saved output history if available.
+   */
+  private loadHistoryIfAvailable(): void {
+    console.log('[MudClient] Loading history from localStorage');
+
+    const historyLines = this.outputHistoryService.loadLines();
+
+    if (historyLines.length === 0) {
+      console.log('[MudClient] No history found');
+      return;
+    }
+
+    console.log(
+      `[MudClient] Restoring ${historyLines.length} lines from history`,
+    );
+
+    // Write all history lines to terminal
+    const historyData = historyLines.join('');
+    this.terminal.write(historyData);
   }
 
   /**
