@@ -37,27 +37,15 @@
 
   .sr-history {
     position: absolute;
-    width: 1px;
-    height: 1px;
-    padding: 0;
-    margin: -1px;
-    overflow: hidden;
-    clip: rect(0, 0, 0, 0);
-    white-space: pre-wrap;
-    border: 0;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 40vh;
+    visibility: hidden;
+    pointer-events: none;
+    overflow: auto;
+    z-index: 0;
   }
-
-  // .sr-input-committed {
-  //   position: absolute;
-  //   left: 0;
-  //   top: 0;
-  //   width: 100%;
-  //   height: 40vh;
-  //   opacity: 0.001; /* quasi unsichtbar */
-  //   pointer-events: none; /* verhindert Maus-Klicks */
-  //   overflow: auto;
-  //   z-index: 0;
-  // }
 
   .sr-log-item {
     white-space: pre-wrap;
