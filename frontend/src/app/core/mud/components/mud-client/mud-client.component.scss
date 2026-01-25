@@ -36,6 +36,9 @@
   }
 
   .sr-history {
+    flex: 0 0 30vh;
+    overflow: auto;
+    z-index: 10;
     // position: absolute;
     // left: 0;
     // top: 0;
