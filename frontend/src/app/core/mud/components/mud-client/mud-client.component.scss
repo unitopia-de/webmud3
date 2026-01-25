@@ -36,9 +36,11 @@
   }
 
   .sr-history {
-    flex: 0 0 30vh;
+    flex: 0 0 80vh;
+    min-height: 0;
     overflow: auto;
     // position: relative;
+    -webkit-overflow-scrolling: touch;
     z-index: 9999;
     // background: white;
     // color: black;
