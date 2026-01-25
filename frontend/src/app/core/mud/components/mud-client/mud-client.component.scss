@@ -37,18 +37,18 @@
 
   .sr-history {
     // position: absolute;
-    left: 0;
-    top: 0;
-    width: 100%;
+    // left: 0;
+    // top: 0;
+    // width: 100%;
     // height: 40vh;
     // opacity: 0.001; /* SR-accessible, visually hidden */
     // pointer-events: none;
     overflow: auto;
   }
 
-  .sr-log-item {
-    white-space: pre-wrap;
-  }
+  // .sr-log-item {
+  //   white-space: pre-wrap;
+  // }
 
   /* Optionales Styling */
   .disconnected-panel {
