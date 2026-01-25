@@ -38,15 +38,11 @@
   .sr-history {
     flex: 0 0 30vh;
     overflow: auto;
-    z-index: 10;
-    // position: absolute;
-    // left: 0;
-    // top: 0;
-    // width: 100%;
-    // height: 40vh;
-    // opacity: 0.001; /* SR-accessible, visually hidden */
-    // pointer-events: none;
-    // overflow: auto;
+    position: relative;
+    z-index: 9999;
+    background: white;
+    color: black;
+    border: 3px solid red;
   }
 
   // .sr-log-item {
