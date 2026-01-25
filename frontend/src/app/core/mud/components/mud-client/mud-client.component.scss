@@ -36,21 +36,26 @@
   }
 
   .sr-history {
-    position: absolute;
+    position: fixed;
     left: 0;
     top: 0;
     width: 100%;
-    height: 40vh; /* oder 100% */
-    opacity: 0.001; /* nahezu unsichtbar */
-    pointer-events: none;
+    height: 40vh;
     overflow: auto;
-    z-index: 0;
 
-    /* Wichtig: KEIN clip/clip-path/1px */
-    margin: 0;
-    padding: 0;
+    /* KEIN opacity */
+    opacity: 1;
+
+    /* KEIN clip/clip-path */
     clip: auto;
     clip-path: none;
+
+    /* Text unsichtbar, Box bleibt „sichtbar“ */
+    color: transparent;
+    background: transparent;
+
+    /* Damit es nicht klickt */
+    pointer-events: none;
   }
 
   // .sr-input-committed {
