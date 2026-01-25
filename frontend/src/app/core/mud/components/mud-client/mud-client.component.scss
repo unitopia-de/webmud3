@@ -37,14 +37,15 @@
 
   .sr-history {
     position: absolute;
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 40vh;
-    opacity: 0.001; /* quasi unsichtbar */
-    pointer-events: none; /* verhindert Maus-Klicks */
-    overflow: auto;
-    z-index: 0;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    clip-path: inset(50%);
+    white-space: pre-wrap;
+    border: 0;
   }
 
   // .sr-input-committed {
