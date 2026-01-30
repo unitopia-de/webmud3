@@ -79,6 +79,14 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
   private audioUnlocked = false;
   private lastBellTime = 0;
 
+  private readonly handleVisibilityChange = (): void => {
+    if (!document.hidden && this.audioContext?.state === 'interrupted') {
+      this.audioContext.resume().catch(() => {
+        // Ignore errors on resume
+      });
+    }
+  };
+
   private showEchoSubscription?: Subscription;
   private linemodeSubscription?: Subscription;
   private state: MudClientState = {
@@ -195,6 +203,9 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
     this.resizeObs.observe(this.terminalRef.nativeElement);
     this.setState({ terminalReady: true });
 
+    // Register visibility change listener to resume audio context when tab becomes visible
+    document.addEventListener('visibilitychange', this.handleVisibilityChange);
+
     // Load history BEFORE connecting to MUD to ensure it appears before new output
     this.loadHistoryIfAvailable();
 
@@ -209,6 +220,12 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
    */
   ngOnDestroy() {
     this.resizeObs.disconnect();
+
+    // Unregister visibility change listener
+    document.removeEventListener(
+      'visibilitychange',
+      this.handleVisibilityChange,
+    );
 
     this.terminalDisposables.forEach((disposable) => disposable.dispose());
     this.showEchoSubscription?.unsubscribe();
