@@ -51,7 +51,7 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
   private readonly outputHistoryService = inject(OutputHistoryService);
 
   private readonly fontSizeBreakpoints = [
-    { minWidth: 0, fontSize: 8.5 }, // bis 360px
+    { minWidth: 0, fontSize: 8.5 },
     { minWidth: 380, fontSize: 9 },
     { minWidth: 420, fontSize: 10 },
     { minWidth: 470, fontSize: 11 },
@@ -74,6 +74,10 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
   private readonly resizeObs = new ResizeObserver(() => {
     this.handleTerminalResize();
   });
+
+  private audioContext?: AudioContext;
+  private audioUnlocked = false;
+  private lastBellTime = 0;
 
   private showEchoSubscription?: Subscription;
   private linemodeSubscription?: Subscription;
@@ -177,6 +181,7 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
 
     this.terminalDisposables.push(
       this.terminal.onData((data) => this.handleInput(data)),
+      this.terminal.onBell(() => this.playBell()),
     );
 
     this.showEchoSubscription = this.showEcho$.subscribe((showEcho) => {
@@ -212,6 +217,13 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
     this.terminalAttachAddon?.dispose();
     this.socketAdapter?.dispose();
     this.terminal.dispose();
+
+    // Close audio context if it was created
+    if (this.audioContext && this.audioContext.state !== 'closed') {
+      this.audioContext.close().catch(() => {
+        // Ignore errors on close
+      });
+    }
     this.screenReader?.dispose();
   }
 
@@ -316,6 +328,11 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
    * or through the {@link MudInputController}.
    */
   private handleInput(data: string) {
+    // Unlock audio context on first user interaction (browser autoplay policy)
+    if (!this.audioUnlocked) {
+      this.unlockAudio();
+    }
+
     if (!this.state.isEditMode) {
       if (data.length > 0) {
         const rewritten = this.rewriteBackspaceToDelete(data);
@@ -442,6 +459,72 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
     // Write all history entries to terminal in order
     for (const entry of entries) {
       this.terminal.write(entry.data);
+    }
+  }
+
+  /**
+   * Plays a short synthesized beep using AudioContext.
+   * Implements debouncing to prevent bell spam (100ms minimum interval).
+   */
+  private playBell(): void {
+    const BELL_DEBOUNCE_MS = 100;
+    const now = Date.now();
+
+    // Ignore bells within the debounce window
+    if (now - this.lastBellTime < BELL_DEBOUNCE_MS) {
+      return;
+    }
+
+    this.lastBellTime = now;
+
+    if (!this.audioContext || this.audioContext.state === 'closed') {
+      return;
+    }
+
+    try {
+      const oscillator = this.audioContext.createOscillator();
+      const gainNode = this.audioContext.createGain();
+
+      oscillator.connect(gainNode);
+      gainNode.connect(this.audioContext.destination);
+
+      oscillator.frequency.value = 800; // Frequency in Hz
+      gainNode.gain.value = 0.3; // Volume (0-1)
+
+      const startTime = this.audioContext.currentTime;
+      oscillator.start(startTime);
+      oscillator.stop(startTime + 0.1); // Duration 100ms
+    } catch (err) {
+      console.debug('[MudClient] Bell playback failed:', err);
+    }
+  }
+
+  /**
+   * Initializes the AudioContext to comply with browser autoplay policy.
+   * Must be called in response to a user gesture (e.g., first keypress).
+   */
+  private unlockAudio(): void {
+    try {
+      if (!this.audioContext) {
+        this.audioContext = new (window.AudioContext ||
+          (window as any).webkitAudioContext)();
+      }
+
+      if (this.audioContext.state === 'suspended') {
+        this.audioContext.resume().catch((err) => {
+          console.debug('[MudClient] Audio context resume failed:', err);
+        });
+      }
+
+      this.audioUnlocked = true;
+    } catch (err) {
+      console.debug('[MudClient] Audio context initialization failed:', err);
+      this.audioUnlocked = false;
+    }
+  }
+
+  /**
+   *  this.terminal.write(entry.data);
     }
   }
 
