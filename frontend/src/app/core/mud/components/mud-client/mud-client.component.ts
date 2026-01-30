@@ -6,7 +6,6 @@ import {
   OnDestroy,
   ViewChild,
 } from '@angular/core';
-import { AsyncPipe } from '@angular/common';
 import { AttachAddon } from '@xterm/addon-attach';
 import { FitAddon } from '@xterm/addon-fit';
 import { IDisposable, Terminal } from '@xterm/xterm';
@@ -44,13 +43,24 @@ type MudClientState = {
 @Component({
   selector: 'app-mud-client',
   standalone: true,
-  imports: [AsyncPipe],
   templateUrl: './mud-client.component.html',
   styleUrls: ['./mud-client.component.scss'],
 })
 export class MudClientComponent implements AfterViewInit, OnDestroy {
   private readonly mudService = inject(MudService);
   private readonly outputHistoryService = inject(OutputHistoryService);
+
+  private readonly fontSizeBreakpoints = [
+    { minWidth: 0, fontSize: 8.5 }, // bis 360px
+    { minWidth: 380, fontSize: 9 },
+    { minWidth: 420, fontSize: 10 },
+    { minWidth: 470, fontSize: 11 },
+    { minWidth: 520, fontSize: 12 },
+    { minWidth: 570, fontSize: 13 },
+    { minWidth: 620, fontSize: 14 },
+    { minWidth: 670, fontSize: 15 },
+    { minWidth: 720, fontSize: 16 },
+  ];
 
   private readonly terminal: Terminal;
   private readonly inputController: MudInputController;
@@ -129,6 +139,7 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
       this.historyRegionRef.nativeElement,
       this.inputRegionRef.nativeElement,
     );
+
     console.debug(
       '[MudClient] Screenreader announcer initialized, live region:',
       this.liveRegionRef.nativeElement,
@@ -140,10 +151,13 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
       beforeMessage: (data) => this.beforeMudOutput(data),
       afterMessage: (data) => this.afterMudOutput(data),
     });
+
     this.terminalAttachAddon = new AttachAddon(
       this.socketAdapter as unknown as WebSocket,
       { bidirectional: false },
     );
+
+    this.applyResponsiveFontSize(window.innerWidth);
 
     this.terminal.open(this.terminalRef.nativeElement);
     this.terminal.loadAddon(this.terminalFitAddon);
@@ -201,19 +215,12 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
     this.screenReader?.dispose();
   }
 
-  protected connect() {
-    const columns = this.terminal.cols;
-    const rows = this.terminal.rows;
-
-    this.screenReader?.markSessionStart();
-    this.mudService.connect({ columns, rows });
-  }
-
   /**
    * Handles DOM resize events, updating xterm and notifying the backend whenever
    * the viewport size actually changes.
    */
   private handleTerminalResize() {
+    this.applyResponsiveFontSize(window.innerWidth);
     this.terminalFitAddon.fit();
 
     const columns = this.terminal.cols;
@@ -238,6 +245,28 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
     this.lastViewportSize = { columns, rows };
 
     this.mudService.updateViewportSize(columns, rows);
+  }
+
+  private applyResponsiveFontSize(viewportWidth: number): void {
+    const nextFontSize = this.getFontSizeForWidth(viewportWidth);
+
+    if (this.terminal.options.fontSize === nextFontSize) {
+      return;
+    }
+
+    this.terminal.options.fontSize = nextFontSize;
+  }
+
+  private getFontSizeForWidth(viewportWidth: number): number {
+    let match = this.fontSizeBreakpoints[0]?.fontSize ?? 14;
+
+    for (const breakpoint of this.fontSizeBreakpoints) {
+      if (viewportWidth >= breakpoint.minWidth) {
+        match = breakpoint.fontSize;
+      }
+    }
+
+    return match;
   }
 
   /**

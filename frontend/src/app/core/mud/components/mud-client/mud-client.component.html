@@ -17,10 +17,3 @@
 ></div>
 
 <div class="mud-output" #hostRef></div>
-
-@if (!(isConnected$ | async)) {
-  <div class="disconnected-panel">
-    <p>Disconnected!</p>
-    <button type="button" (click)="connect()">Reconnect</button>
-  </div>
-}
