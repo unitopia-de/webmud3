@@ -460,6 +460,8 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
 
   /**
    * Loads and displays saved output history if available.
+   * Fills the screenreader history region with old entries (silently, no announcement).
+   * Resets the screenreader session timestamp so new output isn't filtered as "too old".
    */
   private loadHistoryIfAvailable(): void {
     console.log('[MudClient] Loading history from localStorage');
@@ -476,7 +478,16 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
     // Write all history entries to terminal in order
     for (const entry of entries) {
       this.terminal.write(entry.data);
+
+      // Also append to screenreader history region (silent, no live announcement)
+      this.screenReader?.appendToHistory(entry.data);
     }
+
+    // Reset screenreader session timestamp after history load
+    // This ensures new incoming data won't be filtered as "too old"
+    this.screenReader?.markSessionStart();
+
+    console.log('[MudClient] History loaded and screenreader session reset');
   }
 
   /**
