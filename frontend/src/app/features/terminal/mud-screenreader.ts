@@ -90,6 +90,8 @@ export class MudScreenReaderAnnouncer {
 
   /**
    * Appends sanitized text to the history region so users can navigate it later.
+   * Splits text by newlines to create separate entries for each line, allowing screen readers
+   * to announce each line individually rather than reading the entire block as one.
    */
   public appendToHistory(raw: string): void {
     if (!this.historyRegion) {
@@ -102,13 +104,21 @@ export class MudScreenReaderAnnouncer {
     }
 
     const doc = this.historyRegion.ownerDocument;
+    const lines = normalized.split('\n');
 
-    const item = doc.createElement('p');
-    item.className = 'sr-log-item';
-    item.textContent = normalized;
-    item.role = 'text';
+    for (const line of lines) {
+      // Skip empty lines to avoid cluttering the history
+      if (!line.trim()) {
+        continue;
+      }
 
-    this.historyRegion.appendChild(item);
+      const item = doc.createElement('p');
+      item.className = 'sr-log-item';
+      item.textContent = line;
+      item.setAttribute('role', 'text');
+
+      this.historyRegion.appendChild(item);
+    }
   }
 
   /**
