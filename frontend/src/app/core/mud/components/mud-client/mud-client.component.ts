@@ -483,34 +483,46 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
    * Plays a short synthesized beep using AudioContext.
    * Implements debouncing to prevent bell spam (100ms minimum interval).
    */
-  private playBell(): void {
+  private async playBell(): Promise<void> {
     const BELL_DEBOUNCE_MS = 100;
     const now = Date.now();
-
-    // Ignore bells within the debounce window
-    if (now - this.lastBellTime < BELL_DEBOUNCE_MS) {
-      return;
-    }
-
+    if (now - this.lastBellTime < BELL_DEBOUNCE_MS) return;
     this.lastBellTime = now;
 
-    if (!this.audioContext || this.audioContext.state === 'closed') {
-      return;
-    }
+    const ctx = this.audioContext;
+    if (!ctx || ctx.state === 'closed') return;
 
     try {
-      const oscillator = this.audioContext.createOscillator();
-      const gainNode = this.audioContext.createGain();
+      // Wichtig: suspended behandeln
+      if (ctx.state === 'suspended') {
+        await ctx.resume(); // kann in manchen Browsern ohne User-Geste fehlschlagen
+      }
+
+      // Falls resume nicht geklappt hat
+      if (ctx.state !== 'running') return;
+
+      const oscillator = ctx.createOscillator();
+      const gainNode = ctx.createGain();
 
       oscillator.connect(gainNode);
-      gainNode.connect(this.audioContext.destination);
+      gainNode.connect(ctx.destination);
 
-      oscillator.frequency.value = 800; // Frequency in Hz
-      gainNode.gain.value = 0.3; // Volume (0-1)
+      oscillator.frequency.value = 800;
 
-      const startTime = this.audioContext.currentTime;
-      oscillator.start(startTime);
-      oscillator.stop(startTime + 0.1); // Duration 100ms
+      const t = ctx.currentTime;
+
+      // Kleine Lautstärke-Hüllkurve (Attack/Decay), um Klickgeräusche beim Starten/Stoppen zu vermeiden
+      gainNode.gain.setValueAtTime(0.0001, t); // leise starten
+      gainNode.gain.exponentialRampToValueAtTime(0.3, t + 0.005); // schneller Attack
+      gainNode.gain.exponentialRampToValueAtTime(0.0001, t + 0.1); // sanfter Fade-out
+
+      oscillator.start(t);
+      oscillator.stop(t + 0.11);
+
+      oscillator.onended = () => {
+        oscillator.disconnect();
+        gainNode.disconnect();
+      };
     } catch (err) {
       console.debug('[MudClient] Bell playback failed:', err);
     }
