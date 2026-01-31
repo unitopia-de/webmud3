@@ -480,7 +480,7 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
       this.terminal.write(entry.data);
 
       // Also append to screenreader history region (silent, no live announcement)
-      this.screenReader?.appendToHistory(entry.data);
+      // this.screenReader?.appendToHistory(entry.data);
     }
 
     console.log(
