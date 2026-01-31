@@ -483,11 +483,9 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
       this.screenReader?.appendToHistory(entry.data);
     }
 
-    // Reset screenreader session timestamp after history load
-    // This ensures new incoming data won't be filtered as "too old"
-    this.screenReader?.markSessionStart();
-
-    console.log('[MudClient] History loaded and screenreader session reset');
+    console.log(
+      '[MudClient] History loaded to terminal and screenreader history',
+    );
   }
 
   /**
