@@ -53,14 +53,14 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
 
   private readonly fontSizeBreakpoints = [
     { minWidth: 0, fontSize: 8.5 },
-    { minWidth: 380, fontSize: 9 },
-    { minWidth: 420, fontSize: 10 },
-    { minWidth: 470, fontSize: 11 },
-    { minWidth: 520, fontSize: 12 },
-    { minWidth: 570, fontSize: 13 },
-    { minWidth: 620, fontSize: 14 },
-    { minWidth: 670, fontSize: 15 },
-    { minWidth: 720, fontSize: 16 },
+    { minWidth: 420, fontSize: 9 },
+    { minWidth: 470, fontSize: 10 },
+    { minWidth: 520, fontSize: 11 },
+    { minWidth: 570, fontSize: 12 },
+    { minWidth: 620, fontSize: 13 },
+    { minWidth: 670, fontSize: 14 },
+    { minWidth: 720, fontSize: 15 },
+    { minWidth: 770, fontSize: 16 },
   ];
 
   private readonly terminal: Terminal;
