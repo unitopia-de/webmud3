@@ -7,6 +7,7 @@ import {
   ViewChild,
 } from '@angular/core';
 import { AttachAddon } from '@xterm/addon-attach';
+import { ClipboardAddon } from '@xterm/addon-clipboard';
 import { FitAddon } from '@xterm/addon-fit';
 import { IDisposable, Terminal } from '@xterm/xterm';
 import { Subscription } from 'rxjs';
@@ -66,6 +67,7 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
   private readonly inputController: MudInputController;
   private readonly promptManager: MudPromptManager;
   private screenReader?: MudScreenReaderAnnouncer;
+  private readonly terminalClipboardAddon = new ClipboardAddon();
   private readonly terminalFitAddon = new FitAddon();
   private socketAdapter?: MudSocketAdapter;
   private terminalAttachAddon?: AttachAddon;
@@ -89,6 +91,7 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
 
   private showEchoSubscription?: Subscription;
   private linemodeSubscription?: Subscription;
+  private pasteHandler?: (event: ClipboardEvent) => void;
   private state: MudClientState = {
     isEditMode: true,
     showEcho: true,
@@ -172,6 +175,7 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
     this.applyResponsiveFontSize(window.innerWidth);
 
     this.terminal.open(this.terminalRef.nativeElement);
+    this.terminal.loadAddon(this.terminalClipboardAddon);
     this.terminal.loadAddon(this.terminalFitAddon);
     this.terminal.loadAddon(this.terminalAttachAddon);
     this.terminal.focus();
@@ -186,6 +190,9 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
     if (this.helperTextarea) {
       this.helperTextarea.setAttribute('aria-label', 'Eingabe');
     }
+
+    // Set up paste handler on terminal container (for native paste events)
+    this.setupPasteHandler(this.terminalRef.nativeElement);
 
     this.terminalDisposables.push(
       this.terminal.onData((data) => this.handleInput(data)),
@@ -227,10 +234,22 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
       this.handleVisibilityChange,
     );
 
+    // Unregister paste handler
+    if (this.pasteHandler) {
+      if (this.terminalRef?.nativeElement) {
+        this.terminalRef.nativeElement.removeEventListener(
+          'paste',
+          this.pasteHandler,
+        );
+      }
+      document.removeEventListener('paste', this.pasteHandler);
+    }
+
     this.terminalDisposables.forEach((disposable) => disposable.dispose());
     this.showEchoSubscription?.unsubscribe();
     this.linemodeSubscription?.unsubscribe();
 
+    this.terminalClipboardAddon.dispose();
     this.terminalAttachAddon?.dispose();
     this.socketAdapter?.dispose();
     this.terminal.dispose();
@@ -343,8 +362,23 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
   /**
    * Routes terminal keystrokes either directly to the socket (when not in edit mode)
    * or through the {@link MudInputController}.
+   * Special handling for Ctrl+V: intercepts clipboard content and injects it properly.
    */
   private handleInput(data: string) {
+    console.log('[PASTE-DEBUG] Edit mode:', this.state.isEditMode);
+    console.log('[PASTE-DEBUG] Data received:', JSON.stringify(data));
+    console.log('[PASTE-DEBUG] Data length:', data.length);
+
+    // Special handling for Ctrl+V (paste): xterm converts paste to \u0016 in onData()
+    // We need to read the clipboard and inject the actual content
+    if (data === '\u0016') {
+      console.log(
+        '[MudClient] Ctrl+V detected, reading clipboard from native event...',
+      );
+      this.handlePasteFromClipboard();
+      return;
+    }
+
     // Unlock audio context on first user interaction (browser autoplay policy)
     if (!this.audioUnlocked) {
       this.unlockAudio();
@@ -594,5 +628,72 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
       buffer !== undefined ? buffer : this.inputController.getSnapshot().buffer;
 
     this.helperTextarea.value = `${prompt}${effectiveBuffer ?? ''}`;
+  }
+
+  /**
+   * Sets up a paste event handler to intercept native clipboard paste operations.
+   * This method listens on the terminal container for paste events that come
+   * directly from the browser (Ctrl+V, right-click paste, etc.) without requiring
+   * explicit clipboard API permissions.
+   *
+   * The paste event automatically includes clipboard access through event.clipboardData,
+   * so no navigator.clipboard.readText() call is needed.
+   */
+  private setupPasteHandler(element: HTMLElement): void {
+    this.pasteHandler = (event: ClipboardEvent) => {
+      console.log('[MudClient] Native paste event intercepted');
+
+      // Don't prevent default for now - let xterm handle the visual part
+      // We'll just read the clipboard data and inject it properly
+      const pastedText = event.clipboardData?.getData('text/plain');
+
+      console.log('[MudClient] Clipboard content:', {
+        length: pastedText?.length ?? 0,
+        preview: pastedText?.substring(0, 50),
+      });
+
+      if (pastedText) {
+        // Prevent the default onData behavior (which sends \u0016 only)
+        event.preventDefault();
+
+        if (!this.state.isEditMode) {
+          // In non-edit mode, send paste content directly to server
+          this.mudService.sendMessage(pastedText);
+        } else {
+          // In edit mode, route through input controller for buffering and echo
+          this.inputController.handleData(pastedText);
+        }
+      }
+    };
+
+    element.addEventListener('paste', this.pasteHandler);
+  }
+
+  /**
+   * Handles paste by reading clipboard content when Ctrl+V is detected.
+   * Uses the Clipboard API which is safe to call here since it's triggered
+   * by a user gesture (Ctrl+V keypress).
+   */
+  private async handlePasteFromClipboard(): Promise<void> {
+    try {
+      const pastedText = await navigator.clipboard.readText();
+
+      console.log('[MudClient] Clipboard content read:', {
+        length: pastedText.length,
+        preview: pastedText.substring(0, 50),
+      });
+
+      if (pastedText) {
+        if (!this.state.isEditMode) {
+          // In non-edit mode, send paste content directly to server
+          this.mudService.sendMessage(pastedText);
+        } else {
+          // In edit mode, route through input controller for buffering and echo
+          this.inputController.handleData(pastedText);
+        }
+      }
+    } catch (err) {
+      console.error('[MudClient] Failed to read clipboard:', err);
+    }
   }
 }
