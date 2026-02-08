@@ -11,6 +11,9 @@ export const useConfigEndpoint = (app: Express) => {
 
     res.json({
       socketNamespace: environment.socketRoot,
+      socketPingInterval: environment.socketPingInterval,
+      socketPingTimeout: environment.socketPingTimeout,
+      socketTimeout: environment.socketTimeout,
     });
   });
 };

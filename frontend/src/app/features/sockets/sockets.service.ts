@@ -29,6 +29,7 @@ export class SocketsService {
   private readonly inputQueue: string[] = [];
   private isReconnecting = false;
   private sessionToken: string;
+  private forceNewSession = false;
 
   public onMudConnect = new EventEmitter<boolean>(); // Emits isNewConnection
   public onMudDisconnect = new EventEmitter();
@@ -54,7 +55,7 @@ export class SocketsService {
 
     this.manager = new Manager(socketUrl, {
       path: socketNamespace,
-      transports: ['websocket'],
+      transports: serverConfigService.getSocketTransports(),
       reconnectionAttempts: Infinity,
       reconnection: true,
     });
@@ -146,6 +147,11 @@ export class SocketsService {
     columns: number;
     rows: number;
   }): void {
+    if (this.forceNewSession) {
+      this.resetSessionToken();
+      this.forceNewSession = false;
+    }
+
     console.log(
       `[Sockets] Sockets-Service: 'connectToMud' with sessionToken: ${this.sessionToken}`,
     );
@@ -291,6 +297,7 @@ export class SocketsService {
 
   private handleReconnectFailed = () => {
     this.connectedToServer.next(false);
+    this.forceNewSession = true;
 
     console.error('[Sockets] Sockets-Service: Reconnect Failed');
   };
@@ -391,5 +398,12 @@ export class SocketsService {
         return v.toString(16);
       },
     );
+  }
+
+  private resetSessionToken(): void {
+    const newToken = this.generateUUID();
+    this.sessionToken = newToken;
+    this.saveSessionToken(newToken);
+    this.socket.auth = { sessionToken: newToken };
   }
 }

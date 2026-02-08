@@ -19,7 +19,10 @@ export class Environment implements IEnvironment {
   public readonly telnetTLS: boolean;
   public readonly projectRoot: string;
   public readonly socketRoot: string;
+  public readonly socketPingInterval: number;
+  public readonly socketPingTimeout: number;
   public readonly socketTimeout: number;
+  public readonly telnetKeepAliveDelay: number;
   public readonly environment: 'production' | 'development';
   public readonly name: string;
   public readonly corsAllowList: string[];
@@ -49,8 +52,20 @@ export class Environment implements IEnvironment {
 
     this.socketRoot = String(getEnvironmentVariable('SOCKET_ROOT'));
 
+    this.socketPingInterval = Number(
+      getEnvironmentVariable('SOCKET_PING_INTERVAL', false, '25000'),
+    );
+
+    this.socketPingTimeout = Number(
+      getEnvironmentVariable('SOCKET_PING_TIMEOUT', false, '20000'),
+    );
+
     this.socketTimeout = Number(
       getEnvironmentVariable('SOCKET_TIMEOUT', false, '900000'),
+    );
+
+    this.telnetKeepAliveDelay = Number(
+      getEnvironmentVariable('TELNET_KEEPALIVE_DELAY', false, '30000'),
     );
 
     const environment = String(
