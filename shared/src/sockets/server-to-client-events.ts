@@ -7,15 +7,21 @@ export interface ServerToClientEvents {
   /**
    * Sends rendered MUD output to the connected client.
    */
-  mudOutput: (data: string) => void;
+  mudOutput: (data: string, seq: number) => void;
+  /**
+   * Sends a batch of buffered outputs (used on reconnect recovery).
+   */
+  mudOutputBatch?: (entries: Array<{ data: string; seq: number }>) => void;
   /**
    * Signals that the MUD connection was closed.
    */
   mudDisconnected: () => void;
   /**
    * Signals that the MUD connection was successfully established.
+   * @param isNewConnection - true if this is a new telnet connection, false if reconnected to existing
+   * @param sessionToken - The session token confirmed by the server
    */
-  mudConnected: () => void;
+  mudConnected: (isNewConnection: boolean, sessionToken: string) => void;
   /**
    * Instructs the client to enable or disable local echo mode.
    */

@@ -150,7 +150,7 @@ class NawsNegotiator {
 
     this.socket.writeSub(TelnetOptions.TELOPT_NAWS, buffer);
 
-    logger.info('SENDING NAWS: ', {
+    logger.verbose('SENDING NAWS: ', {
       width: this.state.width,
       height: this.state.height,
     });

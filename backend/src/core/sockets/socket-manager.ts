@@ -3,6 +3,7 @@ import type {
   LinemodeState,
   ServerToClientEvents,
 } from '@webmud3/shared';
+import { randomUUID } from 'crypto';
 import { Server as HttpServer } from 'http';
 import { Server as HttpsServer } from 'https';
 import { Server, Socket } from 'socket.io';
@@ -15,6 +16,7 @@ import { logger } from '../../shared/utils/logger.js';
 import { mapToServerEncodings } from '../../shared/utils/supported-encodings.js';
 import { Environment } from '../environment/environment.js';
 import type { MudConnections } from './types/mud-connections.js';
+import { OutputLineBuffer } from './types/mud-connections.js';
 
 export class SocketManager extends Server<
   ClientToServerEvents,
@@ -43,56 +45,66 @@ export class SocketManager extends Server<
     this.on('connection', (socket) => {
       logger.info(`[${socket.id}] [Socket-Manager] Client connected`, {
         socketId: socket.id,
+        recovered: socket.recovered,
       });
 
-      this.handleClientConnection(socket);
+      const handshakeSessionToken = this.getSessionTokenFromSocket(socket);
 
-      if (this.mudConnections[socket.id] !== undefined) {
-        logger.info(`[${socket.id}] [Socket-Manager] Client was reconnecting`, {
-          socketId: socket.id,
-        });
+      if (handshakeSessionToken) {
+        const existingConnection = this.mudConnections[handshakeSessionToken];
 
-        const existingTelnet = this.mudConnections[socket.id].telnet;
+        if (existingConnection !== undefined) {
+          existingConnection.socketId = socket.id;
 
-        if (existingTelnet !== undefined) {
-          logger.info(
-            `[${socket.id}] [Socket-Manager] Client already got an established telnet connection. Emitting 'mudConnected'`,
-            {
-              socketId: socket.id,
-            },
-          );
+          if (existingConnection.connectionTimer !== undefined) {
+            clearTimeout(existingConnection.connectionTimer);
 
-          socket.emit('mudConnected');
+            existingConnection.connectionTimer = undefined;
+          }
 
-          this.emitCurrentOptionStates(existingTelnet, socket);
-        }
+          const existingTelnet = existingConnection.telnet;
 
-        logger.info(
-          `[${socket.id}] [Socket-Manager] Client resetting logout (statue in mud) timer`,
-          {
-            socketId: socket.id,
-          },
-        );
+          if (existingTelnet !== undefined && existingTelnet.isConnected) {
+            logger.info(
+              `[${socket.id}] [Socket-Manager] Client reattached via handshake token. Emitting 'mudConnected'`,
+              {
+                sessionToken: handshakeSessionToken,
+              },
+            );
 
-        if (this.mudConnections[socket.id].connectionTimer !== undefined) {
-          clearTimeout(this.mudConnections[socket.id].connectionTimer);
+            socket.emit('mudConnected', false, handshakeSessionToken); // isNewConnection = false
 
-          this.mudConnections[socket.id].connectionTimer = undefined;
+            this.emitCurrentOptionStates(existingTelnet, socket);
+
+            const bufferedEntries =
+              existingConnection.outputLineBuffer.getEntries();
+
+            if (bufferedEntries.length > 0) {
+              logger.info(
+                `[${socket.id}] [Socket-Manager] Sending ${bufferedEntries.length} buffered entries to reconnected client`,
+                {
+                  socketId: socket.id,
+                },
+              );
+
+              // Send buffered entries as batch with sequence numbers
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              (socket as unknown as any).emit(
+                'mudOutputBatch',
+                bufferedEntries,
+              );
+            }
+          }
         }
       }
+
+      this.handleClientConnection(socket);
     });
   }
 
   private handleClientConnection(
     socket: Socket<ClientToServerEvents, ServerToClientEvents>,
   ) {
-    if (this.mudConnections[socket.id] === undefined) {
-      this.mudConnections[socket.id] = {
-        telnet: undefined,
-        connectionTimer: undefined,
-      };
-    }
-
     socket.on('error', (error: Error) => {
       logger.error(`[${socket.id}] [Socket-Manager] Client error`, {
         socketId: socket.id,
@@ -112,19 +124,32 @@ export class SocketManager extends Server<
         },
       );
 
-      const connection = this.mudConnections[socket.id];
+      const existing = this.getConnectionBySocketId(socket.id);
 
-      if (connection === undefined) {
+      if (existing === undefined) {
         return;
       }
 
-      connection.connectionTimer = setTimeout(() => {
-        this.closeTelnetConnections(socket.id);
+      existing.connection.connectionTimer = setTimeout(() => {
+        this.closeTelnetConnections(existing.sessionToken);
       }, Environment.getInstance().socketTimeout);
     });
 
     socket.on('mudInput', (data: string) => {
-      const telnetClient = this.mudConnections[socket.id].telnet;
+      const existing = this.getConnectionBySocketId(socket.id);
+
+      if (existing === undefined) {
+        logger.error(
+          `[${socket.id}] [Socket-Manager] Client has no session - can not send message to mud!`,
+          {
+            socketId: socket.id,
+          },
+        );
+
+        return;
+      }
+
+      const telnetClient = existing.connection.telnet;
 
       if (telnetClient === undefined || telnetClient.isConnected === false) {
         logger.error(
@@ -161,46 +186,97 @@ export class SocketManager extends Server<
     });
 
     socket.on('mudViewportSize', (columns: number, rows: number) => {
-      const connection = this.mudConnections[socket.id];
+      const existing = this.getConnectionBySocketId(socket.id);
 
-      if (connection === undefined) {
+      if (existing === undefined) {
         return;
       }
 
-      if (connection.telnet !== undefined) {
-        connection.telnet.updateViewportSize(columns, rows);
+      if (existing.connection.telnet !== undefined) {
+        existing.connection.telnet.updateViewportSize(columns, rows);
       }
     });
 
     socket.on(
       'mudConnect',
-      (initialViewPort: { columns: number; rows: number }) => {
+      (
+        initialViewPort: { columns: number; rows: number },
+        sessionToken: string,
+      ) => {
+        const resolvedSessionToken =
+          sessionToken ||
+          this.getSessionTokenFromSocket(socket) ||
+          randomUUID();
+
         logger.info(
           `[${socket.id}] [Socket-Manager] Client want to connect to mud`,
+          {
+            sessionToken: resolvedSessionToken,
+          },
         );
 
-        const existingClient = this.mudConnections[socket.id]?.telnet;
+        const existingConnection = this.mudConnections[resolvedSessionToken];
 
-        if (existingClient !== undefined && existingClient.isConnected) {
-          logger.info(
-            `[${socket.id}] [Socket-Manager] Client is reusing existing telnet connection. Emitting 'mudConnected'`,
-          );
+        if (existingConnection !== undefined) {
+          existingConnection.socketId = socket.id;
 
-          existingClient.updateViewportSize(
-            initialViewPort.columns,
-            initialViewPort.rows,
-          );
+          if (existingConnection.connectionTimer !== undefined) {
+            clearTimeout(existingConnection.connectionTimer);
 
-          socket.emit('mudConnected');
+            existingConnection.connectionTimer = undefined;
+          }
 
-          this.emitCurrentOptionStates(existingClient, socket);
+          const existingClient = existingConnection.telnet;
 
-          return;
+          if (existingClient !== undefined && existingClient.isConnected) {
+            logger.info(
+              `[${socket.id}] [Socket-Manager] Client is reusing existing telnet connection. Emitting 'mudConnected'`,
+              {
+                sessionToken: resolvedSessionToken,
+              },
+            );
+
+            existingClient.updateViewportSize(
+              initialViewPort.columns,
+              initialViewPort.rows,
+            );
+
+            socket.emit('mudConnected', false, resolvedSessionToken); // isNewConnection = false
+
+            this.emitCurrentOptionStates(existingClient, socket);
+
+            const bufferedEntries =
+              existingConnection.outputLineBuffer.getEntries();
+
+            if (bufferedEntries.length > 0) {
+              logger.info(
+                `[${socket.id}] [Socket-Manager] Sending ${bufferedEntries.length} buffered entries to reconnected client`,
+                {
+                  socketId: socket.id,
+                },
+              );
+
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              (socket as unknown as any).emit(
+                'mudOutputBatch',
+                bufferedEntries,
+              );
+            }
+
+            return;
+          }
         }
 
         logger.info(
           `[${socket.id}] [Socket-Manager] Client had no active telnet connection .. creating new one..`,
+          {
+            sessionToken: resolvedSessionToken,
+          },
         );
+
+        // Create output buffer BEFORE telnet client so all data is captured from the start
+        const outputBuffer =
+          existingConnection?.outputLineBuffer ?? new OutputLineBuffer();
 
         const telnetClient = new TelnetClient(
           socket.id,
@@ -213,46 +289,59 @@ export class SocketManager extends Server<
           },
         );
 
-        const previousConnection = this.mudConnections[socket.id];
-
-        if (previousConnection?.connectionTimer !== undefined) {
-          clearTimeout(previousConnection.connectionTimer);
-        }
-
-        this.mudConnections[socket.id] = {
+        this.mudConnections[resolvedSessionToken] = {
           telnet: telnetClient,
           connectionTimer: undefined,
+          outputLineBuffer: outputBuffer,
+          socketId: socket.id,
         };
 
+        // Register buffer listener IMMEDIATELY to capture all telnet data
+        // This ensures buffering happens even when socket is disconnected
         telnetClient.on('data', (data: string | Buffer) => {
           const mudCharset =
-            this.mudConnections[socket.id].telnet?.negotiations[
+            this.mudConnections[resolvedSessionToken]?.telnet?.negotiations[
               TelnetOptions.TELOPT_CHARSET
             ]?.subnegotiation?.clientOption;
+
+          let outputString: string;
 
           if (mudCharset === undefined) {
             logger.warn(
               `[${socket.id}] [Socket-Manager] Client has no charset negotiated before sending data. Default to utf-8`,
             );
 
-            socket.emit('mudOutput', data.toString('utf-8'));
+            outputString = data.toString('utf-8');
+          } else {
+            const charset = mapToServerEncodings(mudCharset);
 
-            return;
+            if (charset !== null) {
+              outputString = data.toString(charset);
+            } else {
+              logger.warn(
+                `[Socket-Manager] [Client] ${socket.id} unknown charset ${mudCharset}. Default to utf-8`,
+              );
+
+              outputString = data.toString('utf-8');
+            }
           }
 
-          const charset = mapToServerEncodings(mudCharset);
+          // ALWAYS buffer the output, regardless of socket connection status
+          const seq = outputBuffer.addData(outputString);
 
-          if (charset !== null) {
-            socket.emit('mudOutput', data.toString(charset));
-
-            return;
-          }
-
-          logger.warn(
-            `[Socket-Manager] [Client] ${socket.id} unknown charset ${mudCharset}. Default to utf-8`,
+          // Emit to socket only if connected
+          const currentSocket = this.getSocketById(
+            this.mudConnections[resolvedSessionToken]?.socketId,
           );
 
-          socket.emit('mudOutput', data.toString('utf-8'));
+          if (currentSocket !== undefined) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            (currentSocket as unknown as any).emit(
+              'mudOutput',
+              outputString,
+              seq,
+            );
+          }
         });
 
         telnetClient.on('close', () => {
@@ -260,9 +349,17 @@ export class SocketManager extends Server<
             `[${socket.id}] [Socket-Manager] Client telnet connection closed. Emitting 'mudDisconnected'`,
           );
 
-          this.mudConnections[socket.id].telnet = undefined;
+          const connection = this.mudConnections[resolvedSessionToken];
 
-          socket.emit('mudDisconnected');
+          if (connection !== undefined) {
+            connection.telnet = undefined;
+
+            const targetSocket = this.getSocketById(connection.socketId);
+
+            if (targetSocket !== undefined) {
+              targetSocket.emit('mudDisconnected');
+            }
+          }
         });
 
         telnetClient.on('negotiationChanged', (negotiation) => {
@@ -270,9 +367,17 @@ export class SocketManager extends Server<
             negotiation.option === TelnetOptions.TELOPT_TM &&
             negotiation.server === TelnetControlSequences.DO
           ) {
-            socket.emit('requestTimingMark', () => {
-              this.mudConnections[socket.id].telnet?.sendTimingMark();
-            });
+            const connection = this.mudConnections[resolvedSessionToken];
+
+            const targetSocket = connection
+              ? this.getSocketById(connection.socketId)
+              : undefined;
+
+            if (connection !== undefined && targetSocket !== undefined) {
+              targetSocket.emit('requestTimingMark', () => {
+                connection.telnet?.sendTimingMark();
+              });
+            }
           }
         });
 
@@ -319,7 +424,7 @@ export class SocketManager extends Server<
           `[${socket.id}] [Socket-Manager] Client .. telnet connection established. Emitting 'mudConnected'`,
         );
 
-        socket.emit('mudConnected');
+        socket.emit('mudConnected', true, resolvedSessionToken); // isNewConnection = true
 
         this.emitCurrentOptionStates(telnetClient, socket);
       },
@@ -330,23 +435,27 @@ export class SocketManager extends Server<
         `[${socket.id}] [Socket-Manager] Client disconnecting from mud`,
       );
 
-      this.closeTelnetConnections(socket.id);
+      const existing = this.getConnectionBySocketId(socket.id);
+
+      if (existing !== undefined) {
+        this.closeTelnetConnections(existing.sessionToken);
+      }
     });
   }
 
-  private closeTelnetConnections(socketId: string) {
-    const telnetClient = this.mudConnections[socketId]?.telnet;
+  private closeTelnetConnections(sessionToken: string) {
+    const telnetClient = this.mudConnections[sessionToken]?.telnet;
 
     if (telnetClient !== undefined && telnetClient.isConnected) {
       telnetClient.disconnect();
 
-      if (this.mudConnections[socketId].connectionTimer !== undefined) {
-        clearTimeout(this.mudConnections[socketId].connectionTimer);
+      if (this.mudConnections[sessionToken].connectionTimer !== undefined) {
+        clearTimeout(this.mudConnections[sessionToken].connectionTimer);
 
-        this.mudConnections[socketId].connectionTimer = undefined;
+        this.mudConnections[sessionToken].connectionTimer = undefined;
       }
 
-      this.mudConnections[socketId].telnet = undefined;
+      this.mudConnections[sessionToken].telnet = undefined;
     }
   }
 
@@ -370,5 +479,47 @@ export class SocketManager extends Server<
     if (linemodeState !== undefined) {
       socket.emit('setLinemode', linemodeState);
     }
+  }
+
+  /**
+   * Buffers output in complete lines (separated by \n) and emits to client.
+   * Only complete lines are added to the buffer.
+   *
+   * @deprecated This method is no longer needed. Output buffering happens directly
+   * in the telnet 'data' event listener registered in mudConnect handler.
+   */
+
+  private getConnectionBySocketId(
+    socketId: string,
+  ): { sessionToken: string; connection: MudConnections[string] } | undefined {
+    for (const [sessionToken, connection] of Object.entries(
+      this.mudConnections,
+    )) {
+      if (connection.socketId === socketId) {
+        return { sessionToken, connection };
+      }
+    }
+
+    return undefined;
+  }
+
+  private getSocketById(socketId: string | undefined) {
+    if (!socketId) {
+      return undefined;
+    }
+
+    return this.sockets.sockets.get(socketId);
+  }
+
+  private getSessionTokenFromSocket(
+    socket: Socket<ClientToServerEvents, ServerToClientEvents>,
+  ): string | undefined {
+    const authToken = socket.handshake.auth?.sessionToken;
+
+    if (typeof authToken === 'string' && authToken.trim().length > 0) {
+      return authToken.trim();
+    }
+
+    return undefined;
   }
 }

@@ -1,8 +1,19 @@
-<div class="mud-output" #hostRef></div>
+<div class="sr-announcer" aria-live="assertive" #liveRegionRef></div>
 
-@if (!(isConnected$ | async)) {
-  <div class="disconnected-panel">
-    <p>Disconnected!</p>
-    <button type="button" (click)="connect()">Reconnect</button>
-  </div>
-}
+<div
+  class="sr-input"
+  role="status"
+  aria-live="assertive"
+  aria-relevant="additions text"
+  #inputRegionRef
+></div>
+
+<div
+  class="sr-history"
+  aria-label="Ausgabe"
+  role="log"
+  aria-live="off"
+  #historyRegionRef
+></div>
+
+<div class="mud-output" #hostRef></div>

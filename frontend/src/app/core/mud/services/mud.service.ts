@@ -18,6 +18,9 @@ export class MudService {
   /** Roh-Ausgabe-Stream vom Server (ANSI-Bytes/String) */
   public readonly mudOutput$ = this.sockets.onMudOutput.asObservable();
 
+  /** Emittiert isNewConnection wenn MUD-Verbindung hergestellt wurde */
+  public readonly mudConnect$ = this.sockets.onMudConnect.asObservable();
+
   public connect(initialViewPort: { columns: number; rows: number }) {
     this.sockets.connectToMud(initialViewPort);
   }

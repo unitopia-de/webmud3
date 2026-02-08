@@ -24,7 +24,7 @@ const logMetadata = (enable: boolean) =>
  * - silly
  **/
 const logger = winston.createLogger({
-  level: 'debug',
+  level: 'info',
   levels: winston.config.npm.levels,
   format: winston.format.combine(
     winston.format.timestamp({
@@ -33,7 +33,7 @@ const logger = winston.createLogger({
     winston.format.metadata({
       fillExcept: ['message', 'level', 'timestamp', 'label'],
     }),
-    logMetadata(false),
+    logMetadata(true),
     winston.format.printf(
       (info) => `[${info.timestamp}] [${info.level}] ${info.message}`,
     ),
@@ -53,4 +53,12 @@ const logger = winston.createLogger({
   exitOnError: false,
 });
 
-export { logger };
+/**
+ * Sets the log level for the logger.
+ * @param level The log level to set (error|warn|info|http|verbose|debug|silly)
+ */
+function setLogLevel(level: string): void {
+  logger.level = level;
+}
+
+export { logger, setLogLevel };

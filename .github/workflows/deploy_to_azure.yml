@@ -31,6 +31,12 @@ jobs:
           npm ci
           npm run build:prod --if-present
 
+      - name: Copy built shared package to backend node_modules
+        run: |
+          mkdir -p ${{ env.AZURE_WEBAPP_PACKAGE_PATH }}/node_modules/@webmud3
+          cp -r shared/dist ${{ env.AZURE_WEBAPP_PACKAGE_PATH }}/node_modules/@webmud3/shared
+          cp shared/package.json ${{ env.AZURE_WEBAPP_PACKAGE_PATH }}/node_modules/@webmud3/shared/
+
       - name: Install raw dependencies for backend
         run: |
           cd ${{ env.AZURE_WEBAPP_PACKAGE_PATH }}
