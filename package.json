@@ -6,6 +6,9 @@
     "node": "~22.20.0"
   },
   "workspaces": ["frontend", "backend", "shared"],
+  "overrides": {
+    "yargs": "18.0.0"
+  },
   "scripts": {
     "build": "npm run build --workspace shared && npm run build --workspace frontend && npm run build --workspace backend",
     "build:prod": "npm run build --workspace shared && npm run build:prod --workspace frontend && npm run build --workspace backend && npm run postbuild",
@@ -20,6 +23,7 @@
     "lint": "npm run lint --workspaces --if-present"
   },
   "devDependencies": {
-    "cpy-cli": "~6.0.0"
+    "cpy-cli": "~6.0.0",
+    "typescript": "~5.9.3"
   }
 }
