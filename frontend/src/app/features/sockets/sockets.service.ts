@@ -55,7 +55,7 @@ export class SocketsService {
 
     this.manager = new Manager(socketUrl, {
       path: socketNamespace,
-      transports: serverConfigService.getSocketTransports(),
+      transports: ['websocket', 'polling'],
       reconnectionAttempts: Infinity,
       reconnection: true,
     });

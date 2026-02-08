@@ -44,28 +44,6 @@ export class ServerConfigService {
     return this.serverConfiguration.socketNamespace;
   }
 
-  public getSocketTransports(): string[] {
-    const transports = this.serverConfiguration?.socketTransports;
-
-    if (transports && transports.length > 0) {
-      return transports;
-    }
-
-    return ['websocket', 'polling'];
-  }
-
-  public getSocketPingInterval(): number {
-    return this.serverConfiguration?.socketPingInterval ?? 25000;
-  }
-
-  public getSocketPingTimeout(): number {
-    return this.serverConfiguration?.socketPingTimeout ?? 20000;
-  }
-
-  public getSocketTimeout(): number {
-    return this.serverConfiguration?.socketTimeout ?? 900000;
-  }
-
   public getBackendUrl(): string {
     return environment.backendUrl();
   }
