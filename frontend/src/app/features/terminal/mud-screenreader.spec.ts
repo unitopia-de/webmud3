@@ -12,7 +12,8 @@ describe('MudScreenReaderAnnouncer', () => {
       liveRegion,
       undefined,
       undefined,
-      100,
+      50,
+      1000,
     );
   });
 
@@ -26,7 +27,7 @@ describe('MudScreenReaderAnnouncer', () => {
 
     expect(liveRegion.textContent).toBe('Hello World');
 
-    jest.advanceTimersByTime(99);
+    jest.advanceTimersByTime(49);
     expect(liveRegion.textContent).toBe('Hello World');
 
     jest.advanceTimersByTime(1);
@@ -43,16 +44,19 @@ describe('MudScreenReaderAnnouncer', () => {
     expect(liveRegion.textContent).toBe('');
   });
 
-  it('resets the clear timer for rapid consecutive announcements', () => {
+  it('queues rapid consecutive announcements', () => {
     announcer.announce('First');
-    jest.advanceTimersByTime(50);
-
     announcer.announce('Second');
-    jest.advanceTimersByTime(99);
 
-    expect(liveRegion.textContent).toBe('Second');
+    expect(liveRegion.textContent).toBe('First');
+
+    jest.advanceTimersByTime(49);
+    expect(liveRegion.textContent).toBe('First');
 
     jest.advanceTimersByTime(1);
+    expect(liveRegion.textContent).toBe('Second');
+
+    jest.advanceTimersByTime(50);
     expect(liveRegion.textContent).toBe('');
   });
 
@@ -61,6 +65,19 @@ describe('MudScreenReaderAnnouncer', () => {
     expect(liveRegion.textContent).toBe('Message');
 
     announcer.clear();
+    expect(liveRegion.textContent).toBe('');
+  });
+
+  it('stopAnnouncements() clears live region and backlog', () => {
+    announcer.announce('First');
+    announcer.announce('Second');
+
+    expect(liveRegion.textContent).toBe('First');
+
+    announcer.stopAnnouncements();
+    expect(liveRegion.textContent).toBe('');
+
+    jest.advanceTimersByTime(200);
     expect(liveRegion.textContent).toBe('');
   });
 

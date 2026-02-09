@@ -326,6 +326,9 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
       : { value: message };
 
     if (typeof payload === 'string') {
+      if (!payload.length) {
+        this.screenReader?.stopAnnouncements();
+      }
       this.screenReader?.appendToHistory(payload);
       // Announce the complete input so user can verify what they typed
       this.screenReader?.announceInputCommitted(payload);

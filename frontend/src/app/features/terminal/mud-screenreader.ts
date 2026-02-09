@@ -1,4 +1,5 @@
-const DEFAULT_CLEAR_DELAY_MS = 300;
+const DEFAULT_MIN_ANNOUNCE_MS = 700;
+const DEFAULT_SPEECH_CHARS_PER_SEC = 12;
 const INPUT_CLEAR_DELAY_MS = 700;
 const ANSI_ESCAPE_PATTERN = /\x1B\[[0-9;?]*[ -\/]*[@-~]/g;
 const CONTROL_CHAR_PATTERN = /[\x00-\x08\x0B-\x1F\x7F]/g;
@@ -16,12 +17,16 @@ export class MudScreenReaderAnnouncer {
   private inputClearTimer: number | undefined;
   private sessionStartedAt: number;
   private lastAnnouncedBuffer = '';
+  private announceQueue: string[] = [];
+  private isAnnouncing = false;
+  private abortToken = 0;
 
   constructor(
     private readonly liveRegion: HTMLElement,
     private readonly historyRegion?: HTMLElement,
     private readonly inputRegion?: HTMLElement,
-    private readonly clearDelayMs: number = DEFAULT_CLEAR_DELAY_MS,
+    private readonly minAnnouncementMs: number = DEFAULT_MIN_ANNOUNCE_MS,
+    private readonly speechCharsPerSecond: number = DEFAULT_SPEECH_CHARS_PER_SEC,
   ) {
     this.sessionStartedAt = Date.now();
   }
@@ -31,7 +36,7 @@ export class MudScreenReaderAnnouncer {
    */
   public markSessionStart(timestamp: number = Date.now()): void {
     this.sessionStartedAt = timestamp;
-    this.clear();
+    this.stopAnnouncements();
     this.clearHistory();
     this.lastAnnouncedBuffer = '';
   }
@@ -64,12 +69,7 @@ export class MudScreenReaderAnnouncer {
       return;
     }
 
-    this.liveRegion.textContent = normalized;
-    console.debug(
-      '[ScreenReader] Live region updated:',
-      this.liveRegion.textContent,
-    );
-    this.scheduleClear();
+    this.enqueueAnnouncement(normalized);
   }
 
   /**
@@ -81,10 +81,20 @@ export class MudScreenReaderAnnouncer {
   }
 
   /**
+   * Stops any in-flight announcements and drops the queued backlog.
+   */
+  public stopAnnouncements(): void {
+    this.abortToken += 1;
+    this.announceQueue = [];
+    this.isAnnouncing = false;
+    this.clear();
+  }
+
+  /**
    * Disposes internal timers.
    */
   public dispose(): void {
-    this.clear();
+    this.stopAnnouncements();
     this.cancelInputClearTimer();
   }
 
@@ -272,12 +282,44 @@ export class MudScreenReaderAnnouncer {
     this.lastAnnouncedBuffer = '';
   }
 
-  private scheduleClear(): void {
+  private enqueueAnnouncement(normalized: string): void {
+    this.announceQueue.push(normalized);
+    this.processQueue();
+  }
+
+  private processQueue(): void {
+    if (this.isAnnouncing) {
+      return;
+    }
+
+    const next = this.announceQueue.shift();
+    if (!next) {
+      return;
+    }
+
+    this.isAnnouncing = true;
+    const token = this.abortToken;
+
+    this.liveRegion.textContent = next;
+    console.debug('[ScreenReader] Live region updated:', next);
+
+    const duration = this.getAnnouncementDuration(next);
+    this.scheduleClear(duration, token);
+  }
+
+  private scheduleClear(durationMs: number, token: number): void {
     this.cancelClearTimer();
 
     this.clearTimer = window.setTimeout(() => {
-      this.clear();
-    }, this.clearDelayMs);
+      if (token !== this.abortToken) {
+        return;
+      }
+
+      this.liveRegion.textContent = '';
+      this.isAnnouncing = false;
+      this.clearTimer = undefined;
+      this.processQueue();
+    }, durationMs);
   }
 
   private cancelClearTimer(): void {
@@ -285,6 +327,13 @@ export class MudScreenReaderAnnouncer {
       window.clearTimeout(this.clearTimer);
       this.clearTimer = undefined;
     }
+  }
+
+  private getAnnouncementDuration(text: string): number {
+    const chars = Math.max(text.length, 1);
+    const estimatedMs = Math.ceil((chars / this.speechCharsPerSecond) * 1000);
+
+    return Math.max(estimatedMs, this.minAnnouncementMs);
   }
 
   // Input clear helpers are retained for potential future use (currently unused)
