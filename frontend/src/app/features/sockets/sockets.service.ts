@@ -29,6 +29,7 @@ export class SocketsService {
   private readonly inputQueue: string[] = [];
   private isReconnecting = false;
   private sessionToken: string;
+  // Forces a fresh session token after reconnect failed to avoid reusing a dead backend session.
   private forceNewSession = false;
 
   public onMudConnect = new EventEmitter<boolean>(); // Emits isNewConnection
@@ -400,6 +401,10 @@ export class SocketsService {
     );
   }
 
+  /**
+   * Resets the session token to force a clean backend session on next connect.
+   * This is used after a reconnect failure to avoid reusing a potentially dead backend session.
+   */
   private resetSessionToken(): void {
     const newToken = this.generateUUID();
     this.sessionToken = newToken;
