@@ -5,33 +5,20 @@ describe('MudScreenReaderAnnouncer', () => {
   let announcer: MudScreenReaderAnnouncer;
 
   beforeEach(() => {
-    jest.useFakeTimers();
     liveRegion = document.createElement('div');
-    // Explicitly skip history region while overriding clear delay for tests
-    announcer = new MudScreenReaderAnnouncer(
-      liveRegion,
-      undefined,
-      undefined,
-      50,
-      1000,
-    );
+    announcer = new MudScreenReaderAnnouncer(liveRegion);
   });
 
   afterEach(() => {
     announcer.dispose();
-    jest.useRealTimers();
   });
 
-  it('announces sanitized text and clears after delay', () => {
+  it('announces sanitized text by appending to the live region', () => {
     announcer.announce('Hello \x1b[31mWorld\x1b[0m\r\n');
 
-    expect(liveRegion.textContent).toBe('Hello World');
-
-    jest.advanceTimersByTime(49);
-    expect(liveRegion.textContent).toBe('Hello World');
-
-    jest.advanceTimersByTime(1);
-    expect(liveRegion.textContent).toBe('');
+    const items = liveRegion.querySelectorAll('p.sr-log-item');
+    expect(items.length).toBe(1);
+    expect(items[0].textContent).toBe('Hello World');
   });
 
   it('ignores announcements older than the current session', () => {
@@ -41,22 +28,6 @@ describe('MudScreenReaderAnnouncer', () => {
     announcer.markSessionStart(now);
     announcer.announce('Old content', earlier);
 
-    expect(liveRegion.textContent).toBe('');
-  });
-
-  it('queues rapid consecutive announcements', () => {
-    announcer.announce('First');
-    announcer.announce('Second');
-
-    expect(liveRegion.textContent).toBe('First');
-
-    jest.advanceTimersByTime(49);
-    expect(liveRegion.textContent).toBe('First');
-
-    jest.advanceTimersByTime(1);
-    expect(liveRegion.textContent).toBe('Second');
-
-    jest.advanceTimersByTime(50);
     expect(liveRegion.textContent).toBe('');
   });
 
@@ -72,12 +43,9 @@ describe('MudScreenReaderAnnouncer', () => {
     announcer.announce('First');
     announcer.announce('Second');
 
-    expect(liveRegion.textContent).toBe('First');
+    expect(liveRegion.textContent).toBe('FirstSecond');
 
     announcer.stopAnnouncements();
-    expect(liveRegion.textContent).toBe('');
-
-    jest.advanceTimersByTime(200);
     expect(liveRegion.textContent).toBe('');
   });
 
