@@ -76,6 +76,12 @@ export class MudScreenReaderAnnouncer {
    */
   public stopAnnouncements(): void {
     this.clear();
+
+    const previousLive = this.liveRegion.getAttribute('aria-live') ?? 'polite';
+    this.liveRegion.setAttribute('aria-live', 'off');
+    queueMicrotask(() => {
+      this.liveRegion.setAttribute('aria-live', previousLive);
+    });
   }
 
   /**
@@ -272,20 +278,12 @@ export class MudScreenReaderAnnouncer {
 
   private appendToLiveRegion(normalized: string): void {
     const doc = this.liveRegion.ownerDocument;
-    const lines = normalized.split('\n');
+    const item = doc.createElement('p');
+    item.className = 'sr-log-item';
+    item.textContent = normalized;
+    item.setAttribute('role', 'text');
 
-    for (const line of lines) {
-      if (!line.trim()) {
-        continue;
-      }
-
-      const item = doc.createElement('p');
-      item.className = 'sr-log-item';
-      item.textContent = line;
-      item.setAttribute('role', 'text');
-
-      this.liveRegion.appendChild(item);
-    }
+    this.liveRegion.appendChild(item);
   }
 
   // Input clear helpers are retained for potential future use (currently unused)
