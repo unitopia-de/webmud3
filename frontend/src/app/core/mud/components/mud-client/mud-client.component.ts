@@ -333,12 +333,10 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
       this.pendingEchoSuppression = normalizedInput?.length
         ? normalizedInput
         : null;
-      if (!payload.length) {
+      if (!normalizedInput?.length) {
         this.screenReader?.stopAnnouncements();
       }
       this.screenReader?.appendToHistory(payload);
-      // Announce the complete input so user can verify what they typed
-      this.screenReader?.announceInputCommitted(payload);
     }
 
     this.mudService.sendMessage(payload);
