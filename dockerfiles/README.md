@@ -36,6 +36,8 @@ docker run -d -p 50000:80 --name helloplain -P nginxdemos/hello:plain-text
 
 docker compose -f dockerfiles/wm_dev_mystiker.yml -p webmud3dev up -d
 
+docker compose -f dockerfiles/wm3_local_dev.yml -p webmud3dev up -d
+
 podman-compose -f dockerfiles/w3_docker_compose.yml -p webmud_unitopia up -d
 
 podman-compose -f dockerfiles/w3_docker_compose_sb.yml -p webmud_seifenblase up -d

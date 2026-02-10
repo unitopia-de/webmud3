@@ -1,0 +1,35 @@
+services: 
+  # docker compose -f dockerfiles/wm3_local_dev.yml -p webmud3dev up -d
+  web:
+    image: myonara/webmud3:develop
+    environment: 
+      NODE_ENV: 'development'
+      HOST: '0.0.0.0'
+      PORT: 5000
+      TELNET_HOST: 'localhost'
+      TELNET_PORT: 3333
+      TELNET_TLS: 'false'
+      SOCKET_ROOT: '/mysocket.io'
+      SOCKET_TIMEOUT: 900000
+    deploy:
+      replicas: 1
+      resources:
+        limits:
+          cpus: "0.1"
+          memory: 50M
+      labels:
+        com.docker.lb.hosts: www.unitopia.de
+        com.docker.lb.network: webnet
+        com.docker.lb.port: 2018
+      restart_policy:
+        condition: on-failure
+        delay: 20s
+        max_attempts: 2 
+        window: 3600s
+    ports:
+      - "2018:5000"
+    networks:
+      - webnet
+networks:
+  webnet:
+    driver: bridge
