@@ -334,7 +334,7 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
         ? normalizedInput
         : null;
       if (!normalizedInput?.length) {
-        this.screenReader?.stopAnnouncements();
+        this.screenReader?.announceSynthetic(' ');
       }
       this.screenReader?.appendToHistory(payload);
     }
@@ -399,6 +399,13 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
       }
 
       return;
+    }
+
+    if (
+      (data === CTRL.CR || data === CTRL.LF) &&
+      !this.inputController.hasContent()
+    ) {
+      this.screenReader?.announceSynthetic(' ');
     }
 
     this.inputController.handleData(data);

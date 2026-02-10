@@ -96,6 +96,19 @@ export class MudScreenReaderAnnouncer {
   }
 
   /**
+   * Appends a synthetic output token to the live region without normalization.
+   * Used to simulate a server echo for empty Enter without touching the server.
+   */
+  public announceSynthetic(raw: string): void {
+    if (!raw) {
+      return;
+    }
+
+    const doc = this.liveRegion.ownerDocument;
+    this.liveRegion.appendChild(doc.createTextNode(raw));
+  }
+
+  /**
    * Disposes internal timers.
    */
   public dispose(): void {
