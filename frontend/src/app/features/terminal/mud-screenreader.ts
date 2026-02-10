@@ -82,9 +82,16 @@ export class MudScreenReaderAnnouncer {
     const doc = this.liveRegion.ownerDocument;
     this.liveRegion.appendChild(doc.createTextNode(' '));
 
+    if (this.inputRegion) {
+      this.inputRegion.textContent = ' ';
+    }
+
     setTimeout(() => {
       this.liveRegion.textContent = '';
       this.liveRegion.setAttribute('aria-live', previousLive);
+      if (this.inputRegion) {
+        this.inputRegion.textContent = '';
+      }
     }, 100);
   }
 
