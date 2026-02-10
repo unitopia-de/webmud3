@@ -76,12 +76,16 @@ export class MudScreenReaderAnnouncer {
    */
   public stopAnnouncements(): void {
     this.clear();
-
     const previousLive = this.liveRegion.getAttribute('aria-live') ?? 'polite';
     this.liveRegion.setAttribute('aria-live', 'off');
-    queueMicrotask(() => {
+
+    const doc = this.liveRegion.ownerDocument;
+    this.liveRegion.appendChild(doc.createTextNode(' '));
+
+    setTimeout(() => {
+      this.liveRegion.textContent = '';
       this.liveRegion.setAttribute('aria-live', previousLive);
-    });
+    }, 0);
   }
 
   /**
@@ -278,12 +282,11 @@ export class MudScreenReaderAnnouncer {
 
   private appendToLiveRegion(normalized: string): void {
     const doc = this.liveRegion.ownerDocument;
-    const item = doc.createElement('p');
-    item.className = 'sr-log-item';
-    item.textContent = normalized;
-    item.setAttribute('role', 'text');
+    this.liveRegion.appendChild(doc.createTextNode(`${normalized}\n`));
+  }
 
-    this.liveRegion.appendChild(item);
+  public normalizeForComparison(raw: string): string {
+    return this.normalize(raw);
   }
 
   // Input clear helpers are retained for potential future use (currently unused)

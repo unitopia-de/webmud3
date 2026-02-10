@@ -16,9 +16,7 @@ describe('MudScreenReaderAnnouncer', () => {
   it('announces sanitized text by appending to the live region', () => {
     announcer.announce('Hello \x1b[31mWorld\x1b[0m\r\n');
 
-    const items = liveRegion.querySelectorAll('p.sr-log-item');
-    expect(items.length).toBe(1);
-    expect(items[0].textContent).toBe('Hello World');
+    expect(liveRegion.textContent).toBe('Hello World\n');
   });
 
   it('ignores announcements older than the current session', () => {
@@ -43,7 +41,7 @@ describe('MudScreenReaderAnnouncer', () => {
     announcer.announce('First');
     announcer.announce('Second');
 
-    expect(liveRegion.textContent).toBe('FirstSecond');
+    expect(liveRegion.textContent).toBe('First\nSecond\n');
 
     announcer.stopAnnouncements();
     expect(liveRegion.textContent).toBe('');
