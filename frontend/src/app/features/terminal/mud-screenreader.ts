@@ -76,36 +76,6 @@ export class MudScreenReaderAnnouncer {
    */
   public stopAnnouncements(): void {
     this.clear();
-    const previousLive = this.liveRegion.getAttribute('aria-live') ?? 'polite';
-    this.liveRegion.setAttribute('aria-live', 'off');
-
-    const doc = this.liveRegion.ownerDocument;
-    this.liveRegion.appendChild(doc.createTextNode(' '));
-
-    if (this.inputRegion) {
-      this.inputRegion.textContent = ' ';
-    }
-
-    setTimeout(() => {
-      this.liveRegion.textContent = '';
-      this.liveRegion.setAttribute('aria-live', previousLive);
-      if (this.inputRegion) {
-        this.inputRegion.textContent = '';
-      }
-    }, 100);
-  }
-
-  /**
-   * Appends a synthetic output token to the live region without normalization.
-   * Used to simulate a server echo for empty Enter without touching the server.
-   */
-  public announceSynthetic(raw: string): void {
-    if (!raw) {
-      return;
-    }
-
-    const doc = this.liveRegion.ownerDocument;
-    this.liveRegion.appendChild(doc.createTextNode(raw));
   }
 
   /**
