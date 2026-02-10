@@ -85,7 +85,7 @@ export class MudScreenReaderAnnouncer {
     setTimeout(() => {
       this.liveRegion.textContent = '';
       this.liveRegion.setAttribute('aria-live', previousLive);
-    }, 0);
+    }, 100);
   }
 
   /**
