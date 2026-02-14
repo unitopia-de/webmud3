@@ -110,6 +110,22 @@ export class TelnetClient extends EventEmitter<TelnetClientEvents> {
       telnetPort,
     );
 
+    // CRITICAL: Register error handler on the raw TCP/TLS socket IMMEDIATELY
+    // to prevent uncaught exceptions. Without this, connection failures
+    // (especially AggregateError from Node.js happy-eyeballs DNS resolution)
+    // crash the entire process.
+    telnetConnection.on('error', (error: Error) => {
+      const details = formatConnectionError(error);
+
+      logger.error(
+        `[${this.socketId}] [Telnet-Client] Connection error to ${telnetHost}:${telnetPort}`,
+        details,
+      );
+
+      this.connected = false;
+      this.emit('close', true);
+    });
+
     if (useTls) {
       logger.info(
         `[${this.socketId}] [Telnet-Client] created https connection for telnet`,
@@ -137,6 +153,14 @@ export class TelnetClient extends EventEmitter<TelnetClientEvents> {
         bufferSize: 65536,
       },
     );
+
+    // Also handle errors on the TelnetSocket (Transform stream) layer
+    this.telnetSocket.on('error', (error: Error) => {
+      logger.error(
+        `[${this.socketId}] [Telnet-Client] TelnetSocket stream error`,
+        formatConnectionError(error),
+      );
+    });
 
     this.optionsHandler = new Map([
       [TelnetOptions.TELOPT_CHARSET, handleCharsetOption(this.telnetSocket)],
@@ -655,4 +679,39 @@ function createTelnetConnection(
   }
 
   return socket;
+}
+
+/**
+ * Formats a connection error for structured logging.
+ * Handles AggregateError (from Node.js happy-eyeballs DNS resolution)
+ * by unpacking the individual sub-errors with their messages and stacks.
+ */
+function formatConnectionError(error: Error): Record<string, unknown> {
+  if (error instanceof AggregateError) {
+    return {
+      errorType: 'AggregateError',
+      message: error.message,
+      errors: error.errors.map((subError: Error, index: number) => ({
+        index,
+        message: subError.message,
+        code: (subError as NodeJS.ErrnoException).code,
+        syscall: (subError as NodeJS.ErrnoException).syscall,
+        address: (subError as NodeJS.ErrnoException).address,
+        port: (subError as NodeJS.ErrnoException).port,
+        stack: subError.stack,
+      })),
+    };
+  }
+
+  const errno = error as NodeJS.ErrnoException;
+
+  return {
+    errorType: error.constructor.name,
+    message: error.message,
+    code: errno.code,
+    syscall: errno.syscall,
+    address: errno.address,
+    port: errno.port,
+    stack: error.stack,
+  };
 }

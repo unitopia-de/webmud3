@@ -17,6 +17,33 @@ import { logger } from './shared/utils/logger.js';
 
 sourceMaps.install();
 
+// Global error handlers to prevent silent crashes and improve diagnostics
+process.on('uncaughtException', (error: Error) => {
+  if (error instanceof AggregateError) {
+    logger.error('[Process] Uncaught AggregateError:', {
+      message: error.message,
+      errors: error.errors.map((subError: Error, i: number) => ({
+        index: i,
+        message: subError.message,
+        code: (subError as NodeJS.ErrnoException).code,
+        stack: subError.stack,
+      })),
+    });
+  } else {
+    logger.error('[Process] Uncaught Exception:', {
+      message: error.message,
+      stack: error.stack,
+      name: error.name,
+    });
+  }
+});
+
+process.on('unhandledRejection', (reason: unknown) => {
+  logger.error('[Process] Unhandled Promise Rejection:', {
+    reason: reason instanceof Error ? { message: reason.message, stack: reason.stack } : reason,
+  });
+});
+
 const environment = Environment.getInstance();
 
 const app = express();

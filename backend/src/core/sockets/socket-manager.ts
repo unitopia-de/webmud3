@@ -37,12 +37,20 @@ export class SocketManager extends Server<
     },
     private readonly mudConfigService?: MudConfigService,
   ) {
+    const environment = Environment.getInstance();
+
     super(server, {
       path: managerOptions.socketRoot,
       transports: ['websocket'],
       connectionStateRecovery: {
-        maxDisconnectionDuration: Environment.getInstance().socketTimeout,
+        maxDisconnectionDuration: environment.socketTimeout,
       },
+      cors:
+        environment.environment === 'development'
+          ? { origin: true, credentials: true }
+          : environment.corsAllowList.length > 0
+            ? { origin: environment.corsAllowList, credentials: true }
+            : undefined,
     });
 
     this.on('connection', (socket) => {
