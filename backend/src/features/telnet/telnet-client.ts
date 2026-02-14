@@ -114,16 +114,23 @@ export class TelnetClient extends EventEmitter<TelnetClientEvents> {
     // to prevent uncaught exceptions. Without this, connection failures
     // (especially AggregateError from Node.js happy-eyeballs DNS resolution)
     // crash the entire process.
+    //
+    // NOTE: telnet-stream's TelnetSocket.on() proxies non-telnet events
+    // (like 'error', 'close', 'connect') directly to the raw socket.
+    // So we ONLY register the error handler HERE on the raw socket.
+    // Do NOT add another error handler on this.telnetSocket - it would
+    // be a duplicate on the same underlying socket.
+    //
+    // We also do NOT manually emit 'close' here. The raw socket will
+    // emit 'close' naturally after 'error', and telnet-stream proxies
+    // that to telnetSocket, which triggers our handleClose() method.
     telnetConnection.on('error', (error: Error) => {
       const details = formatConnectionError(error);
 
       logger.error(
-        `[${this.socketId}] [Telnet-Client] Connection error to ${telnetHost}:${telnetPort}`,
+        `[${this.socketId}] [Telnet-Client] Socket error (${telnetHost}:${telnetPort}, tls=${useTls}): ${error.message}`,
         details,
       );
-
-      this.connected = false;
-      this.emit('close', true);
     });
 
     if (useTls) {
@@ -153,14 +160,6 @@ export class TelnetClient extends EventEmitter<TelnetClientEvents> {
         bufferSize: 65536,
       },
     );
-
-    // Also handle errors on the TelnetSocket (Transform stream) layer
-    this.telnetSocket.on('error', (error: Error) => {
-      logger.error(
-        `[${this.socketId}] [Telnet-Client] TelnetSocket stream error`,
-        formatConnectionError(error),
-      );
-    });
 
     this.optionsHandler = new Map([
       [TelnetOptions.TELOPT_CHARSET, handleCharsetOption(this.telnetSocket)],
