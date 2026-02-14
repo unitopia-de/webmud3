@@ -504,11 +504,31 @@ export class SocketManager extends Server<
           return;
         }
 
+        // Enrich Core.BrowserInfo with server-side real_ip and client metadata
+        let enrichedData = data;
+
+        if (
+          module === 'Core' &&
+          message.toLowerCase() === 'browserinfo'
+        ) {
+          const realIp = SocketManager.extractRealIp(socket);
+
+          enrichedData = {
+            ...(typeof data === 'object' && data !== null ? data : {}),
+            real_ip: realIp,
+            client: this.managerOptions.clientName,
+          };
+
+          logger.info(
+            `[${socket.id}] [Socket-Manager] Enriched Core.BrowserInfo with real_ip: ${realIp}`,
+          );
+        }
+
         logger.verbose(
           `[${socket.id}] [Socket-Manager] Forwarding GMCP outgoing: ${module}.${message}`,
         );
 
-        telnetClient.sendGmcp(module, message, data);
+        telnetClient.sendGmcp(module, message, enrichedData);
       },
     );
 
@@ -603,6 +623,38 @@ export class SocketManager extends Server<
     }
 
     return undefined;
+  }
+
+  /**
+   * Extracts the real client IP address from the socket handshake.
+   *
+   * Priority:
+   * 1. `x-forwarded-for` header (first entry, for reverse proxy setups)
+   * 2. `socket.handshake.address` (direct connection)
+   *
+   * This is injected into `Core.BrowserInfo` GMCP messages so the MUD
+   * receives the actual client IP instead of the backend server's IP.
+   */
+  public static extractRealIp(
+    socket: Socket<ClientToServerEvents, ServerToClientEvents>,
+  ): string {
+    const forwarded = socket.handshake.headers['x-forwarded-for'];
+    let realIp: string;
+
+    if (typeof forwarded === 'string' && forwarded.length > 0) {
+      // x-forwarded-for can contain multiple IPs: "client, proxy1, proxy2"
+      // The first entry is the original client IP
+      const commaIndex = forwarded.indexOf(',');
+
+      realIp =
+        commaIndex > -1
+          ? forwarded.slice(0, commaIndex).trim()
+          : forwarded.trim();
+    } else {
+      realIp = socket.handshake.address;
+    }
+
+    return realIp;
   }
 
   /**

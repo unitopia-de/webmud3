@@ -35,6 +35,9 @@ globs: backend/**/*.ts
 - Handler im `SocketManager.handleClientConnection()` registrieren
 - GMCP-Events: `mudGmcpIncoming`/`mudGmcpStart` (Server→Client), `mudGmcpOutgoing` (Client→Server)
 - GMCP-Weiterleitung: TelnetClient Events ↔ Socket.IO Events im SocketManager
+- **Core.BrowserInfo Enrichment**: Bei `mudGmcpOutgoing` mit `Core.BrowserInfo` wird serverseitig `real_ip` injiziert
+  - `SocketManager.extractRealIp()` → `x-forwarded-for` (erster Eintrag) oder `socket.handshake.address`
+  - Auch `client` (clientName) wird hinzugefügt — Frontend-Daten werden gemergt
 
 ## TypeScript
 - `strict: true`
