@@ -6,10 +6,13 @@ export interface ClientToServerEvents {
    * Requests a telnet connection using the provided initial viewport size.
    * @param initialViewPort - Client's terminal dimensions
    * @param sessionToken - Persistent session identifier (UUID) across socket reconnections
+   * @param mudId - Optional MUD identifier for Multi-MUD support. If not set, the backend
+   *                falls back to TELNET_HOST/PORT environment variables.
    */
   mudConnect: (
     initialViewPort: { columns: number; rows: number },
     sessionToken: string,
+    mudId?: string,
   ) => void;
   /**
    * Requests that the server tears down the active telnet connection.

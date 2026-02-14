@@ -1,5 +1,6 @@
 import type {
   ClientToServerEvents,
+  GmcpSupport,
   LinemodeState,
   ServerToClientEvents,
 } from '@webmud3/shared';
@@ -14,6 +15,7 @@ import { TelnetControlSequences } from '../../features/telnet/types/telnet-contr
 import { EchoState } from '../../features/telnet/utils/handle-echo-option.js';
 import { logger } from '../../shared/utils/logger.js';
 import { mapToServerEncodings } from '../../shared/utils/supported-encodings.js';
+import { MudConfigService } from '../config/mud-config.service.js';
 import { Environment } from '../environment/environment.js';
 import type { MudConnections } from './types/mud-connections.js';
 import { OutputLineBuffer } from './types/mud-connections.js';
@@ -33,6 +35,7 @@ export class SocketManager extends Server<
       socketRoot: string;
       clientName: string;
     },
+    private readonly mudConfigService?: MudConfigService,
   ) {
     super(server, {
       path: managerOptions.socketRoot,
@@ -202,6 +205,7 @@ export class SocketManager extends Server<
       (
         initialViewPort: { columns: number; rows: number },
         sessionToken: string,
+        mudId?: string,
       ) => {
         const resolvedSessionToken =
           sessionToken ||
@@ -212,6 +216,7 @@ export class SocketManager extends Server<
           `[${socket.id}] [Socket-Manager] Client want to connect to mud`,
           {
             sessionToken: resolvedSessionToken,
+            mudId: mudId ?? '(default)',
           },
         );
 
@@ -267,10 +272,16 @@ export class SocketManager extends Server<
           }
         }
 
+        // Resolve connection parameters: MudConfigService (by mudId) or fallback to env vars
+        const resolvedConnection = this.resolveConnectionParams(mudId);
+
         logger.info(
           `[${socket.id}] [Socket-Manager] Client had no active telnet connection .. creating new one..`,
           {
             sessionToken: resolvedSessionToken,
+            host: resolvedConnection.host,
+            port: resolvedConnection.port,
+            mudId: mudId ?? '(default)',
           },
         );
 
@@ -280,9 +291,9 @@ export class SocketManager extends Server<
 
         const telnetClient = new TelnetClient(
           socket.id,
-          this.managerOptions.telnetHost,
-          this.managerOptions.telnetPort,
-          this.managerOptions.useTelnetTls,
+          resolvedConnection.host,
+          resolvedConnection.port,
+          resolvedConnection.ssl,
           this.managerOptions.clientName,
           {
             initialViewPort,
@@ -387,13 +398,18 @@ export class SocketManager extends Server<
             : undefined;
 
           if (targetSocket !== undefined) {
+            // Resolve GMCP support from MUD family config (if available)
+            const gmcpSupport: GmcpSupport =
+              resolvedConnection.gmcpSupport ?? {};
+
             logger.info(
               `[${socket.id}] [Socket-Manager] GMCP started. Emitting 'mudGmcpStart'.`,
+              {
+                moduleCount: Object.keys(gmcpSupport).length,
+              },
             );
 
-            // For now emit an empty GmcpSupport object; Phase 1.3 (Multi-MUD) will
-            // populate this from the MudFamilyConfig once MudConfigService is available.
-            targetSocket.emit('mudGmcpStart', {});
+            targetSocket.emit('mudGmcpStart', gmcpSupport);
           }
         });
 
@@ -587,5 +603,51 @@ export class SocketManager extends Server<
     }
 
     return undefined;
+  }
+
+  /**
+   * Resolves the telnet connection parameters for a given MUD ID.
+   *
+   * Priority:
+   * 1. If mudId is given AND MudConfigService has config → use config values
+   * 2. Otherwise → fall back to managerOptions (from TELNET_HOST/PORT env vars)
+   */
+  private resolveConnectionParams(mudId?: string): {
+    host: string;
+    port: number;
+    ssl: boolean;
+    mudfamily?: string;
+    gmcpSupport?: GmcpSupport;
+  } {
+    if (mudId !== undefined && this.mudConfigService?.isAvailable) {
+      const resolved = this.mudConfigService.resolveConnection(mudId);
+
+      if (resolved !== undefined) {
+        const gmcpSupport = this.mudConfigService.getGmcpSupport(mudId);
+
+        logger.info(
+          `[Socket-Manager] Resolved MUD "${mudId}" → ${resolved.host}:${resolved.port} (family: ${resolved.mudfamily})`,
+        );
+
+        return {
+          host: resolved.host,
+          port: resolved.port,
+          ssl: resolved.ssl,
+          mudfamily: resolved.mudfamily,
+          gmcpSupport,
+        };
+      }
+
+      logger.warn(
+        `[Socket-Manager] MUD "${mudId}" not found in config. Falling back to env defaults.`,
+      );
+    }
+
+    // Fallback: use the default TELNET_HOST/PORT from environment
+    return {
+      host: this.managerOptions.telnetHost,
+      port: this.managerOptions.telnetPort,
+      ssl: this.managerOptions.useTelnetTls,
+    };
   }
 }

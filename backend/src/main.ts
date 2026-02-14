@@ -2,11 +2,13 @@ import express from 'express';
 import sourceMaps from 'source-map-support';
 import { v4 as uuidv4 } from 'uuid';
 
+import { MudConfigService } from './core/config/mud-config.service.js';
 import { Environment } from './core/environment/environment.js';
 import { useBodyParser } from './core/middleware/use-body-parser.js';
 import { useConfigEndpoint } from './core/middleware/use-config-endpoint.js';
 import { useCors } from './core/middleware/use-cors.js';
 import { useInfoEndpoint } from './core/middleware/use-info-endpoint.js';
+import { useMudConfigEndpoint } from './core/middleware/use-mud-config-endpoint.js';
 import { useSockets } from './core/middleware/use-sockets.js';
 import { useStaticFiles } from './core/middleware/use-static-files.js';
 import { useRoutes } from './core/routes/routes.js';
@@ -35,6 +37,13 @@ useStaticFiles(app, 'wwwroot');
 const socketManager = useSockets(httpServer, environment);
 
 useConfigEndpoint(app);
+
+// MUD config endpoint (serves MUD list to frontend for Multi-MUD support)
+const mudConfigService = MudConfigService.getInstance(
+  environment.mudConfigPath,
+);
+
+useMudConfigEndpoint(app, mudConfigService);
 
 // Enable Debug Info Endpoints in Development Mode
 if (environment.environment === 'development') {

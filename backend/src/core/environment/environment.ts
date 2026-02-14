@@ -24,6 +24,7 @@ export class Environment implements IEnvironment {
   public readonly name: string;
   public readonly corsAllowList: string[];
   public readonly logLevel: string;
+  public readonly mudConfigPath: string | null;
 
   /**
    * Private constructor to enforce singleton pattern.
@@ -36,9 +37,18 @@ export class Environment implements IEnvironment {
 
     this.port = Number(getEnvironmentVariable('PORT', false, '5000'));
 
-    this.telnetHost = String(getEnvironmentVariable('TELNET_HOST'));
+    this.mudConfigPath =
+      getEnvironmentVariable('MUD_CONFIG_PATH', false) ?? null;
 
-    this.telnetPort = Number(getEnvironmentVariable('TELNET_PORT'));
+    // TELNET_HOST/PORT are fallback defaults when no MUD_CONFIG_PATH is set.
+    // When a mud_config.json is used, individual MUDs define their own host/port.
+    this.telnetHost = String(
+      getEnvironmentVariable('TELNET_HOST', false, 'localhost'),
+    );
+
+    this.telnetPort = Number(
+      getEnvironmentVariable('TELNET_PORT', false, '23'),
+    );
 
     this.telnetTLS =
       getEnvironmentVariable(

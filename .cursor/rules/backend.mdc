@@ -15,6 +15,10 @@ globs: backend/**/*.ts
 
 ## Architektur
 - **Environment**: Singleton via `Environment.getInstance()` – nie direkt `process.env` lesen
+- **MudConfigService**: Singleton via `MudConfigService.getInstance(configPath)` – Multi-MUD-Konfiguration
+  - Lädt `mud_config.json` wenn `MUD_CONFIG_PATH` Env-Var gesetzt und Datei existiert
+  - Fallback: Kein Config → `TELNET_HOST`/`TELNET_PORT` Env-Vars werden direkt genutzt
+  - Lookup: `getMudById()`, `resolveConnection()`, `getGmcpSupport()`, `getMudList()`
 - **Middleware**: Jede Middleware als eigene `use*`-Funktion in `core/middleware/`
 - **Telnet-Handler**: Neue Telnet-Options als Factory-Funktion in `features/telnet/utils/handle-*.ts` anlegen
 - **Logging**: Immer `logger` aus `shared/utils/logger.ts` verwenden (Winston), nie `console.log`
