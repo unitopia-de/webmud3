@@ -71,6 +71,7 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
   private readonly terminalFitAddon = new FitAddon();
   private socketAdapter?: MudSocketAdapter;
   private terminalAttachAddon?: AttachAddon;
+  private pendingEchoSuppression: string | null = null;
 
   private readonly terminalDisposables: IDisposable[] = [];
   private readonly resizeObs = new ResizeObserver(() => {
@@ -326,9 +327,13 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
       : { value: message };
 
     if (typeof payload === 'string') {
+      const normalizedInput =
+        this.screenReader?.normalizeForComparison(payload);
+
+      this.pendingEchoSuppression = normalizedInput?.length
+        ? normalizedInput
+        : null;
       this.screenReader?.appendToHistory(payload);
-      // Announce the complete input so user can verify what they typed
-      this.screenReader?.announceInputCommitted(payload);
     }
 
     this.mudService.sendMessage(payload);
@@ -475,6 +480,20 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
   private announceToScreenReader(data: string): void {
     if (!this.screenReader) {
       return;
+    }
+
+    const normalizedOutput = this.screenReader.normalizeForComparison(data);
+
+    if (
+      this.pendingEchoSuppression &&
+      normalizedOutput === this.pendingEchoSuppression
+    ) {
+      this.pendingEchoSuppression = null;
+      return;
+    }
+
+    if (normalizedOutput) {
+      this.pendingEchoSuppression = null;
     }
 
     console.debug('[MudClient] Announcing to screenreader:', {
