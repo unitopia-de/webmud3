@@ -1,6 +1,6 @@
 // jest.config.js
 module.exports = {
   preset: 'jest-preset-angular',
-  setupFilesAfterEnv: ['<rootDir>/setup-jest.ts'],
-  passWithNoTests: true
+  passWithNoTests: true,
+  silent: true
 };

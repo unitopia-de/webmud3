@@ -125,9 +125,12 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
   constructor() {
     this.terminal = new Terminal({
       fontFamily: 'JetBrainsMono, monospace',
-      theme: { background: '#000', foreground: '#ccc' },
       disableStdin: false,
       screenReaderMode: false,
+      // This settings will adjust all colors to ensure sufficient contrast ratio for accessibility
+      // between text and background colors. This may alter the original color scheme.
+      // For more information, see: https://xtermjs.org/docs/api/terminal/interfaces/iterminaloptions/#optional-minimumcontrastratio
+      minimumContrastRatio: 7, // Default value for WCAG AAA compliance
     });
 
     this.inputController = new MudInputController(
