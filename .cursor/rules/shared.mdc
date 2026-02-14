@@ -1,0 +1,30 @@
+---
+globs: shared/**/*.ts
+---
+
+# Shared-Paket Regeln
+
+## Zweck
+Das `@webmud3/shared`-Paket definiert den **Vertrag** zwischen Frontend und Backend. Beide importieren die gleichen Typen, was Typsicherheit über Systemgrenzen gewährleistet.
+
+## Module System
+- ES Modules (`"type": "module"`)
+- Exports via `exports`-Feld in package.json und Barrel `src/index.ts`
+
+## Was gehört hier rein?
+- Socket.IO Event-Interfaces (`ClientToServerEvents`, `ServerToClientEvents`)
+- Telnet-bezogene Shared-Types (`LinemodeState`)
+- Backend-Konfigurationstypen (`ServerConfig`)
+- **Keine** Implementierungen, nur Typen und Interfaces!
+
+## Neuen Typ hinzufügen
+1. Typ-Datei in passendem Unterordner anlegen (`sockets/`, `config/`)
+2. In `src/index.ts` re-exportieren
+3. `npm run build --workspace shared` ausführen, da Frontend und Backend die kompilierte Version verwenden
+
+## Build-Reihenfolge
+Shared muss **immer zuerst** gebaut werden (passiert automatisch via `prebuild` in Backend/Frontend):
+
+```
+shared → frontend + backend (parallel möglich)
+```

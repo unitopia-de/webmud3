@@ -1,0 +1,48 @@
+---
+description: Telnet-Protokoll und MUD-spezifische Konventionen für den TelnetClient
+globs: backend/src/features/telnet/**/*.ts
+---
+
+# Telnet-Protokoll Regeln
+
+## Telnet Negotiation Flow
+1. Client verbindet sich zum MUD-Server via TCP (oder TLS)
+2. `TelnetClient` registriert Handler für alle unterstützten Optionen
+3. Bei `connect`: Jeder Handler kann eine initiale Negotiation auslösen (`negotiate()`)
+4. Server antwortet mit DO/DONT/WILL/WONT → Handler reagieren entsprechend
+5. Subnegotiation (SB...SE) wird an `handleSub()` delegiert
+
+## Unterstützte Optionen
+- **CHARSET** (42): Zeichensatz-Verhandlung (dynamisch)
+- **ECHO** (1): Server-gesteuerte Echo-Kontrolle (dynamisch, für Passwörter)
+- **EOR** (25): End-of-Record Buffering
+- **GMCP** (201): Generic MUD Communication Protocol – strukturierte Daten zwischen Client und MUD
+- **LINEMODE** (34): Zeilenweise vs. zeichenweise Eingabe
+- **MSSP** (70): Mud Server Status Protocol
+- **NAWS** (31): Fenstergrößen-Meldung an Server
+- **SGA** (3): Suppress Go Ahead
+- **STATUS** (5): Option-Status-Abfrage
+- **TTYPE** (24): Terminal-Typ-Meldung
+
+## Handler-Interface
+Jeder Handler muss `TelnetOptionHandler` implementieren:
+- `handleDo()` / `handleDont()` – Pflicht
+- `handleWill()` / `handleWont()` – Pflicht
+- `negotiate()` – Optional: Initiale Verhandlung
+- `handleSub()` – Optional: Subnegotiation
+- `getState()` / `onStateChange()` – Optional: State-Tracking
+- `isDynamic` – Optional: Erlaubt Re-Negotiation nach initialem Handshake
+
+## GMCP-Protokoll
+- Subnegotiation-Format: `<module>.<message> <json-data>` (z.B. `Core.Hello {"client":"WebMud3"}`)
+- Parsing: Split bei erstem Leerzeichen → `moduleMessage` + `jsonData`, Split bei erstem Punkt → `module` + `message`
+- TelnetClient emittiert `gmcpIncoming(module, message, data)` bei eingehenden Nachrichten
+- TelnetClient emittiert `gmcpStart()` bei erfolgreicher GMCP-Negotiation
+- Ausgehende Nachrichten via `TelnetClient.sendGmcp(module, message, data)`
+- `GmcpOptionHandler` erweitert `TelnetOptionHandler<GmcpState>` mit `sendGmcp()`-Methode
+
+## Wichtige Konventionen
+- Handler NIEMALS direkt den TelnetSocket referenzieren – immer über den Wrapper `TelnetSocketWrapper`
+- Negotiation-State wird im `_negotiations`-Objekt des TelnetClient nachgehalten
+- EOR-Buffer: Wenn EOR aktiv, werden `data`-Events erst bei EOR-Command emittiert
+- Status-Request: Wird nach TTYPE-Negotiation gesendet (Workaround, siehe TODO)

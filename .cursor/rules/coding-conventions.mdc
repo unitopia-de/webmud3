@@ -1,0 +1,39 @@
+---
+alwaysApply: true
+---
+
+# Coding Conventions
+
+## Sprache
+- Code und Code-Kommentare: **Englisch**
+- Dokumentation und Benutzer-Strings (z.B. ARIA-Labels, Screenreader-Texte): **Deutsch** (für UNItopia-Zielgruppe)
+- Git-Commits: Englisch
+
+## TypeScript
+- `strict: true` in allen tsconfig.json
+- Keine `any` – wenn unvermeidbar mit `eslint-disable`-Kommentar begründen
+- Interfaces bevorzugt über `type` für öffentliche Schnittstellen
+- Single Quotes, 2 Spaces Einrückung (EditorConfig)
+
+## Imports
+- Backend: `.js`-Extension in allen Imports (ES Modules)
+- Frontend: Keine Extension (Bundler-Resolution)
+- Sortierung: `eslint-plugin-simple-import-sort` erzwingt alphabetische Sortierung
+
+## Logging
+- Backend: Winston-Logger (`logger.info/warn/error/debug`) – nie `console.log`
+- Frontend: `console.log/info/warn/error` mit `[Kontext]`-Prefix, z.B. `[Sockets]`, `[MudClient]`
+
+## Error Handling
+- Backend: Fehler loggen und graceful behandeln
+- Frontend: Errors in `catch`-Blöcken loggen, User-facing Errors über UI melden
+
+## Formatting
+- Prettier ~3.6.2
+- EditorConfig: UTF-8, 2 Spaces, final newline, trim trailing whitespace
+- Markdown: kein max_line_length, kein trim trailing whitespace
+
+## Testing
+- Tests neben den Source-Dateien: `foo.spec.ts` neben `foo.ts`
+- Jest als Test-Runner (nicht Karma, nicht Jasmine)
+- Mindestens Unit-Tests für Business-Logik und Telnet-Handler

@@ -1,0 +1,49 @@
+---
+globs: frontend/**/*.ts,frontend/**/*.html,frontend/**/*.scss
+---
+
+# Frontend-Regeln
+
+## Framework
+- Angular ~20.3.4 mit **Standalone Components** (keine NgModules)
+- Alle Components müssen `standalone: true` haben
+- Dependency Injection über `inject()` statt Constructor-Injection bevorzugt
+
+## Paket-Scope
+- Paketname: `@webmud3/frontend`
+- Pfad-Alias: `@webmud3/frontend/*` → `src/app/*`
+- Shared-Typen: `import { ... } from '@webmud3/shared'`
+
+## Terminal-Subsystem
+- **MudInputController**: Verwaltet den lokalen Editing-Buffer (LINEMODE). Nicht direkt auf xterm schreiben!
+- **MudPromptManager**: State-Machine für Prompt-Visibility bei Server-Output
+- **MudSocketAdapter**: Adapter – Observable → WebSocket-Interface für xterm AttachAddon
+- **MudScreenReaderAnnouncer**: Custom ARIA-Announcer (kein xterm screenReaderMode!)
+- Alle ANSI/Terminal-Escape-Konstanten in `features/terminal/models/escapes.ts`
+
+## Barrierefreiheit (A11y)
+- Screenreader-Support ist ein Kernfeature – ARIA-Regionen nicht entfernen!
+- Drei Announcement-Ebenen: Zeichen, Wort (bei Space), vollständige Zeile (bei Enter)
+- `aria-live="assertive"` für Output, `role="log"` für History
+- Bei Änderungen am Terminal: Screenreader-Tests durchführen (siehe SCREENREADER_TESTS.md)
+
+## Styling
+- SCSS als Preprocessor
+- Komponenten-spezifische Styles in `.component.scss`
+- Globale Styles in `src/styles.scss`
+
+## Environment
+- Dev: `environment.ts` → backendUrl = `http://localhost:5000`
+- Prod: `environment.prod.ts` → backendUrl = `window.location.href`
+- Compile-Time File-Replacement über `angular.json` `fileReplacements`
+
+## Testing
+- Jest über @angular-builders/jest (nicht Karma!)
+- Test-Dateien: `*.spec.ts` neben den Source-Dateien
+- Setup: `setup-jest.ts`
+
+## Conventions
+- TypeScript strict mode
+- Single quotes für Strings (EditorConfig)
+- 2 Spaces Einrückung
+- SCSS für Styles

@@ -1,0 +1,41 @@
+---
+alwaysApply: true
+---
+
+# WebMud3 – Projektübersicht
+
+WebMud3 ist ein moderner, webbasierter MUD-Client (Multi-User Dungeon) als Open-Source-Projekt für UNItopia.
+
+## Architektur
+
+- **Monorepo** mit npm Workspaces: `frontend/`, `backend/`, `shared/`
+- Backend: Express 5 + Socket.IO → Telnet-Proxy zum MUD-Server
+- Frontend: Angular 20 + xterm.js → Terminal-UI im Browser
+- Shared: Typisierte Socket.IO Events und Konfigurationstypen (`@webmud3/shared`)
+
+## Datenfluss
+
+```
+Frontend (Angular/xterm) ←→ Socket.IO (WebSocket) ←→ Backend (Express/Node) ←→ Telnet (TCP) ←→ MUD-Server
+```
+
+## Wichtige Verzeichnisse
+
+- [package.json](mdc:package.json) – Root-Workspace-Konfiguration
+- `backend/src/main.ts` – Backend Entry Point
+- `backend/src/core/` – Middleware, Environment, Sockets, Routes
+- `backend/src/features/telnet/` – Telnet-Client mit Option-Negotiation
+- `frontend/src/app/core/mud/` – MudClientComponent + MudService
+- `frontend/src/app/features/terminal/` – InputController, PromptManager, ScreenReader
+- `frontend/src/app/features/sockets/` – Socket.IO Client-Wrapper
+- `shared/src/` – Gemeinsame Typen und Interfaces
+
+## Tech Stack
+
+- Node.js ~22.20.0, TypeScript ~5.9.3
+- Angular ~20.3.4 (Standalone Components)
+- Express ~5.1.0, Socket.IO ~4.8.1
+- xterm.js ~5.5.0
+- Jest ~30.2.0 für Tests
+- Docker Multi-Stage Build
+- GitHub Actions CI/CD → Azure Web App

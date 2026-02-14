@@ -1,0 +1,41 @@
+---
+globs: backend/**/*.ts
+---
+
+# Backend-Regeln
+
+## Module System
+- Backend verwendet **ES Modules** (`"type": "module"` in package.json)
+- Alle Imports müssen `.js`-Extension haben: `import { foo } from './bar.js'`
+- Jest-Tests laufen im CJS-Modus via `tsconfig.jest.json` und `moduleNameMapper`
+
+## Paket-Scope
+- Paketname: `@webmud3/backend`
+- Shared-Typen importieren via: `import { ... } from '@webmud3/shared'`
+
+## Architektur
+- **Environment**: Singleton via `Environment.getInstance()` – nie direkt `process.env` lesen
+- **Middleware**: Jede Middleware als eigene `use*`-Funktion in `core/middleware/`
+- **Telnet-Handler**: Neue Telnet-Options als Factory-Funktion in `features/telnet/utils/handle-*.ts` anlegen
+- **Logging**: Immer `logger` aus `shared/utils/logger.ts` verwenden (Winston), nie `console.log`
+
+## Telnet-Option hinzufügen
+1. Option in `features/telnet/models/telnet-options.ts` definieren
+2. Handler-Funktion in `features/telnet/utils/handle-<option>.ts` erstellen
+3. Handler in `TelnetClient.optionsHandler`-Map registrieren
+4. Optional: State-Tracking via `getState()` / `onStateChange()`
+
+## Socket.IO Events
+- Neue Client→Server Events: Interface `ClientToServerEvents` in `shared/` erweitern
+- Neue Server→Client Events: Interface `ServerToClientEvents` in `shared/` erweitern
+- Handler im `SocketManager.handleClientConnection()` registrieren
+
+## TypeScript
+- `strict: true`
+- Target: ES2020
+- Module: nodenext / moduleResolution: nodenext
+
+## Testing
+- Jest mit `ts-jest`
+- Test-Dateien: `*.spec.ts` neben den Source-Dateien
+- Config: `jest.config.cjs`
