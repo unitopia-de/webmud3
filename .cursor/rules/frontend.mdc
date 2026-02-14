@@ -27,6 +27,20 @@ globs: frontend/**/*.ts,frontend/**/*.html,frontend/**/*.scss
 - `aria-live="assertive"` für Output, `role="log"` für History
 - Bei Änderungen am Terminal: Screenreader-Tests durchführen (siehe SCREENREADER_TESTS.md)
 
+## GMCP-Subsystem
+- **GmcpService** (`features/gmcp/gmcp.service.ts`): Zentraler Service für GMCP-Modul-Verwaltung
+  - Registry: Module registrieren/deregistrieren über `registerModule()`/`unregisterModule()`
+  - Routing: Eingehende Nachrichten werden an den passenden `GmcpModuleHandler` delegiert
+  - Observable: `gmcpEvent$` streamt alle GMCP-Events, `gmcpStart$` signalisiert GMCP-Aktivierung
+  - Senden: `sendOutgoing()` leitet über die von SocketsService gesetzte Sendefunktion
+- **GmcpModuleHandler** (`features/gmcp/gmcp-module-handler.ts`): Strategy-Interface für Module
+  - Jedes GMCP-Modul (Sound, Char, Files, etc.) implementiert dieses Interface
+  - `handleMessage(message, data)` verarbeitet eingehende Nachrichten
+  - Optional: `getMenuItems()` für dynamische Menüeinträge, `dispose()` für Cleanup
+- **GmcpEvent** (`features/gmcp/gmcp-event.ts`): Event-Typ für den Observable-Stream
+- Verdrahtung: SocketsService → GmcpService.handleIncoming() / handleGmcpStart()
+- Reset: GmcpService.reset() wird bei mudDisconnect aufgerufen
+
 ## Styling
 - SCSS als Preprocessor
 - Komponenten-spezifische Styles in `.component.scss`

@@ -3,12 +3,14 @@ import { BehaviorSubject } from 'rxjs';
 import { Manager, Socket } from 'socket.io-client';
 
 import { ServerConfigService } from '../../features/serverconfig/server-config.service';
+import { GmcpService } from '../../features/gmcp/gmcp.service';
 import { SecureString } from '@webmud3/frontend/shared/types/secure-string';
 import { isSecureString } from '@webmud3/frontend/shared/utils/is-secure-string';
 import { OutputHistoryService } from '@webmud3/frontend/shared/services/output-history.service';
 
 import type {
   ClientToServerEvents,
+  GmcpSupport,
   ServerToClientEvents,
   LinemodeState,
 } from '@webmud3/shared';
@@ -22,6 +24,7 @@ type MudOutputEventArgs = {
 })
 export class SocketsService {
   private readonly outputHistoryService = inject(OutputHistoryService);
+  private readonly gmcpService = inject(GmcpService);
   private readonly manager: Manager;
   private readonly socket: Socket<ServerToClientEvents, ClientToServerEvents>;
   private readonly connectedToServer = new BehaviorSubject<boolean>(false);
@@ -140,6 +143,24 @@ export class SocketsService {
     this.socket.on('requestTimingMark', (callback: () => void) => {
       this.handleTimingMark(callback);
     });
+
+    this.socket.on(
+      'mudGmcpIncoming',
+      (module: string, message: string, data: unknown) => {
+        this.handleGmcpIncoming(module, message, data);
+      },
+    );
+
+    this.socket.on('mudGmcpStart', (gmcpSupport: GmcpSupport) => {
+      this.handleGmcpStart(gmcpSupport);
+    });
+
+    // Wire up GmcpService's send function to emit via Socket.IO
+    this.gmcpService.setSendFunction(
+      (module: string, message: string, data: unknown) => {
+        this.socket.emit('mudGmcpOutgoing', module, message, data);
+      },
+    );
   }
 
   public connectToMud(initialViewPort: {
@@ -185,9 +206,16 @@ export class SocketsService {
     this.socket.emit('mudViewportSize', columns, rows);
   }
 
-  public sendGmcp(/*id: string, mod: string, msg: string, data: any*/): boolean {
-    console.log(`[Sockets] Sockets-Service: 'sendGmcp'`);
-    throw new Error('Method not implemented.');
+  /**
+   * Sends a GMCP message to the MUD server via Socket.IO.
+   * Prefer using GmcpService.sendOutgoing() instead for proper state checking.
+   */
+  public sendGmcp(module: string, message: string, data: unknown): void {
+    console.log(
+      `[Sockets] Sockets-Service: 'sendGmcp' ${module}.${message}`,
+    );
+
+    this.socket.emit('mudGmcpOutgoing', module, message, data);
   }
 
   private handleMudConnect = (
@@ -222,6 +250,9 @@ export class SocketsService {
     // Clear history when MUD connection is closed
     console.log('[Sockets] Clearing history after MUD disconnect');
     this.outputHistoryService.clearAll();
+
+    // Reset GMCP state (dispose handlers, clear registry)
+    this.gmcpService.reset();
 
     this.connectedToMud.next(false);
 
@@ -327,6 +358,24 @@ export class SocketsService {
     console.info('[Sockets] Sockets-Service: Got and answer a Timing Mark');
 
     callback();
+  };
+
+  private handleGmcpIncoming = (
+    module: string,
+    message: string,
+    data: unknown,
+  ) => {
+    console.debug(
+      `[Sockets] Sockets-Service: GMCP Incoming: ${module}.${message}`,
+    );
+
+    this.gmcpService.handleIncoming(module, message, data);
+  };
+
+  private handleGmcpStart = (gmcpSupport: GmcpSupport) => {
+    console.info('[Sockets] Sockets-Service: GMCP started', gmcpSupport);
+
+    this.gmcpService.handleGmcpStart(gmcpSupport);
   };
 
   /**

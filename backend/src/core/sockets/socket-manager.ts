@@ -362,6 +362,41 @@ export class SocketManager extends Server<
           }
         });
 
+        telnetClient.on(
+          'gmcpIncoming',
+          (module: string, message: string, data: unknown) => {
+            const connection = this.mudConnections[resolvedSessionToken];
+            const targetSocket = connection
+              ? this.getSocketById(connection.socketId)
+              : undefined;
+
+            if (targetSocket !== undefined) {
+              logger.verbose(
+                `[${socket.id}] [Socket-Manager] Forwarding GMCP incoming: ${module}.${message}`,
+              );
+
+              targetSocket.emit('mudGmcpIncoming', module, message, data);
+            }
+          },
+        );
+
+        telnetClient.on('gmcpStart', () => {
+          const connection = this.mudConnections[resolvedSessionToken];
+          const targetSocket = connection
+            ? this.getSocketById(connection.socketId)
+            : undefined;
+
+          if (targetSocket !== undefined) {
+            logger.info(
+              `[${socket.id}] [Socket-Manager] GMCP started. Emitting 'mudGmcpStart'.`,
+            );
+
+            // For now emit an empty GmcpSupport object; Phase 1.3 (Multi-MUD) will
+            // populate this from the MudFamilyConfig once MudConfigService is available.
+            targetSocket.emit('mudGmcpStart', {});
+          }
+        });
+
         telnetClient.on('negotiationChanged', (negotiation) => {
           if (
             negotiation.option === TelnetOptions.TELOPT_TM &&
@@ -427,6 +462,37 @@ export class SocketManager extends Server<
         socket.emit('mudConnected', true, resolvedSessionToken); // isNewConnection = true
 
         this.emitCurrentOptionStates(telnetClient, socket);
+      },
+    );
+
+    socket.on(
+      'mudGmcpOutgoing',
+      (module: string, message: string, data: unknown) => {
+        const existing = this.getConnectionBySocketId(socket.id);
+
+        if (existing === undefined) {
+          logger.error(
+            `[${socket.id}] [Socket-Manager] Client has no session - cannot send GMCP!`,
+          );
+
+          return;
+        }
+
+        const telnetClient = existing.connection.telnet;
+
+        if (telnetClient === undefined || !telnetClient.isConnected) {
+          logger.error(
+            `[${socket.id}] [Socket-Manager] Client has no telnet connection - cannot send GMCP!`,
+          );
+
+          return;
+        }
+
+        logger.verbose(
+          `[${socket.id}] [Socket-Manager] Forwarding GMCP outgoing: ${module}.${message}`,
+        );
+
+        telnetClient.sendGmcp(module, message, data);
       },
     );
 

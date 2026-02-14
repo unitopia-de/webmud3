@@ -29,6 +29,8 @@ globs: backend/**/*.ts
 - Neue Client→Server Events: Interface `ClientToServerEvents` in `shared/` erweitern
 - Neue Server→Client Events: Interface `ServerToClientEvents` in `shared/` erweitern
 - Handler im `SocketManager.handleClientConnection()` registrieren
+- GMCP-Events: `mudGmcpIncoming`/`mudGmcpStart` (Server→Client), `mudGmcpOutgoing` (Client→Server)
+- GMCP-Weiterleitung: TelnetClient Events ↔ Socket.IO Events im SocketManager
 
 ## TypeScript
 - `strict: true`
