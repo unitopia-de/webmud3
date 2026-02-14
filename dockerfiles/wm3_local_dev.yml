@@ -3,14 +3,17 @@ services:
   web:
     image: myonara/webmud3:develop
     environment: 
+      ENVIRONMENT: 'development'
       NODE_ENV: 'development'
+      NAME: 'webmud3myonara'
       HOST: '0.0.0.0'
       PORT: 5000
-      TELNET_HOST: 'localhost'
-      TELNET_PORT: 3333
-      TELNET_TLS: 'false'
-      SOCKET_ROOT: '/mysocket.io'
+      TELNET_HOST: 'unitopia.de'
+      TELNET_PORT: 9988
+      TELNET_TLS: 'true'
+      SOCKET_ROOT: '/mysocket-local.io'
       SOCKET_TIMEOUT: 900000
+      LOG_LEVEL: 'debug'
     deploy:
       replicas: 1
       resources:
@@ -20,14 +23,14 @@ services:
       labels:
         com.docker.lb.hosts: www.unitopia.de
         com.docker.lb.network: webnet
-        com.docker.lb.port: 2018
+        com.docker.lb.port: 5000
       restart_policy:
         condition: on-failure
         delay: 20s
         max_attempts: 2 
         window: 3600s
     ports:
-      - "2018:5000"
+      - "5000:5000"
     networks:
       - webnet
 networks:
