@@ -91,6 +91,15 @@ globs: frontend/**/*.ts,frontend/**/*.html,frontend/**/*.scss
 - **FileInfo** / **FileEntry** (`features/gmcp-files/file-types.ts`): Typen für Dateisystem-Daten
 - Parent-Child: DirList-Fenster ist Parent aller geöffneten Editor-Fenster
 
+## GMCP Sound-Modul
+- **SoundGmcpHandler** (`features/gmcp-sound/sound-gmcp-handler.ts`): GmcpModuleHandler für `Sound`
+  - `Sound.Url` → speichert Base-URL für Sound-Dateien
+  - `Sound.Event` → spielt Sound via `new Audio(baseUrl + "/" + file)`
+  - HTML5 Audio API (fire-and-forget, autoplay-Policy behandelt)
+  - Toggle: `Core.Supports.Add ["Sound 1"]` / `Core.Supports.Remove ["Sound 1"]`
+  - `getMenuItems()` liefert "Vertonung" Toggle-Eintrag für das Menü
+  - Backend: GMCP Sound-Messages werden transparent durchgereicht (kein Backend-Code nötig)
+
 ## Styling
 - SCSS als Preprocessor
 - Komponenten-spezifische Styles in `.component.scss`
