@@ -100,7 +100,7 @@ globs: frontend/**/*.ts,frontend/**/*.html,frontend/**/*.scss
   - `getMenuItems()` liefert "Vertonung" Toggle-Eintrag für das Menü
   - Backend: GMCP Sound-Messages werden transparent durchgereicht (kein Backend-Code nötig)
 
-## GMCP Char-Modul (Statusleiste)
+## GMCP Char-Modul (Statusleiste + Inventar)
 - **CharacterData** (`features/gmcp-char/character-data.ts`): Typen + Parsing
   - `CharacterData` Interface: Name, Fullname, Gender, Wizard-Flag, Vitals, Stats, Status
   - `CharacterVitals`: HP/SP + MaxHP/MaxSP
@@ -108,14 +108,24 @@ globs: frontend/**/*.ts,frontend/**/*.html,frontend/**/*.scss
   - `parseVitals("hp=100|sp=80|maxhp=120|maxsp=100")` → strukturierte Vitals
   - `parseStats("con=34,2|dex=59,7|int=130|str=59,8")` → sortiertes Stats-Array
   - `formatStatusSummary()` → kompakte Status-Anzeige
+- **InventoryData** (`features/gmcp-char/inventory-data.ts`): Inventar-Datenmodell
+  - `InventoryEntry` Interface: `{ name, category }` — einzelner Gegenstand
+  - `InventoryList` Klasse: Kategorisierte Verwaltung mit `addItem()`, `removeItem()`, `initList()`
+  - Kategorien werden automatisch erstellt/gelöscht
+  - `getCategories()`, `getItems(category)`, `totalItems`, `isEmpty`
 - **CharGmcpHandler** (`features/gmcp-char/char-gmcp-handler.ts`): GmcpModuleHandler für `Char`
   - `Char.Name` → Charakter-Init, Browser-Titel setzen, Wizard-Module aktivieren
   - `Char.StatusVars` → Status-Variablen-Definitionen speichern
   - `Char.Status` → Aktuelle Statuswerte (Gilde, Rasse, Rang)
   - `Char.Vitals` → HP/SP Werte (string + object Format)
   - `Char.Stats` → STR/INT/CON/DEX Attribute
+  - `Char.Items.List` → Komplettes Inventar ersetzen + Fenster öffnen
+  - `Char.Items.Add` → Einzelnen Gegenstand hinzufügen
+  - `Char.Items.Remove` → Einzelnen Gegenstand entfernen
   - `characterData$` BehaviorSubject (null = nicht eingeloggt)
+  - `inventory$` BehaviorSubject für reaktive Inventar-Updates
   - Wizard-Erkennung: bei `wizard > 0` werden Files/Input/Numpad GMCP-Module aktiviert
+  - Inventar-Fenster wird automatisch bei `Items.List` geöffnet, bei `dispose()` geschlossen
 - **CharStatusBarComponent** (`features/gmcp-char/char-statusbar.component.ts`): Kompakte Statusleiste
   - Standalone, direkt in `app.component.html` zwischen Terminal und Window-Container
   - Nur sichtbar nach `Char.Name` Empfang (characterData$ nicht null + name gesetzt)
@@ -123,6 +133,12 @@ globs: frontend/**/*.ts,frontend/**/*.html,frontend/**/*.scss
   - Catppuccin Mocha Farben, monospace, responsive (Stats auf schmalen Viewports ausgeblendet)
   - ARIA: `role="status"`, `aria-live="polite"`
   - `flex: 0 0 auto` — verdrängt Terminal von unten, überlappt nicht
+- **InventoryComponent** (`features/gmcp-char/inventory.component.ts`): Inventar-Fenster
+  - Standalone, wird als Modeless-Window im WindowContainer gerendert (`componentType: 'InventoryComponent'`)
+  - Kategorisierte Liste mit Kategorie-Überschriften und Items
+  - Abonniert `CharGmcpHandler.inventory$` für reaktive Updates
+  - Catppuccin Mocha Farben, Gegenstandszähler im Footer
+  - ARIA: `role="list"`, `aria-label="Inventar"`
 
 ## GMCP Handler-Registrierung
 - **GmcpBootstrapService** (`features/gmcp/gmcp-bootstrap.service.ts`): Zentrale Registrierung

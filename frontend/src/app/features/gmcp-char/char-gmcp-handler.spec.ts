@@ -223,6 +223,101 @@ describe('CharGmcpHandler', () => {
     });
   });
 
+  describe('Char.Items.List', () => {
+    it('should initialize the inventory', () => {
+      handler.handleMessage('Items.List', {
+        items: [
+          { name: 'Schwert', category: 'Waffen' },
+          { name: 'Dolch', category: 'Waffen' },
+          { name: 'Kettenhemd', category: 'Rüstung' },
+        ],
+      });
+
+      const inv = handler.inventory$.value;
+      expect(inv.totalItems).toBe(3);
+      expect(inv.getCategories()).toEqual(['Waffen', 'Rüstung']);
+      expect(inv.getItems('Waffen')).toEqual(['Schwert', 'Dolch']);
+    });
+
+    it('should replace previous inventory on new Items.List', () => {
+      handler.handleMessage('Items.List', {
+        items: [{ name: 'Alt', category: 'Test' }],
+      });
+
+      handler.handleMessage('Items.List', {
+        items: [{ name: 'Neu', category: 'Andere' }],
+      });
+
+      const inv = handler.inventory$.value;
+      expect(inv.totalItems).toBe(1);
+      expect(inv.getCategories()).toEqual(['Andere']);
+    });
+
+    it('should handle empty items array', () => {
+      handler.handleMessage('Items.List', { items: [] });
+
+      expect(handler.inventory$.value.isEmpty).toBe(true);
+    });
+  });
+
+  describe('Char.Items.Add', () => {
+    it('should add a single item', () => {
+      handler.handleMessage('Items.List', {
+        items: [{ name: 'Schwert', category: 'Waffen' }],
+      });
+
+      handler.handleMessage('Items.Add', {
+        item: { name: 'Dolch', category: 'Waffen' },
+      });
+
+      expect(handler.inventory$.value.getItems('Waffen')).toEqual([
+        'Dolch',
+        'Schwert',
+      ]);
+    });
+
+    it('should ignore null item', () => {
+      handler.handleMessage('Items.Add', { item: null });
+
+      expect(handler.inventory$.value.isEmpty).toBe(true);
+    });
+  });
+
+  describe('Char.Items.Remove', () => {
+    it('should remove a single item', () => {
+      handler.handleMessage('Items.List', {
+        items: [
+          { name: 'Schwert', category: 'Waffen' },
+          { name: 'Dolch', category: 'Waffen' },
+        ],
+      });
+
+      handler.handleMessage('Items.Remove', {
+        item: { name: 'Schwert', category: 'Waffen' },
+      });
+
+      expect(handler.inventory$.value.getItems('Waffen')).toEqual(['Dolch']);
+    });
+
+    it('should remove category when last item is removed', () => {
+      handler.handleMessage('Items.List', {
+        items: [{ name: 'Schwert', category: 'Waffen' }],
+      });
+
+      handler.handleMessage('Items.Remove', {
+        item: { name: 'Schwert', category: 'Waffen' },
+      });
+
+      expect(handler.inventory$.value.getCategories()).toEqual([]);
+    });
+
+    it('should ignore null item', () => {
+      handler.handleMessage('Items.Remove', { item: null });
+
+      expect(handler.inventory$.value.isEmpty).toBe(true);
+    });
+  });
+
   describe('dispose()', () => {
     it('should reset characterData$ to null', () => {
       handler.handleMessage('Name', { name: 'Test' });
@@ -230,6 +325,15 @@ describe('CharGmcpHandler', () => {
 
       handler.dispose();
       expect(handler.characterData$.value).toBeNull();
+    });
+
+    it('should reset inventory to empty', () => {
+      handler.handleMessage('Items.List', {
+        items: [{ name: 'Test', category: 'Cat' }],
+      });
+
+      handler.dispose();
+      expect(handler.inventory$.value.isEmpty).toBe(true);
     });
   });
 });

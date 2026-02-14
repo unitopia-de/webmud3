@@ -4,6 +4,8 @@ import { BehaviorSubject } from 'rxjs';
 
 import { GmcpService } from '../gmcp/gmcp.service';
 import type { GmcpModuleHandler } from '../gmcp/gmcp-module-handler';
+import { WindowAction } from '../windows/window-config';
+import { WindowService } from '../windows/window.service';
 
 import {
   CharacterData,
@@ -11,6 +13,7 @@ import {
   parseStats,
   parseVitals,
 } from './character-data';
+import { InventoryEntry, InventoryList } from './inventory-data';
 
 /**
  * Payload shape for GMCP `Char.Name`.
@@ -26,14 +29,18 @@ interface CharNamePayload {
  * GMCP handler for the `Char` module.
  *
  * Handles:
- * - `Char.Name`       → Character name, title, wizard flag
- * - `Char.StatusVars`  → Available status variable definitions
- * - `Char.Status`      → Current status values (guild, race, rank)
- * - `Char.Vitals`      → HP/SP values (changes frequently)
- * - `Char.Stats`       → STR/INT/CON/DEX attributes
+ * - `Char.Name`        → Character name, title, wizard flag
+ * - `Char.StatusVars`   → Available status variable definitions
+ * - `Char.Status`       → Current status values (guild, race, rank)
+ * - `Char.Vitals`       → HP/SP values (changes frequently)
+ * - `Char.Stats`        → STR/INT/CON/DEX attributes
+ * - `Char.Items.List`   → Full inventory list
+ * - `Char.Items.Add`    → Add single item to inventory
+ * - `Char.Items.Remove` → Remove single item from inventory
  *
  * State is exposed as a `BehaviorSubject<CharacterData | null>`.
  * The statusbar component subscribes to this for reactive rendering.
+ * Inventory is managed separately via `inventory$` BehaviorSubject.
  *
  * When `Char.Name` is received with `wizard > 0`, wizard-only GMCP
  * modules (Files, Input, Numpad) are automatically enabled.
@@ -45,12 +52,23 @@ export class CharGmcpHandler implements GmcpModuleHandler {
 
   private readonly gmcpService = inject(GmcpService);
   private readonly titleService = inject(Title);
+  private readonly windowService = inject(WindowService);
+
+  /** Window ID of the inventory window (if open) */
+  private inventoryWindowId: string | null = null;
 
   /**
    * Reactive stream of character data.
    * `null` means no character is logged in (statusbar hidden).
    */
   public readonly characterData$ = new BehaviorSubject<CharacterData | null>(null);
+
+  /**
+   * Reactive stream of inventory data.
+   * The InventoryList instance is mutable; a new reference is emitted
+   * on each change to trigger change detection.
+   */
+  public readonly inventory$ = new BehaviorSubject<InventoryList>(new InventoryList());
 
   /**
    * Routes incoming GMCP `Char.*` messages.
@@ -79,16 +97,36 @@ export class CharGmcpHandler implements GmcpModuleHandler {
         this.handleStats(data as string | Record<string, unknown>);
         break;
 
+      case 'items.list':
+        this.handleItemsList(data as { items: InventoryEntry[] });
+        break;
+
+      case 'items.add':
+        this.handleItemsAdd(data as { item: InventoryEntry });
+        break;
+
+      case 'items.remove':
+        this.handleItemsRemove(data as { item: InventoryEntry });
+        break;
+
       default:
         console.debug(`[CharGmcpHandler] Unknown message: Char.${message}`, data);
     }
   }
 
   /**
-   * Cleanup: reset character data to null.
+   * Cleanup: reset character data and inventory to defaults, close inventory window.
    */
   dispose(): void {
     this.characterData$.next(null);
+    this.inventory$.next(new InventoryList());
+
+    // Close inventory window if open
+    if (this.inventoryWindowId !== null) {
+      this.windowService.close(this.inventoryWindowId);
+      this.inventoryWindowId = null;
+    }
+
     console.info('[CharGmcpHandler] Disposed.');
   }
 
@@ -218,6 +256,90 @@ export class CharGmcpHandler implements GmcpModuleHandler {
     this.characterData$.next({
       ...charData,
       stats,
+    });
+  }
+
+  /**
+   * Handles `Char.Items.List`: replaces the entire inventory and opens the window.
+   */
+  private handleItemsList(data: { items: InventoryEntry[] }): void {
+    const inv = this.inventory$.value;
+    inv.initList(data.items ?? []);
+
+    // Emit a new reference to trigger change detection
+    this.inventory$.next(inv);
+
+    // Open or refresh the inventory window
+    this.openInventoryWindow();
+
+    console.debug(
+      '[CharGmcpHandler] Items.List received:',
+      inv.totalItems,
+      'items in',
+      inv.getCategories().length,
+      'categories',
+    );
+  }
+
+  /**
+   * Handles `Char.Items.Add`: adds a single item to the inventory.
+   */
+  private handleItemsAdd(data: { item: InventoryEntry }): void {
+    if (data.item == null) {
+      return;
+    }
+
+    const inv = this.inventory$.value;
+    inv.addItem(data.item);
+    this.inventory$.next(inv);
+
+    console.debug('[CharGmcpHandler] Items.Add:', data.item.name, '→', data.item.category);
+  }
+
+  /**
+   * Handles `Char.Items.Remove`: removes a single item from the inventory.
+   */
+  private handleItemsRemove(data: { item: InventoryEntry }): void {
+    if (data.item == null) {
+      return;
+    }
+
+    const inv = this.inventory$.value;
+    const removed = inv.removeItem(data.item);
+    this.inventory$.next(inv);
+
+    if (removed) {
+      console.debug('[CharGmcpHandler] Items.Remove:', data.item.name, '←', data.item.category);
+    } else {
+      console.debug('[CharGmcpHandler] Items.Remove: item not found:', data.item.name);
+    }
+  }
+
+  /**
+   * Opens (or focuses) the inventory modeless window.
+   */
+  private openInventoryWindow(): void {
+    // If already open, just focus it
+    if (this.inventoryWindowId !== null) {
+      this.windowService.focus(this.inventoryWindowId);
+      return;
+    }
+
+    const windowId = this.windowService.open({
+      title: 'Inventar',
+      componentType: 'InventoryComponent',
+      position: { x: 20, y: 60 },
+      size: { width: 320, height: 400 },
+    });
+
+    this.inventoryWindowId = windowId;
+
+    // Listen for close events to clear our reference
+    const subscription = this.windowService.outgoingEvents$.subscribe((event) => {
+      if (event.windowId === windowId && event.action === WindowAction.CloseParent) {
+        this.inventoryWindowId = null;
+        subscription.unsubscribe();
+      }
     });
   }
 

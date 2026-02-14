@@ -1,6 +1,7 @@
 import { AsyncPipe } from '@angular/common';
 import { Component, inject } from '@angular/core';
 
+import { InventoryComponent } from '../gmcp-char/inventory.component';
 import { DirListComponent } from '../gmcp-files/dirlist.component';
 import { EditorComponent } from '../gmcp-files/editor.component';
 
@@ -25,7 +26,7 @@ import { WindowService } from './window.service';
 @Component({
   selector: 'app-window-container',
   standalone: true,
-  imports: [AsyncPipe, WindowComponent, DirListComponent, EditorComponent],
+  imports: [AsyncPipe, WindowComponent, DirListComponent, EditorComponent, InventoryComponent],
   template: `
     <div class="wm-container">
       @for (config of windowService.windows$ | async; track config.windowId) {
@@ -39,6 +40,9 @@ import { WindowService } from './window.service';
             }
             @case ('EditorComponent') {
               <app-editor [config]="config"></app-editor>
+            }
+            @case ('InventoryComponent') {
+              <app-inventory [config]="config"></app-inventory>
             }
             @default {
               <p>Unbekannter Fenstertyp: {{ config.componentType }}</p>
