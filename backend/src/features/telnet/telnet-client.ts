@@ -12,6 +12,11 @@ import { TelnetOptionHandler } from './types/telnet-option-handler.js';
 import { handleCharsetOption } from './utils/handle-charset-option.js';
 import { handleEchoOption } from './utils/handle-echo-option.js';
 import { handleEorOption } from './utils/handle-eor-option.js';
+import {
+  GmcpIncomingMessage,
+  GmcpOptionHandler,
+  handleGmcpOption,
+} from './utils/handle-gmcp-option.js';
 import { handleLinemodeOption } from './utils/handle-linemode-option.js';
 import { handleMSSPOption } from './utils/handle-mssp-option.js';
 import {
@@ -39,6 +44,15 @@ type TelnetClientEvents = {
       state: unknown;
     },
   ];
+  /**
+   * Emitted when a GMCP message is received from the MUD server.
+   * The message has been parsed into module, message name, and JSON data.
+   */
+  gmcpIncoming: [module: string, message: string, data: unknown];
+  /**
+   * Emitted when GMCP negotiation succeeds and the protocol becomes active.
+   */
+  gmcpStart: [];
 };
 
 /**
@@ -140,6 +154,16 @@ export class TelnetClient extends EventEmitter<TelnetClientEvents> {
       [TelnetOptions.TELOPT_STATUS, handleStatusOption(this.telnetSocket)],
       [TelnetOptions.TELOPT_MSSP, handleMSSPOption(this.telnetSocket)],
       [TelnetOptions.TELOPT_EOR, handleEorOption(this.telnetSocket)],
+      [
+        TelnetOptions.TELOPT_GMCP,
+        handleGmcpOption(
+          this.telnetSocket,
+          this.socketId,
+          (msg: GmcpIncomingMessage) => {
+            this.emit('gmcpIncoming', msg.module, msg.message, msg.data);
+          },
+        ),
+      ],
     ]);
 
     this.setupOptionStateTracking();
@@ -194,6 +218,26 @@ export class TelnetClient extends EventEmitter<TelnetClientEvents> {
         this.requestStatus();
       }
 
+      // Emit gmcpStart when GMCP is successfully negotiated (server WILL, we DO)
+      if (negotiation.option === TelnetOptions.TELOPT_GMCP) {
+        const clientOption =
+          this._negotiations[TelnetOptions.TELOPT_GMCP]?.client;
+
+        const serverOption =
+          this._negotiations[TelnetOptions.TELOPT_GMCP]?.server;
+
+        if (
+          serverOption === TelnetControlSequences.WILL &&
+          clientOption === TelnetControlSequences.DO
+        ) {
+          logger.info(
+            `[${this.socketId}] [Telnet-Client] GMCP negotiation successful. Emitting 'gmcpStart'.`,
+          );
+
+          this.emit('gmcpStart');
+        }
+      }
+
       if (negotiation.option === TelnetOptions.TELOPT_EOR) {
         const clientOption =
           this.negotiations[TelnetOptions.TELOPT_EOR]?.client;
@@ -218,6 +262,30 @@ export class TelnetClient extends EventEmitter<TelnetClientEvents> {
 
   public sendMessage(data: string): void {
     this.telnetSocket.write(data);
+  }
+
+  /**
+   * Sends a GMCP message to the MUD server.
+   * Only works when GMCP has been successfully negotiated.
+   *
+   * @param module - Top-level module name (e.g. "Core")
+   * @param message - Message name (e.g. "Supports.Set")
+   * @param data - Payload to JSON-encode
+   */
+  public sendGmcp(module: string, message: string, data: unknown): void {
+    const handler = this.optionsHandler.get(TelnetOptions.TELOPT_GMCP) as
+      | GmcpOptionHandler
+      | undefined;
+
+    if (handler === undefined) {
+      logger.warn(
+        `[${this.socketId}] [Telnet-Client] GMCP handler not registered`,
+      );
+
+      return;
+    }
+
+    handler.sendGmcp(module, message, data);
   }
 
   public updateViewportSize(columns: number, rows: number): void {
