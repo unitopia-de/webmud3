@@ -19,10 +19,15 @@ sourceMaps.install();
 
 // Global error handlers to prevent silent crashes and improve diagnostics
 process.on('uncaughtException', (error: Error) => {
-  if (error instanceof AggregateError) {
+  // AggregateError check via property (ES2020 target has no AggregateError type)
+  const errRecord = error as unknown as Record<string, unknown>;
+
+  if ('errors' in error && Array.isArray(errRecord['errors'])) {
+    const subErrors = errRecord['errors'] as Error[];
+
     logger.error('[Process] Uncaught AggregateError:', {
       message: error.message,
-      errors: error.errors.map((subError: Error, i: number) => ({
+      errors: subErrors.map((subError: Error, i: number) => ({
         index: i,
         message: subError.message,
         code: (subError as NodeJS.ErrnoException).code,

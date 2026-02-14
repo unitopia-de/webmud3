@@ -682,36 +682,49 @@ function createTelnetConnection(
 }
 
 /**
+ * Extracts network-error details from an Error (code, syscall, address, port).
+ * These properties exist at runtime on Node.js network errors but are not
+ * fully covered by the NodeJS.ErrnoException type definition.
+ */
+function extractNetworkErrorDetails(
+  error: Error,
+): Record<string, unknown> {
+  const err = error as unknown as Record<string, unknown>;
+
+  return {
+    message: error.message,
+    code: err['code'],
+    syscall: err['syscall'],
+    address: err['address'],
+    port: err['port'],
+    stack: error.stack,
+  };
+}
+
+/**
  * Formats a connection error for structured logging.
  * Handles AggregateError (from Node.js happy-eyeballs DNS resolution)
  * by unpacking the individual sub-errors with their messages and stacks.
  */
 function formatConnectionError(error: Error): Record<string, unknown> {
-  if (error instanceof AggregateError) {
+  // AggregateError check via property presence (ES2020 target has no AggregateError type)
+  const errRecord = error as unknown as Record<string, unknown>;
+
+  if ('errors' in error && Array.isArray(errRecord['errors'])) {
+    const subErrors = errRecord['errors'] as Error[];
+
     return {
       errorType: 'AggregateError',
       message: error.message,
-      errors: error.errors.map((subError: Error, index: number) => ({
+      errors: subErrors.map((subError: Error, index: number) => ({
         index,
-        message: subError.message,
-        code: (subError as NodeJS.ErrnoException).code,
-        syscall: (subError as NodeJS.ErrnoException).syscall,
-        address: (subError as NodeJS.ErrnoException).address,
-        port: (subError as NodeJS.ErrnoException).port,
-        stack: subError.stack,
+        ...extractNetworkErrorDetails(subError),
       })),
     };
   }
 
-  const errno = error as NodeJS.ErrnoException;
-
   return {
     errorType: error.constructor.name,
-    message: error.message,
-    code: errno.code,
-    syscall: errno.syscall,
-    address: errno.address,
-    port: errno.port,
-    stack: error.stack,
+    ...extractNetworkErrorDetails(error),
   };
 }
