@@ -1,3 +1,4 @@
+import type { GmcpSupport } from '../gmcp/gmcp-types.js';
 import type { LinemodeState } from './linemode-state.js';
 
 /**
@@ -34,4 +35,17 @@ export interface ServerToClientEvents {
    * Sends the current linemode negotiation state to the client.
    */
   setLinemode: (state: LinemodeState) => void;
+  /**
+   * Forwards a GMCP message received from the MUD server to the frontend.
+   * @param module - GMCP top-level module name (e.g. "Char")
+   * @param message - GMCP message name (e.g. "Status")
+   * @param data - Parsed JSON payload from the MUD
+   */
+  mudGmcpIncoming: (module: string, message: string, data: unknown) => void;
+  /**
+   * Signals that the MUD server supports GMCP and negotiation was successful.
+   * Includes the GMCP module support configuration for the connected MUD family.
+   * @param gmcpSupport - Map of supported GMCP modules with their configurations
+   */
+  mudGmcpStart: (gmcpSupport: GmcpSupport) => void;
 }

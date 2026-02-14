@@ -15,10 +15,11 @@ Das `@webmud3/shared`-Paket definiert den **Vertrag** zwischen Frontend und Back
 - Socket.IO Event-Interfaces (`ClientToServerEvents`, `ServerToClientEvents`)
 - Telnet-bezogene Shared-Types (`LinemodeState`)
 - Backend-Konfigurationstypen (`ServerConfig`)
+- GMCP-Typen (`GmcpSupport`, `GmcpModuleConfig`, `MudFamilyConfig`, `MudConfig`, `MudConfigFile`) in `gmcp/`
 - **Keine** Implementierungen, nur Typen und Interfaces!
 
 ## Neuen Typ hinzufügen
-1. Typ-Datei in passendem Unterordner anlegen (`sockets/`, `config/`)
+1. Typ-Datei in passendem Unterordner anlegen (`sockets/`, `config/`, `gmcp/`)
 2. In `src/index.ts` re-exportieren
 3. `npm run build --workspace shared` ausführen, da Frontend und Backend die kompilierte Version verwenden
 
