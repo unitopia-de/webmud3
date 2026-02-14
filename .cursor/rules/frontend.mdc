@@ -65,6 +65,31 @@ globs: frontend/**/*.ts,frontend/**/*.html,frontend/**/*.scss
   - Rendert `@for`-Loop über `windows$ | async`
   - Routet Events an WindowService
 - Design-Prinzip: Catppuccin Mocha Farbschema (dark theme, passt zum Terminal)
+- Content-Routing: `WindowContainerComponent` nutzt `@switch (config.componentType)` um Content-Komponenten einzubetten
+  - Neue Fenster-Typen: Component importieren + `@case` hinzufügen
+
+## GMCP Files-Modul (Datei-Browser & Code-Editor)
+- **FilesGmcpHandler** (`features/gmcp-files/files-gmcp-handler.ts`): GmcpModuleHandler für `Files`
+  - `Files.URL` → Datei laden + Editor-Fenster öffnen
+  - `Files.DirectoryList` → DirList-Fenster öffnen/aktualisieren
+  - `openFile()` / `changeDirectory()` → GMCP-Requests an MUD
+  - `saveFile()` → Save-Workflow: GMCP Files.OpenFile (flag=1) → HTTP PUT → GMCP Files.fileSaved
+- **FilesService** (`features/gmcp-files/files.service.ts`): HTTP Load/Save + FileInfo-Registry
+  - `processFileUrl()` erstellt/aktualisiert FileInfo aus GMCP-Payload
+  - `loadFileContent()` / `saveFileContent()` → async HTTP-Operationen
+  - `isDirty()` für ungespeicherte Änderungen, `reset()` bei Disconnect
+- **DirListComponent** (`features/gmcp-files/dirlist.component.ts`): Verzeichnis-Browser
+  - Standalone, zeigt Dateien/Ordner als Tabelle an
+  - Klick auf Datei → `FilesGmcpHandler.openFile()`
+  - Klick auf Ordner → `FilesGmcpHandler.changeDirectory()`
+- **EditorComponent** (`features/gmcp-files/editor.component.ts`): Code-Editor
+  - Ace Editor (`ace-builds`), lazy-loaded via `import()`
+  - Syntax-Highlighting: C/C++ (`.c`, `.h`, `.inc`), Text (alles andere)
+  - Theme-Auswahl mit localStorage-Persistenz
+  - Toolbar: Theme-Select, Read-Only-Toggle, Zwischenspeichern, Speichern&Schließen, Abbrechen
+  - Dirty-Check bei Schließen (window.confirm)
+- **FileInfo** / **FileEntry** (`features/gmcp-files/file-types.ts`): Typen für Dateisystem-Daten
+- Parent-Child: DirList-Fenster ist Parent aller geöffneten Editor-Fenster
 
 ## Styling
 - SCSS als Preprocessor
@@ -79,7 +104,8 @@ globs: frontend/**/*.ts,frontend/**/*.html,frontend/**/*.scss
 ## Testing
 - Jest über @angular-builders/jest (nicht Karma!)
 - Test-Dateien: `*.spec.ts` neben den Source-Dateien
-- Setup: `setup-jest.ts`
+- Setup: `setup-jest.ts` (nutzt `setupZoneTestEnv()` aus `jest-preset-angular`)
+- Angular-DI in Tests: `TestBed.configureTestingModule()` + `provideHttpClient()` bei Services mit HTTP
 
 ## Conventions
 - TypeScript strict mode
