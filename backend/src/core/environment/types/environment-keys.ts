@@ -5,6 +5,9 @@ export type EnvironmentKeys =
   | 'TELNET_HOST' // Required | the IP of your MUD
   | 'TELNET_PORT' // Required | the PORT of your MUD
   | 'TELNET_TLS' // Optional | defaults to 'false' | set this to true if you want a secure connection
+  | 'TELNET_KEEPALIVE_DELAY' // in milliseconds | default: 30000 (30s) | TCP keepalive interval for telnet connections
+  | 'SOCKET_PING_INTERVAL' // in milliseconds | default: 25000 (25s) | Socket.IO ping interval
+  | 'SOCKET_PING_TIMEOUT' // in milliseconds | default: 20000 (20s) | Socket.IO ping timeout
   | 'SOCKET_TIMEOUT' // in milliseconds | default: 900000 (15 min) | determines how long messages are buffed for the disconnected frontend and when the telnet connection is closed
   | 'SOCKET_ROOT' // Required | URL for the socket connection. e.g. 'https://mud.example.com/socket.io'
   | 'ENVIRONMENT' // Optional | accepts values 'development' or 'production' | defaults to 'production' | Enables Debug REST Endpoint /api/info and allows for permissive CORS if set to 'development'
