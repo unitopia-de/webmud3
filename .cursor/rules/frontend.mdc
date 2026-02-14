@@ -41,6 +41,31 @@ globs: frontend/**/*.ts,frontend/**/*.html,frontend/**/*.scss
 - Verdrahtung: SocketsService → GmcpService.handleIncoming() / handleGmcpStart()
 - Reset: GmcpService.reset() wird bei mudDisconnect aufgerufen
 
+## Fenstersystem (Modeless Windows)
+- **WindowConfig** (`features/windows/window-config.ts`): Interface für Fenster-Konfiguration
+  - UUID-basierte `windowId`, Parent-Child über `parentWindowId`
+  - `componentType` String bestimmt, welcher Content im Fenster gerendert wird
+  - Position, Größe, Z-Index, Sichtbarkeit, Titel
+- **WindowAction** Enum: Focus, Hide, Save, Cancel, SaveAndClose, WinError, Resize, CloseParent
+- **WindowEvent** Interface: `{ action, windowId, data? }` für Event-Kommunikation
+- **WindowService** (`features/windows/window.service.ts`): Zentraler Injectable Service
+  - `open()` erstellt neues Fenster mit UUID und auto-Z-Index
+  - `close()` schließt Fenster + rekursiv alle Children
+  - `focus()` bringt Fenster nach vorne (höchster Z-Index)
+  - `windows$` BehaviorSubject liefert reaktive Liste aller sichtbaren Fenster
+  - `incomingEvents$` / `outgoingEvents$` Subject-basierter Event-Bus
+  - `updatePosition()` / `updateSize()` / `updateData()` für State-Updates
+- **WindowComponent** (`features/windows/window.component.ts`): Standalone Component
+  - Draggable Titelleiste via native Pointer Events
+  - Resize-Handle (unten-rechts), Min-Constraints 200×120px
+  - ARIA: `role="dialog"`, `aria-label`, Focus-Buttons
+  - Emittet WindowEvents über Output an den Container
+- **WindowContainerComponent** (`features/windows/window-container.component.ts`):
+  - Fixed-Position Overlay, `pointer-events: none` (Fenster haben `auto`)
+  - Rendert `@for`-Loop über `windows$ | async`
+  - Routet Events an WindowService
+- Design-Prinzip: Catppuccin Mocha Farbschema (dark theme, passt zum Terminal)
+
 ## Styling
 - SCSS als Preprocessor
 - Komponenten-spezifische Styles in `.component.scss`
