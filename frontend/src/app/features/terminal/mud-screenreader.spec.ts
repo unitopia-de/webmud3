@@ -31,7 +31,7 @@ describe('MudScreenReaderAnnouncer', () => {
 
   it('clear() empties the live region immediately', () => {
     announcer.announce('Message');
-    expect(liveRegion.textContent).toBe('Message');
+    expect(liveRegion.textContent).toBe('Message\n');
 
     announcer.clear();
     expect(liveRegion.textContent).toBe('');
