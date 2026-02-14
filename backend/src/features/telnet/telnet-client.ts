@@ -662,17 +662,32 @@ function createTelnetConnection(
   telnetHost: string,
   telnetPort: number,
 ) {
+  // Resolve 'localhost' to '127.0.0.1' explicitly to avoid issues with
+  // Node.js 22's autoSelectFamily (happy eyeballs) on Windows.
+  // When autoSelectFamily is enabled (default since Node 20), 'localhost'
+  // is resolved via DNS which may return both ::1 (IPv6) and 127.0.0.1 (IPv4).
+  // The happy eyeballs algorithm then tries both in parallel, which can fail
+  // on Windows when the target only listens on one address family.
+  const resolvedHost =
+    telnetHost.toLowerCase() === 'localhost' ? '127.0.0.1' : telnetHost;
+
+  if (resolvedHost !== telnetHost) {
+    logger.info(
+      `[Telnet-Client] Resolved '${telnetHost}' to '${resolvedHost}' (bypassing happy eyeballs DNS)`,
+    );
+  }
+
   let socket;
 
   if (useTls) {
     socket = tls.connect({
-      host: telnetHost,
+      host: resolvedHost,
       port: telnetPort,
       rejectUnauthorized: true,
     });
   } else {
     socket = net.createConnection({
-      host: telnetHost,
+      host: resolvedHost,
       port: telnetPort,
     });
   }
