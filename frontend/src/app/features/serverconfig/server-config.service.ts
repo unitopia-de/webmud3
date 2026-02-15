@@ -3,6 +3,7 @@ import { firstValueFrom } from 'rxjs';
 import { environment } from 'src/environments/environment';
 import { HttpClient } from '@angular/common/http';
 import type { ServerConfig } from '@webmud3/shared';
+import { logger } from '@webmud3/frontend/shared/utils/logger';
 
 @Injectable({
   providedIn: 'root',
@@ -21,11 +22,28 @@ export class ServerConfigService {
    * @memberof ServerConfigService
    */
   public async load(): Promise<void> {
-    const configuration = await firstValueFrom(
-      this.httpClient.get<ServerConfig>(this.configUrl),
-    );
+    logger.info('ServerConfig', 'Loading server configuration', {
+      url: this.configUrl,
+    });
 
-    this.serverConfiguration = configuration;
+    try {
+      const configuration = await firstValueFrom(
+        this.httpClient.get<ServerConfig>(this.configUrl),
+      );
+
+      this.serverConfiguration = configuration;
+
+      logger.info('ServerConfig', 'Server configuration loaded', {
+        socketNamespace: configuration.socketNamespace,
+      });
+    } catch (error) {
+      logger.error(
+        'ServerConfig',
+        'Failed to load server configuration',
+        error,
+      );
+      throw error;
+    }
   }
 
   /**

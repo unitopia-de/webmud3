@@ -15,15 +15,16 @@ import { Subscription } from 'rxjs';
 import { MudService } from '../../services/mud.service';
 import { SecureString } from '@webmud3/frontend/shared/types/secure-string';
 import { OutputHistoryService } from '@webmud3/frontend/shared/services/output-history.service';
+import { logger } from '@webmud3/frontend/shared/utils/logger';
 import type { LinemodeState } from '@webmud3/shared';
+import { MudScreenReaderAnnouncer } from '../../../../features/screenreader/mud-screenreader';
+import { CTRL } from '../../../../features/terminal/models/escapes';
+import { MudInputController } from '../../../../features/terminal/mud-input.controller';
 import {
-  MudInputController,
   MudPromptManager,
-  MudScreenReaderAnnouncer,
-  MudSocketAdapter,
   MudPromptContext,
-  CTRL,
-} from '../../../../features/terminal';
+} from '../../../../features/terminal/mud-prompt.manager';
+import { MudSocketAdapter } from '../../../../features/terminal/mud-socket.adapter';
 
 /**
  * Component-internal shape that bundles the mutable Mud client flags.
@@ -159,8 +160,9 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
       this.inputRegionRef.nativeElement,
     );
 
-    console.debug(
-      '[MudClient] Screenreader announcer initialized, live region:',
+    logger.debug(
+      'MudClient',
+      'Screenreader announcer initialized, live region:',
       this.liveRegionRef.nativeElement,
     );
 
@@ -230,6 +232,7 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
    * Cleans up subscriptions and disposes terminal resources.
    */
   ngOnDestroy() {
+    logger.info('MudClient', 'Disposing mud client');
     this.resizeObs.disconnect();
 
     // Unregister visibility change listener
@@ -347,8 +350,9 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
     if (typeof payload === 'string') {
       // Persist with CRLF to match server formatting faithfully
       const storedMessage = `${currentPrompt}${payload}\r\n`;
-      console.debug(
-        `[MudClient] Saving input with prompt: ${currentPrompt} ${message}`,
+      logger.debug(
+        'MudClient',
+        `Saving input with prompt: ${currentPrompt} ${message}`,
       );
       this.outputHistoryService.appendInputLine(storedMessage);
     }
@@ -373,15 +377,12 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
    * Special handling for Ctrl+V: intercepts clipboard content and injects it properly.
    */
   private handleInput(data: string) {
-    console.log('[PASTE-DEBUG] Edit mode:', this.state.isEditMode);
-    console.log('[PASTE-DEBUG] Data received:', JSON.stringify(data));
-    console.log('[PASTE-DEBUG] Data length:', data.length);
-
     // Special handling for Ctrl+V (paste): xterm converts paste to \u0016 in onData()
     // We need to read the clipboard and inject the actual content
     if (data === '\u0016') {
-      console.log(
-        '[MudClient] Ctrl+V detected, reading clipboard from native event...',
+      logger.debug(
+        'MudClient',
+        'Ctrl+V detected, reading clipboard from native event...',
       );
       this.handlePasteFromClipboard();
       return;
@@ -499,7 +500,7 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
       this.pendingEchoSuppression = null;
     }
 
-    console.debug('[MudClient] Announcing to screenreader:', {
+    logger.debug('MudClient', 'Announcing to screenreader:', {
       rawLength: data.length,
       raw: data,
     });
@@ -520,16 +521,19 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
    * Resets the screenreader session timestamp so new output isn't filtered as "too old".
    */
   private loadHistoryIfAvailable(): void {
-    console.log('[MudClient] Loading history from localStorage');
+    logger.info('MudClient', 'Loading history from localStorage');
 
     const entries = this.outputHistoryService.loadEntries();
 
     if (entries.length === 0) {
-      console.log('[MudClient] No history found');
+      logger.debug('MudClient', 'No history found');
       return;
     }
 
-    console.log(`[MudClient] Restoring ${entries.length} entries from history`);
+    logger.info(
+      'MudClient',
+      `Restoring ${entries.length} entries from history`,
+    );
 
     // Write all history entries to terminal in order
     for (const entry of entries) {
@@ -539,8 +543,9 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
       // this.screenReader?.appendToHistory(entry.data);
     }
 
-    console.log(
-      '[MudClient] History loaded to terminal and screenreader history',
+    logger.info(
+      'MudClient',
+      'History loaded to terminal and screenreader history',
     );
   }
 
@@ -589,7 +594,7 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
         gainNode.disconnect();
       };
     } catch (err) {
-      console.debug('[MudClient] Bell playback failed:', err);
+      logger.debug('MudClient', 'Bell playback failed:', err);
     }
   }
 
@@ -606,13 +611,14 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
 
       if (this.audioContext.state === 'suspended') {
         this.audioContext.resume().catch((err) => {
-          console.debug('[MudClient] Audio context resume failed:', err);
+          logger.debug('MudClient', 'Audio context resume failed:', err);
         });
       }
 
       this.audioUnlocked = true;
+      logger.debug('MudClient', 'Audio unlocked');
     } catch (err) {
-      console.debug('[MudClient] Audio context initialization failed:', err);
+      logger.debug('MudClient', 'Audio context initialization failed:', err);
       this.audioUnlocked = false;
     }
   }
@@ -663,13 +669,13 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
    */
   private setupPasteHandler(element: HTMLElement): void {
     this.pasteHandler = (event: ClipboardEvent) => {
-      console.log('[MudClient] Native paste event intercepted');
+      logger.debug('MudClient', 'Native paste event intercepted');
 
       // Don't prevent default for now - let xterm handle the visual part
       // We'll just read the clipboard data and inject it properly
       const pastedText = event.clipboardData?.getData('text/plain');
 
-      console.log('[MudClient] Clipboard content:', {
+      logger.debug('MudClient', 'Clipboard content:', {
         length: pastedText?.length ?? 0,
         preview: pastedText?.substring(0, 50),
       });
@@ -700,7 +706,7 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
     try {
       const pastedText = await navigator.clipboard.readText();
 
-      console.log('[MudClient] Clipboard content read:', {
+      logger.debug('MudClient', 'Clipboard content read:', {
         length: pastedText.length,
         preview: pastedText.substring(0, 50),
       });
@@ -715,7 +721,7 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
         }
       }
     } catch (err) {
-      console.error('[MudClient] Failed to read clipboard:', err);
+      logger.error('MudClient', 'Failed to read clipboard:', err);
     }
   }
 }

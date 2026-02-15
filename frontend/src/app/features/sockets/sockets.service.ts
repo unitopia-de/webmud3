@@ -6,6 +6,7 @@ import { ServerConfigService } from '../../features/serverconfig/server-config.s
 import { SecureString } from '@webmud3/frontend/shared/types/secure-string';
 import { isSecureString } from '@webmud3/frontend/shared/utils/is-secure-string';
 import { OutputHistoryService } from '@webmud3/frontend/shared/services/output-history.service';
+import { logger } from '@webmud3/frontend/shared/utils/logger';
 
 import type {
   ClientToServerEvents,
@@ -48,7 +49,7 @@ export class SocketsService {
     // Initialize or retrieve persistent session token
     this.sessionToken = this.initializeSessionToken();
 
-    console.log('[Sockets] Socket Service init socket', {
+    logger.info('Sockets', 'Socket Service init socket', {
       socketUrl,
       socketNamespace,
       sessionToken: this.sessionToken,
@@ -153,14 +154,15 @@ export class SocketsService {
       this.forceNewSession = false;
     }
 
-    console.log(
-      `[Sockets] Sockets-Service: 'connectToMud' with sessionToken: ${this.sessionToken}`,
+    logger.info(
+      'Sockets',
+      `Sockets-Service: 'connectToMud' with sessionToken: ${this.sessionToken}`,
     );
     this.socket.emit('mudConnect', initialViewPort, this.sessionToken);
   }
 
   public disconnectFromMud() {
-    console.log(`[Sockets] Sockets-Service: 'disconnect'`);
+    logger.info('Sockets', `Sockets-Service: 'disconnect'`);
     this.socket.emit('mudDisconnect');
   }
 
@@ -169,14 +171,15 @@ export class SocketsService {
     if (!this.connectedToServer.value || this.isReconnecting) {
       const messageToQueue = !isSecureString(message) ? message : message.value;
       this.inputQueue.push(messageToQueue);
-      console.log(
-        `[Sockets] Sockets-Service: Message queued (${this.inputQueue.length} in queue)`,
+      logger.debug(
+        'Sockets',
+        `Sockets-Service: Message queued (${this.inputQueue.length} in queue)`,
       );
       return;
     }
 
     if (!isSecureString(message)) {
-      console.log(`[Sockets] Sockets-Service: 'sendMessage'`, { message });
+      logger.debug('Sockets', `Sockets-Service: 'sendMessage'`, { message });
       this.socket.emit('mudInput', message);
     } else {
       this.socket.emit('mudInput', message.value);
@@ -184,7 +187,7 @@ export class SocketsService {
   }
 
   public updateViewportSize(columns: number, rows: number): void {
-    console.log(`[Sockets] Sockets-Service: 'mudViewportSize'`, {
+    logger.debug('Sockets', `Sockets-Service: 'mudViewportSize'`, {
       columns,
       rows,
     });
@@ -193,7 +196,7 @@ export class SocketsService {
   }
 
   public sendGmcp(/*id: string, mod: string, msg: string, data: any*/): boolean {
-    console.log(`[Sockets] Sockets-Service: 'sendGmcp'`);
+    logger.warn('Sockets', `Sockets-Service: 'sendGmcp'`);
     throw new Error('Method not implemented.');
   }
 
@@ -201,8 +204,9 @@ export class SocketsService {
     isNewConnection: boolean,
     sessionToken: string,
   ) => {
-    console.log(
-      '[Sockets] Sockets-Service: mudConnected, isNewConnection:',
+    logger.info(
+      'Sockets',
+      'Sockets-Service: mudConnected, isNewConnection:',
       isNewConnection,
       'sessionToken:',
       sessionToken,
@@ -224,10 +228,10 @@ export class SocketsService {
   };
 
   private handleMudDisconnect = () => {
-    console.log(`[Sockets] Sockets-Service: received 'mudDisconnected'`);
+    logger.info('Sockets', `Sockets-Service: received 'mudDisconnected'`);
 
     // Clear history when MUD connection is closed
-    console.log('[Sockets] Clearing history after MUD disconnect');
+    logger.info('Sockets', 'Clearing history after MUD disconnect');
     this.outputHistoryService.clearAll();
 
     this.connectedToMud.next(false);
@@ -240,6 +244,10 @@ export class SocketsService {
     if (typeof seq === 'number') {
       const last = this.outputHistoryService.getLastSeqSeen(this.sessionToken);
       if (seq <= last) {
+        logger.debug('Sockets', 'Dropping old mudOutput replay', {
+          seq,
+          last,
+        });
         // Old replay; drop silently
         return;
       }
@@ -261,6 +269,10 @@ export class SocketsService {
   private handleMudOutputBatch = (
     entries: Array<{ data: string; seq: number }>,
   ) => {
+    logger.debug(
+      'Sockets',
+      `Received mudOutputBatch (${entries.length} entries)`,
+    );
     // Process in order; persist and emit only new ones
     for (const { data, seq } of entries) {
       this.handleMudOutput(data, seq);
@@ -268,7 +280,7 @@ export class SocketsService {
   };
 
   private handleClose() {
-    console.log('[Sockets] Sockets-Service: Close');
+    logger.info('Sockets', 'Sockets-Service: Close');
 
     this.connectedToMud.next(false);
 
@@ -276,11 +288,11 @@ export class SocketsService {
   }
 
   private handleError = (error: Error) => {
-    console.error('[Sockets] Sockets-Service: Error:', error);
+    logger.error('Sockets', 'Sockets-Service: Error:', error);
   };
 
   private handleReconnect = (attempt: number) => {
-    console.info('[Sockets] Sockets-Service: Reconnect:', attempt);
+    logger.info('Sockets', 'Sockets-Service: Reconnect:', attempt);
     this.isReconnecting = false;
 
     // Flush queued input after reconnection
@@ -288,51 +300,51 @@ export class SocketsService {
   };
 
   private handleReconnectAttempt = (attempt: number) => {
-    console.info('[Sockets] Sockets-Service: Reconnect Attempt:', attempt);
+    logger.info('Sockets', 'Sockets-Service: Reconnect Attempt:', attempt);
     this.isReconnecting = true;
   };
 
   private handleReconnectError = (error: Error) => {
-    console.error('[Sockets] Sockets-Service: Reconnect Error:', error);
+    logger.error('Sockets', 'Sockets-Service: Reconnect Error:', error);
   };
 
   private handleReconnectFailed = () => {
     this.connectedToServer.next(false);
     this.forceNewSession = true;
 
-    console.error('[Sockets] Sockets-Service: Reconnect Failed');
+    logger.error('Sockets', 'Sockets-Service: Reconnect Failed');
   };
 
   private handlePing = () => {
-    console.info('[Sockets] Sockets-Service: Ping');
+    logger.debug('Sockets', 'Sockets-Service: Ping');
   };
 
   private handleConnect = () => {
     this.connectedToServer.next(true);
 
-    console.info('[Sockets] Sockets-Service: Socket Connected');
+    logger.info('Sockets', 'Sockets-Service: Socket Connected');
   };
 
   private handleDisconnect = (reason: string) => {
     this.connectedToServer.next(false);
 
-    console.info('[Sockets] Sockets-Service: Socket Disconnected:', reason);
+    logger.info('Sockets', 'Sockets-Service: Socket Disconnected:', reason);
   };
 
   private handleSetEchoMode = (showEchos: boolean) => {
-    console.info('[Sockets] Sockets-Service: Socket Set Echo Mode:', showEchos);
+    logger.info('Sockets', 'Sockets-Service: Socket Set Echo Mode:', showEchos);
 
     this.onSetEchoMode.emit(showEchos);
   };
 
   private handleSetLinemode = (state: LinemodeState) => {
-    console.info('[Sockets] Sockets-Service: Socket Set Linemode:', state);
+    logger.info('Sockets', 'Sockets-Service: Socket Set Linemode:', state);
 
     this.onSetLinemode.emit(state);
   };
 
   private handleTimingMark = (callback: () => void) => {
-    console.info('[Sockets] Sockets-Service: Got and answer a Timing Mark');
+    logger.debug('Sockets', 'Sockets-Service: Got and answer a Timing Mark');
 
     callback();
   };
@@ -345,8 +357,9 @@ export class SocketsService {
       return;
     }
 
-    console.log(
-      `[Sockets] Sockets-Service: Flushing ${this.inputQueue.length} queued messages`,
+    logger.debug(
+      'Sockets',
+      `Sockets-Service: Flushing ${this.inputQueue.length} queued messages`,
     );
 
     while (this.inputQueue.length > 0) {
@@ -380,8 +393,9 @@ export class SocketsService {
     try {
       localStorage.setItem('webmud3-session-token', token);
     } catch (error) {
-      console.error(
-        '[Sockets] Failed to save session token to localStorage:',
+      logger.error(
+        'Sockets',
+        'Failed to save session token to localStorage:',
         error,
       );
     }

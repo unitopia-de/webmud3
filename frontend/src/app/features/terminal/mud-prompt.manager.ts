@@ -1,4 +1,5 @@
 import type { Terminal } from '@xterm/xterm';
+import { logger } from '@webmud3/frontend/shared/utils/logger';
 
 import {
   CTRL,
@@ -308,8 +309,9 @@ export class MudPromptManager {
 
     // Validate snapshot exists
     if (!snapshot) {
-      console.error(
-        '[MudPromptManager] No snapshot available - aborting restore',
+      logger.error(
+        'MudPromptManager',
+        'No snapshot available - aborting restore',
       );
       this.lineHidden = false;
       return;
@@ -317,8 +319,9 @@ export class MudPromptManager {
 
     // Validate snapshot integrity
     if (snapshot.cursor < 0 || snapshot.cursor > snapshot.buffer.length) {
-      console.error(
-        '[MudPromptManager] Invalid snapshot:',
+      logger.error(
+        'MudPromptManager',
+        'Invalid snapshot:',
         snapshot,
         '- aborting restore',
       );

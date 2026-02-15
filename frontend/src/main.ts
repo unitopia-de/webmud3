@@ -8,10 +8,13 @@ import {
 import { bootstrapApplication } from '@angular/platform-browser';
 import { AppComponent } from './app/app.component';
 import { ServerConfigService } from './app/features/serverconfig/server-config.service';
+import { configureLogger, logger } from './app/shared/utils/logger';
 
 if (environment.production) {
   enableProdMode();
 }
+
+configureLogger(environment.logging);
 
 bootstrapApplication(AppComponent, {
   providers: [
@@ -22,4 +25,4 @@ bootstrapApplication(AppComponent, {
       return config.load();
     }),
   ],
-}).catch((err) => console.error(err));
+}).catch((err) => logger.error('App', err));

@@ -1,3 +1,5 @@
+import { logger } from '@webmud3/frontend/shared/utils/logger';
+
 const INPUT_CLEAR_DELAY_MS = 700;
 const ANSI_ESCAPE_PATTERN = /\x1B\[[0-9;?]*[ -\/]*[@-~]/g;
 const CONTROL_CHAR_PATTERN = /[\x00-\x08\x0B-\x1F\x7F]/g;
@@ -38,8 +40,9 @@ export class MudScreenReaderAnnouncer {
    */
   public announce(raw: string, receivedAt: number = Date.now()): void {
     if (receivedAt < this.sessionStartedAt) {
-      console.debug(
-        '[ScreenReader] Ignoring old output (before session start):',
+      logger.debug(
+        'ScreenReader',
+        'Ignoring old output (before session start):',
         {
           receivedAt,
           sessionStartedAt: this.sessionStartedAt,
@@ -51,13 +54,13 @@ export class MudScreenReaderAnnouncer {
 
     const normalized = this.normalize(raw);
 
-    console.debug('[ScreenReader] Announcing:', {
+    logger.debug('ScreenReader', 'Announcing:', {
       raw: raw.substring(0, 100),
       normalized: normalized.substring(0, 100),
     });
 
     if (!normalized) {
-      console.debug('[ScreenReader] Skipped empty normalized output');
+      logger.debug('ScreenReader', 'Skipped empty normalized output');
       return;
     }
 
@@ -149,7 +152,7 @@ export class MudScreenReaderAnnouncer {
     if (currentLength > lastLength) {
       const newestChar = buffer[currentLength - 1];
 
-      console.debug('[ScreenReader] Input changed:', {
+      logger.debug('ScreenReader', 'Input changed:', {
         newestChar,
         lastLength,
         currentLength,
@@ -160,7 +163,7 @@ export class MudScreenReaderAnnouncer {
         const lastWord = this.extractLastWord(buffer);
         const normalizedWord = lastWord ? this.normalizeInput(lastWord) : '';
 
-        console.debug('[ScreenReader] Word boundary detected:', {
+        logger.debug('ScreenReader', 'Word boundary detected:', {
           lastWord,
           normalizedWord,
         });
@@ -171,7 +174,7 @@ export class MudScreenReaderAnnouncer {
       }
     } else if (currentLength < lastLength) {
       // Backspace/delete: silently track, textarea is read by SR automatically
-      console.debug('[ScreenReader] Buffer shortened (backspace/delete):', {
+      logger.debug('ScreenReader', 'Buffer shortened (backspace/delete):', {
         lastLength,
         currentLength,
       });
@@ -251,7 +254,7 @@ export class MudScreenReaderAnnouncer {
 
     const normalized = this.normalize(buffer);
 
-    console.debug('[ScreenReader] Announcing committed input:', {
+    logger.debug('ScreenReader', 'Announcing committed input:', {
       raw: buffer.substring(0, 100),
       normalized: normalized.substring(0, 100),
     });

@@ -8,6 +8,18 @@ export const environment: Environment = {
   production: false,
   // Change this to your local IP if you want to test on a mobile device in the same network
   backendUrl: () => 'http://localhost:5000',
+  logging: {
+    categories: {
+      App: 'debug',
+      ServerConfig: 'debug',
+      Sockets: 'debug',
+      MudClient: 'debug',
+      ScreenReader: 'debug',
+      OutputHistory: 'debug',
+      MudPromptManager: 'debug',
+      MudSocketAdapter: 'debug',
+    },
+  },
 };
 
 /*

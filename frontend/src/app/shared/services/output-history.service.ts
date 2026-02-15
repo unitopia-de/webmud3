@@ -1,4 +1,5 @@
 import { Injectable } from '@angular/core';
+import { logger } from '@webmud3/frontend/shared/utils/logger';
 
 const MAX_STORAGE_BYTES = 30 * 1024 * 1024; // 30MB
 const STORAGE_KEY = 'webmud3-history';
@@ -22,6 +23,8 @@ type HistoryStore = {
   providedIn: 'root',
 })
 export class OutputHistoryService {
+  private storageAvailabilityWarned = false;
+
   // Public API for structured history
   public loadEntries(): HistoryEntry[] {
     const store = this.loadStore();
@@ -67,16 +70,16 @@ export class OutputHistoryService {
     if (!this.isStorageAvailable()) return;
     try {
       localStorage.removeItem(STORAGE_KEY);
-      console.debug('[OutputHistory] Cleared all entries');
+      logger.debug('OutputHistory', 'Cleared all entries');
     } catch (error) {
-      console.error('[OutputHistory] Failed to clear entries:', error);
+      logger.error('OutputHistory', 'Failed to clear entries:', error);
     }
   }
 
   // Backward-compat wrappers (no-ops or adapters)
   public saveLines(_lines: string[]): void {
     // Deprecated: use structured API
-    console.warn('[OutputHistory] saveLines is deprecated');
+    logger.warn('OutputHistory', 'saveLines is deprecated');
   }
 
   public loadLines(): string[] {
@@ -112,6 +115,13 @@ export class OutputHistoryService {
       localStorage.removeItem(test);
       return true;
     } catch {
+      if (!this.storageAvailabilityWarned) {
+        logger.warn(
+          'OutputHistory',
+          'localStorage unavailable; history persistence disabled',
+        );
+        this.storageAvailabilityWarned = true;
+      }
       return false;
     }
   }
@@ -132,8 +142,9 @@ export class OutputHistoryService {
       sizeBytes = new Blob([serialized]).size;
     }
 
-    console.debug(
-      `[OutputHistory] Trimmed store to ${entries.length} entries (${sizeBytes} bytes)`,
+    logger.debug(
+      'OutputHistory',
+      `Trimmed store to ${entries.length} entries (${sizeBytes} bytes)`,
     );
     return { entries, meta: store.meta };
   }
@@ -142,15 +153,16 @@ export class OutputHistoryService {
    * Handles QuotaExceededError by trimming lines and retrying.
    */
   private handleQuotaExceeded(store: HistoryStore): void {
-    console.warn(
-      '[OutputHistory] Quota exceeded, attempting to trim and retry',
+    logger.warn(
+      'OutputHistory',
+      'Quota exceeded, attempting to trim and retry',
     );
     const trimmedStore = this.trimStoreToSize(store, MAX_STORAGE_BYTES * 0.8); // Use 80% of limit
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(trimmedStore));
-      console.debug('[OutputHistory] Successfully saved after trimming');
+      logger.debug('OutputHistory', 'Successfully saved after trimming');
     } catch (error) {
-      console.error('[OutputHistory] Failed even after trimming:', error);
+      logger.error('OutputHistory', 'Failed even after trimming:', error);
     }
   }
 
@@ -179,7 +191,7 @@ export class OutputHistoryService {
       }
       return parsed;
     } catch (error) {
-      console.error('[OutputHistory] Failed to load store:', error);
+      logger.error('OutputHistory', 'Failed to load store:', error);
       return { entries: [], meta: { lastSeqSeenBySession: {} } };
     }
   }
@@ -191,12 +203,12 @@ export class OutputHistoryService {
       const serialized = JSON.stringify(toSave);
       const sizeBytes = new Blob([serialized]).size;
       if (sizeBytes > MAX_STORAGE_BYTES) {
-        console.warn('[OutputHistory] Store exceeds limit, trimming...');
+        logger.warn('OutputHistory', 'Store exceeds limit, trimming...');
         toSave = this.trimStoreToSize(store, MAX_STORAGE_BYTES);
       }
       localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave));
     } catch (error) {
-      console.error('[OutputHistory] Failed to save store:', error);
+      logger.error('OutputHistory', 'Failed to save store:', error);
       if (
         error instanceof DOMException &&
         error.name === 'QuotaExceededError'

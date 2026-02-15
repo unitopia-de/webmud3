@@ -1,4 +1,5 @@
 import { Observable, Subscription } from 'rxjs';
+import { logger } from '@webmud3/frontend/shared/utils/logger';
 
 /**
  * Optional hooks invoked while processing a chunk of MUD output.
@@ -82,8 +83,9 @@ export class MudSocketAdapter {
    */
   public send(): void {
     if (this.readyState !== WebSocket.OPEN) {
-      console.warn(
-        'MudSocketAdapter.send(): adapter is closed; input is output-only',
+      logger.warn(
+        'MudSocketAdapter',
+        'send(): adapter is closed; input is output-only',
       );
     }
   }
