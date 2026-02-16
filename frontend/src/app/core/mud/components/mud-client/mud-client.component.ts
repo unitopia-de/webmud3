@@ -25,6 +25,7 @@ import {
   CTRL,
 } from '../../../../features/terminal';
 import { ColorSettingsService } from '../../../../features/settings/color-settings.service';
+import { InputGmcpHandler } from '../../../../features/gmcp-input/input-gmcp-handler';
 
 /**
  * Component-internal shape that bundles the mutable Mud client flags.
@@ -52,6 +53,7 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
   private readonly mudService = inject(MudService);
   private readonly outputHistoryService = inject(OutputHistoryService);
   private readonly colorSettingsService = inject(ColorSettingsService);
+  private readonly inputGmcpHandler = inject(InputGmcpHandler);
 
   private readonly fontSizeBreakpoints = [
     { minWidth: 0, fontSize: 8.5 },
@@ -94,6 +96,7 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
   private showEchoSubscription?: Subscription;
   private linemodeSubscription?: Subscription;
   private colorSettingsSubscription?: Subscription;
+  private completionSubscription?: Subscription;
   private pasteHandler?: (event: ClipboardEvent) => void;
   private state: MudClientState = {
     isEditMode: true,
@@ -138,6 +141,13 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
       ({ buffer }) => this.announceInputToScreenReader(buffer),
     );
     this.inputController.setLocalEcho(this.state.localEchoEnabled);
+
+    // Wire up tab-completion
+    this.inputController.setTabCompleteHandler(({ word }) => {
+      if (word.length > 0) {
+        this.inputGmcpHandler.requestCompletion(word);
+      }
+    });
 
     this.promptManager = new MudPromptManager(
       this.terminal,
@@ -215,6 +225,24 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
       this.terminal.options.theme = this.colorSettingsService.getXtermTheme();
     });
 
+    // Handle tab-completion results
+    this.completionSubscription = this.inputGmcpHandler.completionResult$.subscribe(result => {
+      switch (result.type) {
+        case 'text':
+          if (result.value !== undefined) {
+            this.inputController.replaceCurrentWord(result.value);
+          }
+          break;
+        case 'choice':
+          // TODO: Show completion overlay (Phase 3.1 follow-up)
+          console.info('[MudClient] Completion choices:', result.options);
+          break;
+        case 'none':
+          // No completion available — optionally beep
+          break;
+      }
+    });
+
     this.resizeObs.observe(this.terminalRef.nativeElement);
     this.setState({ terminalReady: true });
 
@@ -257,6 +285,7 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
     this.showEchoSubscription?.unsubscribe();
     this.linemodeSubscription?.unsubscribe();
     this.colorSettingsSubscription?.unsubscribe();
+    this.completionSubscription?.unsubscribe();
 
     this.terminalClipboardAddon.dispose();
     this.terminalAttachAddon?.dispose();

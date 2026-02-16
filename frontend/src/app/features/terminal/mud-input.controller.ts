@@ -27,6 +27,13 @@ export type MudInputCommitHandler = (payload: {
 export type MudInputChangeHandler = (payload: { buffer: string }) => void;
 
 /**
+ * Callback signature for tab-completion requests.
+ * Called when the user presses Tab.
+ * Receives the current word at the cursor position.
+ */
+export type MudTabCompleteHandler = (payload: { word: string; buffer: string; cursor: number }) => void;
+
+/**
  * Encapsulates client-side editing state for LINEMODE input.  The controller keeps
  * track of the text buffer and cursor position, applies terminal side-effects
  * when local echo is enabled, and turns user keystrokes into commit events.
@@ -38,6 +45,7 @@ export class MudInputController {
   private localEchoEnabled = true;
   // Holds a partially received escape sequence to be completed by the next chunk.
   private pendingEscape = '';
+  private tabCompleteHandler?: MudTabCompleteHandler;
 
   /**
    * @param terminal Reference to the xterm instance we mirror the editing state to.
@@ -73,6 +81,10 @@ export class MudInputController {
 
           this.lastWasCarriageReturn = false;
           break;
+        case CTRL.TAB:
+          this.handleTabKey();
+          this.lastWasCarriageReturn = false;
+          break;
         case CTRL.BS:
         case CTRL.DEL:
           this.applyBackspace();
@@ -106,6 +118,50 @@ export class MudInputController {
    */
   public setLocalEcho(enabled: boolean): void {
     this.localEchoEnabled = enabled;
+  }
+
+  /**
+   * Sets the handler for Tab-completion requests.
+   * When set, pressing Tab triggers the handler instead of inserting a tab character.
+   */
+  public setTabCompleteHandler(handler: MudTabCompleteHandler | undefined): void {
+    this.tabCompleteHandler = handler;
+  }
+
+  /**
+   * Replaces the current word at the cursor position with the given text.
+   * Used by the completion system to insert the completed word.
+   */
+  public replaceCurrentWord(replacement: string): void {
+    const { start, end } = this.findCurrentWordBounds();
+    const before = this.buffer.slice(0, start);
+    const after = this.buffer.slice(end);
+    const oldLen = end - start;
+
+    this.buffer = before + replacement + after;
+    this.cursor = start + replacement.length;
+
+    this.onInputChange?.({ buffer: this.buffer });
+
+    if (!this.localEchoEnabled) {
+      return;
+    }
+
+    // Redraw: move cursor to word start, write replacement + after, clear trailing, reposition
+    if (start < end) {
+      this.terminal.write(cursorLeft(end - start));
+    }
+
+    const tail = replacement + after;
+    const padding = oldLen > replacement.length ? ' '.repeat(oldLen - replacement.length) : '';
+
+    this.terminal.write(sequence(tail, padding));
+
+    const backAmount = after.length + padding.length;
+
+    if (backAmount > 0) {
+      this.terminal.write(cursorLeft(backAmount));
+    }
   }
 
   /**
@@ -175,7 +231,7 @@ export class MudInputController {
   private insertCharacter(char: string): void {
     const charCode = char.charCodeAt(0);
 
-    if (charCode < 32 && char !== CTRL.TAB) {
+    if (charCode < 32) {
       return;
     }
 
@@ -401,5 +457,45 @@ export class MudInputController {
 
   private moveCursorToEnd(): void {
     this.moveCursorRight(this.buffer.length - this.cursor);
+  }
+
+  /**
+   * Handles the Tab key: extracts the current word and calls the tab-complete handler.
+   * If no handler is set, Tab is silently ignored (not inserted as a character).
+   */
+  private handleTabKey(): void {
+    if (this.tabCompleteHandler === undefined) {
+      return;
+    }
+
+    const { start, end } = this.findCurrentWordBounds();
+    const word = this.buffer.slice(start, end);
+
+    this.tabCompleteHandler({
+      word,
+      buffer: this.buffer,
+      cursor: this.cursor,
+    });
+  }
+
+  /**
+   * Finds the start and end offsets of the word at the current cursor position.
+   * Words are delimited by spaces.
+   */
+  private findCurrentWordBounds(): { start: number; end: number } {
+    let start = this.cursor;
+    let end = this.cursor;
+
+    // Scan left to find word start
+    while (start > 0 && this.buffer[start - 1] !== ' ') {
+      start--;
+    }
+
+    // Scan right to find word end
+    while (end < this.buffer.length && this.buffer[end] !== ' ') {
+      end++;
+    }
+
+    return { start, end };
   }
 }

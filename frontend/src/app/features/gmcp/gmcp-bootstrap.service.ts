@@ -5,6 +5,7 @@ import { CoreGmcpHandler } from '../gmcp-core/core-gmcp-handler';
 import { CharGmcpHandler } from '../gmcp-char/char-gmcp-handler';
 import { SoundGmcpHandler } from '../gmcp-sound/sound-gmcp-handler';
 import { FilesGmcpHandler } from '../gmcp-files/files-gmcp-handler';
+import { InputGmcpHandler } from '../gmcp-input/input-gmcp-handler';
 
 /**
  * Central GMCP bootstrap service.
@@ -26,6 +27,7 @@ export class GmcpBootstrapService {
   private readonly charHandler = inject(CharGmcpHandler);
   private readonly soundHandler = inject(SoundGmcpHandler);
   private readonly filesHandler = inject(FilesGmcpHandler);
+  private readonly inputHandler = inject(InputGmcpHandler);
 
   private initialized = false;
 
@@ -42,6 +44,7 @@ export class GmcpBootstrapService {
     this.gmcpService.registerModule(this.charHandler);
     this.gmcpService.registerModule(this.soundHandler);
     this.gmcpService.registerModule(this.filesHandler);
+    this.gmcpService.registerModule(this.inputHandler);
 
     this.initialized = true;
 
