@@ -5,12 +5,12 @@
 In UNItopia there is now more modules and messages supported, here now following the status:
 
 ### Module Core, MUD => Client
-- [x]  Core.Ping: Fully Implemented with a button for GMCP-Ping.
-- [ ]  Core.Goodbye (Parameter "goodbye-message"): Partially Implemented. E.g. useful for recycle resources.
+- [x]  Core.Ping: Fully Implemented with visual toggle + latency measurement.
+- [x]  Core.Goodbye (Parameter "goodbye-message"): Implemented. Resets GMCP state, closes windows.
 
 ### Module Core, Client => MUD
-- [x]  Core.Hello: Implemented, e.g. { client: 'Webmud3', version: 'v0.0.24' }
-- [ ]  Core.Supports.Set/Add/Remove: A flexible configuration is needed in the Webmud3, so that only modules are active, which are also shown.
+- [x]  Core.Hello: Implemented, e.g. { client: 'WebMud3', version: '0.7.0' }
+- [x]  Core.Supports.Set/Add/Remove: Automatic Set on GMCP start, Add/Remove for dynamic modules.
 - [x]  Core.Ping implemented: request ping back from server.
 
 ### Module Char: MUD => Client
@@ -44,20 +44,35 @@ In UNItopia there is now more modules and messages supported, here now following
 - [x]  Files.ChDir: Change directory
 - [x]  Files.fileSaved: Notify save complete
 
-### Modul Comm
-- [ ]  Comm.Say / Comm.Soul / Comm.Tell: Not yet implemented
+### Module Input: MUD => Client
+- [x]  Input.CompleteText: Single completion result
+- [x]  Input.CompleteChoice: Multiple choice completion
+- [x]  Input.CompleteNone: No completion available
+
+### Module Input: Client => MUD
+- [x]  Input.Complete: Request tab-completion for current word
+
+### Modul Comm: MUD => Client
+- [x]  Comm.Say / Comm.Soul / Comm.Tell: Received and published on observable stream
+
+### Modul Room: MUD => Client
+- [x]  Room.Info: Room name, domain, exits. Updates browser title.
 
 ### Modul Numpad MUD => Client
-- [ ] Numpad.SendLevel { "prefix":"", "keys": { 'Numpad7': "nordwesten", ... }}
+- [x] Numpad.SendLevel { "prefix":"", "keys": { 'Numpad7': "nordwesten", ... }}
 
 ### Modul Numpad Client => MUD
-- [ ] Numpad.Update( "prefix":"", "key":"Numpad7", "value": "nordwesten" }
-- [ ] Numpad.GetAll
+- [x] Numpad.Update { "prefix":"", "key":"Numpad7", "value": "nordwesten" }
+- [x] Numpad.GetAll
 - [ ] Numpad.GetLevel { "prefix":"" }
 
 ### Module Status:
-- [ ] Core 90%
+- [x] Core (Hello, Supports.Set, Ping, Goodbye)
 - [x] Char (Name, StatusVars, Status, Vitals, Stats)
 - [x] Char.Items (List, Add, Remove)
 - [x] Sound (Url, Event)
 - [x] Files (URL, DirectoryList, OpenFile, ChDir, fileSaved)
+- [x] Input (Complete, CompleteText, CompleteChoice, CompleteNone)
+- [x] Comm (Say, Soul, Tell)
+- [x] Room (Info)
+- [x] Numpad (SendLevel, Update, GetAll)
