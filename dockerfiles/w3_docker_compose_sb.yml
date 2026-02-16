@@ -1,12 +1,17 @@
-version: "3.7"
+# Seifenblase Production Deployment
+# docker compose -f dockerfiles/w3_docker_compose_sb.yml -p webmud3sb up -d
 services:
   web:
     image: myonara/webmud3:latest
-    environment: 
+    environment:
       NODE_ENV: 'production'
-      SECRET_CONFIG: '/run/webmud3sb.json'
-      MUD_CONFIG: '/run/mud_config_seifenblase.json'
-      WEBMUD3_DISTRIBUTION_TYPE: 'seifenblase'
+      HOST: '0.0.0.0'
+      PORT: 5000
+      SOCKET_ROOT: '/sbsocket.io'
+      SOCKET_TIMEOUT: 900000
+      MUD_CONFIG_PATH: '/run/mud_config_seifenblase.json'
+      CORS_ALLOWED_ORIGINS: 'https://seife.mud.de,https://seifenblase.de,https://www.seifenblase.de,https://mud.seifenblase.de,https://seifenblase.mud.de'
+      LOG_LEVEL: 'info'
     volumes:
       - "/UNItopia/ftpwww/webmud3/run:/run"
     deploy:

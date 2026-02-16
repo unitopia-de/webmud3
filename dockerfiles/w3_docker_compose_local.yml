@@ -1,25 +1,28 @@
-version: "3.7"
+# Local Development Deployment (without code mounting)
+# docker compose -f dockerfiles/w3_docker_compose_local.yml -p webmud3local up -d
 services:
   web:
-    # replace username/repo:tag with your name and image details
     image: myonara/webmud3:latest
-    environment: 
+    environment:
       NODE_ENV: 'production'
-    # command: --tls-cert=/run/secrets/cert.pem --tls-key=/run/secrets/privkey.pem
+      HOST: '0.0.0.0'
+      PORT: 5000
+      TELNET_HOST: 'host.docker.internal'
+      TELNET_PORT: 4000
+      TELNET_TLS: 'false'
+      SOCKET_ROOT: '/socket.io'
+      SOCKET_TIMEOUT: 900000
+      LOG_LEVEL: 'debug'
     deploy:
       replicas: 1
       resources:
         limits:
           cpus: "0.1"
           memory: 50M
-      labels:
-        com.docker.lb.hosts: www.unitopia.de
-        com.docker.lb.network: webnet
-        com.docker.lb.port: 2018
       restart_policy:
         condition: on-failure
         delay: 20s
-        max_attempts: 2 
+        max_attempts: 2
         window: 3600s
     ports:
       - "2018:5000"
@@ -27,5 +30,4 @@ services:
       - webnet
 networks:
   webnet:
-    driver: overlay
-    attachable: true
+    driver: bridge

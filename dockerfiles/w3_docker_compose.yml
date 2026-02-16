@@ -1,16 +1,19 @@
-version: "3.7"
+# UNItopia Production Deployment
+# docker compose -f dockerfiles/w3_docker_compose.yml -p webmud3 up -d
 services:
   web:
-    # replace username/repo:tag with your name and image details
     image: myonara/webmud3:latest
-    environment: 
+    environment:
       NODE_ENV: 'production'
-      SECRET_CONFIG: '/run/webmud3.json'
-      MUD_CONFIG: '/run/mud_config_unitopia.json'
-      WEBMUD3_DISTRIBUTION_TYPE: 'unitopia-prod'
+      HOST: '0.0.0.0'
+      PORT: 5000
+      SOCKET_ROOT: '/mysocket.io'
+      SOCKET_TIMEOUT: 900000
+      MUD_CONFIG_PATH: '/run/mud_config_unitopia.json'
+      CORS_ALLOWED_ORIGINS: 'https://www.unitopia.de'
+      LOG_LEVEL: 'info'
     volumes:
       - "/UNItopia/ftpwww/webmud3/run:/run"
-    # command: --tls-cert=/run/secrets/cert.pem --tls-key=/run/secrets/privkey.pem
     deploy:
       replicas: 1
       resources:
@@ -29,5 +32,4 @@ services:
       - webnet
 networks:
   webnet:
-    #driver: overlay
     attachable: true

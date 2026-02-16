@@ -1,12 +1,17 @@
-version: "3.7"
+# UNItopia Test Deployment
+# docker compose -f dockerfiles/w3_docker_compose_test.yml -p webmud3test up -d
 services:
   web:
     image: myonara/webmud3:latest
-    environment: 
+    environment:
       NODE_ENV: 'production'
-      SECRET_CONFIG: '/run/webmud3test.json'
-      MUD_CONFIG: '/run/mud_config_unitopia_test.json'
-      WEBMUD3_DISTRIBUTION_TYPE: 'unitopia-test'
+      HOST: '0.0.0.0'
+      PORT: 5000
+      SOCKET_ROOT: '/mysocket-test.io'
+      SOCKET_TIMEOUT: 900000
+      MUD_CONFIG_PATH: '/run/mud_config_unitopia_test.json'
+      CORS_ALLOWED_ORIGINS: 'https://www.unitopia.de'
+      LOG_LEVEL: 'debug'
     volumes:
       - "/UNItopia/ftpwww/webmud3/run:/run"
     deploy:
@@ -22,7 +27,7 @@ services:
       restart_policy:
         condition: on-failure
         delay: 20s
-        max_attempts: 2 
+        max_attempts: 2
         window: 3600s
     ports:
       - "2019:5000"
