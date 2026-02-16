@@ -7,6 +7,7 @@ import { SoundGmcpHandler } from '../gmcp-sound/sound-gmcp-handler';
 import { FilesGmcpHandler } from '../gmcp-files/files-gmcp-handler';
 import { InputGmcpHandler } from '../gmcp-input/input-gmcp-handler';
 import { NumpadGmcpHandler } from '../gmcp-numpad/numpad-gmcp-handler';
+import { CommGmcpHandler } from '../gmcp-comm/comm-gmcp-handler';
 
 /**
  * Central GMCP bootstrap service.
@@ -30,6 +31,7 @@ export class GmcpBootstrapService {
   private readonly filesHandler = inject(FilesGmcpHandler);
   private readonly inputHandler = inject(InputGmcpHandler);
   private readonly numpadHandler = inject(NumpadGmcpHandler);
+  private readonly commHandler = inject(CommGmcpHandler);
 
   private initialized = false;
 
@@ -48,6 +50,7 @@ export class GmcpBootstrapService {
     this.gmcpService.registerModule(this.filesHandler);
     this.gmcpService.registerModule(this.inputHandler);
     this.gmcpService.registerModule(this.numpadHandler);
+    this.gmcpService.registerModule(this.commHandler);
 
     this.initialized = true;
 
