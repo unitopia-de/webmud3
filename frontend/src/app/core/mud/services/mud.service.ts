@@ -21,8 +21,11 @@ export class MudService {
   /** Emittiert isNewConnection wenn MUD-Verbindung hergestellt wurde */
   public readonly mudConnect$ = this.sockets.onMudConnect.asObservable();
 
-  public connect(initialViewPort: { columns: number; rows: number }) {
-    this.sockets.connectToMud(initialViewPort);
+  public connect(
+    initialViewPort: { columns: number; rows: number },
+    mudId?: string,
+  ) {
+    this.sockets.connectToMud(initialViewPort, mudId);
   }
 
   public disconnect() {

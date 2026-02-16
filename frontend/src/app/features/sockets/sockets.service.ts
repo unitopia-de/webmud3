@@ -163,14 +163,14 @@ export class SocketsService {
     );
   }
 
-  public connectToMud(initialViewPort: {
-    columns: number;
-    rows: number;
-  }): void {
+  public connectToMud(
+    initialViewPort: { columns: number; rows: number },
+    mudId?: string,
+  ): void {
     console.log(
-      `[Sockets] Sockets-Service: 'connectToMud' with sessionToken: ${this.sessionToken}`,
+      `[Sockets] Sockets-Service: 'connectToMud' with sessionToken: ${this.sessionToken}, mudId: ${mudId ?? '(default)'}`,
     );
-    this.socket.emit('mudConnect', initialViewPort, this.sessionToken);
+    this.socket.emit('mudConnect', initialViewPort, this.sessionToken, mudId);
   }
 
   public disconnectFromMud() {

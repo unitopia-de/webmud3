@@ -3,6 +3,7 @@ import {
   Component,
   ElementRef,
   inject,
+  Input,
   OnDestroy,
   ViewChild,
 } from '@angular/core';
@@ -119,6 +120,9 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
   private readonly historyRegionRef!: ElementRef<HTMLElement>;
 
   private helperTextarea: HTMLTextAreaElement | null = null;
+
+  /** Optional MUD identifier for multi-MUD mode. Passed to the backend on connect. */
+  @Input() public mudId?: string;
 
   protected readonly isConnected$ = this.mudService.connectedToMud$;
   protected readonly showEcho$ = this.mudService.showEcho$;
@@ -255,7 +259,7 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
     const columns = this.terminal.cols;
     const rows = this.terminal.rows + 1;
 
-    this.mudService.connect({ columns, rows });
+    this.mudService.connect({ columns, rows }, this.mudId);
   }
 
   /**
