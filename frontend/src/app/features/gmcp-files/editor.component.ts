@@ -229,11 +229,21 @@ export class EditorComponent implements OnInit, AfterViewInit, OnDestroy {
     });
   }
 
+  /**
+   * Prevents keyboard events inside the editor from propagating to the terminal.
+   * Without this, Ctrl+C/V/F and other shortcuts would be intercepted by xterm.js.
+   */
+  private readonly stopPropagation = (event: KeyboardEvent): void => {
+    event.stopPropagation();
+  };
+
   async ngAfterViewInit(): Promise<void> {
     // Dynamic import for lazy loading (~1MB)
     const ace = await import('ace-builds');
     await import('ace-builds/src-noconflict/mode-c_cpp');
     await import('ace-builds/src-noconflict/mode-text');
+    // Load search extension for Ctrl+F / Ctrl+H support
+    await import('ace-builds/src-noconflict/ext-searchbox');
 
     this.aceEditor = ace.edit(this.editorContainer.nativeElement);
     this.aceEditor.setAutoScrollEditorIntoView(true);
@@ -256,10 +266,20 @@ export class EditorComponent implements OnInit, AfterViewInit, OnDestroy {
     this.aceSession.setMode(`ace/mode/${mode}`);
     this.aceEditor.setSession(this.aceSession);
     this.aceEditor.setReadOnly(this.readOnly);
+
+    // Prevent keyboard events from reaching the terminal
+    this.editorContainer.nativeElement.addEventListener('keydown', this.stopPropagation);
+    this.editorContainer.nativeElement.addEventListener('keyup', this.stopPropagation);
+    this.editorContainer.nativeElement.addEventListener('keypress', this.stopPropagation);
   }
 
   ngOnDestroy(): void {
     this.eventSub?.unsubscribe();
+
+    // Remove keyboard event interceptors
+    this.editorContainer.nativeElement.removeEventListener('keydown', this.stopPropagation);
+    this.editorContainer.nativeElement.removeEventListener('keyup', this.stopPropagation);
+    this.editorContainer.nativeElement.removeEventListener('keypress', this.stopPropagation);
 
     if (this.aceEditor !== undefined) {
       this.aceEditor.destroy();
