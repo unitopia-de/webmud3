@@ -24,6 +24,7 @@ import {
   MudPromptContext,
   CTRL,
 } from '../../../../features/terminal';
+import { ColorSettingsService } from '../../../../features/settings/color-settings.service';
 
 /**
  * Component-internal shape that bundles the mutable Mud client flags.
@@ -50,6 +51,7 @@ type MudClientState = {
 export class MudClientComponent implements AfterViewInit, OnDestroy {
   private readonly mudService = inject(MudService);
   private readonly outputHistoryService = inject(OutputHistoryService);
+  private readonly colorSettingsService = inject(ColorSettingsService);
 
   private readonly fontSizeBreakpoints = [
     { minWidth: 0, fontSize: 8.5 },
@@ -91,6 +93,7 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
 
   private showEchoSubscription?: Subscription;
   private linemodeSubscription?: Subscription;
+  private colorSettingsSubscription?: Subscription;
   private pasteHandler?: (event: ClipboardEvent) => void;
   private state: MudClientState = {
     isEditMode: true,
@@ -124,7 +127,7 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
   constructor() {
     this.terminal = new Terminal({
       fontFamily: 'JetBrainsMono, monospace',
-      theme: { background: '#000', foreground: '#ccc' },
+      theme: this.colorSettingsService.getXtermTheme(),
       disableStdin: false,
       screenReaderMode: false,
     });
@@ -207,6 +210,11 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
       this.setLinemode(state),
     );
 
+    // Apply color theme changes live
+    this.colorSettingsSubscription = this.colorSettingsService.settings$.subscribe(() => {
+      this.terminal.options.theme = this.colorSettingsService.getXtermTheme();
+    });
+
     this.resizeObs.observe(this.terminalRef.nativeElement);
     this.setState({ terminalReady: true });
 
@@ -248,6 +256,7 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
     this.terminalDisposables.forEach((disposable) => disposable.dispose());
     this.showEchoSubscription?.unsubscribe();
     this.linemodeSubscription?.unsubscribe();
+    this.colorSettingsSubscription?.unsubscribe();
 
     this.terminalClipboardAddon.dispose();
     this.terminalAttachAddon?.dispose();

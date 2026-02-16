@@ -9,6 +9,7 @@ import { bootstrapApplication } from '@angular/platform-browser';
 import { AppComponent } from './app/app.component';
 import { ServerConfigService } from './app/features/serverconfig/server-config.service';
 import { GmcpBootstrapService } from './app/features/gmcp/gmcp-bootstrap.service';
+import { MenuBootstrapService } from './app/features/menu/menu-bootstrap.service';
 
 if (environment.production) {
   enableProdMode();
@@ -26,6 +27,11 @@ bootstrapApplication(AppComponent, {
       const gmcpBootstrap = inject(GmcpBootstrapService);
 
       gmcpBootstrap.bootstrap();
+    }),
+    provideAppInitializer(() => {
+      const menuBootstrap = inject(MenuBootstrapService);
+
+      menuBootstrap.bootstrap();
     }),
   ],
 }).catch((err) => console.error(err));

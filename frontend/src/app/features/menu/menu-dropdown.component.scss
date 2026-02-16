@@ -1,0 +1,83 @@
+:host {
+  display: block;
+}
+
+.menu-dropdown {
+  list-style: none;
+  margin: 0;
+  padding: 4px 0;
+  background: #1e1e2e;
+  border: 1px solid #45475a;
+  border-radius: 6px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+  min-width: 180px;
+  z-index: 10000;
+}
+
+.menu-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 12px;
+  color: #cdd6f4;
+  font-size: 13px;
+  cursor: pointer;
+  position: relative;
+  white-space: nowrap;
+  outline: none;
+
+  &:hover,
+  &:focus-visible {
+    background: #313244;
+  }
+
+  &:focus-visible {
+    outline: 2px solid #89b4fa;
+    outline-offset: -2px;
+  }
+
+  &.disabled {
+    color: #585b70;
+    cursor: default;
+
+    &:hover {
+      background: transparent;
+    }
+  }
+
+  &.checked {
+    color: #a6e3a1;
+  }
+}
+
+.menu-item-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.menu-check {
+  display: inline-block;
+  width: 14px;
+  text-align: center;
+  font-size: 11px;
+}
+
+.menu-arrow {
+  margin-left: 12px;
+  font-size: 10px;
+  color: #585b70;
+}
+
+.menu-separator {
+  height: 1px;
+  margin: 4px 8px;
+  background: #45475a;
+}
+
+// Nested submenu positioning
+:host(.submenu) {
+  position: absolute;
+  left: 100%;
+  top: -4px;
+}
