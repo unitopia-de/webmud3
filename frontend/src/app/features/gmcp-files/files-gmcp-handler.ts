@@ -73,11 +73,11 @@ export class FilesGmcpHandler implements GmcpModuleHandler {
     const fileInfo = this.filesService.processFileUrl(payload);
 
     if (fileInfo.alreadyLoaded) {
-      // File is being re-opened for save — just trigger save URL update
+      // File is being re-opened after save request — complete the save workflow
       console.info('[FilesGmcpHandler] File re-opened for save:', payload.file);
 
-      // Run the save with the new URL
-      await this.saveFile(fileInfo.file);
+      // Complete the save via HTTP PUT (not saveFile which would re-request the URL)
+      await this.completeSave(fileInfo.file);
 
       return;
     }

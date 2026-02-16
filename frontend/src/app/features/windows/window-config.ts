@@ -16,6 +16,8 @@ export enum WindowAction {
   WinError = 'winError',
   /** Window was resized by the user */
   Resize = 'resize',
+  /** Window data payload was updated (e.g. new directory listing) */
+  DataChanged = 'dataChanged',
   /** Parent window was closed → children should clean up */
   CloseParent = 'closeParent',
 }

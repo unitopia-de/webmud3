@@ -148,8 +148,7 @@ export class DirListComponent implements OnInit, OnDestroy {
           return;
         }
 
-        if (event.action === WindowAction.Resize && event.data !== undefined) {
-          // WindowService.updateData() repurposes Resize as data-changed signal
+        if (event.action === WindowAction.DataChanged && event.data !== undefined) {
           const dirData = event.data as DirListData;
 
           if (dirData.path !== undefined && dirData.entries !== undefined) {

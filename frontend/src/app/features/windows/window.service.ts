@@ -206,7 +206,7 @@ export class WindowService {
 
     // Notify the content component about the data update
     this.outgoingEvents$.next({
-      action: WindowAction.Resize, // repurpose as "data changed" signal
+      action: WindowAction.DataChanged,
       windowId,
       data,
     });

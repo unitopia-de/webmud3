@@ -15,6 +15,12 @@ export type GmcpSendFunction = (
   data: unknown,
 ) => void;
 
+/** Client name sent in Core.Hello handshake */
+const CLIENT_NAME = 'WebMud3';
+
+/** Client version sent in Core.Hello handshake */
+const CLIENT_VERSION = '0.7.0';
+
 /**
  * Central GMCP service for the frontend.
  *
@@ -24,6 +30,7 @@ export type GmcpSendFunction = (
  * - Provides an observable stream of all GMCP events for components
  * - Manages outgoing GMCP messages (delegates to SocketsService)
  * - Tracks active GMCP support configuration from the MUD
+ * - Sends Core.Hello and Core.Supports.Set during GMCP handshake
  *
  * Architecture:
  * ```
@@ -130,6 +137,11 @@ export class GmcpService {
     // Broadcast to all observers
     this.gmcpEvent$.next(event);
 
+    // Log MUD's Core.Hello response (contains MUD name/version)
+    if (module === 'Core' && message === 'Hello') {
+      console.info('[GMCP] MUD identifies as:', data);
+    }
+
     // Route to specific module handler
     const handler = this.moduleRegistry.get(module);
 
@@ -173,7 +185,10 @@ export class GmcpService {
 
   /**
    * Called when GMCP negotiation succeeds.
-   * Stores the support configuration and notifies subscribers.
+   * Stores the support configuration, sends the Core.Hello handshake,
+   * and notifies subscribers.
+   *
+   * Handshake sequence: Core.Hello → Core.Supports.Set → gmcpStart$
    *
    * @param gmcpSupport - The GMCP module support config from the MUD family
    */
@@ -183,7 +198,32 @@ export class GmcpService {
 
     console.info('[GMCP] GMCP started with support:', gmcpSupport);
 
+    // Step 1: Identify client to MUD
+    this.sendOutgoing('Core', 'Hello', {
+      client: CLIENT_NAME,
+      version: CLIENT_VERSION,
+    });
+
+    // Step 2: Announce supported modules
+    this.sendCoreSupportsSet();
+
+    // Step 3: Notify subscribers (handlers can now send their own messages)
     this.gmcpStart$.next(gmcpSupport);
+  }
+
+  /**
+   * Sends `Core.Supports.Set` with all currently registered modules.
+   * Called during GMCP start handshake.
+   */
+  private sendCoreSupportsSet(): void {
+    const supportList = Array.from(this.moduleRegistry.values())
+      .map(handler => `${handler.moduleName} ${handler.version}`);
+
+    if (supportList.length > 0) {
+      this.sendOutgoing('Core', 'Supports.Set', supportList);
+
+      console.info('[GMCP] Core.Supports.Set sent:', supportList);
+    }
   }
 
   /**
