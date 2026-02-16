@@ -5,6 +5,7 @@ import { InventoryComponent } from '../gmcp-char/inventory.component';
 import { DirListComponent } from '../gmcp-files/dirlist.component';
 import { EditorComponent } from '../gmcp-files/editor.component';
 import { ColorSettingsComponent } from '../settings/color-settings.component';
+import { KeypadComponent } from '../gmcp-numpad/keypad.component';
 
 import { WindowAction, WindowConfig, WindowEvent } from './window-config';
 import { WindowComponent } from './window.component';
@@ -27,7 +28,7 @@ import { WindowService } from './window.service';
 @Component({
   selector: 'app-window-container',
   standalone: true,
-  imports: [AsyncPipe, WindowComponent, DirListComponent, EditorComponent, InventoryComponent, ColorSettingsComponent],
+  imports: [AsyncPipe, WindowComponent, DirListComponent, EditorComponent, InventoryComponent, ColorSettingsComponent, KeypadComponent],
   template: `
     <div class="wm-container">
       @for (config of windowService.windows$ | async; track config.windowId) {
@@ -47,6 +48,9 @@ import { WindowService } from './window.service';
             }
             @case ('ColorSettingsComponent') {
               <app-color-settings></app-color-settings>
+            }
+            @case ('KeypadComponent') {
+              <app-keypad [config]="config"></app-keypad>
             }
             @default {
               <p>Unbekannter Fenstertyp: {{ config.componentType }}</p>
