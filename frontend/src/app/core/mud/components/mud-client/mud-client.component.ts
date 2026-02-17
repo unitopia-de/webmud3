@@ -416,9 +416,12 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
    * Special handling for Ctrl+V: intercepts clipboard content and injects it properly.
    */
   private handleInput(data: string) {
-    console.log('[PASTE-DEBUG] Edit mode:', this.state.isEditMode);
-    console.log('[PASTE-DEBUG] Data received:', JSON.stringify(data));
-    console.log('[PASTE-DEBUG] Data length:', data.length);
+    // console.log('[PASTE-DEBUG] Edit mode:', this.state.isEditMode);
+    // console.log('[PASTE-DEBUG] Show Echo:', this.state.showEcho);  
+    // if (this.state.showEcho) {
+    //   console.log('[PASTE-DEBUG] Data received:', JSON.stringify(data));
+    //   console.log('[PASTE-DEBUG] Data length:', data.length);
+    // }
 
     // Special handling for Ctrl+V (paste): xterm converts paste to \u0016 in onData()
     // We need to read the clipboard and inject the actual content
@@ -429,6 +432,14 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
       this.handlePasteFromClipboard();
       return;
     }
+    if (data === '\u0003') {
+      console.log(
+        '[MudClient] Ctrl+C detected, writing selection to clipboard...',
+      );
+      this.handleCopyToClipboard();
+      return;
+    }
+
 
     // Unlock audio context on first user interaction (browser autoplay policy)
     if (!this.audioUnlocked) {
@@ -743,10 +754,11 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
     try {
       const pastedText = await navigator.clipboard.readText();
 
-      console.log('[MudClient] Clipboard content read:', {
-        length: pastedText.length,
-        preview: pastedText.substring(0, 50),
-      });
+      // if (this.state.showEcho) // don't log passwords and stuff
+      //   console.log('[MudClient] Clipboard content read:', {
+      //     length: pastedText.length,
+      //     preview: pastedText.substring(0, 50),
+      //   });
 
       if (pastedText) {
         if (!this.state.isEditMode) {
@@ -759,6 +771,25 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
       }
     } catch (err) {
       console.error('[MudClient] Failed to read clipboard:', err);
+    }
+  }
+
+  /**
+   * Handles copy by reading the terminal selection when Ctrl+C is detected.
+   * Uses the Clipboard API to write the selected text to the clipboard.
+   */
+  private async handleCopyToClipboard(): Promise<void> {
+    const selection = this.terminal.getSelection();
+    if (selection) {
+      try {
+        await navigator.clipboard.writeText(selection);
+        // console.log('[MudClient] Copied selection to clipboard:', {
+        //   length: selection.length,
+        //   preview: selection.substring(0, 50),
+        // });
+      } catch (err) {
+        console.error('[MudClient] Failed to copy to clipboard:', err);
+      }
     }
   }
 }
