@@ -202,6 +202,26 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
     this.terminal.loadAddon(this.terminalAttachAddon);
     this.terminal.focus();
 
+    // Attach custom key event handler to intercept Ctrl+C for copy
+    this.terminal.attachCustomKeyEventHandler((event: KeyboardEvent) => {
+      // Allow copy with Ctrl+C / Cmd+C only if text is selected
+      if (
+        event.type === 'keydown' &&
+        (event.ctrlKey || event.metaKey) &&
+        event.code === 'KeyC'
+      ) {
+        const selection = this.terminal.getSelection();
+        if (selection) {
+          // Returning false prevents xterm from processing it as data (sending \x03)
+          // and allows the browser's native copy behavior to take over if possible,
+          // or we handle it explicitly.
+          this.handleCopyToClipboard();
+          return false;
+        }
+      }
+      return true;
+    });
+
     // Cache helper textarea created by xterm (used to mirror prompt + input)
     this.helperTextarea =
       (this.terminalRef.nativeElement.querySelector(
@@ -430,13 +450,6 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
         '[MudClient] Ctrl+V detected, reading clipboard from native event...',
       );
       this.handlePasteFromClipboard();
-      return;
-    }
-    if (data === '\u0003') {
-      console.log(
-        '[MudClient] Ctrl+C detected, writing selection to clipboard...',
-      );
-      this.handleCopyToClipboard();
       return;
     }
 
