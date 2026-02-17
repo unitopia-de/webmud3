@@ -32,6 +32,8 @@ export class SocketsService {
   private readonly inputQueue: string[] = [];
   private isReconnecting = false;
   private sessionToken: string;
+  // Forces a fresh session token after reconnect failed to avoid reusing a dead backend session.
+  private forceNewSession = false;
 
   public onMudConnect = new EventEmitter<boolean>(); // Emits isNewConnection
   public onMudDisconnect = new EventEmitter();
@@ -57,7 +59,7 @@ export class SocketsService {
 
     this.manager = new Manager(socketUrl, {
       path: socketNamespace,
-      transports: ['websocket'],
+      transports: ['websocket', 'polling'],
       reconnectionAttempts: Infinity,
       reconnection: true,
     });
@@ -167,6 +169,11 @@ export class SocketsService {
     initialViewPort: { columns: number; rows: number },
     mudId?: string,
   ): void {
+    if (this.forceNewSession) {
+      this.resetSessionToken();
+      this.forceNewSession = false;
+    }
+
     console.log(
       `[Sockets] Sockets-Service: 'connectToMud' with sessionToken: ${this.sessionToken}, mudId: ${mudId ?? '(default)'}`,
     );
@@ -322,6 +329,7 @@ export class SocketsService {
 
   private handleReconnectFailed = () => {
     this.connectedToServer.next(false);
+    this.forceNewSession = true;
 
     console.error('[Sockets] Sockets-Service: Reconnect Failed');
   };
@@ -440,5 +448,16 @@ export class SocketsService {
         return v.toString(16);
       },
     );
+  }
+
+  /**
+   * Resets the session token to force a clean backend session on next connect.
+   * This is used after a reconnect failure to avoid reusing a potentially dead backend session.
+   */
+  private resetSessionToken(): void {
+    const newToken = this.generateUUID();
+    this.sessionToken = newToken;
+    this.saveSessionToken(newToken);
+    this.socket.auth = { sessionToken: newToken };
   }
 }

@@ -41,7 +41,9 @@ export class SocketManager extends Server<
 
     super(server, {
       path: managerOptions.socketRoot,
-      transports: ['websocket'],
+      transports: ['websocket', 'polling'],
+      pingInterval: environment.socketPingInterval,
+      pingTimeout: environment.socketPingTimeout,
       connectionStateRecovery: {
         maxDisconnectionDuration: environment.socketTimeout,
       },
@@ -305,6 +307,7 @@ export class SocketManager extends Server<
           this.managerOptions.clientName,
           {
             initialViewPort,
+            keepAliveDelayMs: Environment.getInstance().telnetKeepAliveDelay,
           },
         );
 

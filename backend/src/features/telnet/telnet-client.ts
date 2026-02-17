@@ -100,7 +100,10 @@ export class TelnetClient extends EventEmitter<TelnetClientEvents> {
     telnetPort: number,
     useTls: boolean,
     clientName: string,
-    extraOptions?: { initialViewPort: { columns: number; rows: number } },
+    extraOptions?: {
+      initialViewPort: { columns: number; rows: number };
+      keepAliveDelayMs?: number;
+    },
   ) {
     super();
 
@@ -109,6 +112,11 @@ export class TelnetClient extends EventEmitter<TelnetClientEvents> {
       telnetHost,
       telnetPort,
     );
+
+    if (extraOptions?.keepAliveDelayMs !== undefined) {
+      // Enable TCP keepalive to reduce idle disconnects on intermediaries.
+      telnetConnection.setKeepAlive(true, extraOptions.keepAliveDelayMs);
+    }
 
     // CRITICAL: Register error handler on the raw TCP/TLS socket IMMEDIATELY
     // to prevent uncaught exceptions. Without this, connection failures

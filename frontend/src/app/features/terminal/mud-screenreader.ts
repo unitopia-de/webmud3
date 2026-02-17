@@ -1,4 +1,3 @@
-const DEFAULT_CLEAR_DELAY_MS = 300;
 const INPUT_CLEAR_DELAY_MS = 700;
 const ANSI_ESCAPE_PATTERN = /\x1B\[[0-9;?]*[ -\/]*[@-~]/g;
 const CONTROL_CHAR_PATTERN = /[\x00-\x08\x0B-\x1F\x7F]/g;
@@ -12,7 +11,6 @@ const CONTROL_CHAR_PATTERN = /[\x00-\x08\x0B-\x1F\x7F]/g;
  * - Clear the live region shortly after announcing to avoid re-reading history
  */
 export class MudScreenReaderAnnouncer {
-  private clearTimer: number | undefined;
   private inputClearTimer: number | undefined;
   private sessionStartedAt: number;
   private lastAnnouncedBuffer = '';
@@ -21,7 +19,6 @@ export class MudScreenReaderAnnouncer {
     private readonly liveRegion: HTMLElement,
     private readonly historyRegion?: HTMLElement,
     private readonly inputRegion?: HTMLElement,
-    private readonly clearDelayMs: number = DEFAULT_CLEAR_DELAY_MS,
   ) {
     this.sessionStartedAt = Date.now();
   }
@@ -31,7 +28,7 @@ export class MudScreenReaderAnnouncer {
    */
   public markSessionStart(timestamp: number = Date.now()): void {
     this.sessionStartedAt = timestamp;
-    this.clear();
+    this.stopAnnouncements();
     this.clearHistory();
     this.lastAnnouncedBuffer = '';
   }
@@ -64,12 +61,7 @@ export class MudScreenReaderAnnouncer {
       return;
     }
 
-    this.liveRegion.textContent = normalized;
-    console.debug(
-      '[ScreenReader] Live region updated:',
-      this.liveRegion.textContent,
-    );
-    this.scheduleClear();
+    this.appendToLiveRegion(normalized);
   }
 
   /**
@@ -77,14 +69,20 @@ export class MudScreenReaderAnnouncer {
    */
   public clear(): void {
     this.liveRegion.textContent = '';
-    this.cancelClearTimer();
+  }
+
+  /**
+   * Stops any in-flight announcements and drops the queued backlog.
+   */
+  public stopAnnouncements(): void {
+    this.clear();
   }
 
   /**
    * Disposes internal timers.
    */
   public dispose(): void {
-    this.clear();
+    this.stopAnnouncements();
     this.cancelInputClearTimer();
   }
 
@@ -272,19 +270,13 @@ export class MudScreenReaderAnnouncer {
     this.lastAnnouncedBuffer = '';
   }
 
-  private scheduleClear(): void {
-    this.cancelClearTimer();
-
-    this.clearTimer = window.setTimeout(() => {
-      this.clear();
-    }, this.clearDelayMs);
+  private appendToLiveRegion(normalized: string): void {
+    const doc = this.liveRegion.ownerDocument;
+    this.liveRegion.appendChild(doc.createTextNode(`${normalized}\n`));
   }
 
-  private cancelClearTimer(): void {
-    if (this.clearTimer !== undefined) {
-      window.clearTimeout(this.clearTimer);
-      this.clearTimer = undefined;
-    }
+  public normalizeForComparison(raw: string): string {
+    return this.normalize(raw);
   }
 
   // Input clear helpers are retained for potential future use (currently unused)
