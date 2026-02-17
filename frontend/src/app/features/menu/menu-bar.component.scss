@@ -9,6 +9,10 @@
   font-family: sans-serif;
   font-size: 13px;
   user-select: none;
+}
+
+:host {
+  position: relative;
   z-index: 9999;
 }
 

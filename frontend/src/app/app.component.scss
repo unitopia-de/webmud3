@@ -3,6 +3,8 @@
   flex-direction: column;
 }
 
-app-mud-client {
+app-mud-client-shell,
+app-mud-selector {
   flex: 1 1 0;
+  min-height: 0;
 }

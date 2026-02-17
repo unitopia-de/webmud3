@@ -19,6 +19,19 @@ import { MudConfigService } from './mud-config.service';
     <app-char-statusbar></app-char-statusbar>
     <app-window-container></app-window-container>
   `,
+  styles: [`
+    :host {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      min-height: 0;
+    }
+
+    app-mud-client {
+      flex: 1 1 0;
+      min-height: 0;
+    }
+  `],
 })
 export class MudClientShellComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
