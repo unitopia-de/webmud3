@@ -11,7 +11,13 @@ docker build -f Dockerfile -t myonara/webmud3:latest .
 
 docker build -f dockerfiles/ng_unitopia_test.dockerfile -t myonara/webmud3:unitopiatest .
 
+docker build -f dockerfiles/unitopia_dev.dockerfile -t myonara/webmud3:wm3local .
+
 ### To run the docker containers in a swarm:
+
+docker stack deploy -c dockerfiles/wm3_local_dev.yml webmud3local
+
+docker stack rm webmud3local
 
 docker stack deploy -c dockerfiles/w3_docker_compose_local.yml webmud3alocal
 
