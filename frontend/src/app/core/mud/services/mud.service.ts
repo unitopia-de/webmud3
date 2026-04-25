@@ -1,10 +1,12 @@
 import { inject, Injectable } from '@angular/core';
 import { SocketsService } from '@webmud3/frontend/features/sockets/sockets.service';
+import { GmcpService } from '@webmud3/frontend/features/gmcp/gmcp.service';
 import { SecureString } from '@webmud3/frontend/shared/types/secure-string';
 
 @Injectable({ providedIn: 'root' })
 export class MudService {
   private readonly sockets = inject(SocketsService);
+  private readonly gmcp = inject(GmcpService);
 
   /** Observable, das den Verbindungsstatus zum MUD anzeigt */
   public readonly connectedToMud$ = this.sockets.connectedToMud$;
@@ -21,6 +23,12 @@ export class MudService {
   /** Emittiert isNewConnection wenn MUD-Verbindung hergestellt wurde */
   public readonly mudConnect$ = this.sockets.onMudConnect.asObservable();
 
+  /** Ob GMCP aktiv ist (erfolgreich mit MUD-Server verhandelt) */
+  public readonly gmcpActive$ = this.gmcp.active$;
+
+  /** Stream aller eingehenden GMCP-Nachrichten */
+  public readonly gmcpMessages$ = this.gmcp.messages$;
+
   public connect(initialViewPort: { columns: number; rows: number }) {
     this.sockets.connectToMud(initialViewPort);
   }
@@ -35,5 +43,20 @@ export class MudService {
 
   public updateViewportSize(columns: number, rows: number) {
     this.sockets.updateViewportSize(columns, rows);
+  }
+
+  /** Sendet eine GMCP-Nachricht an den MUD-Server */
+  public sendGmcp(module: string, data?: unknown) {
+    this.gmcp.send(module, data);
+  }
+
+  /** Observable das nur GMCP-Nachrichten eines bestimmten Moduls liefert */
+  public onGmcpMessage(fullMessage: string) {
+    return this.gmcp.onMessage(fullMessage);
+  }
+
+  /** Observable das alle GMCP-Nachrichten eines Pakets liefert */
+  public onGmcpPackage(packageName: string) {
+    return this.gmcp.onPackage(packageName);
   }
 }
