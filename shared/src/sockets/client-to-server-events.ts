@@ -23,4 +23,10 @@ export interface ClientToServerEvents {
    * Updates the server with the client's current terminal dimensions.
    */
   mudViewportSize: (columns: number, rows: number) => void;
+  /**
+   * Sends a GMCP message to the MUD server.
+   * @param module - The GMCP module string, e.g. "Core.Hello"
+   * @param data - The data payload (JSON-serializable)
+   */
+  mudGmcpOutgoing: (module: string, data: unknown) => void;
 }

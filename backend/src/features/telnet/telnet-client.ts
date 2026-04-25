@@ -20,6 +20,10 @@ import {
 } from './utils/handle-naws-option.js';
 import { handleSGAOption } from './utils/handle-sga-option.js';
 import { handleStatusOption } from './utils/handle-status-option.js';
+import {
+  GmcpOptionHandler,
+  handleGmcpOption,
+} from './utils/handle-gmcp-option.js';
 import { handleTTypeOption } from './utils/handle-ttype-option.js';
 import { TelnetSocketWrapper } from './utils/telnet-socket-wrapper.js';
 
@@ -157,6 +161,7 @@ export class TelnetClient extends EventEmitter<TelnetClientEvents> {
       [TelnetOptions.TELOPT_STATUS, handleStatusOption(this.telnetSocket)],
       [TelnetOptions.TELOPT_MSSP, handleMSSPOption(this.telnetSocket)],
       [TelnetOptions.TELOPT_EOR, handleEorOption(this.telnetSocket)],
+      [TelnetOptions.TELOPT_GMCP, handleGmcpOption(this.telnetSocket)],
     ]);
 
     this.setupOptionStateTracking();
@@ -288,6 +293,22 @@ export class TelnetClient extends EventEmitter<TelnetClientEvents> {
     }
 
     this.telnetSocket.writeSub(TelnetOptions.TELOPT_STATUS, buffer);
+  }
+
+  /**
+   * Returns the GMCP handler, or undefined if GMCP is not registered.
+   */
+  public getGmcpHandler(): GmcpOptionHandler | undefined {
+    return this.optionsHandler.get(TelnetOptions.TELOPT_GMCP) as
+      | GmcpOptionHandler
+      | undefined;
+  }
+
+  /**
+   * Sends a GMCP message to the MUD server.
+   */
+  public sendGmcp(module: string, data: unknown): void {
+    this.getGmcpHandler()?.sendGmcp(module, data);
   }
 
   public sendTimingMark(): void {

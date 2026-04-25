@@ -34,4 +34,19 @@ export interface ServerToClientEvents {
    * Sends the current linemode negotiation state to the client.
    */
   setLinemode: (state: LinemodeState) => void;
+  /**
+   * Signals that GMCP has been activated or deactivated.
+   */
+  mudGmcpActive: (active: boolean) => void;
+  /**
+   * Forwards a parsed GMCP message from the MUD server to the client.
+   * @param packageName - The GMCP package, e.g. "Char"
+   * @param messageName - The GMCP message, e.g. "Name"
+   * @param data - The parsed JSON payload
+   */
+  mudGmcpIncoming: (
+    packageName: string,
+    messageName: string,
+    data: unknown,
+  ) => void;
 }

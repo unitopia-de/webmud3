@@ -3,7 +3,6 @@
     "target": "ES2020",
     "module": "nodenext",
     "moduleResolution": "nodenext",
-    "baseUrl": "./",
     "rootDir": "./src",
     "outDir": "./dist",
     "strict": true,

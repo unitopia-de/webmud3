@@ -12,6 +12,10 @@ import { TelnetOptions } from '../../features/telnet/models/telnet-options.js';
 import { TelnetClient } from '../../features/telnet/telnet-client.js';
 import { TelnetControlSequences } from '../../features/telnet/types/telnet-control-sequences.js';
 import { EchoState } from '../../features/telnet/utils/handle-echo-option.js';
+import type {
+  GmcpMessage,
+  GmcpState,
+} from '../../features/telnet/utils/handle-gmcp-option.js';
 import { logger } from '../../shared/utils/logger.js';
 import { mapToServerEncodings } from '../../shared/utils/supported-encodings.js';
 import { Environment } from '../environment/environment.js';
@@ -199,6 +203,40 @@ export class SocketManager extends Server<
       if (existing.connection.telnet !== undefined) {
         existing.connection.telnet.updateViewportSize(columns, rows);
       }
+    });
+
+    socket.on('mudGmcpOutgoing', (module: string, data: unknown) => {
+      const existing = this.getConnectionBySocketId(socket.id);
+
+      if (existing === undefined) {
+        logger.error(
+          `[${socket.id}] [Socket-Manager] Client has no session - can not send GMCP message!`,
+          {
+            socketId: socket.id,
+          },
+        );
+
+        return;
+      }
+
+      const telnetClient = existing.connection.telnet;
+
+      if (telnetClient === undefined || telnetClient.isConnected === false) {
+        logger.error(
+          `[${socket.id}] [Socket-Manager] Client has no telnet connection - can not send GMCP message!`,
+          {
+            socketId: socket.id,
+          },
+        );
+
+        return;
+      }
+
+      logger.debug(
+        `[${socket.id}] [Socket-Manager] Client sending GMCP: ${module}`,
+      );
+
+      telnetClient.sendGmcp(module, data);
     });
 
     socket.on(
@@ -420,10 +458,52 @@ export class SocketManager extends Server<
               break;
             }
 
+            case TelnetOptions.TELOPT_GMCP: {
+              const gmcpState = state as GmcpState;
+
+              logger.verbose(
+                `[${socket.id}] [Socket-Manager] Telnet Option GMCP has changed. Emitting 'mudGmcpActive'`,
+                {
+                  name: TelnetOptions[TelnetOptions.TELOPT_GMCP],
+                  state: state,
+                },
+              );
+
+              socket.emit('mudGmcpActive', gmcpState.active);
+
+              break;
+            }
+
             default:
               break;
           }
         });
+
+        // Register GMCP message listener to forward incoming GMCP data to the client
+        const gmcpHandler = telnetClient.getGmcpHandler();
+
+        if (gmcpHandler !== undefined) {
+          const gmcpListener = (message: GmcpMessage) => {
+            const currentSocket = this.getSocketById(
+              this.mudConnections[resolvedSessionToken]?.socketId,
+            );
+
+            if (currentSocket !== undefined) {
+              currentSocket.emit(
+                'mudGmcpIncoming',
+                message.packageName,
+                message.messageName,
+                message.data,
+              );
+            }
+          };
+
+          gmcpHandler.onGmcpMessage(gmcpListener);
+
+          telnetClient.on('close', () => {
+            gmcpHandler.offGmcpMessage(gmcpListener);
+          });
+        }
 
         logger.info(
           `[${socket.id}] [Socket-Manager] Client .. telnet connection established. Emitting 'mudConnected'`,
@@ -483,6 +563,14 @@ export class SocketManager extends Server<
 
     if (linemodeState !== undefined) {
       socket.emit('setLinemode', linemodeState);
+    }
+
+    const gmcpState = telnetClient.getOptionState<GmcpState>(
+      TelnetOptions.TELOPT_GMCP,
+    );
+
+    if (gmcpState !== undefined) {
+      socket.emit('mudGmcpActive', gmcpState.active);
     }
   }
 
