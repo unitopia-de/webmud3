@@ -1,5 +1,6 @@
 import { Component, inject } from '@angular/core';
 import { MudClientComponent } from '@webmud3/frontend/core/mud/components/mud-client/mud-client.component';
+import { CharFooterComponent } from '@webmud3/frontend/features/footer/char-footer.component';
 import { WindowContainerComponent } from '@webmud3/frontend/features/windows/window-container.component';
 import { WindowService } from '@webmud3/frontend/features/windows/window.service';
 
@@ -7,7 +8,7 @@ import { WindowService } from '@webmud3/frontend/features/windows/window.service
   selector: 'app-root',
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.scss'],
-  imports: [MudClientComponent, WindowContainerComponent],
+  imports: [MudClientComponent, WindowContainerComponent, CharFooterComponent],
   standalone: true,
 })
 export class AppComponent {
