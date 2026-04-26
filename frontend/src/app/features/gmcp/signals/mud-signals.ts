@@ -12,8 +12,12 @@
 
 export type CharNameSignal = {
   type: 'Char.Name';
-  /** Character name, e.g. "Myonara@UNItopia" */
+  /** Character name, e.g. "Myonara" */
   name: string;
+  /** MUD name (server identifier), e.g. "UNItopia" */
+  mudname?: string;
+  /** "name@mudname" if mudname is known, otherwise just name */
+  fullName: string;
   /** Whether the character is a wizard/immortal */
   wizard?: number;
 };
@@ -26,7 +30,9 @@ export type CharStatusSignal = {
 
 export type CharVitalsSignal = {
   type: 'Char.Vitals';
-  /** Raw vitals data from the MUD */
+  /** Pre-formatted vitals string from the MUD (if provided), e.g. "100/200 LP, 50/100 KP" */
+  text?: string;
+  /** Raw vitals data from the MUD (full payload for further processing) */
   data: unknown;
 };
 
@@ -165,6 +171,18 @@ export type CoreGoodbyeSignal = {
   type: 'Core.Goodbye';
 };
 
+/**
+ * The MUD server announces itself via Core.Hello.
+ * UNItopia sends this with `name` (server identifier) and `version`.
+ */
+export type CoreHelloSignal = {
+  type: 'Core.Hello';
+  /** Server-side MUD name, e.g. "UNItopia" */
+  mudname?: string;
+  /** Server version string */
+  version?: string;
+};
+
 // ---------------------------------------------------------------------------
 // Union Type
 // ---------------------------------------------------------------------------
@@ -188,7 +206,8 @@ export type MudSignal =
   | RoomInfoSignal
   | CommSignal
   | CorePingSignal
-  | CoreGoodbyeSignal;
+  | CoreGoodbyeSignal
+  | CoreHelloSignal;
 
 /** All possible signal type strings */
 export type MudSignalType = MudSignal['type'];

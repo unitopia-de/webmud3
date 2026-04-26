@@ -30,6 +30,12 @@ export class MudSignalService implements OnDestroy {
   private readonly signals = new Subject<MudSignal>();
   private readonly subscription: Subscription;
 
+  /**
+   * Cached MUD server name from the last Core.Hello message.
+   * Used as a fallback when Char.Name doesn't carry the mudname itself.
+   */
+  private cachedMudname: string | undefined;
+
   /** Stream of all signals */
   public readonly signals$ = this.signals.asObservable();
 
@@ -76,7 +82,7 @@ export class MudSignalService implements OnDestroy {
       case 'Char.Status':
         return { type: 'Char.Status', data: msg.data };
       case 'Char.Vitals':
-        return { type: 'Char.Vitals', data: msg.data };
+        return this.mapCharVitals(msg.data);
       case 'Char.Stats':
         return { type: 'Char.Stats', data: msg.data };
 
@@ -134,6 +140,8 @@ export class MudSignalService implements OnDestroy {
         };
 
       // -- Core --
+      case 'Core.Hello':
+        return this.mapCoreHello(msg.data);
       case 'Core.Ping':
         return { type: 'Core.Ping' };
       case 'Core.Goodbye':
@@ -155,11 +163,64 @@ export class MudSignalService implements OnDestroy {
   private mapCharName(data: unknown): MudSignal {
     const d = data as Record<string, unknown>;
 
+    const name = String(d?.['name'] ?? '');
+    // Prefer a mudname carried in the Char.Name payload itself; otherwise
+    // fall back to whatever Core.Hello told us earlier.
+    const inlineMudname =
+      typeof d?.['mudname'] === 'string'
+        ? (d['mudname'] as string)
+        : typeof d?.['mud'] === 'string'
+          ? (d['mud'] as string)
+          : typeof d?.['host'] === 'string'
+            ? (d['host'] as string)
+            : undefined;
+
+    const mudname = inlineMudname ?? this.cachedMudname;
+    const fullName = mudname ? `${name}@${mudname}` : name;
+
     return {
       type: 'Char.Name',
-      name: String(d?.['name'] ?? ''),
+      name,
+      mudname,
+      fullName,
       wizard: typeof d?.['wizard'] === 'number' ? d['wizard'] : undefined,
     };
+  }
+
+  private mapCoreHello(data: unknown): MudSignal {
+    const d = data as Record<string, unknown>;
+
+    // UNItopia sends `name` for the MUD identifier; spec also allows "mudname".
+    const mudname =
+      typeof d?.['name'] === 'string'
+        ? (d['name'] as string)
+        : typeof d?.['mudname'] === 'string'
+          ? (d['mudname'] as string)
+          : undefined;
+
+    const version =
+      typeof d?.['version'] === 'string' ? (d['version'] as string) : undefined;
+
+    if (mudname) {
+      this.cachedMudname = mudname;
+    }
+
+    return { type: 'Core.Hello', mudname, version };
+  }
+
+  private mapCharVitals(data: unknown): MudSignal {
+    // UNItopia typically supplies a pre-formatted "string" field with the
+    // human-readable vitals summary alongside the raw numeric fields.
+    let text: string | undefined;
+
+    if (data && typeof data === 'object') {
+      const value = (data as Record<string, unknown>)['string'];
+      if (typeof value === 'string') {
+        text = value;
+      }
+    }
+
+    return { type: 'Char.Vitals', text, data };
   }
 
   private mapSoundUrl(data: unknown): MudSignal | null {

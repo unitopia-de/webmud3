@@ -42,7 +42,7 @@ export class CharFooterComponent implements OnInit, OnDestroy {
   public readonly menuItems$ = this.menu.items$;
 
   public readonly charName = signal<string>('');
-  public readonly vitals = signal<unknown>(null);
+  public readonly vitalsText = signal<string>('');
   public readonly status = signal<unknown>(null);
   public readonly menuOpen = signal<boolean>(false);
 
@@ -50,8 +50,12 @@ export class CharFooterComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.subscriptions.push(
-      this.signals.on('Char.Name').subscribe((s) => this.charName.set(s.name)),
-      this.signals.on('Char.Vitals').subscribe((s) => this.vitals.set(s.data)),
+      this.signals
+        .on('Char.Name')
+        .subscribe((s) => this.charName.set(s.fullName)),
+      this.signals
+        .on('Char.Vitals')
+        .subscribe((s) => this.vitalsText.set(s.text ?? '')),
       this.signals.on('Char.Status').subscribe((s) => this.status.set(s.data)),
     );
   }

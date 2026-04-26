@@ -17,6 +17,7 @@ import { SecureString } from '@webmud3/frontend/shared/types/secure-string';
 import { OutputHistoryService } from '@webmud3/frontend/shared/services/output-history.service';
 import { DebugSettingsService } from '@webmud3/frontend/features/debug/debug-settings.service';
 import { FooterMenuService } from '@webmud3/frontend/features/footer/footer-menu.service';
+import { CharGmcpModule } from '@webmud3/frontend/features/gmcp/modules/char-gmcp.module';
 import type { LinemodeState } from '@webmud3/shared';
 import {
   MudInputController,
@@ -54,6 +55,9 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
   private readonly outputHistoryService = inject(OutputHistoryService);
   private readonly debugSettings = inject(DebugSettingsService);
   private readonly footerMenu = inject(FooterMenuService);
+  // Bootstraps the Char GMCP module (registers it with the GmcpService so that
+  // "Char 1" is included in Core.Supports.Set sent to the MUD).
+  private readonly _charGmcp = inject(CharGmcpModule);
 
   private readonly SR_MENU_ID = 'screenreader-debug';
   private readonly PASTE_MENU_ID = 'paste-debug';

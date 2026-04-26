@@ -21,6 +21,16 @@
   font-weight: bold;
 }
 
+.char-vitals {
+  color: #4ec9b0;
+  font-family: monospace;
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 60ch;
+}
+
 .placeholder {
   color: #777;
   font-style: italic;
