@@ -20,6 +20,7 @@ import { FooterMenuService } from '@webmud3/frontend/features/footer/footer-menu
 import { CharGmcpModule } from '@webmud3/frontend/features/gmcp/modules/char-gmcp.module';
 import { InventoryWindowService } from '@webmud3/frontend/features/inventory/inventory-window.service';
 import { ConnectionMenuService } from '@webmud3/frontend/features/connection/connection-menu.service';
+import { NumpadWindowService } from '@webmud3/frontend/features/numpad/numpad-window.service';
 import type { LinemodeState } from '@webmud3/shared';
 import {
   MudInputController,
@@ -65,6 +66,9 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
   private readonly _inventoryWindow = inject(InventoryWindowService);
   // Bootstraps the "Verbinden / Trennen" entry in the footer menu.
   private readonly _connectionMenu = inject(ConnectionMenuService);
+  // Bootstraps the "Numpad-Konfiguration" entry in the footer menu and
+  // loads numpad bindings from localStorage.
+  private readonly _numpadWindow = inject(NumpadWindowService);
 
   private readonly SR_MENU_ID = 'screenreader-debug';
   private readonly PASTE_MENU_ID = 'paste-debug';

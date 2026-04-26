@@ -1,6 +1,7 @@
 import type { Type } from '@angular/core';
 
 import { InventoryComponent } from '@webmud3/frontend/features/inventory/inventory.component';
+import { NumpadConfigComponent } from '@webmud3/frontend/features/numpad/numpad-config.component';
 
 /**
  * Maps WindowConfig.component (a string id) to a concrete Angular component.
@@ -11,4 +12,5 @@ import { InventoryComponent } from '@webmud3/frontend/features/inventory/invento
  */
 export const WINDOW_COMPONENTS: Record<string, Type<unknown>> = {
   inventory: InventoryComponent,
+  'numpad-config': NumpadConfigComponent,
 };
