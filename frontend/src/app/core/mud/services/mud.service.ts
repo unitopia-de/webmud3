@@ -35,7 +35,15 @@ export class MudService {
   /** Stream aller typisierten MUD-Signals */
   public readonly signals$ = this.signalService.signals$;
 
+  // Cache the last viewport so reconnect() can reuse it without the caller
+  // having to know about terminal dimensions.
+  private lastViewport: { columns: number; rows: number } = {
+    columns: 80,
+    rows: 25,
+  };
+
   public connect(initialViewPort: { columns: number; rows: number }) {
+    this.lastViewport = initialViewPort;
     this.sockets.connectToMud(initialViewPort);
   }
 
@@ -43,11 +51,17 @@ export class MudService {
     this.sockets.disconnectFromMud();
   }
 
+  /** Reconnects using the most recently used viewport. */
+  public reconnect() {
+    this.sockets.connectToMud(this.lastViewport);
+  }
+
   public sendMessage(msg: string | SecureString) {
     this.sockets.sendMessage(msg);
   }
 
   public updateViewportSize(columns: number, rows: number) {
+    this.lastViewport = { columns, rows };
     this.sockets.updateViewportSize(columns, rows);
   }
 
