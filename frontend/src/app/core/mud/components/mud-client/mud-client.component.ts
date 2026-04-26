@@ -15,6 +15,8 @@ import { Subscription } from 'rxjs';
 import { MudService } from '../../services/mud.service';
 import { SecureString } from '@webmud3/frontend/shared/types/secure-string';
 import { OutputHistoryService } from '@webmud3/frontend/shared/services/output-history.service';
+import { DebugSettingsService } from '@webmud3/frontend/features/debug/debug-settings.service';
+import { FooterMenuService } from '@webmud3/frontend/features/footer/footer-menu.service';
 import type { LinemodeState } from '@webmud3/shared';
 import {
   MudInputController,
@@ -50,6 +52,11 @@ type MudClientState = {
 export class MudClientComponent implements AfterViewInit, OnDestroy {
   private readonly mudService = inject(MudService);
   private readonly outputHistoryService = inject(OutputHistoryService);
+  private readonly debugSettings = inject(DebugSettingsService);
+  private readonly footerMenu = inject(FooterMenuService);
+
+  private readonly SR_MENU_ID = 'screenreader-debug';
+  private readonly PASTE_MENU_ID = 'paste-debug';
 
   private readonly fontSizeBreakpoints = [
     { minWidth: 0, fontSize: 8.5 },
@@ -157,12 +164,15 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
       this.liveRegionRef.nativeElement,
       this.historyRegionRef.nativeElement,
       this.inputRegionRef.nativeElement,
+      () => this.debugSettings.screenReaderLogging,
     );
 
-    console.debug(
+    this.srLog(
       '[MudClient] Screenreader announcer initialized, live region:',
       this.liveRegionRef.nativeElement,
     );
+
+    this.registerDebugMenuItems();
 
     // Now initialize socket adapter AFTER screenreader is ready
     this.socketAdapter = new MudSocketAdapter(this.mudService.mudOutput$, {
@@ -230,6 +240,8 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
    * Cleans up subscriptions and disposes terminal resources.
    */
   ngOnDestroy() {
+    this.footerMenu.unregister(this.SR_MENU_ID);
+    this.footerMenu.unregister(this.PASTE_MENU_ID);
     this.resizeObs.disconnect();
 
     // Unregister visibility change listener
@@ -373,14 +385,14 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
    * Special handling for Ctrl+V: intercepts clipboard content and injects it properly.
    */
   private handleInput(data: string) {
-    console.log('[PASTE-DEBUG] Edit mode:', this.state.isEditMode);
-    console.log('[PASTE-DEBUG] Data received:', JSON.stringify(data));
-    console.log('[PASTE-DEBUG] Data length:', data.length);
+    this.pasteLog('[PASTE-DEBUG] Edit mode:', this.state.isEditMode);
+    this.pasteLog('[PASTE-DEBUG] Data received:', JSON.stringify(data));
+    this.pasteLog('[PASTE-DEBUG] Data length:', data.length);
 
     // Special handling for Ctrl+V (paste): xterm converts paste to \u0016 in onData()
     // We need to read the clipboard and inject the actual content
     if (data === '\u0016') {
-      console.log(
+      this.pasteLog(
         '[MudClient] Ctrl+V detected, reading clipboard from native event...',
       );
       this.handlePasteFromClipboard();
@@ -499,7 +511,7 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
       this.pendingEchoSuppression = null;
     }
 
-    console.debug('[MudClient] Announcing to screenreader:', {
+    this.srLog('[MudClient] Announcing to screenreader:', {
       rawLength: data.length,
       raw: data,
     });
@@ -539,7 +551,7 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
       // this.screenReader?.appendToHistory(entry.data);
     }
 
-    console.log(
+    this.srLog(
       '[MudClient] History loaded to terminal and screenreader history',
     );
   }
@@ -663,13 +675,13 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
    */
   private setupPasteHandler(element: HTMLElement): void {
     this.pasteHandler = (event: ClipboardEvent) => {
-      console.log('[MudClient] Native paste event intercepted');
+      this.pasteLog('[MudClient] Native paste event intercepted');
 
       // Don't prevent default for now - let xterm handle the visual part
       // We'll just read the clipboard data and inject it properly
       const pastedText = event.clipboardData?.getData('text/plain');
 
-      console.log('[MudClient] Clipboard content:', {
+      this.pasteLog('[MudClient] Clipboard content:', {
         length: pastedText?.length ?? 0,
         preview: pastedText?.substring(0, 50),
       });
@@ -700,7 +712,7 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
     try {
       const pastedText = await navigator.clipboard.readText();
 
-      console.log('[MudClient] Clipboard content read:', {
+      this.pasteLog('[MudClient] Clipboard content read:', {
         length: pastedText.length,
         preview: pastedText.substring(0, 50),
       });
@@ -717,5 +729,50 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
     } catch (err) {
       console.error('[MudClient] Failed to read clipboard:', err);
     }
+  }
+
+  /** Logs only when screenreader debug logging is enabled in the footer menu. */
+  private srLog(...args: unknown[]): void {
+    if (this.debugSettings.screenReaderLogging) {
+      console.debug(...args);
+    }
+  }
+
+  /** Logs only when paste debug logging is enabled in the footer menu. */
+  private pasteLog(...args: unknown[]): void {
+    if (this.debugSettings.pasteLogging) {
+      console.debug(...args);
+    }
+  }
+
+  /**
+   * Registers two toggle entries in the footer menu:
+   *  - "Screenreader-Debug"  — enables [ScreenReader] / SR-related console logs
+   *  - "Paste-Debug"         — enables [PASTE-DEBUG] / clipboard-related logs
+   *
+   * Both default to off. The menu's checked state is kept in sync via subscriptions.
+   */
+  private registerDebugMenuItems(): void {
+    this.footerMenu.register({
+      id: this.SR_MENU_ID,
+      label: 'Screenreader-Debug',
+      checked: this.debugSettings.screenReaderLogging,
+      action: () => this.debugSettings.toggleScreenReaderLogging(),
+    });
+
+    this.footerMenu.register({
+      id: this.PASTE_MENU_ID,
+      label: 'Paste-Debug',
+      checked: this.debugSettings.pasteLogging,
+      action: () => this.debugSettings.togglePasteLogging(),
+    });
+
+    this.debugSettings.screenReaderLogging$.subscribe((enabled) => {
+      this.footerMenu.setChecked(this.SR_MENU_ID, enabled);
+    });
+
+    this.debugSettings.pasteLogging$.subscribe((enabled) => {
+      this.footerMenu.setChecked(this.PASTE_MENU_ID, enabled);
+    });
   }
 }

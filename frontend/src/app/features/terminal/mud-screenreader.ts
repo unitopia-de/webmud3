@@ -19,8 +19,16 @@ export class MudScreenReaderAnnouncer {
     private readonly liveRegion: HTMLElement,
     private readonly historyRegion?: HTMLElement,
     private readonly inputRegion?: HTMLElement,
+    private readonly isLoggingEnabled: () => boolean = () => false,
   ) {
     this.sessionStartedAt = Date.now();
+  }
+
+  /** Internal: emits debug logs only when the runtime flag is enabled. */
+  private log(...args: unknown[]): void {
+    if (this.isLoggingEnabled()) {
+      console.debug(...args);
+    }
   }
 
   /**
@@ -38,7 +46,7 @@ export class MudScreenReaderAnnouncer {
    */
   public announce(raw: string, receivedAt: number = Date.now()): void {
     if (receivedAt < this.sessionStartedAt) {
-      console.debug(
+      this.log(
         '[ScreenReader] Ignoring old output (before session start):',
         {
           receivedAt,
@@ -51,13 +59,13 @@ export class MudScreenReaderAnnouncer {
 
     const normalized = this.normalize(raw);
 
-    console.debug('[ScreenReader] Announcing:', {
+    this.log('[ScreenReader] Announcing:', {
       raw: raw.substring(0, 100),
       normalized: normalized.substring(0, 100),
     });
 
     if (!normalized) {
-      console.debug('[ScreenReader] Skipped empty normalized output');
+      this.log('[ScreenReader] Skipped empty normalized output');
       return;
     }
 
@@ -149,7 +157,7 @@ export class MudScreenReaderAnnouncer {
     if (currentLength > lastLength) {
       const newestChar = buffer[currentLength - 1];
 
-      console.debug('[ScreenReader] Input changed:', {
+      this.log('[ScreenReader] Input changed:', {
         newestChar,
         lastLength,
         currentLength,
@@ -160,7 +168,7 @@ export class MudScreenReaderAnnouncer {
         const lastWord = this.extractLastWord(buffer);
         const normalizedWord = lastWord ? this.normalizeInput(lastWord) : '';
 
-        console.debug('[ScreenReader] Word boundary detected:', {
+        this.log('[ScreenReader] Word boundary detected:', {
           lastWord,
           normalizedWord,
         });
@@ -171,7 +179,7 @@ export class MudScreenReaderAnnouncer {
       }
     } else if (currentLength < lastLength) {
       // Backspace/delete: silently track, textarea is read by SR automatically
-      console.debug('[ScreenReader] Buffer shortened (backspace/delete):', {
+      this.log('[ScreenReader] Buffer shortened (backspace/delete):', {
         lastLength,
         currentLength,
       });
@@ -251,7 +259,7 @@ export class MudScreenReaderAnnouncer {
 
     const normalized = this.normalize(buffer);
 
-    console.debug('[ScreenReader] Announcing committed input:', {
+    this.log('[ScreenReader] Announcing committed input:', {
       raw: buffer.substring(0, 100),
       normalized: normalized.substring(0, 100),
     });
