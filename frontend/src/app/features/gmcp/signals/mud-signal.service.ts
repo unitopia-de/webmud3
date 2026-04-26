@@ -90,17 +90,19 @@ export class MudSignalService implements OnDestroy {
       case 'Char.Items.List':
         return {
           type: 'Char.Items.List',
-          entries: msg.data as InventoryEntry[],
+          entries: this.extractItemsArray(msg.data).map((it) =>
+            this.normalizeInventoryEntry(it),
+          ),
         };
       case 'Char.Items.Add':
         return {
           type: 'Char.Items.Add',
-          entry: msg.data as InventoryEntry,
+          entry: this.normalizeInventoryEntry(this.extractSingleItem(msg.data)),
         };
       case 'Char.Items.Remove':
         return {
           type: 'Char.Items.Remove',
-          entry: msg.data as InventoryEntry,
+          entry: this.normalizeInventoryEntry(this.extractSingleItem(msg.data)),
         };
 
       // -- Sound --
@@ -283,5 +285,98 @@ export class MudSignalService implements OnDestroy {
     }
 
     return { type: 'Input.CompleteNone' };
+  }
+
+  // ---------------------------------------------------------------------------
+  // Inventory helpers
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Char.Items.List may arrive in several shapes:
+   *   - direct array:           [item1, item2, ...]
+   *   - wrapped in `items`:     {items: [...]}
+   *   - wrapped in `inventory`: {inventory: [...]}
+   *   - wrapped per location:   {inv: [...], eq: [...]}  -> we take the first array
+   */
+  private extractItemsArray(data: unknown): unknown[] {
+    if (Array.isArray(data)) {
+      return data;
+    }
+
+    if (data && typeof data === 'object') {
+      const obj = data as Record<string, unknown>;
+
+      for (const key of ['items', 'inventory', 'list', 'inv']) {
+        const candidate = obj[key];
+        if (Array.isArray(candidate)) {
+          return candidate;
+        }
+      }
+
+      // Fallback: first array-typed property
+      for (const value of Object.values(obj)) {
+        if (Array.isArray(value)) {
+          return value;
+        }
+      }
+    }
+
+    return [];
+  }
+
+  /**
+   * Char.Items.Add and Char.Items.Remove may arrive as either the bare item
+   * or wrapped: {location: "inv", item: {...}}. Unwrap if needed.
+   */
+  private extractSingleItem(data: unknown): unknown {
+    if (data && typeof data === 'object' && !Array.isArray(data)) {
+      const obj = data as Record<string, unknown>;
+
+      // If it looks like a direct item (has a name/desc/id field), keep it.
+      if (
+        'name' in obj ||
+        'desc' in obj ||
+        'short' in obj ||
+        'title' in obj ||
+        'id' in obj
+      ) {
+        return obj;
+      }
+
+      // Otherwise look for a wrapper property.
+      for (const key of ['item', 'entry']) {
+        const candidate = obj[key];
+        if (candidate && typeof candidate === 'object') {
+          return candidate;
+        }
+      }
+    }
+
+    return data;
+  }
+
+  /**
+   * Each inventory item may use different field names depending on the MUD.
+   * Common variants: {name, category}, {desc, type}, {id, name}, plain string.
+   */
+  private normalizeInventoryEntry(item: unknown): InventoryEntry {
+    if (typeof item === 'string') {
+      return { name: item, category: 'Sonstiges' };
+    }
+
+    if (item && typeof item === 'object') {
+      const o = item as Record<string, unknown>;
+
+      const name = String(
+        o['name'] ?? o['desc'] ?? o['short'] ?? o['title'] ?? o['id'] ?? '',
+      );
+      const category = String(
+        o['category'] ?? o['type'] ?? o['group'] ?? 'Sonstiges',
+      );
+
+      return { name, category };
+    }
+
+    return { name: String(item ?? ''), category: 'Sonstiges' };
   }
 }

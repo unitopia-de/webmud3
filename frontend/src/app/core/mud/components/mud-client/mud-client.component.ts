@@ -18,6 +18,7 @@ import { OutputHistoryService } from '@webmud3/frontend/shared/services/output-h
 import { DebugSettingsService } from '@webmud3/frontend/features/debug/debug-settings.service';
 import { FooterMenuService } from '@webmud3/frontend/features/footer/footer-menu.service';
 import { CharGmcpModule } from '@webmud3/frontend/features/gmcp/modules/char-gmcp.module';
+import { InventoryWindowService } from '@webmud3/frontend/features/inventory/inventory-window.service';
 import type { LinemodeState } from '@webmud3/shared';
 import {
   MudInputController,
@@ -58,6 +59,9 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
   // Bootstraps the Char GMCP module (registers it with the GmcpService so that
   // "Char 1" is included in Core.Supports.Set sent to the MUD).
   private readonly _charGmcp = inject(CharGmcpModule);
+  // Bootstraps the inventory feature: registers Char.Items GMCP module and
+  // adds the "Inventar" toggle to the footer menu.
+  private readonly _inventoryWindow = inject(InventoryWindowService);
 
   private readonly SR_MENU_ID = 'screenreader-debug';
   private readonly PASTE_MENU_ID = 'paste-debug';

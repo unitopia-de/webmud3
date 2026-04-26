@@ -1,0 +1,21 @@
+<ng-container *ngIf="items$ | async as items; else loading">
+  <ng-container *ngIf="hasAnyItems(items); else empty">
+    <section
+      *ngFor="let category of items | keyvalue"
+      class="inv-category"
+    >
+      <h3 class="inv-category-name">{{ category.key }}</h3>
+      <ul class="inv-items">
+        <li *ngFor="let item of category.value">{{ item }}</li>
+      </ul>
+    </section>
+  </ng-container>
+
+  <ng-template #empty>
+    <div class="inv-empty">Inventar ist leer.</div>
+  </ng-template>
+</ng-container>
+
+<ng-template #loading>
+  <div class="inv-empty">Lade Inventar…</div>
+</ng-template>
