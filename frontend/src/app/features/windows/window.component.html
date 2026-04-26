@@ -1,0 +1,20 @@
+<div
+  #titleBar
+  class="title-bar"
+  (pointerdown)="onTitleBarPointerDown($event)"
+  (pointermove)="onTitleBarPointerMove($event)"
+  (pointerup)="onTitleBarPointerUp($event)"
+>
+  <span class="title" [title]="config.tooltip ?? config.title">{{ config.title }}</span>
+  <button
+    type="button"
+    class="close-btn"
+    (click)="onClose($event)"
+    aria-label="Close window"
+  >
+    ×
+  </button>
+</div>
+<div class="content">
+  <ng-content></ng-content>
+</div>

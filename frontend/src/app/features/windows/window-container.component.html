@@ -1,0 +1,9 @@
+<app-window
+  *ngFor="let cfg of windows$ | async; trackBy: trackByWindowId"
+  [config]="cfg"
+>
+  <div class="placeholder">
+    <p><strong>Component:</strong> {{ cfg.component }}</p>
+    <pre>{{ toJson(cfg.data) }}</pre>
+  </div>
+</app-window>
