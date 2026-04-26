@@ -32,7 +32,7 @@ useBodyParser(app);
 
 useStaticFiles(app, 'wwwroot');
 
-const socketManager = useSockets(httpServer, environment);
+const socketManager = useSockets(httpServer, environment, UNIQUE_SERVER_ID);
 
 useConfigEndpoint(app);
 
@@ -48,3 +48,48 @@ httpServer.listen(environment.port, environment.host, 10000, () => {
     UNIQUE_SERVER_ID,
   });
 });
+
+// ---------------------------------------------------------------------------
+// Graceful shutdown
+// ---------------------------------------------------------------------------
+// On SIGTERM (docker stop, k8s) or SIGINT (Ctrl+C) we notify all connected
+// clients (so they can reload), close every active telnet session, then close
+// the http and socket.io servers before exiting.
+
+const SHUTDOWN_TIMEOUT_MS = 10_000;
+let isShuttingDown = false;
+
+async function gracefulShutdown(signal: string): Promise<void> {
+  if (isShuttingDown) {
+    return;
+  }
+  isShuttingDown = true;
+
+  logger.info(`[Main] Received ${signal}. Initiating graceful shutdown.`);
+
+  // Hard exit if shutdown takes too long (e.g. hung connection).
+  const forceExit = setTimeout(() => {
+    logger.error(
+      `[Main] Graceful shutdown timed out after ${SHUTDOWN_TIMEOUT_MS}ms. Forcing exit.`,
+    );
+    process.exit(1);
+  }, SHUTDOWN_TIMEOUT_MS);
+  forceExit.unref();
+
+  try {
+    await socketManager.shutdownAll();
+
+    await new Promise<void>((resolve, reject) => {
+      httpServer.close((error) => (error ? reject(error) : resolve()));
+    });
+
+    logger.info('[Main] Shutdown complete.');
+    process.exit(0);
+  } catch (error) {
+    logger.error('[Main] Error during graceful shutdown', { error });
+    process.exit(1);
+  }
+}
+
+process.on('SIGTERM', () => void gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => void gracefulShutdown('SIGINT'));

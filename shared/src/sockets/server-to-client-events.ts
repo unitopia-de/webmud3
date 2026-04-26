@@ -49,4 +49,17 @@ export interface ServerToClientEvents {
     messageName: string,
     data: unknown,
   ) => void;
+  /**
+   * Broadcast emitted by the backend right before it shuts down.
+   * Clients should disconnect cleanly and reload after the server is back.
+   */
+  serverShutdown: () => void;
+  /**
+   * Sent immediately after a client connects. Carries the server's unique
+   * runtime id (assigned at process start). Clients compare this against
+   * the previously seen id; a mismatch indicates the backend was restarted
+   * and the client should reload to pick up potential code changes and
+   * drop any stale state.
+   */
+  serverHello: (serverId: string) => void;
 }

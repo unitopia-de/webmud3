@@ -36,6 +36,7 @@ export class SocketManager extends Server<
       useTelnetTls: boolean;
       socketRoot: string;
       clientName: string;
+      serverId: string;
     },
   ) {
     const environment = Environment.getInstance();
@@ -55,6 +56,10 @@ export class SocketManager extends Server<
         socketId: socket.id,
         recovered: socket.recovered,
       });
+
+      // Tell the client which backend instance it just connected to.
+      // The frontend uses this to detect a backend restart and reload itself.
+      socket.emit('serverHello', this.managerOptions.serverId);
 
       const handshakeSessionToken = this.getSessionTokenFromSocket(socket);
 
@@ -526,6 +531,76 @@ export class SocketManager extends Server<
         this.closeTelnetConnections(existing.sessionToken);
       }
     });
+  }
+
+  /**
+   * Notifies all connected clients about a server shutdown, closes every
+   * active telnet session and disconnects all socket.io clients. Returns
+   * a promise that resolves after the underlying socket.io server has been
+   * closed so the caller can chain the HTTP server shutdown.
+   */
+  public async shutdownAll(): Promise<void> {
+    logger.info(
+      '[Socket-Manager] Server is shutting down. Closing all telnet sessions and notifying clients.',
+    );
+
+    // 1. Tell all clients we're going down so they can refresh / show a banner.
+    //    socket.io has no built-in "wait until delivered" hook, so we send the
+    //    event to every connected socket individually and then sleep long
+    //    enough for the underlying transport to flush before we tear down.
+    try {
+      const sockets = await this.fetchSockets();
+
+      logger.info(
+        `[Socket-Manager] Notifying ${sockets.length} client(s) about shutdown.`,
+      );
+
+      for (const socket of sockets) {
+        try {
+          socket.emit('serverShutdown');
+        } catch (error) {
+          logger.error(
+            '[Socket-Manager] Failed to emit serverShutdown to socket',
+            { socketId: socket.id, error },
+          );
+        }
+      }
+
+      // Flush window — websocket frames need a tick to actually be written
+      // to the OS socket before we close the transport.
+      await new Promise((resolve) => setTimeout(resolve, 500));
+    } catch (error) {
+      logger.error('[Socket-Manager] Failed to broadcast serverShutdown', {
+        error,
+      });
+    }
+
+    // 2. Close every active telnet connection.
+    for (const sessionToken of Object.keys(this.mudConnections)) {
+      try {
+        this.closeTelnetConnections(sessionToken);
+      } catch (error) {
+        logger.error('[Socket-Manager] Failed to close telnet session', {
+          sessionToken,
+          error,
+        });
+      }
+    }
+
+    // 3. Disconnect every connected socket.io client (force = true closes the
+    //    underlying transport so the browser sees an immediate disconnect).
+    try {
+      this.disconnectSockets(true);
+    } catch (error) {
+      logger.error('[Socket-Manager] Failed to disconnect sockets', { error });
+    }
+
+    // 4. Close the socket.io server itself.
+    await new Promise<void>((resolve) => {
+      this.close(() => resolve());
+    });
+
+    logger.info('[Socket-Manager] Shutdown complete.');
   }
 
   private closeTelnetConnections(sessionToken: string) {
