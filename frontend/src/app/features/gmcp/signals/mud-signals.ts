@@ -1,0 +1,194 @@
+/**
+ * Typed signal definitions for GMCP-based events.
+ *
+ * Each signal type corresponds to a GMCP message or group of messages
+ * from the MUD server, normalized into a structured format that
+ * components can easily consume.
+ */
+
+// ---------------------------------------------------------------------------
+// Character Signals
+// ---------------------------------------------------------------------------
+
+export type CharNameSignal = {
+  type: 'Char.Name';
+  /** Character name, e.g. "Myonara@UNItopia" */
+  name: string;
+  /** Whether the character is a wizard/immortal */
+  wizard?: number;
+};
+
+export type CharStatusSignal = {
+  type: 'Char.Status';
+  /** Raw status data from the MUD */
+  data: unknown;
+};
+
+export type CharVitalsSignal = {
+  type: 'Char.Vitals';
+  /** Raw vitals data from the MUD */
+  data: unknown;
+};
+
+export type CharStatsSignal = {
+  type: 'Char.Stats';
+  /** Raw stats data from the MUD */
+  data: unknown;
+};
+
+// ---------------------------------------------------------------------------
+// Inventory Signals
+// ---------------------------------------------------------------------------
+
+export type InventoryEntry = {
+  name: string;
+  category: string;
+};
+
+export type CharItemsListSignal = {
+  type: 'Char.Items.List';
+  entries: InventoryEntry[];
+};
+
+export type CharItemsAddSignal = {
+  type: 'Char.Items.Add';
+  entry: InventoryEntry;
+};
+
+export type CharItemsRemoveSignal = {
+  type: 'Char.Items.Remove';
+  entry: InventoryEntry;
+};
+
+// ---------------------------------------------------------------------------
+// Sound Signals
+// ---------------------------------------------------------------------------
+
+export type SoundPlaySignal = {
+  type: 'Sound.Play';
+  url: string;
+};
+
+// ---------------------------------------------------------------------------
+// File Signals
+// ---------------------------------------------------------------------------
+
+export type FileEntry = {
+  name: string;
+  size: number;
+  filedate: string;
+  filetime: string;
+  isdir: number;
+};
+
+export type FileInfo = {
+  file: string;
+  path: string;
+  filename: string;
+  filetype: string;
+  editortype?: string;
+  newfile: boolean;
+  writeacl: boolean;
+  temporary: boolean;
+  closable: boolean;
+  filesize: number;
+  title: string;
+  content?: string;
+};
+
+export type FilesDirectorySignal = {
+  type: 'Files.Dir';
+  path: string;
+  entries: FileEntry[];
+};
+
+export type FilesOpenSignal = {
+  type: 'Files.Open';
+  fileinfo: FileInfo;
+};
+
+// ---------------------------------------------------------------------------
+// Input Completion Signals
+// ---------------------------------------------------------------------------
+
+export type InputCompleteTextSignal = {
+  type: 'Input.CompleteText';
+  text: string;
+};
+
+export type InputCompleteChoiceSignal = {
+  type: 'Input.CompleteChoice';
+  choices: string[];
+};
+
+export type InputCompleteNoneSignal = {
+  type: 'Input.CompleteNone';
+};
+
+// ---------------------------------------------------------------------------
+// Numpad Signals
+// ---------------------------------------------------------------------------
+
+export type NumpadLevelSignal = {
+  type: 'Numpad.SendLevel';
+  data: unknown;
+};
+
+// ---------------------------------------------------------------------------
+// Room Signals
+// ---------------------------------------------------------------------------
+
+export type RoomInfoSignal = {
+  type: 'Room.Info';
+  data: unknown;
+};
+
+// ---------------------------------------------------------------------------
+// Communication Signals
+// ---------------------------------------------------------------------------
+
+export type CommSignal = {
+  type: 'Comm.Message';
+  channel: string;
+  data: unknown;
+};
+
+// ---------------------------------------------------------------------------
+// Core Signals
+// ---------------------------------------------------------------------------
+
+export type CorePingSignal = {
+  type: 'Core.Ping';
+};
+
+export type CoreGoodbyeSignal = {
+  type: 'Core.Goodbye';
+};
+
+// ---------------------------------------------------------------------------
+// Union Type
+// ---------------------------------------------------------------------------
+
+/** Discriminated union of all possible MUD signals */
+export type MudSignal =
+  | CharNameSignal
+  | CharStatusSignal
+  | CharVitalsSignal
+  | CharStatsSignal
+  | CharItemsListSignal
+  | CharItemsAddSignal
+  | CharItemsRemoveSignal
+  | SoundPlaySignal
+  | FilesDirectorySignal
+  | FilesOpenSignal
+  | InputCompleteTextSignal
+  | InputCompleteChoiceSignal
+  | InputCompleteNoneSignal
+  | NumpadLevelSignal
+  | RoomInfoSignal
+  | CommSignal
+  | CorePingSignal
+  | CoreGoodbyeSignal;
+
+/** All possible signal type strings */
+export type MudSignalType = MudSignal['type'];
