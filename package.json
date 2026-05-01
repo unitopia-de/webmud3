@@ -3,7 +3,7 @@
   "private": true,
   "version": "1.0.0-alpha",
   "engines": {
-    "node": "~22.20.0"
+    "node": "~22.22.2"
   },
   "workspaces": ["frontend", "backend", "shared"],
   "scripts": {

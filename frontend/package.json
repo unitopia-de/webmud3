@@ -8,7 +8,7 @@
     "Felag"
   ],
   "engines": {
-    "node": "~22.20.0"
+    "node": "~22.22.2"
   },
   "scripts": {
     "prebuild": "npm run build --workspace @webmud3/shared",
