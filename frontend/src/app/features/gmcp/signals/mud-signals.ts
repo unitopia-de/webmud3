@@ -100,6 +100,8 @@ export type FileInfo = {
   filesize: number;
   title: string;
   content?: string;
+  /** HTTP URL provided by the MUD for GET (load) / PUT (save) of the file body. */
+  lasturl: string;
 };
 
 export type FilesDirectorySignal = {
