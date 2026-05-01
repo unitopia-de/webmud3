@@ -253,12 +253,20 @@ export class MudSignalService implements OnDestroy {
   }
 
   private mapFilesDirectory(data: unknown): MudSignal {
-    const d = data as Record<string, unknown>;
+    const d = (data ?? {}) as Record<string, unknown>;
+
+    // UNItopia sends the listing under `entries`. We fall back to `files`
+    // so other MUDs that follow the IRE convention also work.
+    const rawEntries = Array.isArray(d['entries'])
+      ? (d['entries'] as unknown[])
+      : Array.isArray(d['files'])
+        ? (d['files'] as unknown[])
+        : [];
 
     return {
       type: 'Files.Dir',
-      path: String(d?.['path'] ?? '/'),
-      entries: (d?.['files'] ?? []) as FileEntry[],
+      path: String(d['path'] ?? '/'),
+      entries: rawEntries as FileEntry[],
     };
   }
 

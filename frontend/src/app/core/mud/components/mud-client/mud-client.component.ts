@@ -17,6 +17,7 @@ import { SecureString } from '@webmud3/frontend/shared/types/secure-string';
 import { OutputHistoryService } from '@webmud3/frontend/shared/services/output-history.service';
 import { DebugSettingsService } from '@webmud3/frontend/features/debug/debug-settings.service';
 import { FooterMenuService } from '@webmud3/frontend/features/footer/footer-menu.service';
+import { DirlistWindowService } from '@webmud3/frontend/features/editor/dirlist-window.service';
 import { EditorWindowService } from '@webmud3/frontend/features/editor/editor-window.service';
 import { CharGmcpModule } from '@webmud3/frontend/features/gmcp/modules/char-gmcp.module';
 import { InventoryWindowService } from '@webmud3/frontend/features/inventory/inventory-window.service';
@@ -73,6 +74,9 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
   // Bootstraps the editor feature: registers the Files GMCP module and
   // auto-opens an editor window whenever the MUD pushes Files.OpenFile.
   private readonly _editorWindow = inject(EditorWindowService);
+  // Bootstraps the directory browser: shows a "Verzeichnis" footer menu
+  // entry once Char.Name reports the connected player as a wizard.
+  private readonly _dirlistWindow = inject(DirlistWindowService);
 
   private readonly SR_MENU_ID = 'screenreader-debug';
   private readonly PASTE_MENU_ID = 'paste-debug';

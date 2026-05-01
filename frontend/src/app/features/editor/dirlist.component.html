@@ -1,0 +1,79 @@
+<ng-container *ngIf="listing$ | async as listing; else loading">
+  <div class="dirlist-toolbar" role="toolbar" aria-label="Verzeichnis-Aktionen">
+    <span class="dirlist-path" [title]="listing.path">
+      {{ listing.path || '–' }}
+    </span>
+
+    <span class="dirlist-flex-spacer"></span>
+
+    <button
+      type="button"
+      class="dirlist-btn"
+      (click)="onDirClick({ name: '..', size: 0, filedate: '', filetime: '', isdir: 1 }, listing.path)"
+      title="Eine Ebene nach oben"
+    >
+      ../
+    </button>
+  </div>
+
+  <div
+    class="dirlist-empty"
+    *ngIf="listing.entries.length === 0"
+  >
+    (Verzeichnis ist leer)
+  </div>
+
+  <table
+    class="dirlist-table"
+    *ngIf="listing.entries.length > 0"
+    role="grid"
+    [attr.aria-label]="'Inhalt von ' + listing.path"
+  >
+    <thead>
+      <tr>
+        <th scope="col">Name</th>
+        <th scope="col">Größe</th>
+        <th scope="col">Datum</th>
+        <th scope="col">Zeit</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr
+        *ngFor="
+          let entry of listing.entries;
+          index as i;
+          trackBy: trackByEntry
+        "
+        [class.is-dir]="entry.isdir !== 0"
+      >
+        <td>
+          <a
+            *ngIf="entry.isdir === 0"
+            href="#"
+            [tabindex]="i + 1"
+            (click)="onFileClick(entry, listing.path, $event)"
+          >
+            {{ entry.name }}
+          </a>
+          <a
+            *ngIf="entry.isdir !== 0"
+            href="#"
+            [tabindex]="i + 1"
+            (click)="onDirClick(entry, listing.path, $event)"
+          >
+            {{ entry.name }}/
+          </a>
+        </td>
+        <td>{{ entry.isdir === 0 ? entry.size : '' }}</td>
+        <td>{{ entry.filedate }}</td>
+        <td>{{ entry.filetime }}</td>
+      </tr>
+    </tbody>
+  </table>
+</ng-container>
+
+<ng-template #loading>
+  <div class="dirlist-empty" role="status" aria-live="polite">
+    Lade Verzeichnis …
+  </div>
+</ng-template>
