@@ -15,6 +15,7 @@
     "lib": ["es2018", "dom"],
     "useDefineForClassFields": false,
     "strict": true,
+    "skipLibCheck": true,
     "resolveJsonModule": true,
     "paths": {
       "@webmud3/frontend/*": ["src/app/*"]

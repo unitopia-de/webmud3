@@ -5,6 +5,7 @@
   <ng-container
     *ngIf="componentFor(cfg) as cmp; else placeholder"
     [ngComponentOutlet]="cmp"
+    [ngComponentOutletInputs]="{ config: cfg }"
   ></ng-container>
 
   <ng-template #placeholder>

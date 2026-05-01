@@ -1,0 +1,41 @@
+<div class="editor-toolbar" role="toolbar" aria-label="Editor-Aktionen">
+  <span class="editor-path" [title]="fileinfo?.file ?? ''">
+    {{ fileinfo?.filename ?? '' }}
+  </span>
+
+  <span class="editor-flex-spacer"></span>
+
+  <button
+    type="button"
+    class="editor-btn"
+    [disabled]="readOnly || saving"
+    (click)="onSave(false)"
+  >
+    Speichern
+  </button>
+
+  <button
+    type="button"
+    class="editor-btn"
+    [disabled]="readOnly || saving"
+    (click)="onSave(true)"
+  >
+    Speichern &amp; Schliessen
+  </button>
+
+  <button type="button" class="editor-btn" (click)="onCancel()">
+    Abbrechen
+  </button>
+</div>
+
+<div class="editor-host" #host aria-label="Editor-Bereich"></div>
+
+<div
+  class="editor-status"
+  role="status"
+  aria-live="polite"
+  *ngIf="statusMessage || errorMessage"
+>
+  <span *ngIf="errorMessage" class="editor-error">{{ errorMessage }}</span>
+  <span *ngIf="!errorMessage && statusMessage">{{ statusMessage }}</span>
+</div>

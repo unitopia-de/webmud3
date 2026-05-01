@@ -1,5 +1,6 @@
 import type { Type } from '@angular/core';
 
+import { EditorComponent } from '@webmud3/frontend/features/editor/editor.component';
 import { InventoryComponent } from '@webmud3/frontend/features/inventory/inventory.component';
 import { NumpadConfigComponent } from '@webmud3/frontend/features/numpad/numpad-config.component';
 
@@ -13,4 +14,5 @@ import { NumpadConfigComponent } from '@webmud3/frontend/features/numpad/numpad-
 export const WINDOW_COMPONENTS: Record<string, Type<unknown>> = {
   inventory: InventoryComponent,
   'numpad-config': NumpadConfigComponent,
+  editor: EditorComponent,
 };

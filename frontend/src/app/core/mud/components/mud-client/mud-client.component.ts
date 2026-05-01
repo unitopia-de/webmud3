@@ -17,6 +17,7 @@ import { SecureString } from '@webmud3/frontend/shared/types/secure-string';
 import { OutputHistoryService } from '@webmud3/frontend/shared/services/output-history.service';
 import { DebugSettingsService } from '@webmud3/frontend/features/debug/debug-settings.service';
 import { FooterMenuService } from '@webmud3/frontend/features/footer/footer-menu.service';
+import { EditorWindowService } from '@webmud3/frontend/features/editor/editor-window.service';
 import { CharGmcpModule } from '@webmud3/frontend/features/gmcp/modules/char-gmcp.module';
 import { InventoryWindowService } from '@webmud3/frontend/features/inventory/inventory-window.service';
 import { ConnectionMenuService } from '@webmud3/frontend/features/connection/connection-menu.service';
@@ -69,6 +70,9 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
   // Bootstraps the "Numpad-Konfiguration" entry in the footer menu and
   // loads numpad bindings from localStorage.
   private readonly _numpadWindow = inject(NumpadWindowService);
+  // Bootstraps the editor feature: registers the Files GMCP module and
+  // auto-opens an editor window whenever the MUD pushes Files.OpenFile.
+  private readonly _editorWindow = inject(EditorWindowService);
 
   private readonly SR_MENU_ID = 'screenreader-debug';
   private readonly PASTE_MENU_ID = 'paste-debug';

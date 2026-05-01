@@ -112,10 +112,15 @@ export class MudSignalService implements OnDestroy {
         return this.mapSoundEvent(msg.data);
 
       // -- Files --
-      case 'Files.DirectoryList':
-        return this.mapFilesDirectory(msg.data);
+      // UNItopia sends `Files.URL` (server -> client) in response to the
+      // outgoing `Files.OpenFile` (client -> server) request. We accept both
+      // spellings for forward compatibility with other MUDs.
+      case 'Files.URL':
       case 'Files.OpenFile':
         return this.mapFilesOpen(msg.data);
+      case 'Files.DirectoryList':
+      case 'Files.Directory':
+        return this.mapFilesDirectory(msg.data);
 
       // -- Input Completion --
       case 'Input.Complete':
@@ -258,12 +263,27 @@ export class MudSignalService implements OnDestroy {
   }
 
   private mapFilesOpen(data: unknown): MudSignal {
-    const d = data as Record<string, unknown>;
+    const d = (data ?? {}) as Record<string, unknown>;
 
-    return {
-      type: 'Files.Open',
-      fileinfo: d as unknown as import('./mud-signals').FileInfo,
+    // UNItopia delivers the editable URL in `url`; the rest of the codebase
+    // refers to it as `lasturl`. Map it explicitly here so downstream
+    // consumers don't have to know the wire-level name.
+    const fileinfo: import('./mud-signals').FileInfo = {
+      lasturl: String(d['url'] ?? d['lasturl'] ?? ''),
+      file: String(d['file'] ?? ''),
+      path: String(d['path'] ?? ''),
+      filename: String(d['filename'] ?? ''),
+      filetype: String(d['filetype'] ?? ''),
+      title: String(d['title'] ?? ''),
+      filesize: typeof d['filesize'] === 'number' ? (d['filesize'] as number) : -1,
+      newfile: Boolean(d['newfile']),
+      writeacl: Boolean(d['writeacl']),
+      temporary: Boolean(d['temporary']),
+      closable: Boolean(d['closable']),
+      content: typeof d['content'] === 'string' ? (d['content'] as string) : undefined,
     };
+
+    return { type: 'Files.Open', fileinfo };
   }
 
   private mapInputComplete(data: unknown): MudSignal {
