@@ -23,6 +23,7 @@ export const CSI_CMD = {
   cursorLeft: (columns = 1) => `${CSI}${Math.max(columns, 1)}D`,
   cursorRight: (columns = 1) => `${CSI}${Math.max(columns, 1)}C`,
   eraseLineAll: () => `${CSI}2K`,
+  eraseToEol: () => `${CSI}K`,
 } as const;
 
 /** Regex that captures generic CSI sequences (ESC [ parameters final). */
@@ -35,6 +36,7 @@ export const SS3_LEN = 3;
 export const carriageReturn = CTRL.CR;
 export const backspace = CTRL.BS;
 export const eraseLine = CSI_CMD.eraseLineAll();
+export const eraseToEol = CSI_CMD.eraseToEol();
 
 /** CR followed by CSI 2K — clear the active line and move to column 0. */
 export const resetLine = `${carriageReturn}${eraseLine}`;

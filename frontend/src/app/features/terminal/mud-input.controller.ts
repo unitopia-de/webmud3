@@ -8,8 +8,15 @@ import {
   backspaceErase,
   cursorLeft,
   cursorRight,
+  eraseToEol,
   sequence,
 } from './models/escapes';
+
+/** Modifier code embedded in CSI sequences for Alt (xterm convention). */
+const MODIFIER_ALT = 3;
+
+/** Maximum number of remembered command history entries. */
+const MAX_HISTORY = 200;
 
 /**
  * Callback signature used whenever a buffered line is ready to be sent to the server.
@@ -38,6 +45,14 @@ export class MudInputController {
   private localEchoEnabled = true;
   // Holds a partially received escape sequence to be completed by the next chunk.
   private pendingEscape = '';
+
+  // Command history: chronological, newest entries appended.
+  private readonly history: string[] = [];
+  // Position within history while browsing; -1 means "not currently browsing".
+  private historyIndex = -1;
+  // Buffer the user had typed before they entered history-browse mode; restored
+  // when they walk past the most recent entry with Down again.
+  private historyAnchor = '';
 
   /**
    * @param terminal Reference to the xterm instance we mirror the editing state to.
@@ -133,6 +148,34 @@ export class MudInputController {
   }
 
   /**
+   * Walks one step back through the command history.
+   * When `withPrefix` is true, only entries that start with the prefix the
+   * user originally typed (the anchor) are considered.
+   *
+   * Intended for direct invocation from a KeyboardEvent handler when the
+   * browser/OS swallows the matching escape sequence before xterm receives
+   * it on `onData`.
+   */
+  public historyBack(withPrefix = false): void {
+    this.historyUp(this.resolvePrefix(withPrefix));
+  }
+
+  /**
+   * Walks one step forward through the command history. See `historyBack`.
+   */
+  public historyForward(withPrefix = false): void {
+    this.historyDown(this.resolvePrefix(withPrefix));
+  }
+
+  private resolvePrefix(withPrefix: boolean): string | null {
+    if (!withPrefix) {
+      return null;
+    }
+
+    return this.historyIndex === -1 ? this.buffer : this.historyAnchor;
+  }
+
+  /**
    * Flushes the buffer and resets the controller.  When nothing has been typed
    * the call is a no-op and `null` is returned.
    */
@@ -155,9 +198,17 @@ export class MudInputController {
   /**
    * Commits the current buffer to the consumer and resets editing state.  Local
    * echo is honoured by writing CRLF before the callback is fired.
+   *
+   * Only echoed input lands in the command history. Lines entered while the
+   * server has disabled local echo (passwords, login tokens, ...) are
+   * intentionally never recorded.
    */
   private commitBuffer(): void {
     const message = this.buffer;
+
+    if (this.localEchoEnabled) {
+      this.pushHistory(message);
+    }
 
     this.reset();
 
@@ -166,6 +217,29 @@ export class MudInputController {
     }
 
     this.onCommit({ message, echoed: this.localEchoEnabled });
+  }
+
+  /**
+   * Appends `message` to the command history, deduplicating against the
+   * previous entry and capping at MAX_HISTORY. Empty messages are ignored.
+   */
+  private pushHistory(message: string): void {
+    if (message === '') {
+      return;
+    }
+
+    if (
+      this.history.length > 0 &&
+      this.history[this.history.length - 1] === message
+    ) {
+      return;
+    }
+
+    this.history.push(message);
+
+    if (this.history.length > MAX_HISTORY) {
+      this.history.shift();
+    }
   }
 
   /**
@@ -178,6 +252,8 @@ export class MudInputController {
     if (charCode < 32 && char !== CTRL.TAB) {
       return;
     }
+
+    this.exitHistoryBrowse();
 
     const before = this.buffer.slice(0, this.cursor);
     const after = this.buffer.slice(this.cursor);
@@ -208,6 +284,8 @@ export class MudInputController {
     if (this.cursor === 0) {
       return;
     }
+
+    this.exitHistoryBrowse();
 
     const before = this.buffer.slice(0, this.cursor - 1);
     const after = this.buffer.slice(this.cursor);
@@ -282,6 +360,47 @@ export class MudInputController {
    * @returns number of characters consumed from the segment.
    */
   private handleEscapeSequence(segment: string): number {
+    // xterm encodes Alt+key in two ways depending on options:
+    //   1) modifier-in-CSI:  ESC [ 1;3 A   (handled in the regular CSI path)
+    //   2) meta-sends-ESC:   ESC ESC [ A   (the leading ESC is the Alt prefix)
+    // Detect the second form here and dispatch to the history with a stable
+    // prefix (anchor while browsing, current buffer otherwise).
+    if (segment.length >= 2 && segment[1] === CTRL.ESC) {
+      if (segment.length < 3) {
+        return 0; // need more bytes to know what follows
+      }
+
+      if (segment[2] !== '[') {
+        // Alt + something we don't care about: drop just the leading ESC and
+        // let the next iteration handle the rest.
+        return CTRL.ESC.length;
+      }
+
+      const inner = segment.slice(CTRL.ESC.length);
+      const innerMatch = inner.match(CSI_REGEX);
+
+      if (!innerMatch) {
+        return 0; // incomplete CSI after the Alt prefix
+      }
+
+      const innerToken = innerMatch[0];
+      const finalChar = innerToken[innerToken.length - 1];
+      const consumed = CTRL.ESC.length + innerToken.length;
+
+      if (finalChar === 'A' || finalChar === 'B') {
+        const prefix =
+          this.historyIndex === -1 ? this.buffer : this.historyAnchor;
+
+        if (finalChar === 'A') {
+          this.historyUp(prefix);
+        } else {
+          this.historyDown(prefix);
+        }
+      }
+
+      return consumed;
+    }
+
     if (segment.startsWith(SS3)) {
       if (segment.length < SS3_LEN) {
         return 0; // incomplete SS3
@@ -290,6 +409,12 @@ export class MudInputController {
       const control = segment[2];
 
       switch (control) {
+        case 'A':
+          this.historyUp(null);
+          break;
+        case 'B':
+          this.historyDown(null);
+          break;
         case 'C':
           this.moveCursorRight(1);
           break;
@@ -324,10 +449,34 @@ export class MudInputController {
     const token = match[0];
     const finalChar = token[token.length - 1];
     const params = token.slice(2, -1);
-    const amount =
-      params.length === 0 ? 1 : Number.parseInt(params.split(';')[0], 10) || 1;
+    const parts = params.length === 0 ? [] : params.split(';');
+    const amount = parts.length === 0 ? 1 : Number.parseInt(parts[0], 10) || 1;
+    const modifier = parts.length > 1 ? Number.parseInt(parts[1], 10) || 1 : 1;
 
     switch (finalChar) {
+      case 'A': {
+        // Alt+Up filters by the originally typed prefix. The first press uses
+        // the current buffer (which then becomes the anchor); subsequent
+        // presses keep using the anchor so the prefix is stable while browsing.
+        const prefix =
+          modifier === MODIFIER_ALT
+            ? this.historyIndex === -1
+              ? this.buffer
+              : this.historyAnchor
+            : null;
+        this.historyUp(prefix);
+        break;
+      }
+      case 'B': {
+        const prefix =
+          modifier === MODIFIER_ALT
+            ? this.historyIndex === -1
+              ? this.buffer
+              : this.historyAnchor
+            : null;
+        this.historyDown(prefix);
+        break;
+      }
       case 'C':
         this.moveCursorRight(amount);
         break;
@@ -373,6 +522,8 @@ export class MudInputController {
       return;
     }
 
+    this.exitHistoryBrowse();
+
     const before = this.buffer.slice(0, this.cursor);
     const after = this.buffer.slice(this.cursor + 1);
 
@@ -401,5 +552,100 @@ export class MudInputController {
 
   private moveCursorToEnd(): void {
     this.moveCursorRight(this.buffer.length - this.cursor);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Command history
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Walks one step back in the command history. When `prefix` is non-null,
+   * only entries that start with the prefix are considered. The first call
+   * also stashes the current buffer in `historyAnchor` so a later Down past
+   * the newest match can restore it.
+   */
+  private historyUp(prefix: string | null): void {
+    if (this.history.length === 0) {
+      return;
+    }
+
+    if (this.historyIndex === -1) {
+      this.historyAnchor = this.buffer;
+      this.historyIndex = this.history.length;
+    }
+
+    for (let i = this.historyIndex - 1; i >= 0; i -= 1) {
+      const entry = this.history[i];
+
+      if (prefix === null || entry.startsWith(prefix)) {
+        this.historyIndex = i;
+        this.replaceBufferTextually(entry);
+        return;
+      }
+    }
+    // No match found; stay where we are so the next Down resumes correctly.
+  }
+
+  /**
+   * Walks one step forward in the command history. Stepping past the newest
+   * matching entry restores the originally typed buffer (the anchor) and
+   * leaves browse mode.
+   */
+  private historyDown(prefix: string | null): void {
+    if (this.historyIndex === -1) {
+      return;
+    }
+
+    for (let i = this.historyIndex + 1; i < this.history.length; i += 1) {
+      const entry = this.history[i];
+
+      if (prefix === null || entry.startsWith(prefix)) {
+        this.historyIndex = i;
+        this.replaceBufferTextually(entry);
+        return;
+      }
+    }
+
+    // No more matches: restore the anchor and exit browse mode.
+    const anchor = this.historyAnchor;
+    this.historyIndex = -1;
+    this.historyAnchor = '';
+    this.replaceBufferTextually(anchor);
+  }
+
+  /**
+   * Marks the user as no longer browsing history without touching the buffer.
+   * Called whenever the user actively edits (insert / backspace / delete) so
+   * subsequent edits behave normally.
+   */
+  private exitHistoryBrowse(): void {
+    if (this.historyIndex === -1) {
+      return;
+    }
+
+    this.historyIndex = -1;
+    this.historyAnchor = '';
+  }
+
+  /**
+   * Replaces the buffer with `newText` and mirrors the change to the terminal:
+   * cursor is moved back to the buffer's start, the rest of the line is erased
+   * (which leaves any prompt to the left untouched), then the new text is
+   * written. Cursor lands at the end of the new buffer.
+   */
+  private replaceBufferTextually(newText: string): void {
+    if (this.localEchoEnabled) {
+      if (this.cursor > 0) {
+        this.terminal.write(cursorLeft(this.cursor));
+      }
+
+      this.terminal.write(eraseToEol);
+      this.terminal.write(newText);
+    }
+
+    this.buffer = newText;
+    this.cursor = newText.length;
+
+    this.onInputChange?.({ buffer: this.buffer });
   }
 }

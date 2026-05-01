@@ -215,6 +215,7 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
     this.terminal.loadAddon(this.terminalClipboardAddon);
     this.terminal.loadAddon(this.terminalFitAddon);
     this.terminal.loadAddon(this.terminalAttachAddon);
+    this.installCopyShortcutHandler();
     this.terminal.focus();
 
     // Cache helper textarea created by xterm (used to mirror prompt + input)
@@ -685,6 +686,74 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
       buffer !== undefined ? buffer : this.inputController.getSnapshot().buffer;
 
     this.helperTextarea.value = `${prompt}${effectiveBuffer ?? ''}`;
+  }
+
+  /**
+   * Wires up Ctrl+C / Cmd+C as a copy-to-clipboard shortcut for terminal text
+   * selections.
+   *
+   * xterm's `attachCustomKeyEventHandler` runs before its own key processing.
+   * Returning `false` swallows the event entirely, so the keystroke is not
+   * forwarded to onData (and therefore not to the MUD).
+   *
+   * Behaviour:
+   *  - Ctrl+C (Linux/Win) or Cmd+C (Mac) with active terminal selection:
+   *    copy the selection and swallow the event.
+   *  - Ctrl+C without selection: bubble through (preserves the existing
+   *    behaviour of sending  to the MUD as an interrupt).
+   *  - Anything else: bubble through.
+   */
+  private installCopyShortcutHandler(): void {
+    this.terminal.attachCustomKeyEventHandler((event) => {
+      if (event.type !== 'keydown') {
+        return true;
+      }
+
+      // History navigation: Up/Down (with optional Alt for prefix filter) only
+      // makes sense in line-edit mode. We handle it directly on the
+      // KeyboardEvent because some browsers/OSes swallow Alt+ArrowUp/Down
+      // before xterm sees it via onData.
+      if (
+        this.state.isEditMode &&
+        !event.ctrlKey &&
+        !event.metaKey &&
+        !event.shiftKey &&
+        (event.key === 'ArrowUp' || event.key === 'ArrowDown')
+      ) {
+        if (event.key === 'ArrowUp') {
+          this.inputController.historyBack(event.altKey);
+        } else {
+          this.inputController.historyForward(event.altKey);
+        }
+
+        event.preventDefault();
+        return false;
+      }
+
+      const isCopyShortcut =
+        (event.ctrlKey || event.metaKey) &&
+        !event.shiftKey &&
+        !event.altKey &&
+        (event.key === 'c' || event.key === 'C');
+
+      if (!isCopyShortcut || !this.terminal.hasSelection()) {
+        return true;
+      }
+
+      const selection = this.terminal.getSelection();
+
+      if (selection) {
+        void navigator.clipboard.writeText(selection).catch((err) => {
+          console.warn('[MudClient] Clipboard write failed:', err);
+        });
+      }
+
+      // Prevent the browser default (which would also try to copy from xterm's
+      // hidden helper textarea and may end up empty) and stop xterm from
+      // emitting  as input.
+      event.preventDefault();
+      return false;
+    });
   }
 
   /**
