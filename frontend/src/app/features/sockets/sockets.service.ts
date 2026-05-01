@@ -5,6 +5,7 @@ import { Manager, Socket } from 'socket.io-client';
 import { ServerConfigService } from '../../features/serverconfig/server-config.service';
 import { SecureString } from '@webmud3/frontend/shared/types/secure-string';
 import { isSecureString } from '@webmud3/frontend/shared/utils/is-secure-string';
+import { namespacedStorage } from '@webmud3/frontend/shared/utils/storage-namespace';
 import { OutputHistoryService } from '@webmud3/frontend/shared/services/output-history.service';
 
 import type {
@@ -409,7 +410,7 @@ export class SocketsService {
     this.outputHistoryService.clearAll();
 
     try {
-      localStorage.removeItem('webmud3-session-token');
+      namespacedStorage.remove('webmud3-session-token');
     } catch (error) {
       console.error(
         '[Sockets] Failed to clear session token from localStorage:',
@@ -464,8 +465,7 @@ export class SocketsService {
    * Initializes or retrieves the persistent session token from localStorage
    */
   private initializeSessionToken(): string {
-    const STORAGE_KEY = 'webmud3-session-token';
-    let token = localStorage.getItem(STORAGE_KEY);
+    let token = namespacedStorage.get('webmud3-session-token');
 
     if (!token) {
       // Generate new UUID v4
@@ -481,7 +481,7 @@ export class SocketsService {
    */
   private saveSessionToken(token: string): void {
     try {
-      localStorage.setItem('webmud3-session-token', token);
+      namespacedStorage.set('webmud3-session-token', token);
     } catch (error) {
       console.error(
         '[Sockets] Failed to save session token to localStorage:',

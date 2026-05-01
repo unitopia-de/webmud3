@@ -2,6 +2,7 @@ import { inject, Injectable } from '@angular/core';
 import { BehaviorSubject } from 'rxjs';
 
 import { MudService } from '@webmud3/frontend/core/mud/services/mud.service';
+import { namespacedStorage } from '@webmud3/frontend/shared/utils/storage-namespace';
 
 /** Logical key ids matching KeyboardEvent.code on the numpad */
 export const NUMPAD_KEYS = [
@@ -28,7 +29,7 @@ export type NumpadKey = (typeof NUMPAD_KEYS)[number];
 /** Map of NumpadKey -> command string sent to the MUD when triggered */
 export type NumpadBindings = Partial<Record<NumpadKey, string>>;
 
-const STORAGE_KEY = 'webmud3-numpad-bindings';
+const STORAGE_SUFFIX = 'webmud3-numpad-bindings';
 
 const DEFAULT_BINDINGS: NumpadBindings = {
   Numpad8: 'norden',
@@ -99,7 +100,7 @@ export class NumpadService {
 
   private loadBindings(): NumpadBindings {
     try {
-      const raw = localStorage.getItem(STORAGE_KEY);
+      const raw = namespacedStorage.get(STORAGE_SUFFIX);
       if (raw) {
         const parsed = JSON.parse(raw) as NumpadBindings;
         if (parsed && typeof parsed === 'object') {
@@ -115,7 +116,7 @@ export class NumpadService {
 
   private persist(bindings: NumpadBindings): void {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(bindings));
+      namespacedStorage.set(STORAGE_SUFFIX, JSON.stringify(bindings));
     } catch (error) {
       console.warn('[Numpad] Failed to save bindings to localStorage', error);
     }

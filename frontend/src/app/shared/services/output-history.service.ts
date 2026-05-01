@@ -1,7 +1,9 @@
 import { Injectable } from '@angular/core';
 
+import { namespacedKey, namespacedStorage } from '../utils/storage-namespace';
+
 const MAX_STORAGE_BYTES = 30 * 1024 * 1024; // 30MB
-const STORAGE_KEY = 'webmud3-history';
+const STORAGE_SUFFIX = 'webmud3-history';
 
 export type HistoryEntry =
   | { type: 'server'; data: string; seq: number; sessionToken: string }
@@ -66,7 +68,7 @@ export class OutputHistoryService {
   public clearAll(): void {
     if (!this.isStorageAvailable()) return;
     try {
-      localStorage.removeItem(STORAGE_KEY);
+      namespacedStorage.remove(STORAGE_SUFFIX);
       console.debug('[OutputHistory] Cleared all entries');
     } catch (error) {
       console.error('[OutputHistory] Failed to clear entries:', error);
@@ -147,7 +149,10 @@ export class OutputHistoryService {
     );
     const trimmedStore = this.trimStoreToSize(store, MAX_STORAGE_BYTES * 0.8); // Use 80% of limit
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(trimmedStore));
+      localStorage.setItem(
+        namespacedKey(STORAGE_SUFFIX),
+        JSON.stringify(trimmedStore),
+      );
       console.debug('[OutputHistory] Successfully saved after trimming');
     } catch (error) {
       console.error('[OutputHistory] Failed even after trimming:', error);
@@ -160,7 +165,7 @@ export class OutputHistoryService {
     }
 
     try {
-      const stored = localStorage.getItem(STORAGE_KEY);
+      const stored = namespacedStorage.get(STORAGE_SUFFIX);
       if (!stored) {
         return { entries: [], meta: { lastSeqSeenBySession: {} } };
       }
@@ -194,7 +199,10 @@ export class OutputHistoryService {
         console.warn('[OutputHistory] Store exceeds limit, trimming...');
         toSave = this.trimStoreToSize(store, MAX_STORAGE_BYTES);
       }
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave));
+      localStorage.setItem(
+        namespacedKey(STORAGE_SUFFIX),
+        JSON.stringify(toSave),
+      );
     } catch (error) {
       console.error('[OutputHistory] Failed to save store:', error);
       if (
