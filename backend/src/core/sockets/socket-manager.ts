@@ -241,7 +241,23 @@ export class SocketManager extends Server<
         `[${socket.id}] [Socket-Manager] Client sending GMCP: ${module}`,
       );
 
-      telnetClient.sendGmcp(module, data);
+      let payload = data;
+
+      if (module.toLowerCase() === 'core.hello') {
+        const realIp = this.getRealIp(socket);
+        const baseData =
+          data !== null && typeof data === 'object'
+            ? (data as Record<string, unknown>)
+            : {};
+
+        payload = { ...baseData, real_ip: realIp };
+        logger.info(
+          `[${socket.id}] [Socket-Manager] Client sent Core.Hello`,
+          payload,
+        );
+      }
+
+      telnetClient.sendGmcp(module, payload);
     });
 
     socket.on(
@@ -689,5 +705,29 @@ export class SocketManager extends Server<
     }
 
     return undefined;
+  }
+
+  private getRealIp(
+    socket: Socket<ClientToServerEvents, ServerToClientEvents>,
+  ): string {
+    const forwarded = socket.handshake.headers['x-forwarded-for'];
+
+    let realIp: string;
+
+    if (typeof forwarded === 'string' && forwarded.length > 0) {
+      realIp = forwarded;
+    } else if (Array.isArray(forwarded) && forwarded.length > 0) {
+      realIp = forwarded[0];
+    } else {
+      realIp = socket.handshake.address;
+    }
+
+    const commaIndex = realIp.indexOf(',');
+
+    if (commaIndex > -1) {
+      realIp = realIp.slice(0, commaIndex);
+    }
+
+    return realIp.trim();
   }
 }
