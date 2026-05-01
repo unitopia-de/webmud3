@@ -31,12 +31,22 @@ export class SocketsService {
   private sessionToken: string;
   // Forces a fresh session token after reconnect failed to avoid reusing a dead backend session.
   private forceNewSession = false;
+  // The first serverHello received after page load. Subsequent serverHello
+  // events with a different id mean the backend was restarted; we then
+  // reload the page to pick up any new code and drop stale state.
+  private knownServerId: string | undefined;
 
   public onMudConnect = new EventEmitter<boolean>(); // Emits isNewConnection
   public onMudDisconnect = new EventEmitter();
   public onMudOutput = new EventEmitter<MudOutputEventArgs>();
   public onSetEchoMode = new EventEmitter<boolean>();
   public onSetLinemode = new EventEmitter<LinemodeState>();
+  public onGmcpActive = new EventEmitter<boolean>();
+  public onGmcpIncoming = new EventEmitter<{
+    packageName: string;
+    messageName: string;
+    data: unknown;
+  }>();
 
   public readonly connectedToServer$ = this.connectedToServer.asObservable();
   public readonly connectedToMud$ = this.connectedToMud.asObservable();
@@ -142,6 +152,32 @@ export class SocketsService {
     this.socket.on('requestTimingMark', (callback: () => void) => {
       this.handleTimingMark(callback);
     });
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (this.socket as unknown as any).on(
+      'mudGmcpActive',
+      (active: boolean) => {
+        this.handleGmcpActive(active);
+      },
+    );
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (this.socket as unknown as any).on('serverShutdown', () => {
+      this.handleServerShutdown();
+    });
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (this.socket as unknown as any).on('serverHello', (serverId: string) => {
+      this.handleServerHello(serverId);
+    });
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (this.socket as unknown as any).on(
+      'mudGmcpIncoming',
+      (packageName: string, messageName: string, data: unknown) => {
+        this.handleGmcpIncoming(packageName, messageName, data);
+      },
+    );
   }
 
   public connectToMud(initialViewPort: {
@@ -192,9 +228,11 @@ export class SocketsService {
     this.socket.emit('mudViewportSize', columns, rows);
   }
 
-  public sendGmcp(/*id: string, mod: string, msg: string, data: any*/): boolean {
-    console.log(`[Sockets] Sockets-Service: 'sendGmcp'`);
-    throw new Error('Method not implemented.');
+  public sendGmcp(module: string, data: unknown): void {
+    console.log(`[Sockets] Sockets-Service: 'sendGmcp'`, { module, data });
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (this.socket as unknown as any).emit('mudGmcpOutgoing', module, data);
   }
 
   private handleMudConnect = (
@@ -335,6 +373,71 @@ export class SocketsService {
     console.info('[Sockets] Sockets-Service: Got and answer a Timing Mark');
 
     callback();
+  };
+
+  private handleServerShutdown = () => {
+    console.warn(
+      '[Sockets] Sockets-Service: Server announced shutdown. Waiting for new backend to come up.',
+    );
+
+    // We deliberately keep the auto-reconnect loop running. When the backend
+    // is back, the next connect will produce a new serverHello with a
+    // different serverId, which triggers the page reload in handleServerHello.
+  };
+
+  private handleServerHello = (serverId: string) => {
+    if (this.knownServerId === undefined) {
+      this.knownServerId = serverId;
+      console.info(
+        `[Sockets] Sockets-Service: Server hello, serverId=${serverId}`,
+      );
+      return;
+    }
+
+    if (serverId === this.knownServerId) {
+      // Reconnect to the same backend instance — nothing to do.
+      return;
+    }
+
+    console.warn(
+      `[Sockets] Sockets-Service: Backend restart detected (old=${this.knownServerId}, new=${serverId}). Clearing local state and reloading.`,
+    );
+
+    // The previous session-token and output-history belong to a backend that
+    // no longer exists. Clear both so the freshly loaded page starts clean
+    // and can establish a new session against the new backend.
+    this.outputHistoryService.clearAll();
+
+    try {
+      localStorage.removeItem('webmud3-session-token');
+    } catch (error) {
+      console.error(
+        '[Sockets] Failed to clear session token from localStorage:',
+        error,
+      );
+    }
+
+    window.location.reload();
+  };
+
+  private handleGmcpActive = (active: boolean) => {
+    console.info('[Sockets] Sockets-Service: GMCP active:', active);
+
+    this.onGmcpActive.emit(active);
+  };
+
+  private handleGmcpIncoming = (
+    packageName: string,
+    messageName: string,
+    data: unknown,
+  ) => {
+    console.debug('[Sockets] Sockets-Service: GMCP incoming:', {
+      packageName,
+      messageName,
+      data,
+    });
+
+    this.onGmcpIncoming.emit({ packageName, messageName, data });
   };
 
   /**

@@ -9,9 +9,15 @@ docker build -f Dockerfile -t myonara/webmud3:develop .
 
 docker build -f Dockerfile -t myonara/webmud3:latest .
 
-docker build -f dockerfiles/ng_unitopia_test.dockerfile -t myonara/webmud3:unitopiatest .
+docker build -f dockerfiles/unitopia_dev.dockerfile -t myonara/webmud3:unitopiatest .
+
+docker build -f dockerfiles/unitopia_dev.dockerfile -t myonara/webmud3:wm3local .
 
 ### To run the docker containers in a swarm:
+
+docker stack deploy -c dockerfiles/wm3_local_dev.yml webmud3local
+
+docker stack rm webmud3local
 
 docker stack deploy -c dockerfiles/w3_docker_compose_local.yml webmud3alocal
 
@@ -40,12 +46,21 @@ docker compose -f dockerfiles/wm3_local_dev.yml -p webmud3dev up -d
 
 podman-compose -f dockerfiles/w3_docker_compose.yml -p webmud_unitopia up -d
 
-podman-compose -f dockerfiles/w3_docker_compose_sb.yml -p webmud_seifenblase up -d
+podman-compose -f /UNItopia/ftpwww/webmud3/dockerfiles/w3_docker_compose_sb.yml -p webmud_seifenblase up -d
+
+podman-compose -f /UNItopia/ftpwww/webmud3/dockerfiles/wm3_sb_mystiker.yml -p webmud_seifenblase up -d
 
 podman-compose -f dockerfiles/w3_docker_compose_test.yml -p webmud_test up -d
     
 podman-compose -f dockerfiles/w3_docker_compose_test_neu.yml -p webmud_test up -d
-    
+
+podman-compose -f /UNItopia/ftpwww/webmud3/dockerfiles/wm3_test_mystiker.yml -p webmud3_newtest up -d
+
+podman-compose -f /UNItopia/ftpwww/webmud3/dockerfiles/wm3t_prod_mystiker.yml -p webmud3_newprod up -d
+
+podman-compose -f /UNItopia/ftpwww/webmud3/dockerfiles/wm3_old_test.yml -p webmud3_oldtest up -d
+
+podman run -d --network pasta:--address,10.0.2.0,--netmask,24,--gateway,10.0.2.2
 ####  to stop
 
 podman-compose -f dockerfiles/w3_docker_compose.yml -p webmud_unitopia down

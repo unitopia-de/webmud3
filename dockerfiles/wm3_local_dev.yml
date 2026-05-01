@@ -1,7 +1,7 @@
 services: 
   # docker compose -f dockerfiles/wm3_local_dev.yml -p webmud3dev up -d
   web:
-    image: myonara/webmud3:develop
+    image: myonara/webmud3:wm3local
     environment: 
       ENVIRONMENT: 'development'
       NODE_ENV: 'development'
@@ -35,4 +35,4 @@ services:
       - webnet
 networks:
   webnet:
-    driver: bridge
+    driver: overlay

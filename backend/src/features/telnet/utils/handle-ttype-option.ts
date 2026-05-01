@@ -39,7 +39,9 @@ const handleTTypeSub =
   (socket: TelnetSocket, clientName: string) =>
   (serverChunk: Buffer): TelnetSubnegotiationResult => {
     if (new Uint8Array(serverChunk)[0] === TelnetTTypeSubnogiation.TTYPE_SEND) {
-      const buffer = Buffer.from(clientName);
+      const buffer = Buffer.from([0, ...Buffer.from(clientName)]);
+      // prefix 0 for IS (set to).
+      // IAC SB TERMINAL TYPE IS (77,65,62,6d,75,64,33,62)
 
       socket.writeSub(TelnetOptions.TELOPT_TTYPE, buffer);
 

@@ -12,6 +12,10 @@ import { TelnetOptions } from '../../features/telnet/models/telnet-options.js';
 import { TelnetClient } from '../../features/telnet/telnet-client.js';
 import { TelnetControlSequences } from '../../features/telnet/types/telnet-control-sequences.js';
 import { EchoState } from '../../features/telnet/utils/handle-echo-option.js';
+import type {
+  GmcpMessage,
+  GmcpState,
+} from '../../features/telnet/utils/handle-gmcp-option.js';
 import { logger } from '../../shared/utils/logger.js';
 import { mapToServerEncodings } from '../../shared/utils/supported-encodings.js';
 import { Environment } from '../environment/environment.js';
@@ -32,6 +36,7 @@ export class SocketManager extends Server<
       useTelnetTls: boolean;
       socketRoot: string;
       clientName: string;
+      serverId: string;
     },
   ) {
     const environment = Environment.getInstance();
@@ -51,6 +56,10 @@ export class SocketManager extends Server<
         socketId: socket.id,
         recovered: socket.recovered,
       });
+
+      // Tell the client which backend instance it just connected to.
+      // The frontend uses this to detect a backend restart and reload itself.
+      socket.emit('serverHello', this.managerOptions.serverId);
 
       const handshakeSessionToken = this.getSessionTokenFromSocket(socket);
 
@@ -199,6 +208,56 @@ export class SocketManager extends Server<
       if (existing.connection.telnet !== undefined) {
         existing.connection.telnet.updateViewportSize(columns, rows);
       }
+    });
+
+    socket.on('mudGmcpOutgoing', (module: string, data: unknown) => {
+      const existing = this.getConnectionBySocketId(socket.id);
+
+      if (existing === undefined) {
+        logger.error(
+          `[${socket.id}] [Socket-Manager] Client has no session - can not send GMCP message!`,
+          {
+            socketId: socket.id,
+          },
+        );
+
+        return;
+      }
+
+      const telnetClient = existing.connection.telnet;
+
+      if (telnetClient === undefined || telnetClient.isConnected === false) {
+        logger.error(
+          `[${socket.id}] [Socket-Manager] Client has no telnet connection - can not send GMCP message!`,
+          {
+            socketId: socket.id,
+          },
+        );
+
+        return;
+      }
+
+      logger.debug(
+        `[${socket.id}] [Socket-Manager] Client sending GMCP: ${module}`,
+      );
+
+      let payload = data;
+
+      if (module.toLowerCase() === 'core.hello') {
+        const realIp = this.getRealIp(socket);
+        const baseData =
+          data !== null && typeof data === 'object'
+            ? (data as Record<string, unknown>)
+            : {};
+
+        payload = { ...baseData, real_ip: realIp };
+        logger.info(
+          `[${socket.id}] [Socket-Manager] Client sent Core.Hello`,
+          payload,
+        );
+      }
+
+      telnetClient.sendGmcp(module, payload);
     });
 
     socket.on(
@@ -420,10 +479,52 @@ export class SocketManager extends Server<
               break;
             }
 
+            case TelnetOptions.TELOPT_GMCP: {
+              const gmcpState = state as GmcpState;
+
+              logger.verbose(
+                `[${socket.id}] [Socket-Manager] Telnet Option GMCP has changed. Emitting 'mudGmcpActive'`,
+                {
+                  name: TelnetOptions[TelnetOptions.TELOPT_GMCP],
+                  state: state,
+                },
+              );
+
+              socket.emit('mudGmcpActive', gmcpState.active);
+
+              break;
+            }
+
             default:
               break;
           }
         });
+
+        // Register GMCP message listener to forward incoming GMCP data to the client
+        const gmcpHandler = telnetClient.getGmcpHandler();
+
+        if (gmcpHandler !== undefined) {
+          const gmcpListener = (message: GmcpMessage) => {
+            const currentSocket = this.getSocketById(
+              this.mudConnections[resolvedSessionToken]?.socketId,
+            );
+
+            if (currentSocket !== undefined) {
+              currentSocket.emit(
+                'mudGmcpIncoming',
+                message.packageName,
+                message.messageName,
+                message.data,
+              );
+            }
+          };
+
+          gmcpHandler.onGmcpMessage(gmcpListener);
+
+          telnetClient.on('close', () => {
+            gmcpHandler.offGmcpMessage(gmcpListener);
+          });
+        }
 
         logger.info(
           `[${socket.id}] [Socket-Manager] Client .. telnet connection established. Emitting 'mudConnected'`,
@@ -446,6 +547,76 @@ export class SocketManager extends Server<
         this.closeTelnetConnections(existing.sessionToken);
       }
     });
+  }
+
+  /**
+   * Notifies all connected clients about a server shutdown, closes every
+   * active telnet session and disconnects all socket.io clients. Returns
+   * a promise that resolves after the underlying socket.io server has been
+   * closed so the caller can chain the HTTP server shutdown.
+   */
+  public async shutdownAll(): Promise<void> {
+    logger.info(
+      '[Socket-Manager] Server is shutting down. Closing all telnet sessions and notifying clients.',
+    );
+
+    // 1. Tell all clients we're going down so they can refresh / show a banner.
+    //    socket.io has no built-in "wait until delivered" hook, so we send the
+    //    event to every connected socket individually and then sleep long
+    //    enough for the underlying transport to flush before we tear down.
+    try {
+      const sockets = await this.fetchSockets();
+
+      logger.info(
+        `[Socket-Manager] Notifying ${sockets.length} client(s) about shutdown.`,
+      );
+
+      for (const socket of sockets) {
+        try {
+          socket.emit('serverShutdown');
+        } catch (error) {
+          logger.error(
+            '[Socket-Manager] Failed to emit serverShutdown to socket',
+            { socketId: socket.id, error },
+          );
+        }
+      }
+
+      // Flush window — websocket frames need a tick to actually be written
+      // to the OS socket before we close the transport.
+      await new Promise((resolve) => setTimeout(resolve, 500));
+    } catch (error) {
+      logger.error('[Socket-Manager] Failed to broadcast serverShutdown', {
+        error,
+      });
+    }
+
+    // 2. Close every active telnet connection.
+    for (const sessionToken of Object.keys(this.mudConnections)) {
+      try {
+        this.closeTelnetConnections(sessionToken);
+      } catch (error) {
+        logger.error('[Socket-Manager] Failed to close telnet session', {
+          sessionToken,
+          error,
+        });
+      }
+    }
+
+    // 3. Disconnect every connected socket.io client (force = true closes the
+    //    underlying transport so the browser sees an immediate disconnect).
+    try {
+      this.disconnectSockets(true);
+    } catch (error) {
+      logger.error('[Socket-Manager] Failed to disconnect sockets', { error });
+    }
+
+    // 4. Close the socket.io server itself.
+    await new Promise<void>((resolve) => {
+      this.close(() => resolve());
+    });
+
+    logger.info('[Socket-Manager] Shutdown complete.');
   }
 
   private closeTelnetConnections(sessionToken: string) {
@@ -483,6 +654,14 @@ export class SocketManager extends Server<
 
     if (linemodeState !== undefined) {
       socket.emit('setLinemode', linemodeState);
+    }
+
+    const gmcpState = telnetClient.getOptionState<GmcpState>(
+      TelnetOptions.TELOPT_GMCP,
+    );
+
+    if (gmcpState !== undefined) {
+      socket.emit('mudGmcpActive', gmcpState.active);
     }
   }
 
@@ -526,5 +705,29 @@ export class SocketManager extends Server<
     }
 
     return undefined;
+  }
+
+  private getRealIp(
+    socket: Socket<ClientToServerEvents, ServerToClientEvents>,
+  ): string {
+    const forwarded = socket.handshake.headers['x-forwarded-for'];
+
+    let realIp: string;
+
+    if (typeof forwarded === 'string' && forwarded.length > 0) {
+      realIp = forwarded;
+    } else if (Array.isArray(forwarded) && forwarded.length > 0) {
+      realIp = forwarded[0];
+    } else {
+      realIp = socket.handshake.address;
+    }
+
+    const commaIndex = realIp.indexOf(',');
+
+    if (commaIndex > -1) {
+      realIp = realIp.slice(0, commaIndex);
+    }
+
+    return realIp.trim();
   }
 }

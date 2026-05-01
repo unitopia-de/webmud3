@@ -100,4 +100,185 @@ describe('MudInputController', () => {
 
     expect(controller.getSnapshot()).toEqual({ buffer: 'ab', cursor: 1 });
   });
+
+  describe('command history', () => {
+    const ESC = '';
+    const ARROW_UP = `${ESC}[A`;
+    const ARROW_DOWN = `${ESC}[B`;
+    const ALT_ARROW_UP = `${ESC}[1;3A`;
+    const ALT_ARROW_DOWN = `${ESC}[1;3B`;
+
+    // Alt prefix variant (xterm meta-sends-ESC default): ESC ESC [A/B.
+    const META_ARROW_UP = ESC + ESC + '[A';
+    const META_ARROW_DOWN = ESC + ESC + '[B';
+
+    it('arrow up recalls the most recent commit', () => {
+      const { controller } = makeController();
+
+      controller.handleData('look' + CTRL.CR);
+      controller.handleData(ARROW_UP);
+
+      expect(controller.getSnapshot()).toEqual({ buffer: 'look', cursor: 4 });
+    });
+
+    it('arrow up walks further back through history', () => {
+      const { controller } = makeController();
+
+      controller.handleData('north' + CTRL.CR);
+      controller.handleData('south' + CTRL.CR);
+      controller.handleData(ARROW_UP);
+
+      expect(controller.getSnapshot()).toEqual({ buffer: 'south', cursor: 5 });
+
+      controller.handleData(ARROW_UP);
+
+      expect(controller.getSnapshot()).toEqual({ buffer: 'north', cursor: 5 });
+    });
+
+    it('arrow down past the newest entry restores the typed anchor', () => {
+      const { controller } = makeController();
+
+      controller.handleData('north' + CTRL.CR);
+      controller.handleData('typi'); // partially typed before browsing
+      controller.handleData(ARROW_UP); // go to "north"
+
+      expect(controller.getSnapshot()).toEqual({ buffer: 'north', cursor: 5 });
+
+      controller.handleData(ARROW_DOWN); // back to anchor
+
+      expect(controller.getSnapshot()).toEqual({ buffer: 'typi', cursor: 4 });
+    });
+
+    it('deduplicates consecutive identical commits', () => {
+      const { controller } = makeController();
+
+      controller.handleData('schau' + CTRL.CR);
+      controller.handleData('schau' + CTRL.CR);
+      controller.handleData(ARROW_UP);
+      controller.handleData(ARROW_UP); // would walk further if duplicate stored
+
+      expect(controller.getSnapshot()).toEqual({ buffer: 'schau', cursor: 5 });
+    });
+
+    it('does not store empty commits', () => {
+      const { controller } = makeController();
+
+      controller.handleData(CTRL.CR); // empty commit
+      controller.handleData('hi' + CTRL.CR);
+      controller.handleData(ARROW_UP);
+      controller.handleData(ARROW_UP); // empty would land here if stored
+
+      expect(controller.getSnapshot()).toEqual({ buffer: 'hi', cursor: 2 });
+    });
+
+    it('alt+up filters history by current buffer prefix', () => {
+      const { controller } = makeController();
+
+      controller.handleData('look' + CTRL.CR);
+      controller.handleData('north' + CTRL.CR);
+      controller.handleData('look at me' + CTRL.CR);
+      controller.handleData('lo'); // prefix
+      controller.handleData(ALT_ARROW_UP);
+
+      expect(controller.getSnapshot()).toEqual({
+        buffer: 'look at me',
+        cursor: 10,
+      });
+
+      controller.handleData(ALT_ARROW_UP);
+
+      // 'north' is skipped because it does not start with 'lo'.
+      expect(controller.getSnapshot()).toEqual({ buffer: 'look', cursor: 4 });
+    });
+
+    it('alt+down restores anchor when no further prefix match exists', () => {
+      const { controller } = makeController();
+
+      controller.handleData('look' + CTRL.CR);
+      controller.handleData('lo');
+      controller.handleData(ALT_ARROW_UP); // -> 'look'
+      controller.handleData(ALT_ARROW_DOWN); // no newer match -> anchor
+
+      expect(controller.getSnapshot()).toEqual({ buffer: 'lo', cursor: 2 });
+    });
+
+    it('typing exits browse mode but keeps the recalled buffer', () => {
+      const { controller } = makeController();
+
+      controller.handleData('look' + CTRL.CR);
+      controller.handleData(ARROW_UP); // buffer = 'look'
+      controller.handleData('!'); // append, exits browse
+
+      expect(controller.getSnapshot()).toEqual({ buffer: 'look!', cursor: 5 });
+
+      // After exit, Down should be a no-op (browse already exited).
+      controller.handleData(ARROW_DOWN);
+
+      expect(controller.getSnapshot()).toEqual({ buffer: 'look!', cursor: 5 });
+    });
+
+    it('arrow up with empty history is a no-op', () => {
+      const { controller } = makeController();
+
+      controller.handleData(ARROW_UP);
+
+      expect(controller.getSnapshot()).toEqual({ buffer: '', cursor: 0 });
+    });
+
+    it('does not record commits while local echo is disabled (passwords)', () => {
+      const { controller } = makeController();
+
+      controller.setLocalEcho(false);
+      controller.handleData('hunter2' + CTRL.CR);
+
+      controller.setLocalEcho(true);
+      controller.handleData(ARROW_UP);
+
+      // History should not contain the password-mode commit.
+      expect(controller.getSnapshot()).toEqual({ buffer: '', cursor: 0 });
+    });
+
+    it('treats the meta-sends-ESC variant the same as alt+up', () => {
+      const { controller } = makeController();
+
+      controller.handleData('look' + CTRL.CR);
+      controller.handleData('north' + CTRL.CR);
+      controller.handleData('look at me' + CTRL.CR);
+      controller.handleData('lo'); // prefix
+      controller.handleData(META_ARROW_UP);
+
+      expect(controller.getSnapshot()).toEqual({
+        buffer: 'look at me',
+        cursor: 10,
+      });
+
+      controller.handleData(META_ARROW_UP);
+
+      expect(controller.getSnapshot()).toEqual({ buffer: 'look', cursor: 4 });
+    });
+
+    it('meta-down restores anchor when no further prefix match exists', () => {
+      const { controller } = makeController();
+
+      controller.handleData('look' + CTRL.CR);
+      controller.handleData('lo');
+      controller.handleData(META_ARROW_UP); // -> 'look'
+      controller.handleData(META_ARROW_DOWN); // anchor
+
+      expect(controller.getSnapshot()).toEqual({ buffer: 'lo', cursor: 2 });
+    });
+
+    it('still records commits made before echo was disabled', () => {
+      const { controller } = makeController();
+
+      controller.handleData('look' + CTRL.CR); // echoed -> stored
+      controller.setLocalEcho(false);
+      controller.handleData('secret' + CTRL.CR); // not stored
+
+      controller.setLocalEcho(true);
+      controller.handleData(ARROW_UP);
+
+      expect(controller.getSnapshot()).toEqual({ buffer: 'look', cursor: 4 });
+    });
+  });
 });

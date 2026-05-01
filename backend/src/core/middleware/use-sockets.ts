@@ -7,6 +7,7 @@ import { SocketManager } from '../sockets/socket-manager.js';
 export const useSockets = (
   httpServer: HttpServer | HttpsServer,
   environment: Environment,
+  serverId: string,
 ) => {
   return new SocketManager(httpServer, {
     telnetHost: environment.telnetHost,
@@ -14,5 +15,6 @@ export const useSockets = (
     useTelnetTls: environment.telnetTLS,
     socketRoot: environment.socketRoot,
     clientName: environment.name,
+    serverId,
   });
 };

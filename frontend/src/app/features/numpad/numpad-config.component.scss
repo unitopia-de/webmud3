@@ -1,0 +1,152 @@
+:host {
+  display: block;
+  font-family: sans-serif;
+  color: #ddd;
+  font-size: 12px;
+  position: relative;
+  height: 100%;
+}
+
+.numpad-host {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  height: 100%;
+}
+
+.numpad-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+  flex: 1 1 auto;
+}
+
+.numpad-key {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: #2d2d30;
+  border: 1px solid #555;
+  border-radius: 4px;
+  color: #ddd;
+  cursor: pointer;
+  padding: 6px 4px;
+  min-height: 50px;
+
+  &:hover {
+    background: #3e3e42;
+    border-color: #6e6e6e;
+  }
+
+  &:active {
+    background: #1e1e1e;
+  }
+
+  &.span-2 {
+    grid-column: span 2;
+  }
+}
+
+.numpad-label {
+  font-size: 14px;
+  font-weight: bold;
+  color: #4ec9b0;
+}
+
+.numpad-cmd {
+  font-size: 10px;
+  color: #aaa;
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+  font-family: monospace;
+}
+
+.numpad-edit {
+  position: absolute;
+  top: 2px;
+  right: 4px;
+  font-size: 10px;
+  color: #888;
+  cursor: pointer;
+  padding: 0 2px;
+
+  &:hover {
+    color: #ddd;
+  }
+}
+
+.numpad-gap {
+  display: block;
+}
+
+.numpad-actions {
+  display: flex;
+  justify-content: flex-end;
+
+  button {
+    background: transparent;
+    border: 1px solid #555;
+    color: #ddd;
+    padding: 4px 10px;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 11px;
+
+    &:hover {
+      background: #3e3e42;
+    }
+  }
+}
+
+.numpad-edit-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.85);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: stretch;
+  gap: 8px;
+  padding: 16px;
+  z-index: 10;
+
+  p {
+    margin: 0;
+    font-size: 13px;
+  }
+
+  input {
+    background: #1e1e1e;
+    border: 1px solid #555;
+    border-radius: 3px;
+    color: #ddd;
+    padding: 6px 8px;
+    font-family: monospace;
+    font-size: 13px;
+  }
+
+  .numpad-edit-buttons {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+
+    button {
+      background: transparent;
+      border: 1px solid #555;
+      color: #ddd;
+      padding: 4px 10px;
+      border-radius: 3px;
+      cursor: pointer;
+      font-size: 11px;
+
+      &:hover {
+        background: #3e3e42;
+      }
+    }
+  }
+}

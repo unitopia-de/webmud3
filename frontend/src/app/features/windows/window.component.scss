@@ -1,0 +1,57 @@
+:host {
+  position: fixed;
+  display: flex;
+  flex-direction: column;
+  min-width: 200px;
+  min-height: 120px;
+  background: #1e1e1e;
+  color: #ddd;
+  border: 1px solid #444;
+  border-radius: 4px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+  resize: both;
+  overflow: hidden;
+  font-family: sans-serif;
+  font-size: 13px;
+}
+
+.title-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 8px;
+  background: #2d2d30;
+  border-bottom: 1px solid #444;
+  cursor: move;
+  user-select: none;
+  flex: 0 0 auto;
+}
+
+.title {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1 1 auto;
+}
+
+.close-btn {
+  background: transparent;
+  border: none;
+  color: #ddd;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 6px;
+  border-radius: 3px;
+
+  &:hover {
+    background: #c4302b;
+    color: #fff;
+  }
+}
+
+.content {
+  flex: 1 1 auto;
+  overflow: auto;
+  padding: 8px;
+}

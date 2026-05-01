@@ -1,0 +1,115 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  min-height: 240px;
+  font-family: sans-serif;
+  font-size: 12px;
+  color: #ddd;
+  background: #1e1e1e;
+  overflow: hidden;
+}
+
+.dirlist-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 6px;
+  background: #2a2d2e;
+  border-bottom: 1px solid #3a3a3a;
+  flex: 0 0 auto;
+}
+
+.dirlist-path {
+  flex: 0 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 70%;
+  color: #4ec9b0;
+  font-weight: bold;
+  font-family: monospace;
+}
+
+.dirlist-flex-spacer {
+  flex: 1 1 auto;
+}
+
+.dirlist-btn {
+  padding: 2px 8px;
+  background: #0e639c;
+  border: 1px solid #1177bb;
+  color: #fff;
+  font-size: 11px;
+  border-radius: 2px;
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    background: #1177bb;
+  }
+
+  &:disabled {
+    background: #444;
+    border-color: #555;
+    color: #888;
+    cursor: not-allowed;
+  }
+}
+
+.dirlist-empty {
+  padding: 14px;
+  color: #888;
+  font-style: italic;
+  text-align: center;
+}
+
+.dirlist-table {
+  flex: 1 1 auto;
+  width: 100%;
+  border-collapse: collapse;
+  overflow-y: auto;
+  display: block;
+
+  thead {
+    position: sticky;
+    top: 0;
+    background: #2a2d2e;
+  }
+
+  th,
+  td {
+    text-align: left;
+    padding: 2px 6px;
+    white-space: nowrap;
+  }
+
+  th {
+    color: #4ec9b0;
+    font-weight: bold;
+    border-bottom: 1px solid #3a3a3a;
+  }
+
+  td {
+    border-bottom: 1px solid #2a2a2a;
+  }
+
+  tr.is-dir td a {
+    color: #4ec9b0;
+  }
+
+  a {
+    color: #9cdcfe;
+    text-decoration: none;
+    cursor: pointer;
+
+    &:hover {
+      text-decoration: underline;
+    }
+
+    &:focus {
+      outline: 1px dashed #4ec9b0;
+      outline-offset: 1px;
+    }
+  }
+}

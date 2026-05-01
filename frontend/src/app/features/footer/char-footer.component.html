@@ -1,0 +1,42 @@
+<div class="char-info">
+  <span class="char-name" *ngIf="charName(); else noChar">{{ charName() }}</span>
+  <ng-template #noChar><span class="placeholder">no character</span></ng-template>
+
+  <span class="char-vitals" *ngIf="vitalsText() as v">{{ v }}</span>
+</div>
+
+<div class="spacer"></div>
+
+<div #menuRoot class="menu-root">
+  <button
+    type="button"
+    class="menu-button"
+    (click)="toggleMenu($event)"
+    [class.open]="menuOpen()"
+    aria-label="Open settings menu"
+    aria-haspopup="true"
+    [attr.aria-expanded]="menuOpen()"
+  >
+    ⚙
+  </button>
+
+  <div class="menu-dropdown" *ngIf="menuOpen()" role="menu">
+    <ng-container *ngIf="(menuItems$ | async)?.length; else emptyMenu">
+      <button
+        *ngFor="let item of menuItems$ | async"
+        type="button"
+        class="menu-item"
+        role="menuitem"
+        [disabled]="item.disabled"
+        (click)="onMenuItemClick(item.action)"
+      >
+        <span class="check">{{ item.checked ? '✓' : '' }}</span>
+        <span class="icon" *ngIf="item.icon">{{ item.icon }}</span>
+        <span class="label">{{ item.label }}</span>
+      </button>
+    </ng-container>
+    <ng-template #emptyMenu>
+      <div class="menu-empty">no entries</div>
+    </ng-template>
+  </div>
+</div>

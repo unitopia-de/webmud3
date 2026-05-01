@@ -1,0 +1,13 @@
+.placeholder {
+  color: #aaa;
+  font-family: monospace;
+  font-size: 12px;
+
+  pre {
+    background: #111;
+    padding: 8px;
+    border-radius: 3px;
+    overflow: auto;
+    margin: 4px 0 0;
+  }
+}
