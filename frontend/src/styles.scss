@@ -27,3 +27,22 @@ app-root {
   flex: 1 1 0;
   min-height: 0;
 }
+
+// On touch devices the per-component default font sizes (12-13 px) become
+// unreadable next to the dynamically-sized terminal text. Lift everything in
+// the app chrome (windows, footer, dropdowns, inventory, editor, dirlist) to
+// at least 16 px so they stay legible on tablets / phones, while desktop
+// keeps the original compact look.
+@media (pointer: coarse) {
+  app-window,
+  app-window .content,
+  app-window .title,
+  app-char-footer,
+  app-mobile-input,
+  app-inventory,
+  app-numpad-config,
+  app-editor,
+  app-dirlist {
+    font-size: 16px;
+  }
+}

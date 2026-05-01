@@ -25,6 +25,7 @@ import { ConnectionMenuService } from '@webmud3/frontend/features/connection/con
 import { NumpadWindowService } from '@webmud3/frontend/features/numpad/numpad-window.service';
 import type { LinemodeState } from '@webmud3/shared';
 import {
+  MobileInputComponent,
   MudInputController,
   MudPromptManager,
   MudScreenReaderAnnouncer,
@@ -62,6 +63,12 @@ type MudClientState = {
   showEcho: boolean;
   localEchoEnabled: boolean;
   terminalReady: boolean;
+  /**
+   * When true, a native single-line input is rendered below the terminal and
+   * xterm's keyboard input is ignored. Auto-enabled on touch devices because
+   * Android soft keyboards do not cooperate with xterm's hidden textarea.
+   */
+  useMobileInput: boolean;
 };
 
 /**
@@ -73,6 +80,7 @@ type MudClientState = {
 @Component({
   selector: 'app-mud-client',
   standalone: true,
+  imports: [MobileInputComponent],
   templateUrl: './mud-client.component.html',
   styleUrls: ['./mud-client.component.scss'],
 })
@@ -101,6 +109,7 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
 
   private readonly SR_MENU_ID = 'screenreader-debug';
   private readonly PASTE_MENU_ID = 'paste-debug';
+  private readonly MOBILE_INPUT_MENU_ID = 'mobile-input';
 
   private readonly terminal: Terminal;
   private readonly inputController: MudInputController;
@@ -132,11 +141,33 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
   private showEchoSubscription?: Subscription;
   private linemodeSubscription?: Subscription;
   private pasteHandler?: (event: ClipboardEvent) => void;
+  /** Read-only state accessor for template bindings. */
+  public get useMobileInput(): boolean {
+    return this.state.useMobileInput;
+  }
+
+  /** History provider passed to the mobile input component. */
+  public get historyProvider(): MudInputController {
+    return this.inputController;
+  }
+
+  /** Live state object used by the template. */
+  public get viewState(): MudClientState {
+    return this.state;
+  }
+
   private state: MudClientState = {
     isEditMode: true,
     showEcho: true,
     localEchoEnabled: true,
     terminalReady: false,
+    // Touch devices get the native single-line input by default so Android /
+    // iOS soft keyboards behave correctly. Desktop users can opt in via the
+    // footer menu.
+    useMobileInput:
+      typeof window !== 'undefined' &&
+      typeof window.matchMedia === 'function' &&
+      window.matchMedia('(pointer: coarse)').matches,
   };
   private lastViewportSize?: { columns: number; rows: number };
 
@@ -281,6 +312,7 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
   ngOnDestroy() {
     this.footerMenu.unregister(this.SR_MENU_ID);
     this.footerMenu.unregister(this.PASTE_MENU_ID);
+    this.footerMenu.unregister(this.MOBILE_INPUT_MENU_ID);
     this.resizeObs.disconnect();
 
     // Unregister visibility change listener
@@ -438,6 +470,46 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
   }
 
   /**
+   * Receives a committed line from the native mobile input component.
+   *
+   * Mirrors what `MudInputController.commitBuffer` does for xterm-driven
+   * input: locally echoes the line into xterm if local echo is on, records
+   * it in command history (only when echoed — passwords stay out), then
+   * routes through the same handler that processes xterm-committed lines.
+   */
+  public onMobileInputCommit(message: string): void {
+    const echoed = this.state.localEchoEnabled;
+
+    if (echoed) {
+      // Render the line + CRLF into xterm so the user sees what they sent.
+      this.terminal.write(`${message}\r\n`);
+      // Share history with the xterm-driven input.
+      this.inputController.recordHistoryEntry(message);
+    }
+
+    this.handleCommittedInput(message, echoed);
+  }
+
+  /**
+   * Toggles the native mobile input on / off and registers the matching
+   * footer-menu entry so desktop users can opt in.
+   */
+  private setUseMobileInput(enabled: boolean): void {
+    if (this.state.useMobileInput === enabled) {
+      this.footerMenu.setChecked(this.MOBILE_INPUT_MENU_ID, enabled);
+      return;
+    }
+
+    this.setState({ useMobileInput: enabled });
+    this.footerMenu.setChecked(this.MOBILE_INPUT_MENU_ID, enabled);
+
+    if (!enabled) {
+      // Refocus xterm so keystrokes flow back through onData.
+      this.terminal.focus();
+    }
+  }
+
+  /**
    * Announces input buffer changes to the screen reader announcer.
    * Called whenever the user types, deletes, etc. (but not for cursor-only moves).
    * This ensures screen reader users can hear their input in real-time.
@@ -456,6 +528,14 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
     this.pasteLog('[PASTE-DEBUG] Edit mode:', this.state.isEditMode);
     this.pasteLog('[PASTE-DEBUG] Data received:', JSON.stringify(data));
     this.pasteLog('[PASTE-DEBUG] Data length:', data.length);
+
+    // When the native mobile input is active, ignore everything xterm thinks
+    // the user typed — input flows through the <app-mobile-input> commit
+    // handler instead. This avoids double processing if a stray focus brings
+    // the hidden helper textarea back into play on touch devices.
+    if (this.state.useMobileInput) {
+      return;
+    }
 
     // Special handling for Ctrl+V (paste): xterm converts paste to \u0016 in onData()
     // We need to read the clipboard and inject the actual content
@@ -901,6 +981,13 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
       label: 'Paste-Debug',
       checked: this.debugSettings.pasteLogging,
       action: () => this.debugSettings.togglePasteLogging(),
+    });
+
+    this.footerMenu.register({
+      id: this.MOBILE_INPUT_MENU_ID,
+      label: 'Eingabezeile (Mobile)',
+      checked: this.state.useMobileInput,
+      action: () => this.setUseMobileInput(!this.state.useMobileInput),
     });
 
     this.debugSettings.screenReaderLogging$.subscribe((enabled) => {

@@ -24,7 +24,15 @@
   border-bottom: 1px solid #444;
   cursor: move;
   user-select: none;
+  -webkit-user-select: none;
   flex: 0 0 auto;
+  // Touch defaults that get in the way of dragging on mobile:
+  //  - touch-action: none → browser does not steal the pointer for
+  //    scroll / pinch gestures, so pointermove/up reach our handler.
+  //  - -webkit-touch-callout: none → suppresses the iOS / Android Chrome
+  //    long-press callout (the "Download / Share / Print" sheet).
+  touch-action: none;
+  -webkit-touch-callout: none;
 }
 
 .title {
@@ -38,15 +46,32 @@
   background: transparent;
   border: none;
   color: #ddd;
-  font-size: 18px;
+  font-size: 22px;
   line-height: 1;
   cursor: pointer;
-  padding: 0 6px;
+  // Make the close button a real, finger-sized target. WCAG / Material Design
+  // recommend at least 44 × 44 px for touch; 36 px is the minimum on desktop.
+  min-width: 36px;
+  min-height: 36px;
+  padding: 4px 10px;
   border-radius: 3px;
+  // Long-press on the close button should not pop the system share menu
+  // either — same reasoning as the title bar.
+  touch-action: manipulation;
+  -webkit-touch-callout: none;
 
   &:hover {
     background: #c4302b;
     color: #fff;
+  }
+}
+
+// On touch devices the close button must be unmistakably tappable.
+@media (pointer: coarse) {
+  .close-btn {
+    min-width: 44px;
+    min-height: 44px;
+    font-size: 26px;
   }
 }
 

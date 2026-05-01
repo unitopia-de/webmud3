@@ -4,6 +4,7 @@
   (pointerdown)="onTitleBarPointerDown($event)"
   (pointermove)="onTitleBarPointerMove($event)"
   (pointerup)="onTitleBarPointerUp($event)"
+  (contextmenu)="$event.preventDefault()"
 >
   <span class="title" [title]="config.tooltip ?? config.title">{{ config.title }}</span>
   <button

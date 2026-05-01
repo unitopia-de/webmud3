@@ -1,0 +1,46 @@
+<div
+  class="mobile-input-row"
+  role="group"
+  aria-label="Eingabezeile"
+>
+  <button
+    type="button"
+    class="mobile-input-btn"
+    aria-label="Vorheriger Befehl"
+    (click)="onHistoryBack()"
+  >
+    ▲
+  </button>
+
+  <button
+    type="button"
+    class="mobile-input-btn"
+    aria-label="Nächster Befehl"
+    (click)="onHistoryForward()"
+  >
+    ▼
+  </button>
+
+  <input
+    #field
+    class="mobile-input-field"
+    [type]="echoVisible ? 'text' : 'password'"
+    [(ngModel)]="value"
+    [attr.autocomplete]="echoVisible ? 'off' : 'current-password'"
+    autocapitalize="off"
+    spellcheck="false"
+    aria-label="MUD-Eingabe"
+    enterkeyhint="send"
+    (ngModelChange)="onInputChange()"
+    (keydown)="onKeydown($event)"
+  />
+
+  <button
+    type="button"
+    class="mobile-input-btn mobile-input-send"
+    aria-label="Befehl senden"
+    (click)="onSubmit()"
+  >
+    ↵
+  </button>
+</div>

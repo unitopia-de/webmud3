@@ -24,3 +24,11 @@
 ></div>
 
 <div class="mud-output" #hostRef></div>
+
+@if (useMobileInput) {
+  <app-mobile-input
+    [historyProvider]="historyProvider"
+    [echoVisible]="viewState.localEchoEnabled"
+    (commit)="onMobileInputCommit($event)"
+  ></app-mobile-input>
+}

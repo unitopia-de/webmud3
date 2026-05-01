@@ -148,6 +148,25 @@ export class MudInputController {
   }
 
   /**
+   * Returns a read-only snapshot of the current command history (oldest first,
+   * newest last). Used by the mobile input component which has its own browse
+   * state but wants to share the same history source.
+   */
+  public getHistorySnapshot(): readonly string[] {
+    return this.history;
+  }
+
+  /**
+   * Records `message` in the command history. Uses the same dedup-against-last
+   * + max-length policy as committing a line through the controller. Safe to
+   * call externally (e.g. from the mobile input path that bypasses the
+   * controller's character pipeline).
+   */
+  public recordHistoryEntry(message: string): void {
+    this.pushHistory(message);
+  }
+
+  /**
    * Walks one step back through the command history.
    * When `withPrefix` is true, only entries that start with the prefix the
    * user originally typed (the anchor) are considered.
