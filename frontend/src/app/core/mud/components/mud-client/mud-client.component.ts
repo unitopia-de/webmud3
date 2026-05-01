@@ -34,6 +34,27 @@ import {
 } from '../../../../features/terminal';
 
 /**
+ * Minimum number of columns the terminal must always be able to display.
+ * UNItopia (and most MUDs) format their output for an 80-column terminal,
+ * so the font size is sized down on narrow viewports until 80 columns fit.
+ */
+const TARGET_COLUMNS = 80;
+
+/**
+ * Approximate ratio of a monospaced glyph's advance width to the font size.
+ * For JetBrainsMono this is roughly 0.6; we pick a slightly larger value so
+ * the calculation errs on the side of "fits" rather than "one column missing".
+ */
+const CHAR_WIDTH_RATIO = 0.62;
+
+/** Pixels of horizontal slack reserved for padding / scroll gutter. */
+const TERMINAL_HORIZONTAL_PADDING = 8;
+
+/** Hard limits for the terminal font size. */
+const MIN_TERMINAL_FONT_SIZE = 6;
+const MAX_TERMINAL_FONT_SIZE = 18;
+
+/**
  * Component-internal shape that bundles the mutable Mud client flags.
  */
 type MudClientState = {
@@ -80,18 +101,6 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
 
   private readonly SR_MENU_ID = 'screenreader-debug';
   private readonly PASTE_MENU_ID = 'paste-debug';
-
-  private readonly fontSizeBreakpoints = [
-    { minWidth: 0, fontSize: 8.5 },
-    { minWidth: 420, fontSize: 9 },
-    { minWidth: 470, fontSize: 10 },
-    { minWidth: 520, fontSize: 11 },
-    { minWidth: 570, fontSize: 12 },
-    { minWidth: 620, fontSize: 13 },
-    { minWidth: 670, fontSize: 14 },
-    { minWidth: 720, fontSize: 15 },
-    { minWidth: 770, fontSize: 16 },
-  ];
 
   private readonly terminal: Terminal;
   private readonly inputController: MudInputController;
@@ -251,6 +260,12 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
     // Register visibility change listener to resume audio context when tab becomes visible
     document.addEventListener('visibilitychange', this.handleVisibilityChange);
 
+    // Handle device rotation explicitly. Mobile browsers fire orientationchange
+    // before innerWidth/innerHeight settle on the new dimensions, so we recompute
+    // on the next frame; ResizeObserver may take an extra tick to fire and the
+    // user briefly sees a misfitted terminal otherwise.
+    window.addEventListener('orientationchange', this.handleOrientationChange);
+
     // Load history BEFORE connecting to MUD to ensure it appears before new output
     this.loadHistoryIfAvailable();
 
@@ -272,6 +287,11 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
     document.removeEventListener(
       'visibilitychange',
       this.handleVisibilityChange,
+    );
+
+    window.removeEventListener(
+      'orientationchange',
+      this.handleOrientationChange,
     );
 
     // Unregister paste handler
@@ -307,8 +327,25 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
    * Handles DOM resize events, updating xterm and notifying the backend whenever
    * the viewport size actually changes.
    */
+  /**
+   * Triggered after the user rotates the device. innerWidth/innerHeight are
+   * not guaranteed to be final at the moment this event fires, so we defer the
+   * actual resize to the next animation frame.
+   */
+  private handleOrientationChange = (): void => {
+    requestAnimationFrame(() => {
+      this.handleTerminalResize();
+    });
+  };
+
   private handleTerminalResize() {
-    this.applyResponsiveFontSize(window.innerWidth);
+    // Prefer the actual container width so paddings / sidebars don't trick
+    // the calculation into using a font that's too large for the visible
+    // terminal area. Falls back to window.innerWidth before the view exists.
+    const containerWidth =
+      this.terminalRef?.nativeElement?.clientWidth || window.innerWidth;
+
+    this.applyResponsiveFontSize(containerWidth);
     this.terminalFitAddon.fit();
 
     const columns = this.terminal.cols;
@@ -345,16 +382,23 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
     this.terminal.options.fontSize = nextFontSize;
   }
 
+  /**
+   * Picks the largest font size that still allows TARGET_COLUMNS to fit into
+   * the given width. Result is clamped to [MIN, MAX] and snapped to half-pixel
+   * steps so xterm doesn't oscillate between fractional values across resizes.
+   *
+   * On very narrow viewports (≲ 360 px) the returned size hits MIN; the
+   * terminal will still be ≥ 80 columns at MIN_TERMINAL_FONT_SIZE.
+   */
   private getFontSizeForWidth(viewportWidth: number): number {
-    let match = this.fontSizeBreakpoints[0]?.fontSize ?? 14;
+    const usable = Math.max(0, viewportWidth - TERMINAL_HORIZONTAL_PADDING);
+    const idealSize = usable / (TARGET_COLUMNS * CHAR_WIDTH_RATIO);
+    const halfPixelSnapped = Math.floor(idealSize * 2) / 2;
 
-    for (const breakpoint of this.fontSizeBreakpoints) {
-      if (viewportWidth >= breakpoint.minWidth) {
-        match = breakpoint.fontSize;
-      }
-    }
-
-    return match;
+    return Math.max(
+      MIN_TERMINAL_FONT_SIZE,
+      Math.min(MAX_TERMINAL_FONT_SIZE, halfPixelSnapped),
+    );
   }
 
   /**

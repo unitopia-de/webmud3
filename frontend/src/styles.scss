@@ -5,8 +5,17 @@
 
 html,
 body {
-  height: 100%;
+  // Fallback for browsers without dynamic-viewport units; the dvh value
+  // overrides on engines that support it. Using dvh keeps the layout
+  // stable when the mobile address bar shows / hides.
+  height: 100vh;
+  height: 100dvh;
   width: 100%;
+  // Prevent mobile Chrome / iOS Safari from auto-enlarging text in narrow
+  // containers ("font boosting"). Without this, layouts look correct on
+  // desktop but blow up on tablets and phones at 100% zoom.
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 
 body {
