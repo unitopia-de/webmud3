@@ -18,6 +18,7 @@ import { OutputHistoryService } from '@webmud3/frontend/shared/services/output-h
 import { DebugSettingsService } from '@webmud3/frontend/features/debug/debug-settings.service';
 import { FooterMenuService } from '@webmud3/frontend/features/footer/footer-menu.service';
 import { DirlistWindowService } from '@webmud3/frontend/features/editor/dirlist-window.service';
+import { SoundService } from '@webmud3/frontend/features/sound/sound.service';
 import { EditorWindowService } from '@webmud3/frontend/features/editor/editor-window.service';
 import { CharGmcpModule } from '@webmud3/frontend/features/gmcp/modules/char-gmcp.module';
 import { InventoryWindowService } from '@webmud3/frontend/features/inventory/inventory-window.service';
@@ -31,6 +32,7 @@ import {
   MudScreenReaderAnnouncer,
   MudSocketAdapter,
   MudPromptContext,
+  SpeechSettingsService,
   CTRL,
 } from '../../../../features/terminal';
 
@@ -88,6 +90,7 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
   private readonly mudService = inject(MudService);
   private readonly outputHistoryService = inject(OutputHistoryService);
   private readonly debugSettings = inject(DebugSettingsService);
+  private readonly speechSettings = inject(SpeechSettingsService);
   private readonly footerMenu = inject(FooterMenuService);
   // Bootstraps the Char GMCP module (registers it with the GmcpService so that
   // "Char 1" is included in Core.Supports.Set sent to the MUD).
@@ -106,10 +109,16 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
   // Bootstraps the directory browser: shows a "Verzeichnis" footer menu
   // entry once Char.Name reports the connected player as a wizard.
   private readonly _dirlistWindow = inject(DirlistWindowService);
+  // Bootstraps the sound feature: registers the Sound GMCP module and
+  // plays files announced via Sound.Event against the Sound.Url base URL.
+  private readonly _sound = inject(SoundService);
 
   private readonly SR_MENU_ID = 'screenreader-debug';
   private readonly PASTE_MENU_ID = 'paste-debug';
   private readonly MOBILE_INPUT_MENU_ID = 'mobile-input';
+  private readonly SR_INPUT_WORD_MENU_ID = 'sr-input-word';
+  private readonly SR_INPUT_COMMIT_MENU_ID = 'sr-input-commit';
+  private readonly SR_POLITE_MENU_ID = 'sr-polite';
 
   private readonly terminal: Terminal;
   private readonly inputController: MudInputController;
@@ -228,7 +237,11 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
       this.historyRegionRef.nativeElement,
       this.inputRegionRef.nativeElement,
       () => this.debugSettings.screenReaderLogging,
+      () => this.speechSettings.announceInputWord,
+      () => this.speechSettings.announceInputCommit,
     );
+
+    this.applyPoliteInputMode(this.speechSettings.politeInputMode);
 
     this.srLog(
       '[MudClient] Screenreader announcer initialized, live region:',
@@ -313,6 +326,9 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
     this.footerMenu.unregister(this.SR_MENU_ID);
     this.footerMenu.unregister(this.PASTE_MENU_ID);
     this.footerMenu.unregister(this.MOBILE_INPUT_MENU_ID);
+    this.footerMenu.unregister(this.SR_INPUT_WORD_MENU_ID);
+    this.footerMenu.unregister(this.SR_INPUT_COMMIT_MENU_ID);
+    this.footerMenu.unregister(this.SR_POLITE_MENU_ID);
     this.resizeObs.disconnect();
 
     // Unregister visibility change listener
@@ -990,6 +1006,27 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
       action: () => this.setUseMobileInput(!this.state.useMobileInput),
     });
 
+    this.footerMenu.register({
+      id: this.SR_INPUT_WORD_MENU_ID,
+      label: 'Eingabe ansagen (Wort)',
+      checked: this.speechSettings.announceInputWord,
+      action: () => this.speechSettings.toggleAnnounceInputWord(),
+    });
+
+    this.footerMenu.register({
+      id: this.SR_INPUT_COMMIT_MENU_ID,
+      label: 'Eingabe ansagen (Zeile)',
+      checked: this.speechSettings.announceInputCommit,
+      action: () => this.speechSettings.toggleAnnounceInputCommit(),
+    });
+
+    this.footerMenu.register({
+      id: this.SR_POLITE_MENU_ID,
+      label: 'Sanfte Eingabe-Ansage (Safari)',
+      checked: this.speechSettings.politeInputMode,
+      action: () => this.speechSettings.togglePoliteInputMode(),
+    });
+
     this.debugSettings.screenReaderLogging$.subscribe((enabled) => {
       this.footerMenu.setChecked(this.SR_MENU_ID, enabled);
     });
@@ -997,5 +1034,31 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
     this.debugSettings.pasteLogging$.subscribe((enabled) => {
       this.footerMenu.setChecked(this.PASTE_MENU_ID, enabled);
     });
+
+    this.speechSettings.announceInputWord$.subscribe((enabled) => {
+      this.footerMenu.setChecked(this.SR_INPUT_WORD_MENU_ID, enabled);
+    });
+
+    this.speechSettings.announceInputCommit$.subscribe((enabled) => {
+      this.footerMenu.setChecked(this.SR_INPUT_COMMIT_MENU_ID, enabled);
+    });
+
+    this.speechSettings.politeInputMode$.subscribe((enabled) => {
+      this.footerMenu.setChecked(this.SR_POLITE_MENU_ID, enabled);
+      this.applyPoliteInputMode(enabled);
+    });
+  }
+
+  /**
+   * Sets the `aria-live` attribute on the input region to either `polite`
+   * (Safari-friendly) or `assertive` (default, interrupts current speech).
+   * Called both at init and whenever the user toggles the corresponding
+   * footer menu entry.
+   */
+  private applyPoliteInputMode(polite: boolean): void {
+    const region = this.inputRegionRef?.nativeElement;
+    if (!region) return;
+
+    region.setAttribute('aria-live', polite ? 'polite' : 'assertive');
   }
 }

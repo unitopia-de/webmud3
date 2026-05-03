@@ -20,6 +20,10 @@ export class MudScreenReaderAnnouncer {
     private readonly historyRegion?: HTMLElement,
     private readonly inputRegion?: HTMLElement,
     private readonly isLoggingEnabled: () => boolean = () => false,
+    /** Whether per-word input announcements are emitted (toggled at runtime). */
+    private readonly isInputWordAnnounceEnabled: () => boolean = () => true,
+    /** Whether the full input line is announced after Enter. */
+    private readonly isInputCommitAnnounceEnabled: () => boolean = () => true,
   ) {
     this.sessionStartedAt = Date.now();
   }
@@ -164,7 +168,7 @@ export class MudScreenReaderAnnouncer {
       });
 
       // (b) Check if we just completed a word (whitespace as delimiter)
-      if (/\s/.test(newestChar)) {
+      if (/\s/.test(newestChar) && this.isInputWordAnnounceEnabled()) {
         const lastWord = this.extractLastWord(buffer);
         const normalizedWord = lastWord ? this.normalizeInput(lastWord) : '';
 
@@ -253,7 +257,8 @@ export class MudScreenReaderAnnouncer {
    * Auto-clears after a delay to reset for the next input line.
    */
   public announceInputCommitted(buffer: string): void {
-    if (!this.inputRegion) {
+    if (!this.inputRegion || !this.isInputCommitAnnounceEnabled()) {
+      this.lastAnnouncedBuffer = '';
       return;
     }
 

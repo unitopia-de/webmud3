@@ -70,9 +70,25 @@ export type CharItemsRemoveSignal = {
 // Sound Signals
 // ---------------------------------------------------------------------------
 
-export type SoundPlaySignal = {
-  type: 'Sound.Play';
+/**
+ * Server announces the base URL where sound files are hosted.
+ * UNItopia sends this once when the `Sound` package is registered (init push).
+ * The URL is meant to be cached and prefixed onto subsequent `Sound.Event`
+ * file names, not played directly.
+ */
+export type SoundUrlSignal = {
+  type: 'Sound.Url';
   url: string;
+};
+
+/**
+ * Server pushes a sound event for an in-game action (combat, room, …).
+ * `file` is the relative file name; combine with the cached base URL from
+ * `Sound.Url` to build a playable URL.
+ */
+export type SoundEventSignal = {
+  type: 'Sound.Event';
+  file: string;
 };
 
 // ---------------------------------------------------------------------------
@@ -198,7 +214,8 @@ export type MudSignal =
   | CharItemsListSignal
   | CharItemsAddSignal
   | CharItemsRemoveSignal
-  | SoundPlaySignal
+  | SoundUrlSignal
+  | SoundEventSignal
   | FilesDirectorySignal
   | FilesOpenSignal
   | InputCompleteTextSignal

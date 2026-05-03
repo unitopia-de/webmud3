@@ -36,19 +36,26 @@ triggers an initial state push (see `gmcp.c:91-136`).
 | `Char`       | 1       | ✅ | ✅ | sends `Char.Name` | |
 | `Char.Items` | 1       | ✅ | ✅ | sends `Char.Items.List` | |
 | `Files`      | 1       | ✅ | ✅ | sends `Files.DirectoryList` for current path **only if wizard** | wizard check happens server-side |
-| `Sound`      | 1       | ✅ | ❌ | sends `Sound.Url` | needed for sound URL announcement |
+| `Sound`      | 1       | ✅ | ✅ | sends `Sound.Url` | base URL cached by `SoundService`, `Sound.Event` plays via `<audio>` |
 | `Numpad`     | 1       | ✅ | ❌ | sends `Numpad.SendLevel` for every saved prefix | bindings live server-side per character |
 | `Playermap`  | 1       | ✅ (UNItopia) | ❌ | sends `Playermap.Info` | UNItopia-specific, not in original spec |
 | `Room`       | 1       | ✅ | ❌ | no init push, but enables `Room.Info` on env changes | |
 | `Comm`       | 1       | ✅ | ❌ | no init push | |
 | `Input`      | 1       | ✅ | ❌ | no init push | |
 
-> u3 currently announces only `Char`, `Char.Items`, `Files`. UNItopia happens
-> to send Sound / Comm / Numpad / Room messages anyway because the LPC
-> server-side checks are loose, but the proper way is to register the module
-> via a thin `Injectable` (see `CharItemsGmcpModule` for the pattern) so
-> `Core.Supports.Set` reflects reality. The init-push column above shows what
-> we get for free once we register.
+> u3 currently announces only `Char`, `Char.Items`, `Files`. The other
+> modules listed above are **not** sent by UNItopia until they are
+> announced — the server explicitly drops outgoing messages for unregistered
+> packages (`gmcp.c:74`).
+>
+> **Registration policy:** announce a module only when its consumer is being
+> built. Pre-announcing modules without a consumer pulls server pushes (and,
+> for some modules, init pushes) into the client where nothing handles them
+> — wasted bandwidth and confusing logs. Each feature in "Open work" below
+> therefore includes its module registration as part of the same step,
+> following the [`CharItemsGmcpModule`](frontend/src/app/features/gmcp/modules/char-items-gmcp.module.ts)
+> pattern (a thin `Injectable` that side-effect-registers itself when the
+> consuming service injects it).
 
 ---
 
@@ -121,10 +128,12 @@ visibility (wizards see invisible items too). Each item is `{ name, category }`.
 
 | Message       | u1 | u3 | MUD payload | Notes |
 |---------------|----|----|-------------|-------|
-| `Sound.Url`   | ✅ | ✅ | `{ url: GMCP_SOUND_URL }` (sent on register) | u3 maps to internal `Sound.Play` signal |
-| `Sound.Event` | ✅ | ✅ | `{ file: <name> }` (implicit in MSG_SOUND wrappers) | u3 maps `file` / `url` to `Sound.Play` |
+| `Sound.Url`   | ✅ | ✅ | `{ url: GMCP_SOUND_URL }` (sent on register) | mapped to `Sound.Url` MudSignal; cached by `SoundService` as base URL |
+| `Sound.Event` | ✅ | ✅ | `{ file: <name> }` (implicit in MSG_SOUND wrappers) | mapped to `Sound.Event` MudSignal; `SoundService` resolves `base + file` and plays via `<audio>` |
 
-> No consumer is wired up yet — the signals fire but nothing plays the audio.
+> Browser autoplay policy: the first `play()` call before any user gesture is
+> rejected by the browser; subsequent calls succeed once the user has typed
+> in the terminal. The service silently logs the rejection and moves on.
 
 ---
 
@@ -245,23 +254,22 @@ These are concrete mismatches discovered by reading `gmcp.c` against
 
 ## Open work, prioritized
 
-### High priority
-
-1. **Announce `Sound`, `Numpad`, `Room`, `Comm`, `Input` modules** via thin `Injectable` GMCP modules (template: `CharItemsGmcpModule`).
+Each feature below ships together with its own `XxxGmcpModule` (registers the
+package via `Core.Supports.Set/Add`) — pre-announcing without a consumer is
+explicitly avoided, see the registration-policy note in the section above.
 
 ### Medium priority
 
-2. **Numpad client → MUD** (`Numpad.Update`, `Numpad.GetAll`, `Numpad.GetLevel`) — required for per-character bindings to actually live on the server.
-3. **Sound playback consumer** — service that subscribes to `Sound.Play` and plays audio (autoplay policy already handled via `unlockAudio()`).
-4. **Input completion UI** — `Input.CompleteText` / `Input.CompleteChoice` signals are routed but no UI consumer wires them to the input controller (Tab-completion).
-5. **Comm channel UI** — `Comm.Message` signals fire but nothing displays them outside the regular MUD output stream.
-6. **Room.Info consumer** — at minimum surface room name / domain / exits as window content.
-7. **`Playermap.Info` consumer** — visualize the playermap data UNItopia provides.
-8. **`Char.StatusVars` consumer** — pick up the labels and use them in the status display.
+1. **Numpad full integration** + announce `Numpad 1` — consume `Numpad.SendLevel` server-side bindings, send `Numpad.Update` / `Numpad.GetAll` / `Numpad.GetLevel`. Replaces the current localStorage-only flow with per-character bindings persisted server-side.
+2. **Input completion UI** + announce `Input 1` — wire `Input.CompleteText` / `Input.CompleteChoice` to the input controller (Tab-completion). Also requires the outgoing `Input.Complete` request when the user hits Tab.
+3. **Comm channel UI** + announce `Comm 1` — display `Comm.Say` / `Comm.Tell` / `Comm.Soul` (`{ player, text }`) in dedicated channels.
+4. **Room.Info consumer** + announce `Room 1` — surface room name / domain / exits as window content (or a status strip).
+5. **`Playermap.Info` consumer** + announce `Playermap 1` — visualize the playermap data UNItopia provides.
+6. **`Char.StatusVars` consumer** — already covered by `Char` registration; pick up the labels (`{ race: "Rasse", … }`) and use them in the status display.
 
 ### Low priority
 
-9. **Manual `Core.Ping` button** in the UI (was a debug feature in u1).
-10. **`Core.Goodbye` parameter** consumer — graceful shutdown banner with the message text.
-11. **`Files.CurrentPath`** consumer — useful as a sanity check / breadcrumb in the directory window.
-12. **`Char.Login`** outgoing — blocked on UNItopia server-side support.
+7. **Manual `Core.Ping` button** in the UI (was a debug feature in u1).
+8. **`Core.Goodbye` parameter** consumer — graceful shutdown banner with the message text.
+9. **`Files.CurrentPath`** consumer — useful as a sanity check / breadcrumb in the directory window.
+10. **`Char.Login`** outgoing — blocked on UNItopia server-side support.

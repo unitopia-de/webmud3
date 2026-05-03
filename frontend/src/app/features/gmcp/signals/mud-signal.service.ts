@@ -236,6 +236,11 @@ export class MudSignalService implements OnDestroy {
     return { type: 'Char.Vitals', text, data };
   }
 
+  /**
+   * `Sound.Url` is the base URL announcement (sent once on `Sound` package
+   * register). It is *not* a playable sound — consumers cache it for use
+   * as a prefix when `Sound.Event` arrives.
+   */
   private mapSoundUrl(data: unknown): MudSignal | null {
     const d = data as Record<string, unknown>;
     const url = d?.['url'];
@@ -244,18 +249,23 @@ export class MudSignalService implements OnDestroy {
       return null;
     }
 
-    return { type: 'Sound.Play', url };
+    return { type: 'Sound.Url', url };
   }
 
+  /**
+   * `Sound.Event` carries a relative file name to play. UNItopia attaches
+   * the file under `file`; some implementations use `url` for the same
+   * purpose, so we accept both.
+   */
   private mapSoundEvent(data: unknown): MudSignal | null {
     const d = data as Record<string, unknown>;
-    const url = d?.['file'] ?? d?.['url'];
+    const file = d?.['file'] ?? d?.['url'];
 
-    if (typeof url !== 'string') {
+    if (typeof file !== 'string') {
       return null;
     }
 
-    return { type: 'Sound.Play', url };
+    return { type: 'Sound.Event', file };
   }
 
   private mapFilesDirectory(data: unknown): MudSignal {
