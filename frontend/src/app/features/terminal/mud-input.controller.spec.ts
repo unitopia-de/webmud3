@@ -2,10 +2,17 @@ import { MudInputController } from './mud-input.controller';
 import { CTRL } from './models/escapes';
 
 describe('MudInputController', () => {
-  const makeController = () => {
+  const makeController = (
+    options: { onTabComplete?: jest.Mock } = {},
+  ) => {
     const terminal = { write: jest.fn() } as { write: jest.Mock };
     const onCommit = jest.fn();
-    const controller = new MudInputController(terminal as any, onCommit);
+    const controller = new MudInputController(
+      terminal as any,
+      onCommit,
+      undefined,
+      options.onTabComplete,
+    );
     return { controller, terminal, onCommit };
   };
 
@@ -79,13 +86,50 @@ describe('MudInputController', () => {
     expect(onCommit).toHaveBeenCalledWith({ message: 'hi', echoed: false });
   });
 
-  it('accepts TAB but ignores other control chars', () => {
+  it('ignores other control chars and never inserts TAB into the buffer', () => {
+    // TAB is reserved for triggering GMCP-driven command completion (see the
+    // separate test below). All other sub-0x20 control characters are dropped.
     const { controller } = makeController();
 
     controller.handleData(CTRL.TAB);
     controller.handleData('\u0001'); // SOH control char ignored
 
-    expect(controller.getSnapshot()).toEqual({ buffer: CTRL.TAB, cursor: 1 });
+    expect(controller.getSnapshot()).toEqual({ buffer: '', cursor: 0 });
+  });
+
+  it('invokes the tab-complete callback with the current buffer on stand-alone Tab', () => {
+    const onTabComplete = jest.fn();
+    const { controller } = makeController({ onTabComplete });
+
+    controller.handleData('look');
+    controller.handleData(CTRL.TAB);
+
+    expect(onTabComplete).toHaveBeenCalledTimes(1);
+    expect(onTabComplete).toHaveBeenCalledWith('look');
+    // Buffer must be unchanged: Tab was consumed, not inserted.
+    expect(controller.getSnapshot()).toEqual({ buffer: 'look', cursor: 4 });
+  });
+
+  it('does not invoke the tab-complete callback on an empty buffer', () => {
+    const onTabComplete = jest.fn();
+    const { controller } = makeController({ onTabComplete });
+
+    controller.handleData(CTRL.TAB);
+
+    expect(onTabComplete).not.toHaveBeenCalled();
+  });
+
+  it('does not invoke the tab-complete callback for Tab embedded in a paste', () => {
+    // Tab arriving as part of a multi-character chunk (e.g. paste) must be
+    // silently dropped; treating each pasted Tab as a completion request
+    // would clobber the surrounding text.
+    const onTabComplete = jest.fn();
+    const { controller } = makeController({ onTabComplete });
+
+    controller.handleData('foo' + CTRL.TAB + 'bar');
+
+    expect(onTabComplete).not.toHaveBeenCalled();
+    expect(controller.getSnapshot()).toEqual({ buffer: 'foobar', cursor: 6 });
   });
 
   it('buffers incomplete escape and resumes on next chunk', () => {

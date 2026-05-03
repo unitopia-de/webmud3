@@ -34,6 +34,14 @@ export type MudInputCommitHandler = (payload: {
 export type MudInputChangeHandler = (payload: { buffer: string }) => void;
 
 /**
+ * Callback signature used when the user presses Tab on a non-empty buffer.
+ * The handler is expected to ask the MUD for a completion (e.g. via the
+ * `Input.Complete` GMCP request) and later feed the result back into the
+ * controller using `replaceBuffer`. Tab itself is not inserted into the buffer.
+ */
+export type MudInputTabCompleteHandler = (buffer: string) => void;
+
+/**
  * Encapsulates client-side editing state for LINEMODE input.  The controller keeps
  * track of the text buffer and cursor position, applies terminal side-effects
  * when local echo is enabled, and turns user keystrokes into commit events.
@@ -58,11 +66,16 @@ export class MudInputController {
    * @param terminal Reference to the xterm instance we mirror the editing state to.
    * @param onCommit Callback that receives a flushed line (with echo information).
    * @param onInputChange Optional callback for input buffer changes (screen reader announcements).
+   * @param onTabComplete Optional callback fired when the user presses Tab on
+   *   a non-empty buffer. Tab is NOT inserted into the buffer — the handler
+   *   typically requests an `Input.Complete` from the MUD and feeds the
+   *   answer back via `replaceBuffer`.
    */
   constructor(
     private readonly terminal: Terminal,
     private readonly onCommit: MudInputCommitHandler,
     private readonly onInputChange?: MudInputChangeHandler,
+    private readonly onTabComplete?: MudInputTabCompleteHandler,
   ) {}
 
   /**
@@ -70,6 +83,18 @@ export class MudInputController {
    * internal buffer/cursor state and performs the corresponding terminal writes.
    */
   public handleData(data: string): void {
+    // Tab on a non-empty buffer triggers GMCP-driven completion — but only
+    // for a genuine single-character keypress, not when Tab arrives as part
+    // of a paste. The paste path also routes through handleData; treating
+    // each pasted Tab as a completion request would clobber the surrounding
+    // text. Detect a stand-alone Tab here and dispatch.
+    if (data === CTRL.TAB) {
+      if (this.onTabComplete && this.buffer.length > 0) {
+        this.onTabComplete(this.buffer);
+      }
+      return;
+    }
+
     const stream = this.pendingEscape + data;
     this.pendingEscape = '';
 
@@ -91,6 +116,14 @@ export class MudInputController {
         case CTRL.BS:
         case CTRL.DEL:
           this.applyBackspace();
+          this.lastWasCarriageReturn = false;
+          break;
+        case CTRL.TAB:
+          // Stand-alone Tab is intercepted in the early path above. Any Tab
+          // that reaches this branch arrived as part of a longer chunk
+          // (paste, multi-char escape rewrite, …) and is silently dropped —
+          // pasting a tab-separated value should not commit-via-completion,
+          // and a literal Tab in a MUD command line is meaningless.
           this.lastWasCarriageReturn = false;
           break;
         case CTRL.ESC: {
@@ -195,6 +228,43 @@ export class MudInputController {
   }
 
   /**
+   * Replaces the current buffer with `text`, repositions the cursor to the
+   * end and — when local echo is enabled — repaints the visible line.
+   *
+   * Intended for use after the MUD answers an `Input.Complete` request with
+   * `Input.CompleteText`: the server returns the fully-completed command line
+   * which we drop in verbatim. If echo is off (e.g. password entry) the
+   * buffer is still replaced, but no terminal output is produced — the
+   * MUD's own echo will surface the completion if appropriate.
+   */
+  public replaceBuffer(text: string): void {
+    this.exitHistoryBrowse();
+
+    const previousCursor = this.cursor;
+
+    this.buffer = text;
+    this.cursor = text.length;
+
+    this.onInputChange?.({ buffer: this.buffer });
+
+    if (!this.localEchoEnabled) {
+      return;
+    }
+
+    // Move cursor back to the start of the previous buffer, erase to the
+    // end of the line, then write the new contents. The buffer always sits
+    // at the end of the line so eraseToEol is sufficient — no need to track
+    // the previous length.
+    if (previousCursor > 0) {
+      this.terminal.write(cursorLeft(previousCursor));
+    }
+    this.terminal.write(eraseToEol);
+    if (text.length > 0) {
+      this.terminal.write(text);
+    }
+  }
+
+  /**
    * Flushes the buffer and resets the controller.  When nothing has been typed
    * the call is a no-op and `null` is returned.
    */
@@ -268,7 +338,7 @@ export class MudInputController {
   private insertCharacter(char: string): void {
     const charCode = char.charCodeAt(0);
 
-    if (charCode < 32 && char !== CTRL.TAB) {
+    if (charCode < 32) {
       return;
     }
 

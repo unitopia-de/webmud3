@@ -41,12 +41,12 @@ triggers an initial state push (see `gmcp.c:91-136`).
 | `Playermap`  | 1       | ✅ (UNItopia) | ✅ | sends `Playermap.Info` | UNItopia-specific, not in original spec |
 | `Room`       | 1       | ✅ | ❌ | no init push, but enables `Room.Info` on env changes | |
 | `Comm`       | 1       | ✅ | ❌ | no init push | |
-| `Input`      | 1       | ✅ | ❌ | no init push | |
+| `Input`      | 1       | ✅ | ✅ | no init push, replies to `Input.Complete` requests | Tab on a non-empty input buffer triggers `Input.Complete`; replies are wired via `InputCompletionService` |
 
-> u3 currently announces only `Char`, `Char.Items`, `Files`. The other
-> modules listed above are **not** sent by UNItopia until they are
-> announced — the server explicitly drops outgoing messages for unregistered
-> packages (`gmcp.c:74`).
+> u3 currently announces `Char`, `Char.Items`, `Files`, `Sound`, `Playermap`,
+> and `Input`. The other modules listed above are **not** sent by UNItopia
+> until they are announced — the server explicitly drops outgoing messages
+> for unregistered packages (`gmcp.c:74`).
 >
 > **Registration policy:** announce a module only when its consumer is being
 > built. Pre-announcing modules without a consumer pulls server pushes (and,
@@ -261,14 +261,13 @@ explicitly avoided, see the registration-policy note in the section above.
 ### Medium priority
 
 1. **Numpad full integration** + announce `Numpad 1` — consume `Numpad.SendLevel` server-side bindings, send `Numpad.Update` / `Numpad.GetAll` / `Numpad.GetLevel`. Replaces the current localStorage-only flow with per-character bindings persisted server-side.
-2. **Input completion UI** + announce `Input 1` — wire `Input.CompleteText` / `Input.CompleteChoice` to the input controller (Tab-completion). Also requires the outgoing `Input.Complete` request when the user hits Tab.
-3. **Comm channel UI** + announce `Comm 1` — display `Comm.Say` / `Comm.Tell` / `Comm.Soul` (`{ player, text }`) in dedicated channels.
-4. **Room.Info consumer** + announce `Room 1` — surface room name / domain / exits as window content (or a status strip).
-5. **`Char.StatusVars` consumer** — already covered by `Char` registration; pick up the labels (`{ race: "Rasse", … }`) and use them in the status display.
+2. **Comm channel UI** + announce `Comm 1` — display `Comm.Say` / `Comm.Tell` / `Comm.Soul` (`{ player, text }`) in dedicated channels.
+3. **Room.Info consumer** + announce `Room 1` — surface room name / domain / exits as window content (or a status strip).
+4. **`Char.StatusVars` consumer** — already covered by `Char` registration; pick up the labels (`{ race: "Rasse", … }`) and use them in the status display.
 
 ### Low priority
 
-6. **Manual `Core.Ping` button** in the UI (was a debug feature in u1).
-7. **`Core.Goodbye` parameter** consumer — graceful shutdown banner with the message text.
-8. **`Files.CurrentPath`** consumer — useful as a sanity check / breadcrumb in the directory window.
-9. **`Char.Login`** outgoing — blocked on UNItopia server-side support.
+5. **Manual `Core.Ping` button** in the UI (was a debug feature in u1).
+6. **`Core.Goodbye` parameter** consumer — graceful shutdown banner with the message text.
+7. **`Files.CurrentPath`** consumer — useful as a sanity check / breadcrumb in the directory window.
+8. **`Char.Login`** outgoing — blocked on UNItopia server-side support.

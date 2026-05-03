@@ -21,6 +21,7 @@ import { FooterMenuService } from '@webmud3/frontend/features/footer/footer-menu
 import { DirlistWindowService } from '@webmud3/frontend/features/editor/dirlist-window.service';
 import { SoundService } from '@webmud3/frontend/features/sound/sound.service';
 import { EditorWindowService } from '@webmud3/frontend/features/editor/editor-window.service';
+import { InputCompletionService } from '@webmud3/frontend/features/gmcp/input-completion.service';
 import { CharGmcpModule } from '@webmud3/frontend/features/gmcp/modules/char-gmcp.module';
 import { InventoryWindowService } from '@webmud3/frontend/features/inventory/inventory-window.service';
 import { ConnectionMenuService } from '@webmud3/frontend/features/connection/connection-menu.service';
@@ -36,6 +37,7 @@ import {
   MudPromptContext,
   SpeechSettingsService,
   CTRL,
+  cursorLeft,
 } from '../../../../features/terminal';
 
 /**
@@ -117,6 +119,8 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
   // Bootstraps the playermap feature: registers the Playermap GMCP module and
   // adds the "Karte" toggle to the footer menu.
   private readonly _playermapWindow = inject(PlayermapWindowService);
+  // Bootstraps the Input GMCP module and exposes the Input.Complete round-trip.
+  private readonly inputCompletion = inject(InputCompletionService);
 
   private readonly SR_MENU_ID = 'screenreader-debug';
   private readonly PASTE_MENU_ID = 'paste-debug';
@@ -155,6 +159,7 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
 
   private showEchoSubscription?: Subscription;
   private linemodeSubscription?: Subscription;
+  private completionSubscriptions: Subscription[] = [];
   private pasteHandler?: (event: ClipboardEvent) => void;
   /** Read-only state accessor for template bindings. */
   public get useMobileInput(): boolean {
@@ -222,6 +227,7 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
       this.terminal,
       ({ message, echoed }) => this.handleCommittedInput(message, echoed),
       ({ buffer }) => this.announceInputToScreenReader(buffer),
+      (buffer) => this.inputCompletion.requestCompletion(buffer),
     );
     this.inputController.setLocalEcho(this.state.localEchoEnabled);
 
@@ -305,6 +311,18 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
       this.setLinemode(state),
     );
 
+    this.completionSubscriptions.push(
+      this.inputCompletion.text$.subscribe((text) =>
+        this.handleInputCompleteText(text),
+      ),
+      this.inputCompletion.choices$.subscribe((choices) =>
+        this.handleInputCompleteChoice(choices),
+      ),
+      this.inputCompletion.none$.subscribe(() =>
+        this.handleInputCompleteNone(),
+      ),
+    );
+
     this.resizeObs.observe(this.terminalRef.nativeElement);
     this.setState({ terminalReady: true });
 
@@ -364,6 +382,10 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
     this.terminalDisposables.forEach((disposable) => disposable.dispose());
     this.showEchoSubscription?.unsubscribe();
     this.linemodeSubscription?.unsubscribe();
+    for (const sub of this.completionSubscriptions) {
+      sub.unsubscribe();
+    }
+    this.completionSubscriptions = [];
 
     this.terminalClipboardAddon.dispose();
     this.terminalAttachAddon?.dispose();
@@ -586,6 +608,55 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
     }
 
     this.inputController.handleData(data);
+  }
+
+  /**
+   * Handles `Input.CompleteText` GMCP responses: the MUD found a unique
+   * completion. We replace the controller's buffer so the visible input line
+   * shows the completed command, ready for Enter.
+   */
+  private handleInputCompleteText(text: string): void {
+    if (!this.state.isEditMode) {
+      return;
+    }
+    this.inputController.replaceBuffer(text);
+  }
+
+  /**
+   * Handles `Input.CompleteChoice` GMCP responses (wizard-only): the MUD
+   * returned several candidates. We print the list above the current input
+   * line and repaint the prompt+buffer so the user keeps typing seamlessly.
+   * We don't pick a "longest common prefix" for the user; that's a UI-policy
+   * call and easy to add later if wanted.
+   */
+  private handleInputCompleteChoice(choices: string[]): void {
+    if (!this.state.isEditMode || choices.length === 0) {
+      return;
+    }
+
+    const snapshot = this.inputController.getSnapshot();
+    const prompt = this.promptManager.getCurrentPrompt();
+    const formatted = choices.join(', ');
+
+    // The cursor is currently at the end of the visible <prompt><buffer>
+    // line. CR + LF moves us to a fresh line; print the choice list, another
+    // CRLF, then redraw <prompt><buffer> below it. Reposition the cursor if
+    // the user had it mid-buffer.
+    let output = `\r\n${formatted}\r\n${prompt}${snapshot.buffer}`;
+    const moveLeft = snapshot.buffer.length - snapshot.cursor;
+    if (moveLeft > 0) {
+      output += cursorLeft(moveLeft);
+    }
+    this.terminal.write(output);
+  }
+
+  /**
+   * Handles `Input.CompleteNone`: nothing to complete. Ring the terminal
+   * bell so the user gets the familiar "no match" feedback without us
+   * touching the input line.
+   */
+  private handleInputCompleteNone(): void {
+    this.terminal.write('\x07');
   }
 
   /**
