@@ -161,9 +161,9 @@ distinct messages**, depending on the result (`gmcp.c:248-258`):
 
 | Message                | u1 | u3 | MUD payload | Notes |
 |------------------------|----|----|-------------|-------|
-| `Input.CompleteText`   | ✅ | 🐛 | bare string with the completion | u3 currently routes `Input.Complete` (which the MUD never sends) and tries to discriminate inside one mapper. Should listen to `Input.CompleteText` directly |
-| `Input.CompleteChoice` | ✅ | 🐛 | array of strings | only delivered to wizards (`query_wiz_level()` check in LPC) |
-| `Input.CompleteNone`   | ✅ | 🐛 | (no payload) | |
+| `Input.CompleteText`   | ✅ | ⚠️ | bare string with the completion | routed to `Input.CompleteText` MudSignal — no UI consumer yet |
+| `Input.CompleteChoice` | ✅ | ⚠️ | array of strings | only delivered to wizards (`query_wiz_level()` check in LPC) — no UI consumer yet |
+| `Input.CompleteNone`   | ✅ | ⚠️ | (no payload) | routed but no UI reaction |
 
 ### Client → MUD
 
@@ -239,10 +239,9 @@ current minimap state.
 These are concrete mismatches discovered by reading `gmcp.c` against
 `mud-signal.service.ts`:
 
-1. **`Input.Complete*` mapping** — u3 listens for a non-existent `Input.Complete` and tries to discriminate via the `type` field; the MUD actually sends three distinct messages (`Input.CompleteText`, `Input.CompleteChoice`, `Input.CompleteNone`). Switch to three explicit `case` branches in `mapToSignal` and emit the matching signal types directly.
-2. **`Files.RequestDir` outgoing** — u3 sends this from `DirlistWindowService.requestRefresh()`, but the MUD has no handler. Replace with `Files.ChDir` against the current path, or drop entirely (a fresh listing arrives anyway when the `Files` module is registered).
-3. **`Files.Directory` alias** — u3 accepts this as alias for `Files.DirectoryList`. UNItopia never sends it. Cosmetic only; can be removed.
-4. **`Char.Items` location filter** — MUD only sends `location: "inv"` payloads. u3 currently accepts any location due to permissive normalization — works fine but worth being explicit if other locations ever appear.
+1. **`Files.RequestDir` outgoing** — u3 sends this from `DirlistWindowService.requestRefresh()`, but the MUD has no handler. Replace with `Files.ChDir` against the current path, or drop entirely (a fresh listing arrives anyway when the `Files` module is registered).
+2. **`Files.Directory` alias** — u3 accepts this as alias for `Files.DirectoryList`. UNItopia never sends it. Cosmetic only; can be removed.
+3. **`Char.Items` location filter** — MUD only sends `location: "inv"` payloads. u3 currently accepts any location due to permissive normalization — works fine but worth being explicit if other locations ever appear.
 
 ---
 
@@ -250,15 +249,15 @@ These are concrete mismatches discovered by reading `gmcp.c` against
 
 ### High priority
 
-1. **Fix `Input.CompleteText` / `…Choice` / `…None` routing** — split into three explicit cases.
-2. **Fix or drop `Files.RequestDir`** — see Diskrepanz #2 above.
-3. **Send `Files.fileCanceled`** when the user closes the editor with unsaved changes — otherwise temp files leak server-side.
-4. **Announce `Sound`, `Numpad`, `Room`, `Comm`, `Input` modules** via thin `Injectable` GMCP modules (template: `CharItemsGmcpModule`).
+1. **Fix or drop `Files.RequestDir`** — see Diskrepanz #1 above.
+2. **Send `Files.fileCanceled`** when the user closes the editor with unsaved changes — otherwise temp files leak server-side.
+3. **Announce `Sound`, `Numpad`, `Room`, `Comm`, `Input` modules** via thin `Injectable` GMCP modules (template: `CharItemsGmcpModule`).
 
 ### Medium priority
 
-5. **Numpad client → MUD** (`Numpad.Update`, `Numpad.GetAll`, `Numpad.GetLevel`) — required for per-character bindings to actually live on the server.
-6. **Sound playback consumer** — service that subscribes to `Sound.Play` and plays audio (autoplay policy already handled via `unlockAudio()`).
+4. **Numpad client → MUD** (`Numpad.Update`, `Numpad.GetAll`, `Numpad.GetLevel`) — required for per-character bindings to actually live on the server.
+5. **Sound playback consumer** — service that subscribes to `Sound.Play` and plays audio (autoplay policy already handled via `unlockAudio()`).
+6. **Input completion UI** — `Input.CompleteText` / `Input.CompleteChoice` signals are routed but no UI consumer wires them to the input controller (Tab-completion).
 7. **Comm channel UI** — `Comm.Message` signals fire but nothing displays them outside the regular MUD output stream.
 8. **Room.Info consumer** — at minimum surface room name / domain / exits as window content.
 9. **`Playermap.Info` consumer** — visualize the playermap data UNItopia provides.

@@ -123,8 +123,14 @@ export class MudSignalService implements OnDestroy {
         return this.mapFilesDirectory(msg.data);
 
       // -- Input Completion --
-      case 'Input.Complete':
-        return this.mapInputComplete(msg.data);
+      // UNItopia answers Input.Complete requests with one of three distinct
+      // messages depending on the result; we map each separately.
+      case 'Input.CompleteText':
+        return this.mapInputCompleteText(msg.data);
+      case 'Input.CompleteChoice':
+        return this.mapInputCompleteChoice(msg.data);
+      case 'Input.CompleteNone':
+        return { type: 'Input.CompleteNone' };
 
       // -- Numpad --
       case 'Numpad.SendLevel':
@@ -294,25 +300,46 @@ export class MudSignalService implements OnDestroy {
     return { type: 'Files.Open', fileinfo };
   }
 
-  private mapInputComplete(data: unknown): MudSignal {
-    const d = data as Record<string, unknown>;
-    const type = d?.['type'];
+  /**
+   * `Input.CompleteText` carries a bare JSON string as payload — the
+   * fully-completed command line. We tolerate an object wrapper with a
+   * `text` field for forward compatibility.
+   */
+  private mapInputCompleteText(data: unknown): MudSignal {
+    let text = '';
 
-    if (type === 'text') {
-      return {
-        type: 'Input.CompleteText',
-        text: String(d?.['text'] ?? ''),
-      };
+    if (typeof data === 'string') {
+      text = data;
+    } else if (data && typeof data === 'object') {
+      const candidate = (data as Record<string, unknown>)['text'];
+      if (typeof candidate === 'string') {
+        text = candidate;
+      }
     }
 
-    if (type === 'choice') {
-      return {
-        type: 'Input.CompleteChoice',
-        choices: (d?.['choices'] ?? []) as string[],
-      };
+    return { type: 'Input.CompleteText', text };
+  }
+
+  /**
+   * `Input.CompleteChoice` carries a JSON array of strings. UNItopia only
+   * sends this to wizards. We accept either a bare array or an object with
+   * a `choices` array, again for forward compat.
+   */
+  private mapInputCompleteChoice(data: unknown): MudSignal {
+    let choices: string[] = [];
+
+    if (Array.isArray(data)) {
+      choices = data.filter((entry): entry is string => typeof entry === 'string');
+    } else if (data && typeof data === 'object') {
+      const candidate = (data as Record<string, unknown>)['choices'];
+      if (Array.isArray(candidate)) {
+        choices = candidate.filter(
+          (entry): entry is string => typeof entry === 'string',
+        );
+      }
     }
 
-    return { type: 'Input.CompleteNone' };
+    return { type: 'Input.CompleteChoice', choices };
   }
 
   // ---------------------------------------------------------------------------
