@@ -15,10 +15,18 @@ export class DebugSettingsService {
     false,
   );
   private readonly pasteLoggingSubject = new BehaviorSubject<boolean>(false);
+  private readonly outputHexLoggingSubject = new BehaviorSubject<boolean>(false);
 
   public readonly screenReaderLogging$ =
     this.screenReaderLoggingSubject.asObservable();
   public readonly pasteLogging$ = this.pasteLoggingSubject.asObservable();
+  /**
+   * When enabled, every chunk arriving from the MUD is dumped as
+   * hex+printable to the browser console (in MudSocketAdapter). Used to
+   * diagnose lost-byte / encoding issues.
+   */
+  public readonly outputHexLogging$ =
+    this.outputHexLoggingSubject.asObservable();
 
   public get screenReaderLogging(): boolean {
     return this.screenReaderLoggingSubject.value;
@@ -26,6 +34,10 @@ export class DebugSettingsService {
 
   public get pasteLogging(): boolean {
     return this.pasteLoggingSubject.value;
+  }
+
+  public get outputHexLogging(): boolean {
+    return this.outputHexLoggingSubject.value;
   }
 
   public setScreenReaderLogging(enabled: boolean): void {
@@ -40,6 +52,12 @@ export class DebugSettingsService {
     }
   }
 
+  public setOutputHexLogging(enabled: boolean): void {
+    if (this.outputHexLoggingSubject.value !== enabled) {
+      this.outputHexLoggingSubject.next(enabled);
+    }
+  }
+
   public toggleScreenReaderLogging(): boolean {
     const next = !this.screenReaderLoggingSubject.value;
     this.screenReaderLoggingSubject.next(next);
@@ -49,6 +67,12 @@ export class DebugSettingsService {
   public togglePasteLogging(): boolean {
     const next = !this.pasteLoggingSubject.value;
     this.pasteLoggingSubject.next(next);
+    return next;
+  }
+
+  public toggleOutputHexLogging(): boolean {
+    const next = !this.outputHexLoggingSubject.value;
+    this.outputHexLoggingSubject.next(next);
     return next;
   }
 }

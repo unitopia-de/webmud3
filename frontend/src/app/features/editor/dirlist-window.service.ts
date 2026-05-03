@@ -4,10 +4,13 @@ import { Subscription } from 'rxjs';
 import { FooterMenuService } from '@webmud3/frontend/features/footer/footer-menu.service';
 import { GmcpService } from '@webmud3/frontend/features/gmcp/gmcp.service';
 import { MudSignalService } from '@webmud3/frontend/features/gmcp/signals/mud-signal.service';
+import { WindowGeometryService } from '@webmud3/frontend/features/windows/window-geometry.service';
 import { WindowService } from '@webmud3/frontend/features/windows/window.service';
+import type { WindowConfig } from '@webmud3/frontend/features/windows/window-config';
 import { FilesService } from './files.service';
 
 const MENU_ID = 'dirlist-window';
+const GEOMETRY_KEY = 'dirlist-window';
 
 const DIRLIST_DEFAULT_WIDTH = 460;
 const DIRLIST_DEFAULT_HEIGHT = 360;
@@ -34,11 +37,13 @@ export class DirlistWindowService implements OnDestroy {
   private readonly signals = inject(MudSignalService);
   private readonly gmcp = inject(GmcpService);
   private readonly files = inject(FilesService);
+  private readonly geometry = inject(WindowGeometryService);
 
   private readonly subscriptions: Subscription[] = [];
 
   private windowId: string | undefined;
   private windowSubscription: Subscription | undefined;
+  private cachedConfig: WindowConfig | undefined;
   private menuRegistered = false;
 
   constructor() {
@@ -79,15 +84,18 @@ export class DirlistWindowService implements OnDestroy {
       return;
     }
 
+    const saved = this.geometry.load(GEOMETRY_KEY);
+
     this.windowId = this.windowService.newWindow({
       title: 'Verzeichnis',
       component: 'dirlist',
-      posX: DIRLIST_DEFAULT_X,
-      posY: DIRLIST_DEFAULT_Y,
-      width: DIRLIST_DEFAULT_WIDTH,
-      height: DIRLIST_DEFAULT_HEIGHT,
+      posX: saved?.x ?? DIRLIST_DEFAULT_X,
+      posY: saved?.y ?? DIRLIST_DEFAULT_Y,
+      width: saved?.w ?? DIRLIST_DEFAULT_WIDTH,
+      height: saved?.h ?? DIRLIST_DEFAULT_HEIGHT,
     });
 
+    this.cachedConfig = this.windowService.getWindow(this.windowId);
     this.footerMenu.setChecked(MENU_ID, true);
     this.requestRefresh();
 
@@ -97,7 +105,9 @@ export class DirlistWindowService implements OnDestroy {
           this.windowId !== undefined &&
           !windows.some((w) => w.windowId === this.windowId)
         ) {
+          this.persistGeometry();
           this.windowId = undefined;
+          this.cachedConfig = undefined;
           this.windowSubscription?.unsubscribe();
           this.windowSubscription = undefined;
           this.footerMenu.setChecked(MENU_ID, false);
@@ -111,12 +121,28 @@ export class DirlistWindowService implements OnDestroy {
       return;
     }
 
+    this.persistGeometry();
+
     const id = this.windowId;
     this.windowId = undefined;
+    this.cachedConfig = undefined;
     this.windowSubscription?.unsubscribe();
     this.windowSubscription = undefined;
     this.footerMenu.setChecked(MENU_ID, false);
     this.windowService.close(id);
+  }
+
+  private persistGeometry(): void {
+    const c = this.cachedConfig;
+    if (!c) {
+      return;
+    }
+    this.geometry.save(GEOMETRY_KEY, {
+      x: c.posX,
+      y: c.posY,
+      w: c.width,
+      h: c.height,
+    });
   }
 
   /**

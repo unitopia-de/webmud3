@@ -219,18 +219,20 @@ describe('MudPromptManager', () => {
       expect(manager['lineHidden']).toBe(false);
     });
 
-    it('should hide line when prompt exists even without user input', () => {
-      // Arrange
+    it('should NOT hide line when only currentPrompt exists (no user input)', () => {
+      // Hiding solely because the server-prompt tracker has accumulated
+      // content breaks multi-chunk server output: a chunk ending mid-line
+      // sets currentPrompt to those mid-line bytes, and the resetLine
+      // emitted before the next chunk would wipe them out. Hide/restore is
+      // exclusively for protecting the *user's* locally-echoed input.
       inputController.hasContent.mockReturnValue(false);
       manager['currentPrompt'] = '> ';
       const context = createContext();
 
-      // Act
       manager.beforeServerOutput(context);
 
-      // Assert
-      expect(terminalWriteSpy).toHaveBeenCalled();
-      expect(manager['lineHidden']).toBe(true);
+      expect(terminalWriteSpy).not.toHaveBeenCalled();
+      expect(manager['lineHidden']).toBe(false);
     });
 
     it('should preserve currentPrompt when hiding', () => {
@@ -379,8 +381,11 @@ describe('MudPromptManager', () => {
       consoleErrorSpy.mockRestore();
     });
 
-    it('should restore only prompt when no user input', () => {
-      // Arrange
+    it('should clear lineHidden flag without restoring when buffer was emptied mid-stream', () => {
+      // Edge case: beforeServerOutput hid the line because the user had a
+      // buffered input, but the user pressed Enter while the server reply
+      // was still streaming. We must clear the hidden flag (so the next
+      // server chunk is not gated on it) but not write a stale prompt back.
       inputController.hasContent.mockReturnValue(false);
       inputController.getSnapshot.mockReturnValue({
         buffer: '',
@@ -389,12 +394,11 @@ describe('MudPromptManager', () => {
       manager['lineHidden'] = true;
       manager['currentPrompt'] = 'HP:50> ';
       const context = createContext();
+      terminalWriteSpy.mockClear();
 
-      // Act
       manager.afterServerOutput('test\r\nHP:50> ', context);
 
-      // Assert
-      expect(terminalWriteSpy).toHaveBeenCalledWith('HP:50> ');
+      expect(terminalWriteSpy).not.toHaveBeenCalled();
       expect(manager['lineHidden']).toBe(false);
     });
   });

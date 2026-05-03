@@ -16,6 +16,7 @@ import { MudService } from '../../services/mud.service';
 import { SecureString } from '@webmud3/frontend/shared/types/secure-string';
 import { OutputHistoryService } from '@webmud3/frontend/shared/services/output-history.service';
 import { DebugSettingsService } from '@webmud3/frontend/features/debug/debug-settings.service';
+import { hexDump } from '@webmud3/frontend/features/debug/hex-dump';
 import { FooterMenuService } from '@webmud3/frontend/features/footer/footer-menu.service';
 import { DirlistWindowService } from '@webmud3/frontend/features/editor/dirlist-window.service';
 import { SoundService } from '@webmud3/frontend/features/sound/sound.service';
@@ -123,6 +124,7 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
   private readonly SR_INPUT_WORD_MENU_ID = 'sr-input-word';
   private readonly SR_INPUT_COMMIT_MENU_ID = 'sr-input-commit';
   private readonly SR_POLITE_MENU_ID = 'sr-polite';
+  private readonly HEX_LOG_MENU_ID = 'output-hex-log';
 
   private readonly terminal: Terminal;
   private readonly inputController: MudInputController;
@@ -256,6 +258,7 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
 
     // Now initialize socket adapter AFTER screenreader is ready
     this.socketAdapter = new MudSocketAdapter(this.mudService.mudOutput$, {
+      rawMessage: (data) => this.logRawMudOutput(data),
       transformMessage: (data) => this.transformMudOutput(data),
       beforeMessage: (data) => this.beforeMudOutput(data),
       afterMessage: (data) => this.afterMudOutput(data),
@@ -333,6 +336,7 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
     this.footerMenu.unregister(this.SR_INPUT_WORD_MENU_ID);
     this.footerMenu.unregister(this.SR_INPUT_COMMIT_MENU_ID);
     this.footerMenu.unregister(this.SR_POLITE_MENU_ID);
+    this.footerMenu.unregister(this.HEX_LOG_MENU_ID);
     this.resizeObs.disconnect();
 
     // Unregister visibility change listener
@@ -643,6 +647,25 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
    */
   private transformMudOutput(data: string): string {
     return this.promptManager.transformOutput(data);
+  }
+
+  /**
+   * Diagnostic: when the "Output Hex-Log" debug toggle is active, dump every
+   * raw chunk arriving from the MUD as a hex+printable block so we can see
+   * exactly which bytes the browser receives. Used to track down "missing
+   * characters" issues that depend on user-specific server settings.
+   */
+  private logRawMudOutput(data: string): void {
+    if (!this.debugSettings.outputHexLogging) {
+      return;
+    }
+
+    console.groupCollapsed(
+      `[MudOutput] chunk len=${data.length} (${new Blob([data]).size} bytes UTF-8)`,
+    );
+    console.log(hexDump(data));
+    console.log('raw string:', JSON.stringify(data));
+    console.groupEnd();
   }
 
   /**
@@ -1031,12 +1054,23 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
       action: () => this.speechSettings.togglePoliteInputMode(),
     });
 
+    this.footerMenu.register({
+      id: this.HEX_LOG_MENU_ID,
+      label: 'Output Hex-Log',
+      checked: this.debugSettings.outputHexLogging,
+      action: () => this.debugSettings.toggleOutputHexLogging(),
+    });
+
     this.debugSettings.screenReaderLogging$.subscribe((enabled) => {
       this.footerMenu.setChecked(this.SR_MENU_ID, enabled);
     });
 
     this.debugSettings.pasteLogging$.subscribe((enabled) => {
       this.footerMenu.setChecked(this.PASTE_MENU_ID, enabled);
+    });
+
+    this.debugSettings.outputHexLogging$.subscribe((enabled) => {
+      this.footerMenu.setChecked(this.HEX_LOG_MENU_ID, enabled);
     });
 
     this.speechSettings.announceInputWord$.subscribe((enabled) => {

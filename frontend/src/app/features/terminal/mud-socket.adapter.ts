@@ -7,6 +7,11 @@ export type MudSocketAdapterHooks = {
   transformMessage?: (data: string) => string;
   beforeMessage?: (data: string) => void;
   afterMessage?: (data: string) => void;
+  /**
+   * Called for every raw chunk arriving from the server, before any
+   * transform. Used by the debug "output hex log" feature.
+   */
+  rawMessage?: (data: string) => void;
 };
 
 type SocketListener = EventListener;
@@ -34,6 +39,7 @@ export class MudSocketAdapter {
     private readonly hooks?: MudSocketAdapterHooks,
   ) {
     this.subscription = output$.subscribe(({ data }) => {
+      this.hooks?.rawMessage?.(data);
       this.hooks?.beforeMessage?.(data);
 
       const transformed = this.hooks?.transformMessage?.(data) ?? data;

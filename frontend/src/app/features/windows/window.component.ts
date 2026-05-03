@@ -1,10 +1,14 @@
 import {
+  AfterViewInit,
   ChangeDetectionStrategy,
   Component,
   ElementRef,
   HostBinding,
   HostListener,
+  inject,
   Input,
+  NgZone,
+  OnDestroy,
   ViewChild,
 } from '@angular/core';
 
@@ -19,6 +23,10 @@ import type { WindowConfig } from './window-config';
  *   - `do_focus`        — clicked anywhere
  *   - `do_close`        — close button
  *   - `move:x:y`        — after drag
+ *
+ * Size changes (CSS resize handle) are detected via `ResizeObserver` and
+ * mirrored into `config.width` / `config.height` so callers can read the
+ * latest user-chosen geometry at any time (e.g. when persisting on close).
  */
 @Component({
   selector: 'app-window',
@@ -27,14 +35,19 @@ import type { WindowConfig } from './window-config';
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class WindowComponent {
+export class WindowComponent implements AfterViewInit, OnDestroy {
   @Input({ required: true }) config!: WindowConfig;
 
   @ViewChild('titleBar', { static: true }) titleBar!: ElementRef<HTMLElement>;
 
+  private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
+  private readonly zone = inject(NgZone);
+
   private dragOffsetX = 0;
   private dragOffsetY = 0;
   private dragging = false;
+
+  private resizeObserver: ResizeObserver | undefined;
 
   @HostBinding('style.left.px') get left(): number {
     return this.config.posX;
@@ -104,5 +117,46 @@ export class WindowComponent {
     this.dragging = false;
     this.titleBar.nativeElement.releasePointerCapture(event.pointerId);
     this.config.outgoing.next(`move:${this.config.posX}:${this.config.posY}`);
+  }
+
+  ngAfterViewInit(): void {
+    // Skip resize tracking for auto-sized windows (width/height = 0): we
+    // would otherwise pin them to whatever the layout produces on the first
+    // tick and lose the auto-sizing semantics.
+    if (this.config.width <= 0 || this.config.height <= 0) {
+      return;
+    }
+
+    if (typeof ResizeObserver === 'undefined') {
+      return;
+    }
+
+    // Run outside Angular: this fires on every frame during a CSS resize and
+    // does not need change detection — the values land in `config` directly,
+    // and HostBinding picks them up on the next CD tick driven by other
+    // events (focus, drag, close, …).
+    this.zone.runOutsideAngular(() => {
+      this.resizeObserver = new ResizeObserver((entries) => {
+        const rect = entries[0]?.contentRect;
+        if (!rect) {
+          return;
+        }
+
+        const w = Math.round(rect.width);
+        const h = Math.round(rect.height);
+
+        if (w !== this.config.width || h !== this.config.height) {
+          this.config.width = w;
+          this.config.height = h;
+        }
+      });
+
+      this.resizeObserver.observe(this.host.nativeElement);
+    });
+  }
+
+  ngOnDestroy(): void {
+    this.resizeObserver?.disconnect();
+    this.resizeObserver = undefined;
   }
 }

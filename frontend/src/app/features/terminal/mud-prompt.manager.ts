@@ -166,7 +166,16 @@ export class MudPromptManager {
    * - Terminal must be ready (after ngAfterViewInit)
    * - Local echo must be enabled (edit mode AND server allows echo)
    * - Line must not already be hidden (prevents double-hide)
-   * - Must have content to hide (prompt or user input)
+   * - User must actually have buffered input that needs protecting
+   *
+   * **Why only when user has input?** The hide/restore mechanism exists to
+   * stop server output from clobbering the user's locally-echoed input. If
+   * the user has no buffered input (e.g. they pressed Enter and we're now
+   * receiving the server's reply), there is nothing to protect — and reset
+   * lineing would in fact destroy the *server's* mid-line content when the
+   * response arrives in multiple chunks. The currentPrompt tracker keeps
+   * running so that as soon as the user starts typing again, the restore
+   * machinery has the right prompt to put back.
    *
    * **Operation:**
    * 1. Clear terminal line (cursor moves to column 0)
@@ -192,11 +201,12 @@ export class MudPromptManager {
       return;
     }
 
-    // Check if there's anything to hide (prompt or user input)
-    const hasLineContent =
-      this.inputController.hasContent() || this.currentPrompt.length > 0;
-
-    if (!hasLineContent) {
+    // Only hide if the user has buffered input. Hiding solely because the
+    // server prompt tracker has accumulated content (the previous behaviour)
+    // breaks multi-chunk server output: chunk 1 ends mid-line, the tracker
+    // sees those bytes as a "prompt", and the resetLine emitted before
+    // chunk 2 wipes them out.
+    if (!this.inputController.hasContent()) {
       return;
     }
 
@@ -245,8 +255,13 @@ export class MudPromptManager {
       return;
     }
 
-    // Check if there's anything to restore
-    if (!this.inputController.hasContent() && this.currentPrompt.length === 0) {
+    // Restore only when the user has buffered input — same rationale as
+    // beforeServerOutput. If we hid the line we did so because hasContent()
+    // was true at that moment; if the buffer has since been cleared (e.g.
+    // user pressed Enter mid-stream), just drop the hidden flag and let the
+    // server output stay as-is.
+    if (!this.inputController.hasContent()) {
+      this.lineHidden = false;
       return;
     }
 
