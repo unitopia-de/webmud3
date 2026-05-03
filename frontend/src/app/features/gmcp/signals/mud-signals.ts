@@ -168,6 +168,33 @@ export type RoomInfoSignal = {
 };
 
 // ---------------------------------------------------------------------------
+// Playermap Signals (UNItopia-specific)
+// ---------------------------------------------------------------------------
+
+/**
+ * Server pushes the current playermap when the package is registered and on
+ * every player movement. The MUD object `kokos # playermap` provides the data
+ * via `query_playermap(player)` — see `lib/i/player/gmcp.c::playermap_info`.
+ *
+ * Different in-world map providers return different shapes:
+ *  - bare string: ASCII map with embedded newlines (Phexcaer, Suedwald, …)
+ *  - mapping `{map, pos, fill}`: map text + player coordinates + fill char
+ *  - null/0: no playermap available for the current room
+ *
+ * We normalize all variants into a single signal shape with `map: null`
+ * indicating "no map" and optional `pos` / `fill` fields when available.
+ */
+export type PlayermapInfoSignal = {
+  type: 'Playermap.Info';
+  /** Raw map text (ASCII, possibly with ANSI escapes), or null when absent. */
+  map: string | null;
+  /** Player position `[x, y]` on the map, if the provider reports it. */
+  pos?: [number, number];
+  /** Fill character used by the provider for empty cells. */
+  fill?: string;
+};
+
+// ---------------------------------------------------------------------------
 // Communication Signals
 // ---------------------------------------------------------------------------
 
@@ -223,6 +250,7 @@ export type MudSignal =
   | InputCompleteNoneSignal
   | NumpadLevelSignal
   | RoomInfoSignal
+  | PlayermapInfoSignal
   | CommSignal
   | CorePingSignal
   | CoreGoodbyeSignal

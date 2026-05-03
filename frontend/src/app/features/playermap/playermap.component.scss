@@ -1,0 +1,44 @@
+:host {
+  display: block;
+  padding: 6px;
+  color: #ddd;
+  background: #1e1e1e;
+  font-family: 'JetBrains Mono', 'Consolas', monospace;
+  font-size: 14px;
+  line-height: 1;
+}
+
+.pmap-grid {
+  display: inline-block;
+  white-space: pre;
+  user-select: text;
+}
+
+.pmap-row {
+  display: block;
+  height: 1em;
+}
+
+.pmap-cell {
+  display: inline-block;
+  width: 1ch;
+  text-align: center;
+}
+
+.pmap-player {
+  background: #4ec9b0;
+  color: #1e1e1e;
+  font-weight: bold;
+}
+
+.pmap-empty {
+  opacity: 0.35;
+}
+
+.pmap-empty-hint {
+  margin-top: 6px;
+  font-family: sans-serif;
+  font-size: 12px;
+  color: #777;
+  font-style: italic;
+}

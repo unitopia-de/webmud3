@@ -24,6 +24,7 @@ import { CharGmcpModule } from '@webmud3/frontend/features/gmcp/modules/char-gmc
 import { InventoryWindowService } from '@webmud3/frontend/features/inventory/inventory-window.service';
 import { ConnectionMenuService } from '@webmud3/frontend/features/connection/connection-menu.service';
 import { NumpadWindowService } from '@webmud3/frontend/features/numpad/numpad-window.service';
+import { PlayermapWindowService } from '@webmud3/frontend/features/playermap/playermap-window.service';
 import type { LinemodeState } from '@webmud3/shared';
 import {
   MobileInputComponent,
@@ -112,6 +113,9 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
   // Bootstraps the sound feature: registers the Sound GMCP module and
   // plays files announced via Sound.Event against the Sound.Url base URL.
   private readonly _sound = inject(SoundService);
+  // Bootstraps the playermap feature: registers the Playermap GMCP module and
+  // adds the "Karte" toggle to the footer menu.
+  private readonly _playermapWindow = inject(PlayermapWindowService);
 
   private readonly SR_MENU_ID = 'screenreader-debug';
   private readonly PASTE_MENU_ID = 'paste-debug';

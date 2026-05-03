@@ -142,6 +142,10 @@ export class MudSignalService implements OnDestroy {
       case 'Room.Info':
         return { type: 'Room.Info', data: msg.data };
 
+      // -- Playermap --
+      case 'Playermap.Info':
+        return this.mapPlayermapInfo(msg.data);
+
       // -- Communication --
       case 'Comm.Say':
       case 'Comm.Tell':
@@ -350,6 +354,55 @@ export class MudSignalService implements OnDestroy {
     }
 
     return { type: 'Input.CompleteChoice', choices };
+  }
+
+  /**
+   * `Playermap.Info` payload variants seen on UNItopia:
+   *  - `{ data: "<ascii map>" }` — provider returned a bare string
+   *  - `{ data: { map, pos, fill } }` — provider returned a structured mapping
+   *  - `{ data: null }` — no playermap for the current room (clears UI)
+   * We unwrap into a single typed signal; `map: null` means "no map".
+   */
+  private mapPlayermapInfo(data: unknown): MudSignal {
+    const wrapper = (data ?? {}) as Record<string, unknown>;
+    const inner = 'data' in wrapper ? wrapper['data'] : data;
+
+    if (inner === null || inner === undefined) {
+      return { type: 'Playermap.Info', map: null };
+    }
+
+    if (typeof inner === 'string') {
+      return { type: 'Playermap.Info', map: inner };
+    }
+
+    if (typeof inner === 'object') {
+      const o = inner as Record<string, unknown>;
+
+      // UNItopia delivers `map` as a string array (one entry per row); some
+      // older providers return a bare string with embedded newlines. Accept
+      // both and normalize to a single \n-joined string for the renderer.
+      let map: string | null = null;
+      if (typeof o['map'] === 'string') {
+        map = o['map'] as string;
+      } else if (Array.isArray(o['map'])) {
+        map = (o['map'] as unknown[])
+          .map((row) => (typeof row === 'string' ? row : ''))
+          .join('\n');
+      }
+
+      const pos = Array.isArray(o['pos']) && o['pos'].length >= 2
+        && typeof o['pos'][0] === 'number'
+        && typeof o['pos'][1] === 'number'
+        ? ([o['pos'][0] as number, o['pos'][1] as number] as [number, number])
+        : undefined;
+
+      const fill =
+        typeof o['fill'] === 'string' ? (o['fill'] as string) : undefined;
+
+      return { type: 'Playermap.Info', map, pos, fill };
+    }
+
+    return { type: 'Playermap.Info', map: null };
   }
 
   // ---------------------------------------------------------------------------

@@ -38,7 +38,7 @@ triggers an initial state push (see `gmcp.c:91-136`).
 | `Files`      | 1       | ✅ | ✅ | sends `Files.DirectoryList` for current path **only if wizard** | wizard check happens server-side |
 | `Sound`      | 1       | ✅ | ✅ | sends `Sound.Url` | base URL cached by `SoundService`, `Sound.Event` plays via `<audio>` |
 | `Numpad`     | 1       | ✅ | ❌ | sends `Numpad.SendLevel` for every saved prefix | bindings live server-side per character |
-| `Playermap`  | 1       | ✅ (UNItopia) | ❌ | sends `Playermap.Info` | UNItopia-specific, not in original spec |
+| `Playermap`  | 1       | ✅ (UNItopia) | ✅ | sends `Playermap.Info` | UNItopia-specific, not in original spec |
 | `Room`       | 1       | ✅ | ❌ | no init push, but enables `Room.Info` on env changes | |
 | `Comm`       | 1       | ✅ | ❌ | no init push | |
 | `Input`      | 1       | ✅ | ❌ | no init push | |
@@ -238,7 +238,7 @@ current minimap state.
 
 | Direction    | Message          | u1 | u3 | MUD payload | Notes |
 |--------------|------------------|----|----|-------------|-------|
-| MUD → Client | `Playermap.Info` | ✅ | ❌ | `{ data: <pmap-data> }` | UNItopia-specific. Sent on `init_gmcp_package("playermap")` and on every player movement. No consumer in u3 |
+| MUD → Client | `Playermap.Info` | ✅ | ✅ | `{ data: <pmap-data> }` | UNItopia-specific. Sent on `init_gmcp_package("playermap")` and on every player movement. `data` may be a string (ASCII map), a `{map, pos, fill}` mapping, or `null` (no map for room). Rendered as a 25×25 viewport in the "Karte" window |
 
 ---
 
@@ -264,12 +264,11 @@ explicitly avoided, see the registration-policy note in the section above.
 2. **Input completion UI** + announce `Input 1` — wire `Input.CompleteText` / `Input.CompleteChoice` to the input controller (Tab-completion). Also requires the outgoing `Input.Complete` request when the user hits Tab.
 3. **Comm channel UI** + announce `Comm 1` — display `Comm.Say` / `Comm.Tell` / `Comm.Soul` (`{ player, text }`) in dedicated channels.
 4. **Room.Info consumer** + announce `Room 1` — surface room name / domain / exits as window content (or a status strip).
-5. **`Playermap.Info` consumer** + announce `Playermap 1` — visualize the playermap data UNItopia provides.
-6. **`Char.StatusVars` consumer** — already covered by `Char` registration; pick up the labels (`{ race: "Rasse", … }`) and use them in the status display.
+5. **`Char.StatusVars` consumer** — already covered by `Char` registration; pick up the labels (`{ race: "Rasse", … }`) and use them in the status display.
 
 ### Low priority
 
-7. **Manual `Core.Ping` button** in the UI (was a debug feature in u1).
-8. **`Core.Goodbye` parameter** consumer — graceful shutdown banner with the message text.
-9. **`Files.CurrentPath`** consumer — useful as a sanity check / breadcrumb in the directory window.
-10. **`Char.Login`** outgoing — blocked on UNItopia server-side support.
+6. **Manual `Core.Ping` button** in the UI (was a debug feature in u1).
+7. **`Core.Goodbye` parameter** consumer — graceful shutdown banner with the message text.
+8. **`Files.CurrentPath`** consumer — useful as a sanity check / breadcrumb in the directory window.
+9. **`Char.Login`** outgoing — blocked on UNItopia server-side support.
