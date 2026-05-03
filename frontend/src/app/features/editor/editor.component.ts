@@ -54,6 +54,13 @@ export class EditorComponent implements OnInit, AfterViewInit, OnDestroy {
   private initialContent = '';
   private hasUnsavedChanges = false;
   private destroyed = false;
+  // True after at least one successful save; suppresses the cancel-on-destroy
+  // path so we do not tell the MUD to drop a file we just persisted.
+  private wasSaved = false;
+  // Idempotency flag: ensures we send `Files.fileCanceled` at most once even
+  // if both onCancel and ngOnDestroy trigger (e.g. cancel button -> close ->
+  // component destroyed).
+  private cancelSent = false;
 
   public saving = false;
 
@@ -90,6 +97,11 @@ export class EditorComponent implements OnInit, AfterViewInit, OnDestroy {
   ngOnDestroy(): void {
     this.destroyed = true;
 
+    // Catch close paths that bypass onCancel (X button, closeAll on disconnect,
+    // route change, ...) and still notify the MUD so the temp file gets
+    // released. Idempotent via `cancelSent` if onCancel already ran.
+    this.sendCancelToMud();
+
     if (this.editor) {
       const model = this.editor.getModel();
       this.editor.dispose();
@@ -123,6 +135,7 @@ export class EditorComponent implements OnInit, AfterViewInit, OnDestroy {
         this.initialContent = content;
         this.hasUnsavedChanges = false;
         this.saving = false;
+        this.wasSaved = true;
         this.statusMessage = 'Gespeichert.';
 
         if (closeAfter) {
@@ -149,7 +162,25 @@ export class EditorComponent implements OnInit, AfterViewInit, OnDestroy {
       return;
     }
 
+    // Tell the MUD to drop the temp file before we close the window. The
+    // ngOnDestroy fallback below also calls this — `cancelSent` ensures we
+    // never send the message twice.
+    this.sendCancelToMud();
     this.config.outgoing.next('do_close');
+  }
+
+  /**
+   * Sends `Files.fileCanceled` to the MUD so it can `gmcp_edit_drop_tempfile`.
+   * No-op when there is no fileinfo, after a successful save, or when this
+   * method has already run for the current editor session.
+   */
+  private sendCancelToMud(): void {
+    if (this.cancelSent || this.wasSaved || !this.fileinfo) {
+      return;
+    }
+
+    this.cancelSent = true;
+    this.files.cancelFile(this.fileinfo);
   }
 
   // ---------------------------------------------------------------------------

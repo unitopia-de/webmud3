@@ -145,8 +145,7 @@ visibility (wizards see invisible items too). Each item is `{ name, category }`.
 | `Files.OpenFile`      | ✅ | ✅ | `gmcp_send_files_url(file, title, flag)` — answers with `Files.URL` | `flag: 1` requests a writable URL (for save) |
 | `Files.ChDir`         | ✅ | ✅ | `cd(dir)` then `gmcp_send_dir(...)` → `Files.DirectoryList` | `..` is resolved server-side via the player's normal `cd` |
 | `Files.fileSaved`     | ✅ | ✅ | `gmcp_edit_saved(file)` — closes the temp file and applies the buffer | |
-| `Files.fileCanceled`  | ✅ | ❌ | `gmcp_edit_drop_tempfile(file)` | u3 only does a local `window.confirm`; the MUD never finds out, leaving stale temp files in `/var/spool/edit/` |
-| `Files.RequestDir`    | — | 🐛 | **not recognised by MUD** | u3 invented this name in `DirlistWindowService.requestRefresh()`. The MUD has no `case "files.requestdir":` in `receive_gmcp`. Either: (a) drop the call (the directory list arrives automatically when the `Files` module gets registered), or (b) replace it with a `Files.ChDir { dir: <currentPath> }` if a manual refresh is needed |
+| `Files.fileCanceled`  | ✅ | ✅ | `gmcp_edit_drop_tempfile(file)` | sent on user cancel and from `EditorComponent.ngOnDestroy` (e.g. X button, disconnect) — idempotent and skipped after a successful save |
 
 > Suggested cleanup: remove the `Files.Directory` alias in
 > `mud-signal.service.ts:122` — UNItopia only ever sends `Files.DirectoryList`,
@@ -239,9 +238,8 @@ current minimap state.
 These are concrete mismatches discovered by reading `gmcp.c` against
 `mud-signal.service.ts`:
 
-1. **`Files.RequestDir` outgoing** — u3 sends this from `DirlistWindowService.requestRefresh()`, but the MUD has no handler. Replace with `Files.ChDir` against the current path, or drop entirely (a fresh listing arrives anyway when the `Files` module is registered).
-2. **`Files.Directory` alias** — u3 accepts this as alias for `Files.DirectoryList`. UNItopia never sends it. Cosmetic only; can be removed.
-3. **`Char.Items` location filter** — MUD only sends `location: "inv"` payloads. u3 currently accepts any location due to permissive normalization — works fine but worth being explicit if other locations ever appear.
+1. **`Files.Directory` alias** — u3 accepts this as alias for `Files.DirectoryList`. UNItopia never sends it. Cosmetic only; can be removed.
+2. **`Char.Items` location filter** — MUD only sends `location: "inv"` payloads. u3 currently accepts any location due to permissive normalization — works fine but worth being explicit if other locations ever appear.
 
 ---
 
@@ -249,23 +247,21 @@ These are concrete mismatches discovered by reading `gmcp.c` against
 
 ### High priority
 
-1. **Fix or drop `Files.RequestDir`** — see Diskrepanz #1 above.
-2. **Send `Files.fileCanceled`** when the user closes the editor with unsaved changes — otherwise temp files leak server-side.
-3. **Announce `Sound`, `Numpad`, `Room`, `Comm`, `Input` modules** via thin `Injectable` GMCP modules (template: `CharItemsGmcpModule`).
+1. **Announce `Sound`, `Numpad`, `Room`, `Comm`, `Input` modules** via thin `Injectable` GMCP modules (template: `CharItemsGmcpModule`).
 
 ### Medium priority
 
-4. **Numpad client → MUD** (`Numpad.Update`, `Numpad.GetAll`, `Numpad.GetLevel`) — required for per-character bindings to actually live on the server.
-5. **Sound playback consumer** — service that subscribes to `Sound.Play` and plays audio (autoplay policy already handled via `unlockAudio()`).
-6. **Input completion UI** — `Input.CompleteText` / `Input.CompleteChoice` signals are routed but no UI consumer wires them to the input controller (Tab-completion).
-7. **Comm channel UI** — `Comm.Message` signals fire but nothing displays them outside the regular MUD output stream.
-8. **Room.Info consumer** — at minimum surface room name / domain / exits as window content.
-9. **`Playermap.Info` consumer** — visualize the playermap data UNItopia provides.
-10. **`Char.StatusVars` consumer** — pick up the labels and use them in the status display.
+2. **Numpad client → MUD** (`Numpad.Update`, `Numpad.GetAll`, `Numpad.GetLevel`) — required for per-character bindings to actually live on the server.
+3. **Sound playback consumer** — service that subscribes to `Sound.Play` and plays audio (autoplay policy already handled via `unlockAudio()`).
+4. **Input completion UI** — `Input.CompleteText` / `Input.CompleteChoice` signals are routed but no UI consumer wires them to the input controller (Tab-completion).
+5. **Comm channel UI** — `Comm.Message` signals fire but nothing displays them outside the regular MUD output stream.
+6. **Room.Info consumer** — at minimum surface room name / domain / exits as window content.
+7. **`Playermap.Info` consumer** — visualize the playermap data UNItopia provides.
+8. **`Char.StatusVars` consumer** — pick up the labels and use them in the status display.
 
 ### Low priority
 
-11. **Manual `Core.Ping` button** in the UI (was a debug feature in u1).
-12. **`Core.Goodbye` parameter** consumer — graceful shutdown banner with the message text.
-13. **`Files.CurrentPath`** consumer — useful as a sanity check / breadcrumb in the directory window.
-14. **`Char.Login`** outgoing — blocked on UNItopia server-side support.
+9. **Manual `Core.Ping` button** in the UI (was a debug feature in u1).
+10. **`Core.Goodbye` parameter** consumer — graceful shutdown banner with the message text.
+11. **`Files.CurrentPath`** consumer — useful as a sanity check / breadcrumb in the directory window.
+12. **`Char.Login`** outgoing — blocked on UNItopia server-side support.

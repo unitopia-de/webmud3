@@ -86,6 +86,24 @@ export class FilesService implements OnDestroy {
     return this.cache.get(filepath);
   }
 
+  /**
+   * Synchronous snapshot of the most recent directory listing pushed by the
+   * MUD. Returns `null` until the first `Files.DirectoryList` has arrived.
+   */
+  public getCurrentListing(): DirectoryListing | null {
+    return this.directorySubject.value;
+  }
+
+  /**
+   * Tells the MUD that the user has abandoned the editor without saving.
+   * UNItopia drops the corresponding temp file (`gmcp_edit_drop_tempfile`).
+   * Safe to call for non-temp files too — the server-side handler is a no-op
+   * if the file is unknown.
+   */
+  public cancelFile(fileinfo: FileInfo): void {
+    this.gmcp.send('Files.fileCanceled', { file: fileinfo.file });
+  }
+
   /** Loads the file body via HTTP GET against `fileinfo.lasturl`. */
   public loadContent(fileinfo: FileInfo): Observable<string> {
     return this.http.get(fileinfo.lasturl, { responseType: 'text' });

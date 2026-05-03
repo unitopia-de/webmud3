@@ -5,6 +5,7 @@ import { FooterMenuService } from '@webmud3/frontend/features/footer/footer-menu
 import { GmcpService } from '@webmud3/frontend/features/gmcp/gmcp.service';
 import { MudSignalService } from '@webmud3/frontend/features/gmcp/signals/mud-signal.service';
 import { WindowService } from '@webmud3/frontend/features/windows/window.service';
+import { FilesService } from './files.service';
 
 const MENU_ID = 'dirlist-window';
 
@@ -32,6 +33,7 @@ export class DirlistWindowService implements OnDestroy {
   private readonly footerMenu = inject(FooterMenuService);
   private readonly signals = inject(MudSignalService);
   private readonly gmcp = inject(GmcpService);
+  private readonly files = inject(FilesService);
 
   private readonly subscriptions: Subscription[] = [];
 
@@ -118,12 +120,24 @@ export class DirlistWindowService implements OnDestroy {
   }
 
   /**
-   * Asks the MUD to (re)send the current directory listing. UNItopia
-   * answers with `Files.DirectoryList`. Silently no-ops if GMCP is not
-   * active yet.
+   * Asks the MUD to (re)send the directory listing.
+   *
+   * UNItopia has no dedicated "request current directory" message — the
+   * server pushes the initial listing automatically when the `Files`
+   * package is registered (only for wizards). For an explicit refresh on
+   * an already-loaded window we send `Files.ChDir` against the last known
+   * path, which the MUD answers with a fresh `Files.DirectoryList`.
+   *
+   * If we have not yet seen any directory (first open, package just being
+   * registered), this is a no-op — the server-pushed initial listing is
+   * already on its way.
    */
   public requestRefresh(): void {
-    this.gmcp.send('Files.RequestDir', {});
+    const current = this.files.getCurrentListing();
+
+    if (current && current.path) {
+      this.gmcp.send('Files.ChDir', { dir: current.path });
+    }
   }
 
   // ---------------------------------------------------------------------------
