@@ -28,6 +28,7 @@ import { InventoryWindowService } from '@webmud3/frontend/features/inventory/inv
 import { ConnectionMenuService } from '@webmud3/frontend/features/connection/connection-menu.service';
 import { NumpadWindowService } from '@webmud3/frontend/features/numpad/numpad-window.service';
 import { PlayermapWindowService } from '@webmud3/frontend/features/playermap/playermap-window.service';
+import { WindowService } from '@webmud3/frontend/features/windows/window.service';
 import type { LinemodeState } from '@webmud3/shared';
 import {
   MobileInputComponent,
@@ -123,6 +124,7 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
   private readonly _playermapWindow = inject(PlayermapWindowService);
   // Bootstraps the Input GMCP module and exposes the Input.Complete round-trip.
   private readonly inputCompletion = inject(InputCompletionService);
+  private readonly windowService = inject(WindowService);
 
   private readonly SR_MENU_ID = 'screenreader-debug';
   private readonly PASTE_MENU_ID = 'paste-debug';
@@ -131,6 +133,7 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
   private readonly SR_INPUT_COMMIT_MENU_ID = 'sr-input-commit';
   private readonly SR_POLITE_MENU_ID = 'sr-polite';
   private readonly HEX_LOG_MENU_ID = 'output-hex-log';
+  private readonly RECENTER_MENU_ID = 'windows-recenter';
 
   private readonly terminal: Terminal;
   private readonly inputController: MudInputController;
@@ -362,6 +365,7 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
     this.footerMenu.unregister(this.SR_INPUT_COMMIT_MENU_ID);
     this.footerMenu.unregister(this.SR_POLITE_MENU_ID);
     this.footerMenu.unregister(this.HEX_LOG_MENU_ID);
+    this.footerMenu.unregister(this.RECENTER_MENU_ID);
     this.resizeObs.disconnect();
 
     // Unregister visibility change listener
@@ -1161,6 +1165,16 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
       label: 'Output Hex-Log',
       checked: this.debugSettings.outputHexLogging,
       action: () => this.debugSettings.toggleOutputHexLogging(),
+    });
+
+    // Action entry (no checkbox state) — used as a panic button when a
+    // window has been dragged off-screen or became unreachable after a
+    // viewport shrink. Pulls every open window back inside the viewport.
+    this.footerMenu.register({
+      id: this.RECENTER_MENU_ID,
+      label: 'Fenster ins Bild',
+      checked: false,
+      action: () => this.windowService.bringAllIntoView(),
     });
 
     this.debugSettings.screenReaderLogging$.subscribe((enabled) => {

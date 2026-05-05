@@ -15,6 +15,13 @@ import {
 import type { WindowConfig } from './window-config';
 
 /**
+ * Minimum number of pixels of the title bar that must remain inside the
+ * viewport at all times. Below this the user could drag the window into a
+ * position where it can no longer be reached with the mouse.
+ */
+const MIN_VISIBLE_PX = 32;
+
+/**
  * A modeless window shell.
  * Provides title bar (drag handle), close button, and content area.
  * Resize is done via native CSS `resize: both`.
@@ -105,8 +112,28 @@ export class WindowComponent implements AfterViewInit, OnDestroy {
       return;
     }
 
-    this.config.posX = event.clientX - this.dragOffsetX;
-    this.config.posY = event.clientY - this.dragOffsetY;
+    const rawX = event.clientX - this.dragOffsetX;
+    const rawY = event.clientY - this.dragOffsetY;
+
+    // Clamp so the title bar always keeps MIN_VISIBLE_PX of overlap with
+    // the viewport on every side. Without this the user can drag a window
+    // off-screen and lose access to the close button entirely.
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    const w = this.config.width > 0 ? this.config.width : MIN_VISIBLE_PX;
+
+    // Y: never above the viewport top (-> title bar must stay >= 0) and
+    // never further down than (vh - MIN_VISIBLE_PX) so a thin slice of the
+    // title bar is always reachable.
+    const minY = 0;
+    const maxY = Math.max(minY, vh - MIN_VISIBLE_PX);
+    // X: at least MIN_VISIBLE_PX of the window must overlap the viewport on
+    // the right of the left edge and on the left of the right edge.
+    const minX = MIN_VISIBLE_PX - w;
+    const maxX = Math.max(minX, vw - MIN_VISIBLE_PX);
+
+    this.config.posX = Math.max(minX, Math.min(rawX, maxX));
+    this.config.posY = Math.max(minY, Math.min(rawY, maxY));
   }
 
   onTitleBarPointerUp(event: PointerEvent): void {

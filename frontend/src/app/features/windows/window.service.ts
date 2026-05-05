@@ -10,6 +10,13 @@ import type {
 const Z_INDEX_BASE = 100;
 
 /**
+ * Minimum number of pixels of every window that must remain inside the
+ * viewport. Mirrors the value used by the WindowComponent drag clamp so the
+ * two clamps agree.
+ */
+const MIN_VISIBLE_PX = 32;
+
+/**
  * Service for managing modeless windows.
  *
  * Responsibilities:
@@ -24,10 +31,20 @@ const Z_INDEX_BASE = 100;
 export class WindowService {
   private readonly windowsSubject = new BehaviorSubject<WindowConfig[]>([]);
   private lastZIndex = Z_INDEX_BASE;
+  private readonly viewportResizeListener: () => void;
 
   /** Reactive list of all open windows, ordered by creation */
   public readonly windows$: Observable<WindowConfig[]> =
     this.windowsSubject.asObservable();
+
+  constructor() {
+    // Re-clamp every open window when the browser viewport shrinks so a
+    // window that used to be reachable does not slip off-screen.
+    this.viewportResizeListener = () => this.clampAllToViewport();
+    if (typeof window !== 'undefined') {
+      window.addEventListener('resize', this.viewportResizeListener);
+    }
+  }
 
   /**
    * Returns the current snapshot of all open windows.
@@ -164,9 +181,81 @@ export class WindowService {
     this.windowsSubject.next([...this.windowsSubject.value]);
   }
 
+  /**
+   * Forces every open window back inside the viewport, regardless of where
+   * it currently sits. Used as the "panic button" for windows the user has
+   * managed to drag off-screen (or that became unreachable after a viewport
+   * shrink). Each window keeps its size; only the top-left corner is moved.
+   */
+  public bringAllIntoView(): void {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    let mutated = false;
+
+    for (const w of this.windowsSubject.value) {
+      const width = w.width > 0 ? w.width : MIN_VISIBLE_PX;
+      // Force the entire window back into the viewport (not just the title
+      // bar): width <= vw -> full width fits, otherwise the right edge
+      // matters less than seeing the close button.
+      const newX = Math.max(0, Math.min(w.posX, Math.max(0, vw - width)));
+      const newY = Math.max(0, Math.min(w.posY, Math.max(0, vh - MIN_VISIBLE_PX)));
+
+      if (newX !== w.posX || newY !== w.posY) {
+        w.posX = newX;
+        w.posY = newY;
+        mutated = true;
+      }
+    }
+
+    if (mutated) {
+      this.windowsSubject.next([...this.windowsSubject.value]);
+    }
+  }
+
   // ---------------------------------------------------------------------------
   // Internal
   // ---------------------------------------------------------------------------
+
+  /**
+   * Re-clamps each open window so MIN_VISIBLE_PX of its title bar stays
+   * inside the viewport. Called from the global resize listener. Unlike
+   * `bringAllIntoView`, this only nudges windows that have actually become
+   * unreachable — a window that is fully visible is left untouched.
+   */
+  private clampAllToViewport(): void {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    let mutated = false;
+
+    for (const w of this.windowsSubject.value) {
+      const width = w.width > 0 ? w.width : MIN_VISIBLE_PX;
+      const minX = MIN_VISIBLE_PX - width;
+      const maxX = Math.max(minX, vw - MIN_VISIBLE_PX);
+      const minY = 0;
+      const maxY = Math.max(minY, vh - MIN_VISIBLE_PX);
+
+      const newX = Math.max(minX, Math.min(w.posX, maxX));
+      const newY = Math.max(minY, Math.min(w.posY, maxY));
+
+      if (newX !== w.posX || newY !== w.posY) {
+        w.posX = newX;
+        w.posY = newY;
+        mutated = true;
+      }
+    }
+
+    if (mutated) {
+      this.windowsSubject.next([...this.windowsSubject.value]);
+    }
+  }
 
   /**
    * Routes events sent by the window component (e.g. focus, hide, close requests).
