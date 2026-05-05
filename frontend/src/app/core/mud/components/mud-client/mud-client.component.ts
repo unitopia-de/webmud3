@@ -13,6 +13,7 @@ import { IDisposable, Terminal } from '@xterm/xterm';
 import { Subscription } from 'rxjs';
 
 import { MudService } from '../../services/mud.service';
+import { MudNoticeService } from '../../services/mud-notice.service';
 import { SecureString } from '@webmud3/frontend/shared/types/secure-string';
 import { OutputHistoryService } from '@webmud3/frontend/shared/services/output-history.service';
 import { DebugSettingsService } from '@webmud3/frontend/features/debug/debug-settings.service';
@@ -92,6 +93,7 @@ type MudClientState = {
 })
 export class MudClientComponent implements AfterViewInit, OnDestroy {
   private readonly mudService = inject(MudService);
+  private readonly mudNotices = inject(MudNoticeService);
   private readonly outputHistoryService = inject(OutputHistoryService);
   private readonly debugSettings = inject(DebugSettingsService);
   private readonly speechSettings = inject(SpeechSettingsService);
@@ -160,6 +162,7 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
   private showEchoSubscription?: Subscription;
   private linemodeSubscription?: Subscription;
   private completionSubscriptions: Subscription[] = [];
+  private noticeSubscription?: Subscription;
   private pasteHandler?: (event: ClipboardEvent) => void;
   /** Read-only state accessor for template bindings. */
   public get useMobileInput(): boolean {
@@ -323,6 +326,10 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
       ),
     );
 
+    this.noticeSubscription = this.mudNotices.notices$.subscribe((text) =>
+      this.writeLocalNotice(text),
+    );
+
     this.resizeObs.observe(this.terminalRef.nativeElement);
     this.setState({ terminalReady: true });
 
@@ -382,6 +389,7 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
     this.terminalDisposables.forEach((disposable) => disposable.dispose());
     this.showEchoSubscription?.unsubscribe();
     this.linemodeSubscription?.unsubscribe();
+    this.noticeSubscription?.unsubscribe();
     for (const sub of this.completionSubscriptions) {
       sub.unsubscribe();
     }
@@ -657,6 +665,29 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
    */
   private handleInputCompleteNone(): void {
     this.terminal.write('\x07');
+  }
+
+  /**
+   * Renders a locally-generated notice (e.g. "[Datei xyz.c gespeichert]")
+   * into the MUD terminal. Coloured cyan + bold so the user can tell client
+   * messages from real server output, framed with CRLFs so it always lands
+   * on its own line — even when the server output ended mid-line.
+   *
+   * The notice also goes through the prompt manager hooks (before/after) so
+   * any locally-echoed user input is hidden during the write and restored
+   * afterwards, matching the behaviour for normal server output.
+   */
+  private writeLocalNotice(text: string): void {
+    const ctx = this.getPromptContext();
+    this.promptManager.beforeServerOutput(ctx);
+
+    // ESC[1;36m = bold cyan, ESC[0m = reset.
+    const styled = `${CTRL.ESC}[1;36m${text}${CTRL.ESC}[0m\r\n`;
+    this.terminal.write(styled);
+
+    this.promptManager.afterServerOutput(styled, ctx);
+    this.screenReader?.announce(text);
+    this.screenReader?.appendToHistory(text);
   }
 
   /**

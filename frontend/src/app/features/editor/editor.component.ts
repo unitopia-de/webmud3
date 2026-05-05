@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import {
   AfterViewInit,
   ChangeDetectionStrategy,
+  ChangeDetectorRef,
   Component,
   ElementRef,
   inject,
@@ -13,6 +14,7 @@ import {
 import loader from '@monaco-editor/loader';
 import type * as MonacoNs from 'monaco-editor';
 
+import { MudNoticeService } from '@webmud3/frontend/core/mud/services/mud-notice.service';
 import type { WindowConfig } from '@webmud3/frontend/features/windows/window-config';
 import type { FileInfo } from '../gmcp/signals/mud-signals';
 import { FilesService } from './files.service';
@@ -49,6 +51,8 @@ export class EditorComponent implements OnInit, AfterViewInit, OnDestroy {
   private hostRef!: ElementRef<HTMLDivElement>;
 
   private readonly files = inject(FilesService);
+  private readonly mudNotices = inject(MudNoticeService);
+  private readonly cdr = inject(ChangeDetectorRef);
 
   private editor: MonacoNs.editor.IStandaloneCodeEditor | undefined;
   private initialContent = '';
@@ -138,6 +142,19 @@ export class EditorComponent implements OnInit, AfterViewInit, OnDestroy {
         this.wasSaved = true;
         this.statusMessage = 'Gespeichert.';
 
+        // OnPush change detection does not pick up mutations made inside
+        // a subscribe() callback automatically — without an explicit
+        // markForCheck() the toolbar would still show "Speichere …" until
+        // the next external event.
+        this.cdr.markForCheck();
+
+        // Mirror the success into the main MUD terminal so the user gets
+        // the confirmation even when the editor window is hidden behind
+        // others.
+        this.mudNotices.notify(
+          `[Datei ${fileinfo.filename || fileinfo.file} gespeichert]`,
+        );
+
         if (closeAfter) {
           this.config.outgoing.next('do_close');
         }
@@ -150,6 +167,7 @@ export class EditorComponent implements OnInit, AfterViewInit, OnDestroy {
         this.saving = false;
         this.errorMessage = `Fehler beim Speichern: ${this.formatError(err)}`;
         this.statusMessage = '';
+        this.cdr.markForCheck();
       },
     });
   }
