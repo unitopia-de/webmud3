@@ -9,6 +9,16 @@
     <button
       type="button"
       class="dirlist-btn"
+      (click)="onRefresh(listing.path)"
+      title="Verzeichnis neu laden"
+      aria-label="Verzeichnis neu laden"
+    >
+      ↻
+    </button>
+
+    <button
+      type="button"
+      class="dirlist-btn"
       (click)="onDirClick({ name: '..', size: 0, filedate: '', filetime: '', isdir: 1 }, listing.path)"
       title="Eine Ebene nach oben"
     >

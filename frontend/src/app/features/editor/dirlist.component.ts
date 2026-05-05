@@ -59,6 +59,20 @@ export class DirlistComponent {
     this.gmcp.send('Files.ChDir', { dir: '..' });
   }
 
+  /**
+   * Re-requests the current directory listing. UNItopia does not push
+   * unsolicited updates when files appear (e.g. via auto-save, another
+   * wizard's edit, …), so the user needs an explicit way to refresh.
+   * Sending `Files.ChDir` against the same path is the cheapest round-trip
+   * and reuses the server's existing reply path.
+   */
+  public onRefresh(currentPath: string): void {
+    if (!currentPath) {
+      return;
+    }
+    this.gmcp.send('Files.ChDir', { dir: currentPath });
+  }
+
   public trackByEntry(_index: number, entry: FileEntry): string {
     return `${entry.isdir ? 'd' : 'f'}:${entry.name}`;
   }
