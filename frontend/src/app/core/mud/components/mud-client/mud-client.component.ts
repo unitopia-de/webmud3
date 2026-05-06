@@ -28,6 +28,7 @@ import { InventoryWindowService } from '@webmud3/frontend/features/inventory/inv
 import { ConnectionMenuService } from '@webmud3/frontend/features/connection/connection-menu.service';
 import { NumpadWindowService } from '@webmud3/frontend/features/numpad/numpad-window.service';
 import { PlayermapWindowService } from '@webmud3/frontend/features/playermap/playermap-window.service';
+import { SettingsWindowService } from '@webmud3/frontend/features/settings/settings-window.service';
 import { WindowService } from '@webmud3/frontend/features/windows/window.service';
 import type { LinemodeState } from '@webmud3/shared';
 import {
@@ -129,19 +130,18 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
   // Bootstraps the playermap feature: registers the Playermap GMCP module and
   // adds the "Karte" toggle to the footer menu.
   private readonly _playermapWindow = inject(PlayermapWindowService);
+  // Bootstraps the settings dialog: registers the "Einstellungen…" footer
+  // menu entry that opens a tabbed settings window.
+  private readonly _settingsWindow = inject(SettingsWindowService);
   // Bootstraps the Input GMCP module and exposes the Input.Complete round-trip.
   private readonly inputCompletion = inject(InputCompletionService);
   private readonly windowService = inject(WindowService);
 
-  private readonly SR_MENU_ID = 'screenreader-debug';
-  private readonly PASTE_MENU_ID = 'paste-debug';
   private readonly MOBILE_INPUT_MENU_ID = 'mobile-input';
-  private readonly SR_INPUT_WORD_MENU_ID = 'sr-input-word';
-  private readonly SR_INPUT_COMMIT_MENU_ID = 'sr-input-commit';
-  private readonly SR_POLITE_MENU_ID = 'sr-polite';
-  private readonly HEX_LOG_MENU_ID = 'output-hex-log';
   private readonly RECENTER_MENU_ID = 'windows-recenter';
   private readonly SOUND_MENU_ID = 'sound-enabled';
+  /** Parent entry that hosts the five theme radio items as a flyout submenu. */
+  private readonly THEME_PARENT_MENU_ID = 'terminal-theme';
   /** Menu-id prefix for the five terminal-theme radio entries. */
   private readonly THEME_MENU_PREFIX = 'terminal-theme:';
 
@@ -375,18 +375,10 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
    * Cleans up subscriptions and disposes terminal resources.
    */
   ngOnDestroy() {
-    this.footerMenu.unregister(this.SR_MENU_ID);
-    this.footerMenu.unregister(this.PASTE_MENU_ID);
     this.footerMenu.unregister(this.MOBILE_INPUT_MENU_ID);
-    this.footerMenu.unregister(this.SR_INPUT_WORD_MENU_ID);
-    this.footerMenu.unregister(this.SR_INPUT_COMMIT_MENU_ID);
-    this.footerMenu.unregister(this.SR_POLITE_MENU_ID);
-    this.footerMenu.unregister(this.HEX_LOG_MENU_ID);
     this.footerMenu.unregister(this.RECENTER_MENU_ID);
     this.footerMenu.unregister(this.SOUND_MENU_ID);
-    for (const id of TERMINAL_THEME_ORDER) {
-      this.footerMenu.unregister(`${this.THEME_MENU_PREFIX}${id}`);
-    }
+    this.footerMenu.unregister(this.THEME_PARENT_MENU_ID);
     this.resizeObs.disconnect();
 
     // Unregister visibility change listener
@@ -1145,60 +1137,18 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
   }
 
   /**
-   * Registers two toggle entries in the footer menu:
-   *  - "Screenreader-Debug"  — enables [ScreenReader] / SR-related console logs
-   *  - "Paste-Debug"         — enables [PASTE-DEBUG] / clipboard-related logs
-   *
-   * Both default to off. The menu's checked state is kept in sync via subscriptions.
+   * Registers the directly-toggled footer menu entries (Sound, Mobile-Input,
+   * Theme submenu, "Fenster ins Bild"). Speech / debug toggles live in the
+   * settings dialog (`SettingsWindowService`) so they don't clutter the
+   * footer menu — pre-Option-4 the footer had ~20 entries which was
+   * unwieldy.
    */
   private registerDebugMenuItems(): void {
-    this.footerMenu.register({
-      id: this.SR_MENU_ID,
-      label: 'Screenreader-Debug',
-      checked: this.debugSettings.screenReaderLogging,
-      action: () => this.debugSettings.toggleScreenReaderLogging(),
-    });
-
-    this.footerMenu.register({
-      id: this.PASTE_MENU_ID,
-      label: 'Paste-Debug',
-      checked: this.debugSettings.pasteLogging,
-      action: () => this.debugSettings.togglePasteLogging(),
-    });
-
     this.footerMenu.register({
       id: this.MOBILE_INPUT_MENU_ID,
       label: 'Eingabezeile (Mobile)',
       checked: this.state.useMobileInput,
       action: () => this.setUseMobileInput(!this.state.useMobileInput),
-    });
-
-    this.footerMenu.register({
-      id: this.SR_INPUT_WORD_MENU_ID,
-      label: 'Eingabe ansagen (Wort)',
-      checked: this.speechSettings.announceInputWord,
-      action: () => this.speechSettings.toggleAnnounceInputWord(),
-    });
-
-    this.footerMenu.register({
-      id: this.SR_INPUT_COMMIT_MENU_ID,
-      label: 'Eingabe ansagen (Zeile)',
-      checked: this.speechSettings.announceInputCommit,
-      action: () => this.speechSettings.toggleAnnounceInputCommit(),
-    });
-
-    this.footerMenu.register({
-      id: this.SR_POLITE_MENU_ID,
-      label: 'Sanfte Eingabe-Ansage (Safari)',
-      checked: this.speechSettings.politeInputMode,
-      action: () => this.speechSettings.togglePoliteInputMode(),
-    });
-
-    this.footerMenu.register({
-      id: this.HEX_LOG_MENU_ID,
-      label: 'Output Hex-Log',
-      checked: this.debugSettings.outputHexLogging,
-      action: () => this.debugSettings.toggleOutputHexLogging(),
     });
 
     // Action entry (no checkbox state) — used as a panic button when a
@@ -1218,43 +1168,31 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
       action: () => this.soundService.toggle(),
     });
 
-    // Terminal-theme radio group: one entry per theme. Clicking switches
-    // the theme; the themeId$ subscription below keeps every entry's
-    // `checked` state in sync so the menu always reflects the active
-    // choice.
+    // Terminal-theme radio group as a one-level submenu. Clicking the parent
+    // expands the flyout; clicking a child switches the theme. The themeId$
+    // subscription below keeps every entry's `checked` state in sync so the
+    // menu always reflects the active choice.
     const activeThemeId = this.terminalThemes.themeId;
-    for (const id of TERMINAL_THEME_ORDER) {
-      const def = TERMINAL_THEMES[id];
-      this.footerMenu.register({
-        id: `${this.THEME_MENU_PREFIX}${id}`,
-        label: def.label,
-        checked: id === activeThemeId,
-        action: () => this.terminalThemes.setTheme(id),
-      });
-    }
-
-    this.debugSettings.screenReaderLogging$.subscribe((enabled) => {
-      this.footerMenu.setChecked(this.SR_MENU_ID, enabled);
-    });
-
-    this.debugSettings.pasteLogging$.subscribe((enabled) => {
-      this.footerMenu.setChecked(this.PASTE_MENU_ID, enabled);
-    });
-
-    this.debugSettings.outputHexLogging$.subscribe((enabled) => {
-      this.footerMenu.setChecked(this.HEX_LOG_MENU_ID, enabled);
+    this.footerMenu.register({
+      id: this.THEME_PARENT_MENU_ID,
+      label: 'Farben',
+      // Pin to the very top of the menu regardless of registration order —
+      // window-services etc. register without an explicit `order` and use
+      // the DEFAULT_MENU_ORDER (100), so any value below that wins.
+      order: 0,
+      children: TERMINAL_THEME_ORDER.map((id) => {
+        const def = TERMINAL_THEMES[id];
+        return {
+          id: `${this.THEME_MENU_PREFIX}${id}`,
+          label: def.label,
+          checked: id === activeThemeId,
+          action: () => this.terminalThemes.setTheme(id),
+        };
+      }),
     });
 
     this.soundService.enabled$.subscribe((enabled) => {
       this.footerMenu.setChecked(this.SOUND_MENU_ID, enabled);
-    });
-
-    this.speechSettings.announceInputWord$.subscribe((enabled) => {
-      this.footerMenu.setChecked(this.SR_INPUT_WORD_MENU_ID, enabled);
-    });
-
-    this.speechSettings.announceInputCommit$.subscribe((enabled) => {
-      this.footerMenu.setChecked(this.SR_INPUT_COMMIT_MENU_ID, enabled);
     });
 
     this.terminalThemes.themeId$.subscribe((activeId) => {
@@ -1266,8 +1204,10 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
       }
     });
 
+    // Polite-input-mode lives in the settings dialog now, but we still have
+    // to react to changes here because the actual aria-live attribute on
+    // the input region is owned by this component.
     this.speechSettings.politeInputMode$.subscribe((enabled) => {
-      this.footerMenu.setChecked(this.SR_POLITE_MENU_ID, enabled);
       this.applyPoliteInputMode(enabled);
     });
   }

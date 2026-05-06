@@ -5,6 +5,7 @@ import { EditorComponent } from '@webmud3/frontend/features/editor/editor.compon
 import { InventoryComponent } from '@webmud3/frontend/features/inventory/inventory.component';
 import { NumpadConfigComponent } from '@webmud3/frontend/features/numpad/numpad-config.component';
 import { PlayermapComponent } from '@webmud3/frontend/features/playermap/playermap.component';
+import { SettingsComponent } from '@webmud3/frontend/features/settings/settings.component';
 
 /**
  * Maps WindowConfig.component (a string id) to a concrete Angular component.
@@ -19,4 +20,5 @@ export const WINDOW_COMPONENTS: Record<string, Type<unknown>> = {
   editor: EditorComponent,
   dirlist: DirlistComponent,
   playermap: PlayermapComponent,
+  settings: SettingsComponent,
 };

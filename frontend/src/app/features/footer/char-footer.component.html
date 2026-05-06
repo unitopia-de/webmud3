@@ -26,18 +26,58 @@
 
   <div class="menu-dropdown" *ngIf="menuOpen()" role="menu">
     <ng-container *ngIf="(menuItems$ | async)?.length; else emptyMenu">
-      <button
-        *ngFor="let item of menuItems$ | async"
-        type="button"
-        class="menu-item"
-        role="menuitem"
-        [disabled]="item.disabled"
-        (click)="onMenuItemClick(item.action)"
-      >
-        <span class="check">{{ item.checked ? '✓' : '' }}</span>
-        <span class="icon" *ngIf="item.icon">{{ item.icon }}</span>
-        <span class="label">{{ item.label }}</span>
-      </button>
+      <ng-container *ngFor="let item of menuItems$ | async">
+        <!-- Item with submenu: clicking toggles the flyout instead of an action -->
+        <div *ngIf="item.children?.length; else leaf" class="menu-item-wrapper">
+          <button
+            type="button"
+            class="menu-item has-children"
+            role="menuitem"
+            aria-haspopup="true"
+            [attr.aria-expanded]="openSubmenuId() === item.id"
+            [disabled]="item.disabled"
+            (click)="toggleSubmenu($event, item.id)"
+          >
+            <span class="check">{{ item.checked ? '✓' : '' }}</span>
+            <span class="icon" *ngIf="item.icon">{{ item.icon }}</span>
+            <span class="label">{{ item.label }}</span>
+            <span class="submenu-arrow">▶</span>
+          </button>
+          <div
+            class="submenu"
+            *ngIf="openSubmenuId() === item.id"
+            role="menu"
+          >
+            <button
+              *ngFor="let child of item.children"
+              type="button"
+              class="menu-item"
+              role="menuitem"
+              [disabled]="child.disabled"
+              (click)="onMenuItemClick(child.action)"
+            >
+              <span class="check">{{ child.checked ? '✓' : '' }}</span>
+              <span class="icon" *ngIf="child.icon">{{ child.icon }}</span>
+              <span class="label">{{ child.label }}</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Leaf item -->
+        <ng-template #leaf>
+          <button
+            type="button"
+            class="menu-item"
+            role="menuitem"
+            [disabled]="item.disabled"
+            (click)="onMenuItemClick(item.action)"
+          >
+            <span class="check">{{ item.checked ? '✓' : '' }}</span>
+            <span class="icon" *ngIf="item.icon">{{ item.icon }}</span>
+            <span class="label">{{ item.label }}</span>
+          </button>
+        </ng-template>
+      </ng-container>
     </ng-container>
     <ng-template #emptyMenu>
       <div class="menu-empty">no entries</div>

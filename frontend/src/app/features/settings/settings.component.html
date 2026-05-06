@@ -1,0 +1,115 @@
+<nav class="settings-tabs" role="tablist" aria-label="Einstellungen">
+  <button
+    type="button"
+    role="tab"
+    [class.active]="activeTab() === 'accessibility'"
+    [attr.aria-selected]="activeTab() === 'accessibility'"
+    (click)="selectTab('accessibility')"
+  >
+    Barrierefreiheit
+  </button>
+  <button
+    type="button"
+    role="tab"
+    [class.active]="activeTab() === 'diagnostics'"
+    [attr.aria-selected]="activeTab() === 'diagnostics'"
+    (click)="selectTab('diagnostics')"
+  >
+    Diagnose
+  </button>
+</nav>
+
+<section
+  class="settings-panel"
+  role="tabpanel"
+  *ngIf="activeTab() === 'accessibility'"
+>
+  <h3>Sprachausgabe</h3>
+
+  <label class="settings-row">
+    <input
+      type="checkbox"
+      [checked]="announceWord$ | async"
+      (change)="toggleAnnounceWord()"
+    />
+    <span class="row-label">Eingabe ansagen (Wort)</span>
+    <span class="row-hint">
+      Liest jedes vollständige Wort vor, sobald ein Leerzeichen folgt.
+    </span>
+  </label>
+
+  <label class="settings-row">
+    <input
+      type="checkbox"
+      [checked]="announceCommit$ | async"
+      (change)="toggleAnnounceCommit()"
+    />
+    <span class="row-label">Eingabe ansagen (Zeile)</span>
+    <span class="row-hint">
+      Liest die komplette Befehlszeile nach Drücken der Eingabetaste vor.
+    </span>
+  </label>
+
+  <label class="settings-row">
+    <input
+      type="checkbox"
+      [checked]="politeInput$ | async"
+      (change)="togglePoliteInput()"
+    />
+    <span class="row-label">Sanfte Eingabe-Ansage (Safari)</span>
+    <span class="row-hint">
+      Workaround gegen einen VoiceOver/Safari-Bug, der das ganze Log
+      wiederholt vorliest. Setzt das Eingabefeld auf
+      <code>aria-live="polite"</code>.
+    </span>
+  </label>
+</section>
+
+<section
+  class="settings-panel"
+  role="tabpanel"
+  *ngIf="activeTab() === 'diagnostics'"
+>
+  <h3>Diagnose</h3>
+  <p class="settings-intro">
+    Hilfsausgaben für Bug-Suche. Im Normalbetrieb deaktiviert lassen.
+  </p>
+
+  <label class="settings-row">
+    <input
+      type="checkbox"
+      [checked]="screenReaderLogging$ | async"
+      (change)="toggleScreenReaderLogging()"
+    />
+    <span class="row-label">Screenreader-Debug</span>
+    <span class="row-hint">
+      Loggt alle Vorlese-Ereignisse in die Browser-Konsole.
+    </span>
+  </label>
+
+  <label class="settings-row">
+    <input
+      type="checkbox"
+      [checked]="pasteLogging$ | async"
+      (change)="togglePasteLogging()"
+    />
+    <span class="row-label">Paste-Debug</span>
+    <span class="row-hint">
+      Loggt jeden eingefügten Text-Chunk mitsamt Pfad, den er nimmt.
+    </span>
+  </label>
+
+  <label class="settings-row">
+    <input
+      type="checkbox"
+      [checked]="outputHexLogging$ | async"
+      (change)="toggleOutputHexLogging()"
+    />
+    <span class="row-label">Output Hex-Log</span>
+    <span class="row-hint">
+      Schreibt jeden vom Server empfangenen Daten-Chunk als Hex-Dump in die
+      Konsole — nützlich, um „verschluckte" Zeichen oder Encoding-Probleme
+      zu diagnostizieren.
+    </span>
+  </label>
+</section>

@@ -45,6 +45,8 @@ export class CharFooterComponent implements OnInit, OnDestroy {
   public readonly vitalsText = signal<string>('');
   public readonly status = signal<unknown>(null);
   public readonly menuOpen = signal<boolean>(false);
+  /** Id of the currently open submenu, or null if none is expanded. */
+  public readonly openSubmenuId = signal<string | null>(null);
   /** True for a short window after a vitals change so the value flashes red. */
   public readonly vitalsFlash = signal<boolean>(false);
 
@@ -100,12 +102,23 @@ export class CharFooterComponent implements OnInit, OnDestroy {
 
   public toggleMenu(event: Event): void {
     event.stopPropagation();
-    this.menuOpen.update((v) => !v);
+    const willOpen = !this.menuOpen();
+    this.menuOpen.set(willOpen);
+    if (!willOpen) {
+      this.openSubmenuId.set(null);
+    }
   }
 
-  public onMenuItemClick(action: () => void): void {
-    action();
+  /** Opens / closes a submenu without closing the parent dropdown. */
+  public toggleSubmenu(event: Event, id: string): void {
+    event.stopPropagation();
+    this.openSubmenuId.update((current) => (current === id ? null : id));
+  }
+
+  public onMenuItemClick(action: (() => void) | undefined): void {
+    action?.();
     this.menuOpen.set(false);
+    this.openSubmenuId.set(null);
   }
 
   /** Closes the menu when clicking outside */
@@ -120,6 +133,7 @@ export class CharFooterComponent implements OnInit, OnDestroy {
 
     if (root && !root.contains(target)) {
       this.menuOpen.set(false);
+      this.openSubmenuId.set(null);
     }
   }
 }
