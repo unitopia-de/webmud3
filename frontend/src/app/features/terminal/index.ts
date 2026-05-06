@@ -5,3 +5,5 @@ export * from './mud-prompt.manager';
 export * from './mud-socket.adapter';
 export * from './mud-screenreader';
 export * from './speech-settings.service';
+export * from './terminal-themes';
+export * from './terminal-theme.service';

@@ -151,8 +151,11 @@ export class EditorComponent implements OnInit, AfterViewInit, OnDestroy {
         // Mirror the success into the main MUD terminal so the user gets
         // the confirmation even when the editor window is hidden behind
         // others.
+        // Use the full MUD path (`file`) so the user can tell which copy of
+        // a file was saved when several editors are open at once. Fall back
+        // to the basename only if the path is missing.
         this.mudNotices.notify(
-          `[Datei ${fileinfo.filename || fileinfo.file} gespeichert]`,
+          `[Datei ${fileinfo.file || fileinfo.filename} gespeichert]`,
         );
 
         if (closeAfter) {

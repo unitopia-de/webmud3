@@ -38,6 +38,11 @@ import {
   MudSocketAdapter,
   MudPromptContext,
   SpeechSettingsService,
+  TerminalThemeService,
+  TERMINAL_THEME_ORDER,
+  TERMINAL_THEMES,
+  TerminalThemeDefinition,
+  TerminalThemeId,
   CTRL,
   cursorLeft,
 } from '../../../../features/terminal';
@@ -98,6 +103,7 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
   private readonly outputHistoryService = inject(OutputHistoryService);
   private readonly debugSettings = inject(DebugSettingsService);
   private readonly speechSettings = inject(SpeechSettingsService);
+  private readonly terminalThemes = inject(TerminalThemeService);
   private readonly footerMenu = inject(FooterMenuService);
   // Bootstraps the Char GMCP module (registers it with the GmcpService so that
   // "Char 1" is included in Core.Supports.Set sent to the MUD).
@@ -134,6 +140,8 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
   private readonly SR_POLITE_MENU_ID = 'sr-polite';
   private readonly HEX_LOG_MENU_ID = 'output-hex-log';
   private readonly RECENTER_MENU_ID = 'windows-recenter';
+  /** Menu-id prefix for the five terminal-theme radio entries. */
+  private readonly THEME_MENU_PREFIX = 'terminal-theme:';
 
   private readonly terminal: Terminal;
   private readonly inputController: MudInputController;
@@ -166,6 +174,7 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
   private linemodeSubscription?: Subscription;
   private completionSubscriptions: Subscription[] = [];
   private noticeSubscription?: Subscription;
+  private themeSubscription?: Subscription;
   private pasteHandler?: (event: ClipboardEvent) => void;
   /** Read-only state accessor for template bindings. */
   public get useMobileInput(): boolean {
@@ -219,14 +228,16 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
    * share the same terminal instance.
    */
   constructor() {
+    const initialTheme = this.terminalThemes.theme;
     this.terminal = new Terminal({
       fontFamily: 'JetBrainsMono, monospace',
       disableStdin: false,
       screenReaderMode: false,
-      // This settings will adjust all colors to ensure sufficient contrast ratio for accessibility
-      // between text and background colors. This may alter the original color scheme.
-      // For more information, see: https://xtermjs.org/docs/api/terminal/interfaces/iterminaloptions/#optional-minimumcontrastratio
-      minimumContrastRatio: 7, // Default value for WCAG AAA compliance
+      // Both `theme` and `minimumContrastRatio` come from the user-selected
+      // entry in TerminalThemeService and are kept in sync at runtime via
+      // the `theme$` subscription wired up in ngAfterViewInit.
+      theme: initialTheme.theme,
+      minimumContrastRatio: initialTheme.minimumContrastRatio,
     });
 
     this.inputController = new MudInputController(
@@ -333,6 +344,10 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
       this.writeLocalNotice(text),
     );
 
+    this.themeSubscription = this.terminalThemes.theme$.subscribe((def) =>
+      this.applyTerminalTheme(def),
+    );
+
     this.resizeObs.observe(this.terminalRef.nativeElement);
     this.setState({ terminalReady: true });
 
@@ -366,6 +381,9 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
     this.footerMenu.unregister(this.SR_POLITE_MENU_ID);
     this.footerMenu.unregister(this.HEX_LOG_MENU_ID);
     this.footerMenu.unregister(this.RECENTER_MENU_ID);
+    for (const id of TERMINAL_THEME_ORDER) {
+      this.footerMenu.unregister(`${this.THEME_MENU_PREFIX}${id}`);
+    }
     this.resizeObs.disconnect();
 
     // Unregister visibility change listener
@@ -394,6 +412,7 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
     this.showEchoSubscription?.unsubscribe();
     this.linemodeSubscription?.unsubscribe();
     this.noticeSubscription?.unsubscribe();
+    this.themeSubscription?.unsubscribe();
     for (const sub of this.completionSubscriptions) {
       sub.unsubscribe();
     }
@@ -669,6 +688,18 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
    */
   private handleInputCompleteNone(): void {
     this.terminal.write('\x07');
+  }
+
+  /**
+   * Applies the given theme definition to the live xterm instance. Both
+   * `theme` and `minimumContrastRatio` are part of `Terminal.options`, so
+   * the change takes effect immediately without re-creating the terminal.
+   * Called both on init (with the persisted choice) and whenever the user
+   * picks a different theme via the footer menu.
+   */
+  private applyTerminalTheme(def: TerminalThemeDefinition): void {
+    this.terminal.options.theme = def.theme;
+    this.terminal.options.minimumContrastRatio = def.minimumContrastRatio;
   }
 
   /**
@@ -1177,6 +1208,21 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
       action: () => this.windowService.bringAllIntoView(),
     });
 
+    // Terminal-theme radio group: one entry per theme. Clicking switches
+    // the theme; the themeId$ subscription below keeps every entry's
+    // `checked` state in sync so the menu always reflects the active
+    // choice.
+    const activeThemeId = this.terminalThemes.themeId;
+    for (const id of TERMINAL_THEME_ORDER) {
+      const def = TERMINAL_THEMES[id];
+      this.footerMenu.register({
+        id: `${this.THEME_MENU_PREFIX}${id}`,
+        label: def.label,
+        checked: id === activeThemeId,
+        action: () => this.terminalThemes.setTheme(id),
+      });
+    }
+
     this.debugSettings.screenReaderLogging$.subscribe((enabled) => {
       this.footerMenu.setChecked(this.SR_MENU_ID, enabled);
     });
@@ -1195,6 +1241,15 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
 
     this.speechSettings.announceInputCommit$.subscribe((enabled) => {
       this.footerMenu.setChecked(this.SR_INPUT_COMMIT_MENU_ID, enabled);
+    });
+
+    this.terminalThemes.themeId$.subscribe((activeId) => {
+      for (const id of TERMINAL_THEME_ORDER) {
+        this.footerMenu.setChecked(
+          `${this.THEME_MENU_PREFIX}${id}`,
+          id === activeId,
+        );
+      }
     });
 
     this.speechSettings.politeInputMode$.subscribe((enabled) => {
