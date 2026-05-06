@@ -23,20 +23,27 @@
 
 .char-vitals {
   color: #4ec9b0;
+  background: transparent;
   font-family: monospace;
   font-size: 12px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 60ch;
-  // Soft fade back to the default colour after the flash class is removed.
-  transition: color 0.3s ease-out;
+  // A tiny bit of horizontal padding so the white flash background actually
+  // shows around the text instead of clipping at the glyph edge.
+  padding: 0 4px;
+  border-radius: 2px;
+  // Soft fade back to the default colours after the flash class is removed.
+  transition: color 0.3s ease-out, background-color 0.3s ease-out;
 
   &.flashing {
-    // Snap straight to red on flash start; the fade-out happens via the
-    // base rule's transition once the class is removed by the timer.
+    // Snap straight to red text on white background on flash start; the
+    // fade-out happens via the base rule's transition once the class is
+    // removed by the timer.
     color: #ff3030;
-    transition: color 0s;
+    background: #ffffff;
+    transition: color 0s, background-color 0s;
   }
 }
 
