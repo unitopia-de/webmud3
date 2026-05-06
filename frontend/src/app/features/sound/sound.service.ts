@@ -1,8 +1,11 @@
 import { inject, Injectable, OnDestroy } from '@angular/core';
-import { Subscription } from 'rxjs';
+import { BehaviorSubject, Observable, Subscription } from 'rxjs';
 
 import { MudSignalService } from '@webmud3/frontend/features/gmcp/signals/mud-signal.service';
+import { namespacedStorage } from '@webmud3/frontend/shared/utils/storage-namespace';
 import { SoundGmcpModule } from './sound-gmcp.module';
+
+const STORAGE_SUFFIX = 'webmud3-sound-enabled';
 
 /**
  * Plays MUD-driven sound effects.
@@ -36,7 +39,18 @@ export class SoundService implements OnDestroy {
    */
   private readonly audioCache = new Map<string, HTMLAudioElement>();
 
+  /**
+   * Reactive on/off switch. Defaults to enabled but can be toggled by the
+   * user via the footer menu; the choice is persisted per deployment so it
+   * survives reloads.
+   */
+  private readonly enabledSubject = new BehaviorSubject<boolean>(true);
+  public readonly enabled$: Observable<boolean> =
+    this.enabledSubject.asObservable();
+
   constructor() {
+    this.loadEnabledFromStorage();
+
     this.subscriptions.push(
       this.signals.on('Sound.Url').subscribe((s) => {
         this.baseUrl = s.url;
@@ -60,13 +74,40 @@ export class SoundService implements OnDestroy {
     this.audioCache.clear();
   }
 
+  /** Synchronous read for non-Angular consumers. */
+  public get enabled(): boolean {
+    return this.enabledSubject.value;
+  }
+
+  public setEnabled(enabled: boolean): void {
+    if (this.enabledSubject.value === enabled) {
+      return;
+    }
+    this.enabledSubject.next(enabled);
+    this.persistEnabled();
+
+    // Stop everything that is currently audible when the user mutes.
+    if (!enabled) {
+      this.stopAllPlaying();
+    }
+  }
+
+  public toggle(): boolean {
+    const next = !this.enabledSubject.value;
+    this.setEnabled(next);
+    return next;
+  }
+
   /**
    * Plays the given sound. The argument is the relative file name from
    * `Sound.Event`; absolute URLs (already containing `://`) are passed through
-   * unchanged.
+   * unchanged. No-op when sound output is disabled by the user.
    */
   public play(fileOrUrl: string): void {
     if (!fileOrUrl) {
+      return;
+    }
+    if (!this.enabledSubject.value) {
       return;
     }
 
@@ -123,5 +164,28 @@ export class SoundService implements OnDestroy {
     }
 
     return audio;
+  }
+
+  /** Pauses every cached `<audio>` so muting takes effect mid-playback. */
+  private stopAllPlaying(): void {
+    for (const audio of this.audioCache.values()) {
+      if (!audio.paused) {
+        audio.pause();
+        audio.currentTime = 0;
+      }
+    }
+  }
+
+  private loadEnabledFromStorage(): void {
+    const raw = namespacedStorage.get(STORAGE_SUFFIX);
+    if (raw === '0' || raw === 'false') {
+      this.enabledSubject.next(false);
+    }
+    // Anything else (including the default empty key) keeps the initial
+    // `true` value — sound is on out of the box.
+  }
+
+  private persistEnabled(): void {
+    namespacedStorage.set(STORAGE_SUFFIX, this.enabledSubject.value ? '1' : '0');
   }
 }

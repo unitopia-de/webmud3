@@ -124,7 +124,8 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
   private readonly _dirlistWindow = inject(DirlistWindowService);
   // Bootstraps the sound feature: registers the Sound GMCP module and
   // plays files announced via Sound.Event against the Sound.Url base URL.
-  private readonly _sound = inject(SoundService);
+  // Also exposed via the "Sound" footer-menu toggle below.
+  private readonly soundService = inject(SoundService);
   // Bootstraps the playermap feature: registers the Playermap GMCP module and
   // adds the "Karte" toggle to the footer menu.
   private readonly _playermapWindow = inject(PlayermapWindowService);
@@ -140,6 +141,7 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
   private readonly SR_POLITE_MENU_ID = 'sr-polite';
   private readonly HEX_LOG_MENU_ID = 'output-hex-log';
   private readonly RECENTER_MENU_ID = 'windows-recenter';
+  private readonly SOUND_MENU_ID = 'sound-enabled';
   /** Menu-id prefix for the five terminal-theme radio entries. */
   private readonly THEME_MENU_PREFIX = 'terminal-theme:';
 
@@ -381,6 +383,7 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
     this.footerMenu.unregister(this.SR_POLITE_MENU_ID);
     this.footerMenu.unregister(this.HEX_LOG_MENU_ID);
     this.footerMenu.unregister(this.RECENTER_MENU_ID);
+    this.footerMenu.unregister(this.SOUND_MENU_ID);
     for (const id of TERMINAL_THEME_ORDER) {
       this.footerMenu.unregister(`${this.THEME_MENU_PREFIX}${id}`);
     }
@@ -1208,6 +1211,13 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
       action: () => this.windowService.bringAllIntoView(),
     });
 
+    this.footerMenu.register({
+      id: this.SOUND_MENU_ID,
+      label: 'Sound',
+      checked: this.soundService.enabled,
+      action: () => this.soundService.toggle(),
+    });
+
     // Terminal-theme radio group: one entry per theme. Clicking switches
     // the theme; the themeId$ subscription below keeps every entry's
     // `checked` state in sync so the menu always reflects the active
@@ -1233,6 +1243,10 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
 
     this.debugSettings.outputHexLogging$.subscribe((enabled) => {
       this.footerMenu.setChecked(this.HEX_LOG_MENU_ID, enabled);
+    });
+
+    this.soundService.enabled$.subscribe((enabled) => {
+      this.footerMenu.setChecked(this.SOUND_MENU_ID, enabled);
     });
 
     this.speechSettings.announceInputWord$.subscribe((enabled) => {
