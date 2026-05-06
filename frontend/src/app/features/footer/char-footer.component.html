@@ -2,7 +2,11 @@
   <span class="char-name" *ngIf="charName(); else noChar">{{ charName() }}</span>
   <ng-template #noChar><span class="placeholder">no character</span></ng-template>
 
-  <span class="char-vitals" *ngIf="vitalsText() as v">{{ v }}</span>
+  <span
+    class="char-vitals"
+    [class.flashing]="vitalsFlash()"
+    *ngIf="vitalsText() as v"
+  >{{ v }}</span>
 </div>
 
 <div class="spacer"></div>

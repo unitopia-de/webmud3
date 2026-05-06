@@ -29,6 +29,15 @@
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 60ch;
+  // Soft fade back to the default colour after the flash class is removed.
+  transition: color 0.3s ease-out;
+
+  &.flashing {
+    // Snap straight to red on flash start; the fade-out happens via the
+    // base rule's transition once the class is removed by the timer.
+    color: #ff3030;
+    transition: color 0s;
+  }
 }
 
 .placeholder {

@@ -45,8 +45,11 @@ export class CharFooterComponent implements OnInit, OnDestroy {
   public readonly vitalsText = signal<string>('');
   public readonly status = signal<unknown>(null);
   public readonly menuOpen = signal<boolean>(false);
+  /** True for a short window after a vitals change so the value flashes red. */
+  public readonly vitalsFlash = signal<boolean>(false);
 
   private readonly subscriptions: Subscription[] = [];
+  private vitalsFlashTimer: ReturnType<typeof setTimeout> | null = null;
 
   ngOnInit(): void {
     this.subscriptions.push(
@@ -55,7 +58,7 @@ export class CharFooterComponent implements OnInit, OnDestroy {
         .subscribe((s) => this.charName.set(s.fullName)),
       this.signals
         .on('Char.Vitals')
-        .subscribe((s) => this.vitalsText.set(s.text ?? '')),
+        .subscribe((s) => this.handleVitals(s.text ?? '')),
       this.signals.on('Char.Status').subscribe((s) => this.status.set(s.data)),
     );
   }
@@ -64,6 +67,35 @@ export class CharFooterComponent implements OnInit, OnDestroy {
     for (const sub of this.subscriptions) {
       sub.unsubscribe();
     }
+    if (this.vitalsFlashTimer !== null) {
+      clearTimeout(this.vitalsFlashTimer);
+      this.vitalsFlashTimer = null;
+    }
+  }
+
+  /**
+   * Stores the new vitals text and — if it differs from the previous value —
+   * triggers a one-second red flash. The first server push (previous == '')
+   * deliberately does not flash; otherwise every login would trigger the
+   * effect for no reason.
+   */
+  private handleVitals(next: string): void {
+    const previous = this.vitalsText();
+    this.vitalsText.set(next);
+
+    if (!next || previous === '' || previous === next) {
+      return;
+    }
+
+    if (this.vitalsFlashTimer !== null) {
+      clearTimeout(this.vitalsFlashTimer);
+    }
+    this.vitalsFlash.set(true);
+    // 700ms class + 300ms CSS transition back to default = ~1s total.
+    this.vitalsFlashTimer = setTimeout(() => {
+      this.vitalsFlash.set(false);
+      this.vitalsFlashTimer = null;
+    }, 700);
   }
 
   public toggleMenu(event: Event): void {
