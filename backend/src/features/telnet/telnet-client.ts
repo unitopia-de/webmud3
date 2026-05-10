@@ -24,6 +24,7 @@ import {
   GmcpOptionHandler,
   handleGmcpOption,
 } from './utils/handle-gmcp-option.js';
+import { handleMxpOption } from './utils/handle-mxp-option.js';
 import { handleTTypeOption } from './utils/handle-ttype-option.js';
 import { TelnetSocketWrapper } from './utils/telnet-socket-wrapper.js';
 
@@ -162,6 +163,7 @@ export class TelnetClient extends EventEmitter<TelnetClientEvents> {
       [TelnetOptions.TELOPT_MSSP, handleMSSPOption(this.telnetSocket)],
       [TelnetOptions.TELOPT_EOR, handleEorOption(this.telnetSocket)],
       [TelnetOptions.TELOPT_GMCP, handleGmcpOption(this.telnetSocket)],
+      [TelnetOptions.TELOPT_MXP, handleMxpOption(this.telnetSocket)],
     ]);
 
     this.setupOptionStateTracking();

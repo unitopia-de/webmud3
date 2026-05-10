@@ -38,6 +38,7 @@ import {
   MudScreenReaderAnnouncer,
   MudSocketAdapter,
   MudPromptContext,
+  MxpStreamFilter,
   SpeechSettingsService,
   TerminalThemeService,
   TERMINAL_THEME_ORDER,
@@ -148,6 +149,7 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
   private readonly terminal: Terminal;
   private readonly inputController: MudInputController;
   private readonly promptManager: MudPromptManager;
+  private readonly mxpFilter = new MxpStreamFilter();
   private screenReader?: MudScreenReaderAnnouncer;
   private readonly terminalClipboardAddon = new ClipboardAddon();
   private readonly terminalFitAddon = new FitAddon();
@@ -775,10 +777,15 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
   }
 
   /**
-   * Lets the prompt manager strip redundant CR/LF characters.
+   * Pipes server output through the MXP filter (drops MXP mode-switches and
+   * tags so they never reach xterm) and the prompt manager (CR/LF cleanup).
+   * Order matters: the prompt manager only strips a leading line break,
+   * which would not change after MXP filtering — but the MXP filter has to
+   * see the raw bytes so it can correctly track mode state across chunks.
    */
   private transformMudOutput(data: string): string {
-    return this.promptManager.transformOutput(data);
+    const stripped = this.mxpFilter.process(data);
+    return this.promptManager.transformOutput(stripped);
   }
 
   /**
