@@ -52,6 +52,40 @@
   font-style: italic;
 }
 
+.mxp-stats {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 4px;
+}
+
+.mxp-stat-pill {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 3px;
+  padding: 2px 6px;
+  background: #2a2d2e;
+  border: 1px solid #3a3a3a;
+  border-radius: 10px;
+  font-family: monospace;
+  font-size: 11px;
+  line-height: 1.2;
+  color: #ddd;
+
+  .mxp-stat-caption {
+    color: #4ec9b0;
+    font-weight: bold;
+  }
+
+  .mxp-stat-value {
+    color: #fff;
+  }
+
+  .mxp-stat-max {
+    color: #888;
+  }
+}
+
 .spacer {
   flex: 1 1 auto;
 }

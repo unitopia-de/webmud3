@@ -10,9 +10,14 @@ import {
   signal,
   ViewChild,
 } from '@angular/core';
-import { Subscription } from 'rxjs';
+import { combineLatest, Subscription } from 'rxjs';
+import { map } from 'rxjs/operators';
 
 import { MudSignalService } from '@webmud3/frontend/features/gmcp/signals/mud-signal.service';
+import {
+  MxpEntityService,
+  MxpStatService,
+} from '@webmud3/frontend/features/terminal';
 import { FooterMenuService } from './footer-menu.service';
 
 /**
@@ -36,6 +41,22 @@ import { FooterMenuService } from './footer-menu.service';
 export class CharFooterComponent implements OnInit, OnDestroy {
   private readonly signals = inject(MudSignalService);
   private readonly menu = inject(FooterMenuService);
+  private readonly mxpStats = inject(MxpStatService);
+  private readonly mxpEntities = inject(MxpEntityService);
+
+  /** Reactive view-model for the MXP status pills next to the vitals. */
+  public readonly mxpDisplay$ = combineLatest([
+    this.mxpStats.stats$,
+    this.mxpEntities.entities$,
+  ]).pipe(
+    map(([stats, entities]) =>
+      stats.map((s) => ({
+        caption: s.caption ?? `${s.name}:`,
+        value: entities.get(s.name) ?? '?',
+        max: s.maxName !== undefined ? entities.get(s.maxName) : undefined,
+      })),
+    ),
+  );
 
   @ViewChild('menuRoot') menuRoot?: ElementRef<HTMLElement>;
 

@@ -38,7 +38,10 @@ import {
   MudScreenReaderAnnouncer,
   MudSocketAdapter,
   MudPromptContext,
+  MxpEntityService,
+  MxpStatService,
   MxpStreamFilter,
+  MxpTagRouter,
   SpeechSettingsService,
   TerminalThemeService,
   TERMINAL_THEME_ORDER,
@@ -137,6 +140,9 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
   // Bootstraps the Input GMCP module and exposes the Input.Complete round-trip.
   private readonly inputCompletion = inject(InputCompletionService);
   private readonly windowService = inject(WindowService);
+  private readonly mxpRouter = inject(MxpTagRouter);
+  private readonly mxpEntities = inject(MxpEntityService);
+  private readonly mxpStats = inject(MxpStatService);
 
   private readonly MOBILE_INPUT_MENU_ID = 'mobile-input';
   private readonly RECENTER_MENU_ID = 'windows-recenter';
@@ -149,7 +155,9 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
   private readonly terminal: Terminal;
   private readonly inputController: MudInputController;
   private readonly promptManager: MudPromptManager;
-  private readonly mxpFilter = new MxpStreamFilter();
+  private readonly mxpFilter = new MxpStreamFilter((raw) =>
+    this.mxpRouter.handle(raw),
+  );
   private screenReader?: MudScreenReaderAnnouncer;
   private readonly terminalClipboardAddon = new ClipboardAddon();
   private readonly terminalFitAddon = new FitAddon();
@@ -179,6 +187,7 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
   private completionSubscriptions: Subscription[] = [];
   private noticeSubscription?: Subscription;
   private themeSubscription?: Subscription;
+  private mxpResetSubscription?: Subscription;
   private pasteHandler?: (event: ClipboardEvent) => void;
   /** Read-only state accessor for template bindings. */
   public get useMobileInput(): boolean {
@@ -352,6 +361,18 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
       this.applyTerminalTheme(def),
     );
 
+    // On every disconnect, drop MXP state so a fresh login starts with a
+    // clean entity / stat map. The server resends both at init_mxp() time.
+    this.mxpResetSubscription = this.mudService.connectedToMud$.subscribe(
+      (connected) => {
+        if (!connected) {
+          this.mxpFilter.reset();
+          this.mxpEntities.clear();
+          this.mxpStats.clear();
+        }
+      },
+    );
+
     this.resizeObs.observe(this.terminalRef.nativeElement);
     this.setState({ terminalReady: true });
 
@@ -410,6 +431,7 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
     this.linemodeSubscription?.unsubscribe();
     this.noticeSubscription?.unsubscribe();
     this.themeSubscription?.unsubscribe();
+    this.mxpResetSubscription?.unsubscribe();
     for (const sub of this.completionSubscriptions) {
       sub.unsubscribe();
     }

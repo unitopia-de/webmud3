@@ -7,6 +7,18 @@
     [class.flashing]="vitalsFlash()"
     *ngIf="vitalsText() as v"
   >{{ v }}</span>
+
+  <span class="mxp-stats" *ngIf="(mxpDisplay$ | async)?.length">
+    <span
+      *ngFor="let s of mxpDisplay$ | async"
+      class="mxp-stat-pill"
+      [title]="s.caption + ' ' + s.value + (s.max ? ' / ' + s.max : '')"
+    >
+      <span class="mxp-stat-caption">{{ s.caption }}</span>
+      <span class="mxp-stat-value">{{ s.value }}</span>
+      <span class="mxp-stat-max" *ngIf="s.max">/{{ s.max }}</span>
+    </span>
+  </span>
 </div>
 
 <div class="spacer"></div>

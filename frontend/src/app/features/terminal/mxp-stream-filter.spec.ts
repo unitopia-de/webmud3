@@ -119,4 +119,33 @@ describe('MxpStreamFilter', () => {
       `Plain text.${ESC}[4z<rexit>nord</rexit>${ESC}[7z`;
     expect(filter.process(input)).toBe('XPlain text.nord');
   });
+
+  describe('with onTag callback', () => {
+    it('emits each complete tag verbatim', () => {
+      const seen: string[] = [];
+      const f = new MxpStreamFilter((raw) => seen.push(raw));
+      f.process(`<!ENTITY ap "100" PUBLISH><stat ap max=maxap caption="AP:">Hello`);
+      expect(seen).toEqual([
+        '<!ENTITY ap "100" PUBLISH>',
+        '<stat ap max=maxap caption="AP:">',
+      ]);
+    });
+
+    it('emits a tag only after it is complete (across chunks)', () => {
+      const seen: string[] = [];
+      const f = new MxpStreamFilter((raw) => seen.push(raw));
+      f.process('<!ENTITY ap ');
+      expect(seen).toEqual([]);
+      f.process('"100" PUBLISH>tail');
+      expect(seen).toEqual(['<!ENTITY ap "100" PUBLISH>']);
+    });
+
+    it('still strips the tag bytes from the output', () => {
+      const seen: string[] = [];
+      const f = new MxpStreamFilter((raw) => seen.push(raw));
+      const out = f.process('Pre <stat foo>Post');
+      expect(out).toBe('Pre Post');
+      expect(seen).toEqual(['<stat foo>']);
+    });
+  });
 });

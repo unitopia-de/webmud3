@@ -218,34 +218,44 @@ Was der Client umsetzen müsste, damit MXP nutzbar ist:
 ### Stufe 0 — Status-Quo dokumentieren *(diese Datei)*
 ✅ erledigt.
 
-### Stufe 1 — Stream sauber halten *(klein, ~halber Tag)*
+### Stufe 1 — Stream sauber halten ✅ *erledigt*
 
-**Ziel:** Ein User, der serverseitig MXP aktiviert hat, sieht keine
-Müll-Zeichen im Terminal.
+- Backend: [handle-mxp-option.ts](backend/src/features/telnet/utils/handle-mxp-option.ts)
+  akzeptiert `WILL` mit `DO`, ohne Sub-Negotiation.
+- Frontend: [MxpStreamFilter](frontend/src/app/features/terminal/mxp-stream-filter.ts)
+  entfernt Mode-Switches und Tags aus dem Datenstrom, *bevor* xterm sie
+  sieht. Stateful: Mode/Tag-State spannt über Chunk-Grenzen.
+- Verdrahtung in [MudClientComponent.transformMudOutput](frontend/src/app/core/mud/components/mud-client/mud-client.component.ts).
 
-- Backend: `handle-mxp-option.ts` schreiben (Stub, akzeptiert `DO/WILL`,
-  führt aber **keine** Sub-Negotiation).
-- Backend oder Frontend: Stream-Filter, der die drei Mode-Switches
-  (`ESC[1z`, `ESC[4z`, `ESC[7z`) sowie alle MXP-Tags entfernt, **bevor**
-  xterm die Daten sieht. Saubere Variante: Frontend, weil der Filter
-  Mode-State über Chunk-Grenzen tracken muss.
-- Lighthouse-Toggle im Settings-Dialog: „MXP aktivieren (experimentell)".
-  Default aus. Wer es einschaltet, sieht den Stream ohne Tags. Mehr
-  passiert noch nichts.
+### Stufe 2 — `<!ENTITY>` + `<stat>` ✅ *erledigt*
 
-**Ergebnis:** MXP-Streams werden sauber konsumiert, aber noch nicht
-genutzt. Das ist die unverzichtbare Grundlage für alles Weitere.
+- [MxpEntityService](frontend/src/app/features/terminal/mxp-entity.service.ts)
+  hält die ENTITY-Map reaktiv (`entities$`), aktualisiert per
+  `set(name, value)`, geleert bei Disconnect.
+- [MxpStatService](frontend/src/app/features/terminal/mxp-stat.service.ts)
+  hält die `<stat>`-Definitionen (`stats$`), updated per `upsert(stat)`,
+  geleert bei Disconnect.
+- Generischer Tag-Parser in [mxp-tag.ts](frontend/src/app/features/terminal/mxp-tag.ts)
+  extrahiert Name + Attribute aus dem rohen Tag-String.
+- [MxpStreamFilter](frontend/src/app/features/terminal/mxp-stream-filter.ts)
+  bekam einen `onTag`-Callback im Konstruktor, der jedes komplette Tag
+  emittiert (auch über Chunk-Grenzen hinweg) — die Bytes werden
+  weiterhin aus dem Stream entfernt.
+- [MxpTagRouter](frontend/src/app/features/terminal/mxp-tag-router.ts)
+  leitet `<!ENTITY>`-Tags an den `MxpEntityService` und `<stat>`-Tags
+  an den `MxpStatService`.
+- Char-Footer zeigt rechts neben den Char-Vitals **MXP-Status-Pillen**
+  (kleine Pillen mit `caption`, aktuellem Wert und Max-Wert), die
+  automatisch erscheinen, sobald der Server eine `<stat>`-Definition
+  pusht. Bleibt unsichtbar, solange keine Stats da sind.
+- Reset-Hook in [MudClientComponent](frontend/src/app/core/mud/components/mud-client/mud-client.component.ts):
+  bei jedem Disconnect werden Filter-Buffer, ENTITY-Map und
+  STAT-Definitionen geleert; der Server schickt sie beim Reconnect
+  ohnehin neu.
 
-### Stufe 2 — `<!ENTITY>` + `<stat>` *(klein, ~halber Tag)*
-
-- ENTITY-Map als Service mit Observable.
-- `<stat>`-Definitionen aus dem Initial-Push parsen.
-- Eine MXP-Statusbar im Footer (alternativ zu `Char.Vitals` — User
-  entscheidet, was er sehen will).
-
-**Begründung optional:** GMCP `Char.Vitals` macht das schon. Lohnt sich
-nur, wenn ihr Server-definierte Captions / weitere ENTITYs (z.B.
-Mana, Erfahrung) ohne extra GMCP-Erweiterung sehen wollt.
+**Begründung optional:** GMCP `Char.Vitals` macht das schon. Stufe 2
+lohnt sich, wenn ihr Server-definierte Captions / weitere ENTITYs
+(z.B. Mana, Erfahrung) ohne extra GMCP-Erweiterung sehen wollt.
 
 ### Stufe 3 — Inline-Klickbarkeit *(mittel, 1–2 Tage)*
 
@@ -289,17 +299,16 @@ Mana, Erfahrung) ohne extra GMCP-Erweiterung sehen wollt.
 
 ## 6. Empfehlung
 
-**Kurzfristig (sollte bald passieren):** Stufe 1 umsetzen. Sobald wir
-GMCP weiter aufbohren, könnte ein User aus Versehen MXP aktiviert haben
-und Müll sehen.
+**Erledigt:** Stufen 1 und 2 — der Stream wird sauber konsumiert,
+ENTITY-Werte und `<stat>`-Definitionen werden reaktiv erfasst und im
+Char-Footer als Pillen angezeigt.
 
 **Mittelfristig:** Stufe 3 — die Klickbarkeit ist das einzige, was
 GMCP **nicht** kann. Großer UX-Gewinn für Maus-User.
 
-**Niedrige Priorität:** Stufen 2, 4, 5. Stufe 2 ist eher kosmetisch,
-solange `Char.Vitals` reicht. Stufe 4 lohnt nur in Kombination mit
-Stufe 3. Stufe 5 macht nur Sinn, falls GMCP-Sound abgeschaltet werden
-soll.
+**Niedrige Priorität:** Stufen 4, 5. Stufe 4 lohnt nur in Kombination
+mit Stufe 3. Stufe 5 macht nur Sinn, falls GMCP-Sound abgeschaltet
+werden soll.
 
 **Nicht empfohlen:** MXP für Datenanzeige *anstelle von* GMCP. Das
 würde uns einen halbgaren XML-Parser einhandeln, wo wir bereits

@@ -37,11 +37,27 @@
 
 const ESC = '\u001b';
 
+/**
+ * Callback fired for every complete MXP tag the filter encounters. The
+ * raw form (e.g. `<!ENTITY ap "100" PUBLISH>`) is passed through verbatim
+ * so consumers can decide what to parse — see `parseMxpTag`. The filter
+ * never emits the bytes into the output stream regardless of whether the
+ * callback is set.
+ */
+export type MxpTagCallback = (rawTag: string) => void;
+
 export class MxpStreamFilter {
   /** Holds bytes belonging to an unfinished CSI / tag from the previous chunk. */
   private pending = '';
   /** Discriminates *what* `pending` represents: CSI sequence vs. MXP tag. */
   private pendingKind: 'csi' | 'tag' | 'none' = 'none';
+
+  /**
+   * Optional sink for parsed-but-stripped tags. Stage-1 callers leave it
+   * unset; stage-2+ wires it up so `<!ENTITY>`, `<stat>`, etc. flow into
+   * `MxpEntityService` / `MxpStatService` etc.
+   */
+  constructor(private readonly onTag?: MxpTagCallback) {}
 
   /**
    * Removes every MXP-related byte sequence from `chunk` and returns the
@@ -152,7 +168,11 @@ export class MxpStreamFilter {
           continue;
         }
 
-        // Tag is complete — drop it entirely.
+        // Tag is complete — emit it to the listener (if any) and drop it
+        // from the output stream.
+        if (this.onTag !== undefined) {
+          this.onTag(buf);
+        }
         buf = '';
         kind = 'none';
         continue;
