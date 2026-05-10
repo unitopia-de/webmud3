@@ -38,10 +38,14 @@ import {
   MudScreenReaderAnnouncer,
   MudSocketAdapter,
   MudPromptContext,
+  ClickAction,
+  MxpClickableService,
+  MxpElementService,
   MxpEntityService,
   MxpStatService,
   MxpStreamFilter,
   MxpTagRouter,
+  StreamSegment,
   SpeechSettingsService,
   TerminalThemeService,
   TERMINAL_THEME_ORDER,
@@ -143,6 +147,8 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
   private readonly mxpRouter = inject(MxpTagRouter);
   private readonly mxpEntities = inject(MxpEntityService);
   private readonly mxpStats = inject(MxpStatService);
+  private readonly mxpElements = inject(MxpElementService);
+  private readonly mxpClickables = inject(MxpClickableService);
 
   private readonly MOBILE_INPUT_MENU_ID = 'mobile-input';
   private readonly RECENTER_MENU_ID = 'windows-recenter';
@@ -311,6 +317,7 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
     this.terminal.loadAddon(this.terminalClipboardAddon);
     this.terminal.loadAddon(this.terminalFitAddon);
     this.terminal.loadAddon(this.terminalAttachAddon);
+    this.installMxpLinkProvider();
     this.installCopyShortcutHandler();
     this.terminal.focus();
 
@@ -369,6 +376,8 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
           this.mxpFilter.reset();
           this.mxpEntities.clear();
           this.mxpStats.clear();
+          this.mxpElements.clear();
+          this.mxpClickables.clear();
         }
       },
     );
@@ -799,15 +808,140 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
   }
 
   /**
-   * Pipes server output through the MXP filter (drops MXP mode-switches and
-   * tags so they never reach xterm) and the prompt manager (CR/LF cleanup).
-   * Order matters: the prompt manager only strips a leading line break,
-   * which would not change after MXP filtering — but the MXP filter has to
-   * see the raw bytes so it can correctly track mode state across chunks.
+   * Stream pipeline for server output:
+   *   1. Prompt manager strips a leading CR/LF if its `stripNextLineBreak`
+   *      flag is set (called once per chunk before MXP processing — the
+   *      flag's effect is on the very first character anyway).
+   *   2. MXP filter splits the cleaned chunk into segments (`text` /
+   *      `clickable`).
+   *   3. Each segment is written into xterm via `terminal.write` directly;
+   *      clickable segments register a `ClickRegion` keyed to xterm's
+   *      buffer marker so scrolling does not invalidate them.
+   *
+   * Returning `''` suppresses AttachAddon's own write — we already pushed
+   * everything ourselves.
    */
   private transformMudOutput(data: string): string {
-    const stripped = this.mxpFilter.process(data);
-    return this.promptManager.transformOutput(stripped);
+    const cleaned = this.promptManager.transformOutput(data);
+    const segments = this.mxpFilter.processToSegments(cleaned);
+
+    for (const seg of segments) {
+      if (seg.type === 'text') {
+        this.terminal.write(seg.content);
+      } else {
+        this.writeClickableSegment(seg);
+      }
+    }
+
+    return '';
+  }
+
+  /**
+   * Writes a clickable segment's content into xterm and remembers the
+   * occupied buffer range so the registered link-provider can mark it
+   * up on hover. Multi-line wrapping is currently not registered (rare
+   * for the short tag contents UNItopia emits — `<rexit>nord</rexit>` etc.).
+   */
+  private writeClickableSegment(
+    seg: Extract<StreamSegment, { type: 'clickable' }>,
+  ): void {
+    if (seg.content.length === 0) {
+      return;
+    }
+
+    const startMarker = this.terminal.registerMarker(0);
+    const startX = this.terminal.buffer.active.cursorX;
+
+    this.terminal.write(seg.content);
+
+    const endX = this.terminal.buffer.active.cursorX;
+    const endLine =
+      this.terminal.buffer.active.baseY +
+      this.terminal.buffer.active.cursorY;
+
+    if (startMarker === undefined) {
+      return;
+    }
+
+    // Skip wrapped regions — provideLinks operates per-line and we have no
+    // UI plan for spanning multiple lines yet.
+    if (startMarker.line !== endLine) {
+      return;
+    }
+
+    const action = this.deriveClickAction(seg);
+    if (action === null) {
+      return;
+    }
+
+    this.mxpClickables.register(
+      startMarker,
+      startX,
+      endX,
+      action.action,
+      action.label,
+      action.expireDomain,
+    );
+  }
+
+  /**
+   * Computes what should happen when the user clicks the given clickable
+   * segment. Returns `null` for segments we cannot resolve (e.g. an
+   * `ircontent` whose `<!ELEMENT>` definition the server never sent).
+   */
+  private deriveClickAction(
+    seg: Extract<StreamSegment, { type: 'clickable' }>,
+  ): {
+    action: ClickAction;
+    label: string;
+    expireDomain?: string;
+  } | null {
+    if (seg.tag === 'rexit') {
+      const command = seg.content.trim();
+      if (command.length === 0) return null;
+      return { action: { kind: 'simple', command }, label: command };
+    }
+
+    if (seg.tag === 'send') {
+      const href = seg.attrs.get('href');
+      if (href === undefined) return null;
+      return this.actionFromHref(href, seg.attrs.get('expire'));
+    }
+
+    // ircontent / lrcontent / iinventory — resolve via the ELEMENT table.
+    const resolved = this.mxpElements.resolve(seg.tag, seg.attrs);
+    if (resolved === null) return null;
+    return this.actionFromHref(resolved.href, resolved.expire);
+  }
+
+  private actionFromHref(
+    href: string,
+    expire: string | undefined,
+  ): {
+    action: ClickAction;
+    label: string;
+    expireDomain?: string;
+  } {
+    const commands = href
+      .split('|')
+      .map((c) => c.trim())
+      .filter((c) => c.length > 0);
+
+    if (commands.length === 0) {
+      return { action: { kind: 'simple', command: '' }, label: '', expireDomain: expire };
+    }
+    if (commands.length === 1) {
+      return {
+        action: { kind: 'simple', command: commands[0] },
+        label: commands[0],
+        expireDomain: expire,
+      };
+    }
+    return {
+      action: { kind: 'choice', commands },
+      label: commands.join(' | '),
+      expireDomain: expire,
+    };
   }
 
   /**
@@ -1031,6 +1165,55 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
    *    behaviour of sending  to the MUD as an interrupt).
    *  - Anything else: bubble through.
    */
+  /**
+   * Registers an xterm link-provider that turns MXP-tagged regions in the
+   * buffer into clickable hot-spots. The provider is asked once per
+   * terminal line that the user is hovering over; we look the regions up
+   * by their stored marker (which xterm keeps current as the buffer
+   * scrolls) and hand each one back as an `ILink`.
+   */
+  private installMxpLinkProvider(): void {
+    this.terminal.registerLinkProvider({
+      provideLinks: (lineNumber, callback) => {
+        // xterm passes a 1-based line number that maps to the current
+        // viewport row; markers expose 0-based buffer rows where 0 is the
+        // first line of scrollback. We need to convert lineNumber → buffer-Y.
+        const bufferY =
+          this.terminal.buffer.active.viewportY + (lineNumber - 1);
+        const regions = this.mxpClickables.regionsForLine(bufferY);
+
+        if (regions.length === 0) {
+          callback(undefined);
+          return;
+        }
+
+        callback(
+          regions.map((r) => ({
+            range: {
+              start: { x: r.xStart + 1, y: lineNumber },
+              end: { x: r.xEnd, y: lineNumber },
+            },
+            text: r.label,
+            activate: () => this.activateClickRegion(r.action),
+          })),
+        );
+      },
+    });
+  }
+
+  /**
+   * Handles a click on an MXP region. Stage 3 sends `simple` actions
+   * directly and picks the first command for `choice` actions; the proper
+   * choice menu lands in stage 4.
+   */
+  private activateClickRegion(action: ClickAction): void {
+    const command =
+      action.kind === 'simple' ? action.command : action.commands[0];
+    if (!command) return;
+    // Backend appends `\r` for edit-mode input — same path as keyboard input.
+    this.mudService.sendMessage(command);
+  }
+
   private installCopyShortcutHandler(): void {
     this.terminal.attachCustomKeyEventHandler((event) => {
       if (event.type !== 'keydown') {

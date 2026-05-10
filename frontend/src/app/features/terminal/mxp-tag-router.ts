@@ -1,5 +1,7 @@
 import { inject, Injectable } from '@angular/core';
 
+import { MxpClickableService } from './mxp-clickable.service';
+import { MxpElementService } from './mxp-element.service';
 import { MxpEntityService } from './mxp-entity.service';
 import { MxpStatService } from './mxp-stat.service';
 import { parseMxpTag } from './mxp-tag';
@@ -20,6 +22,8 @@ import { parseMxpTag } from './mxp-tag';
 export class MxpTagRouter {
   private readonly entities = inject(MxpEntityService);
   private readonly stats = inject(MxpStatService);
+  private readonly elements = inject(MxpElementService);
+  private readonly clickables = inject(MxpClickableService);
 
   public handle(rawTag: string): void {
     const parsed = parseMxpTag(rawTag);
@@ -41,10 +45,23 @@ export class MxpTagRouter {
       return;
     }
 
+    if (parsed.isDeclaration && parsed.name === 'element') {
+      this.handleElementDeclaration(rawTag);
+      return;
+    }
+
     if (parsed.name === 'stat') {
       // `<stat ap max=maxap caption="AP:">` — first token after `stat` is
       // the entity name; rest are attributes.
       this.handleStatDefinition(rawTag);
+      return;
+    }
+
+    if (parsed.name === 'expire') {
+      const domain = parsed.attrs.get('name') ?? parsed.firstNakedValue;
+      if (domain) {
+        this.clickables.expireDomain(domain);
+      }
       return;
     }
   }
@@ -72,6 +89,52 @@ export class MxpTagRouter {
     const rawValue = tokens[1];
     const value = unquote(rawValue);
     this.entities.set(name, value);
+  }
+
+  /**
+   * Parses `<!ELEMENT name 'template' FLAG=… ATT='…'>` and stores the
+   * definition in MxpElementService. The template is the first single- or
+   * double-quoted token after the element name; UNItopia consistently uses
+   * single quotes (so the inner template can use double-quoted attributes
+   * without escaping).
+   */
+  private handleElementDeclaration(rawTag: string): void {
+    let body = rawTag.trim();
+    if (body.startsWith('<')) body = body.slice(1);
+    if (body.endsWith('>')) body = body.slice(0, -1);
+    body = body.trim();
+    body = body.replace(/^!\s*element\s+/i, '');
+
+    const tokens = tokenize(body);
+    if (tokens.length < 2) {
+      return;
+    }
+
+    const name = tokens[0];
+    const template = unquote(tokens[1]);
+
+    let flag: string | undefined;
+    const attNames: string[] = [];
+
+    for (let i = 2; i < tokens.length; i++) {
+      const tok = tokens[i];
+      const eq = tok.indexOf('=');
+      if (eq <= 0) continue;
+      const key = tok.slice(0, eq).toLowerCase();
+      const value = unquote(tok.slice(eq + 1));
+      if (key === 'flag') {
+        flag = value;
+      } else if (key === 'att') {
+        attNames.push(...value.split(/\s+/).filter((n) => n.length > 0));
+      }
+    }
+
+    this.elements.define({
+      name,
+      template,
+      flag,
+      attNames: attNames.length > 0 ? attNames : undefined,
+    });
   }
 
   private handleStatDefinition(rawTag: string): void {

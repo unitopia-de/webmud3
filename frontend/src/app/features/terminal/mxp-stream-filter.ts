@@ -1,95 +1,123 @@
 /**
- * Strips MXP control bytes and tags from the server output stream.
+ * Strips MXP control bytes from the server output stream and exposes the
+ * result as a list of segments. Plain text segments contain the *cleaned*
+ * bytes (ANSI colour codes preserved); clickable segments carry the same
+ * cleaned content plus the tag name and attributes that triggered them.
  *
- * Stage-1 of the MXP roadmap (see u3_migrate/MXP.md): once the backend
- * accepts the TELOPT_MXP negotiation, UNItopia embeds three kinds of
- * sequences in the regular stream:
+ * The MXP format details (mode switches, tag shapes, the UNItopia
+ * workaround quirks) are documented in u3_migrate/MXP.md.
  *
- *   1. Mode switches:    `ESC[1z` (line-secure), `ESC[4z` (temp-secure),
- *                        `ESC[7z` (locked).
- *   2. XML-ish tags:     `<rshort>...</rshort>`, `<!ELEMENT ...>`,
- *                        `<!ENTITY ...>`, `<stat ...>`, `<sound ...>`,
- *                        `<send href="..."> ... </send>`, `<expire ...>`,
- *                        `<rexit>`, `<ircontent ...>` etc.
- *   3. The literal `&id;` references inside expanded `<send>` elements
- *      — those only become relevant once we render clickable tags
- *      (stage 3+); for stage 1 we leave any `&entity;` reference alone
- *      so plain text containing `&` characters is preserved.
+ * Stage 1 only used `process(chunk): string`; stage 3 introduces
+ * `processToSegments(chunk): StreamSegment[]` which drives the inline
+ * clickable-tag rendering. `process` is kept as a thin wrapper that joins
+ * every segment's text — handy for tests and any consumer that does not
+ * care about clickability.
  *
- * The filter is **stateful** because both the mode (locked vs. secure)
- * and incomplete tags can span chunk boundaries:
- *
- *   - A chunk may end mid-CSI (`ESC[`), inside a tag (`<rshort`), or with
- *     a stray `<` that *might* be the start of a tag if the next chunk
- *     opens with a tag-name character.
- *   - The mode set by `ESC[1z`/`[4z` only applies to the *next* `<...>`
- *     occurrence (temp) or to all `<...>` until end of line (line). We
- *     conservatively treat *any* `<` after a secure-mode switch as a tag
- *     opener and strip until the matching `>`. UNItopia only emits real
- *     tags inside its secure-mode windows, so this matches reality.
- *
- * What we deliberately do NOT do here:
- *   - Parse `<!ELEMENT>` / `<!ENTITY>` definitions (stage 2/3).
- *   - Track a per-chunk MXP "active" boolean — the filter strips bytes
- *     unconditionally. Servers that never enter MXP mode never emit
- *     these sequences, so dead-stripping is fine.
+ * The filter is **stateful**:
+ *   - `pending` / `pendingKind` carry an unfinished CSI or tag across
+ *     chunk boundaries.
+ *   - `clickStack` tracks the currently-open clickable tag so we know
+ *     which content goes into which segment when ANSI / nested-mode
+ *     bytes are mixed in.
  */
 
 const ESC = '\u001b';
 
+/** Tags whose content should become a clickable region in the terminal. */
+const CLICKABLE_TAGS = new Set([
+  'rexit',
+  'send',
+  'ircontent',
+  'lrcontent',
+  'iinventory',
+]);
+
+export type ParsedTagAttrs = ReadonlyMap<string, string>;
+
+export type StreamSegment =
+  | { type: 'text'; content: string }
+  | {
+      type: 'clickable';
+      /** Lower-cased tag name, e.g. `rexit`, `ircontent`. */
+      tag: string;
+      attrs: ParsedTagAttrs;
+      /** The visible text between `<tag>` and `</tag>`, with ANSI codes kept. */
+      content: string;
+    };
+
 /**
- * Callback fired for every complete MXP tag the filter encounters. The
- * raw form (e.g. `<!ENTITY ap "100" PUBLISH>`) is passed through verbatim
- * so consumers can decide what to parse — see `parseMxpTag`. The filter
- * never emits the bytes into the output stream regardless of whether the
- * callback is set.
+ * Callback fired for every complete MXP tag the filter encounters
+ * (including standalone declarations like `<!ENTITY>` and the open/close
+ * tags of clickable scopes — listeners can choose what to consume).
+ *
+ * The raw form is passed through verbatim; consumers parse it with
+ * `parseMxpTag` if they need structure.
  */
 export type MxpTagCallback = (rawTag: string) => void;
 
-export class MxpStreamFilter {
-  /** Holds bytes belonging to an unfinished CSI / tag from the previous chunk. */
-  private pending = '';
-  /** Discriminates *what* `pending` represents: CSI sequence vs. MXP tag. */
-  private pendingKind: 'csi' | 'tag' | 'none' = 'none';
+type FilterState = {
+  /** Either the global text buffer or a clickable scope's content buffer. */
+  current: { kind: 'text' | 'click'; buf: string; openTag?: ClickScope };
+  /** Stack of open clickable scopes. UNItopia never nests these, but we
+   *  still cope with it by suspending the outer scope. */
+  clickStack: ClickScope[];
+  /** Accumulated segments emitted in this `processToSegments` call. */
+  segments: StreamSegment[];
+};
 
-  /**
-   * Optional sink for parsed-but-stripped tags. Stage-1 callers leave it
-   * unset; stage-2+ wires it up so `<!ENTITY>`, `<stat>`, etc. flow into
-   * `MxpEntityService` / `MxpStatService` etc.
-   */
+type ClickScope = {
+  tag: string;
+  attrs: ParsedTagAttrs;
+  /** Buffer collecting the visible content between open and close tag. */
+  content: string;
+};
+
+export class MxpStreamFilter {
+  private pending = '';
+  private pendingKind: 'csi' | 'tag' | 'none' = 'none';
+  /** Click-scopes currently open across chunks. */
+  private clickStack: ClickScope[] = [];
+
   constructor(private readonly onTag?: MxpTagCallback) {}
 
   /**
-   * Removes every MXP-related byte sequence from `chunk` and returns the
-   * cleaned text. Incomplete sequences at the end are remembered for the
-   * next call — the bytes are NOT emitted in this chunk.
+   * Parses `chunk` and returns the list of stripped/clickable segments.
+   * Incomplete CSIs / tags / clickable scopes at the end of the chunk are
+   * remembered for the next call — their bytes are NOT emitted yet.
    */
-  public process(chunk: string): string {
+  public processToSegments(chunk: string): StreamSegment[] {
     if (chunk.length === 0) {
-      return '';
+      return [];
     }
 
-    let out = '';
-    let i = 0;
-    let buf = '';
-    let kind: 'csi' | 'tag' | 'none' = 'none';
-
-    // Resume any partial state from the previous chunk by prepending its
-    // raw bytes back into the input. Re-running the parser on the joined
-    // input is simpler — and almost always cheaper — than wiring two state
-    // machines together.
+    // Resume any partial CSI / tag from the previous chunk.
     if (this.pendingKind !== 'none') {
       chunk = this.pending + chunk;
       this.pending = '';
       this.pendingKind = 'none';
     }
 
+    const state: FilterState = {
+      current: this.clickStack.length > 0
+        ? {
+            kind: 'click',
+            buf: '',
+            openTag: this.clickStack[this.clickStack.length - 1],
+          }
+        : { kind: 'text', buf: '' },
+      clickStack: this.clickStack,
+      segments: [],
+    };
+
+    let i = 0;
+    let buf = '';
+    let kind: 'csi' | 'tag' | 'none' = 'none';
+
     while (i < chunk.length) {
       const ch = chunk[i];
 
       if (kind === 'none') {
         if (ch === ESC) {
-          // Possibly an MXP mode switch `ESC[Nz`. Buffer until we know.
           buf = ESC;
           kind = 'csi';
           i += 1;
@@ -97,60 +125,48 @@ export class MxpStreamFilter {
         }
 
         if (ch === '<' && this.looksLikeMxpTag(chunk, i)) {
-          // MXP tag — gobble until matching `>`. Inside the tag there may
-          // be quoted attribute values that contain `>`; we honour basic
-          // single/double quoting to avoid an early stop.
           buf = '<';
           kind = 'tag';
           i += 1;
           continue;
         }
 
-        out += ch;
+        this.appendVisible(state, ch);
         i += 1;
         continue;
       }
 
       if (kind === 'csi') {
-        // We are inside a buffer that started with ESC. We only swallow
-        // sequences of the form ESC[Nz where N is one or more digits.
-        // Anything else has to flow through unchanged so we don't cripple
-        // ANSI colour codes.
         buf += ch;
         i += 1;
 
-        // Validate prefix: ESC, then optionally `[`, then digits (>=1),
-        // then `z` to terminate.
         if (buf.length === 2) {
           if (buf[1] !== '[') {
-            // Not a CSI at all — emit verbatim and reset.
-            out += buf;
+            // Not a CSI — emit verbatim into the current target.
+            for (const c of buf) this.appendVisible(state, c);
             buf = '';
             kind = 'none';
           }
           continue;
         }
 
-        // We have at least ESC[ + something. Walk the rest.
         const tail = buf[buf.length - 1];
         if (tail >= '0' && tail <= '9') {
-          continue; // still collecting digits
+          continue;
         }
         if (tail === 'z') {
-          // Confirmed `ESC[<digits>z`. Verify there *were* digits.
-          if (buf.length > 3) {
-            // Drop it entirely.
-          } else {
-            // Malformed (`ESC[z`) — emit verbatim.
-            out += buf;
+          // Confirmed MXP mode switch — drop entirely.
+          if (buf.length === 3) {
+            // `ESC[z` (no digits) — malformed, emit verbatim instead of
+            // silently swallowing it.
+            for (const c of buf) this.appendVisible(state, c);
           }
           buf = '';
           kind = 'none';
           continue;
         }
-        // Some other CSI terminator — not MXP, e.g. ANSI colour code
-        // `ESC[33m`. Emit the whole buffer unchanged.
-        out += buf;
+        // Other CSI terminator (e.g. ANSI colour `ESC[33m`) — keep as-is.
+        for (const c of buf) this.appendVisible(state, c);
         buf = '';
         kind = 'none';
         continue;
@@ -160,44 +176,168 @@ export class MxpStreamFilter {
         buf += ch;
         i += 1;
 
-        // Track quoted regions to avoid stopping at a `>` inside an
-        // attribute value such as `<send href="a > b">`. UNItopia uses
-        // both single and double quotes in its element definitions.
-        const quoteState = this.findClosingTagBracket(buf);
-        if (quoteState === -1) {
+        if (this.findClosingTagBracket(buf) === -1) {
           continue;
         }
 
-        // Tag is complete — emit it to the listener (if any) and drop it
-        // from the output stream.
+        // Tag is complete. Drop the bytes from the visible stream and
+        // dispatch to listeners + click-scope tracker.
         if (this.onTag !== undefined) {
           this.onTag(buf);
         }
+        this.handleCompleteTag(state, buf);
         buf = '';
         kind = 'none';
         continue;
       }
     }
 
-    // Anything still in `buf` is incomplete and waits for the next chunk.
+    // Anything still in `buf` is incomplete — wait for the next chunk.
     if (kind !== 'none') {
       this.pending = buf;
       this.pendingKind = kind;
     }
 
-    return out;
+    // Flush whatever's in `state.current.buf` as a segment.
+    this.flushCurrent(state);
+
+    // Persist click stack across chunks (in case a clickable tag spans
+    // multiple chunks, e.g. its content keeps coming).
+    this.clickStack = state.clickStack;
+
+    return state.segments;
   }
 
   /**
-   * Heuristic: does `chunk[start..]` look like an MXP tag start? We only
-   * swallow `<` if the next character is one of `<` itself (false alarm —
-   * leave alone), `!` (declaration), `/` (closing tag) or an ASCII letter
-   * (regular tag name). That keeps ordinary `<` characters in plain MUD
-   * text (e.g. "1 < 2") intact when they are followed by a digit / space.
+   * Backward-compatible API — joins every segment's text. Use this when the
+   * caller does not care about clickable regions.
    */
+  public process(chunk: string): string {
+    return this.processToSegments(chunk)
+      .map((s) => s.content)
+      .join('');
+  }
+
+  /** Drops any buffered partial sequence and any open click scope. */
+  public reset(): void {
+    this.pending = '';
+    this.pendingKind = 'none';
+    this.clickStack = [];
+  }
+
+  // ---------------------------------------------------------------------------
+  // Internal
+  // ---------------------------------------------------------------------------
+
+  private appendVisible(state: FilterState, ch: string): void {
+    state.current.buf += ch;
+  }
+
+  /**
+   * Closes whatever segment the filter is currently writing into and pushes
+   * it onto `state.segments`. Empty text segments are dropped; empty
+   * clickable segments are kept (the click-scope still exists, just with
+   * no content yet — we will pick up content from the next chunk).
+   */
+  private flushCurrent(state: FilterState): void {
+    if (state.current.kind === 'text') {
+      if (state.current.buf.length > 0) {
+        state.segments.push({ type: 'text', content: state.current.buf });
+      }
+      state.current = { kind: 'text', buf: '' };
+      return;
+    }
+
+    // click scope — write whatever we collected into the open scope's content.
+    const scope = state.current.openTag;
+    if (scope === undefined) {
+      // Should not happen, but be defensive: treat as plain text.
+      if (state.current.buf.length > 0) {
+        state.segments.push({ type: 'text', content: state.current.buf });
+      }
+      state.current = { kind: 'text', buf: '' };
+      return;
+    }
+    scope.content += state.current.buf;
+    state.current = { kind: 'click', buf: '', openTag: scope };
+  }
+
+  private handleCompleteTag(state: FilterState, rawTag: string): void {
+    const parsed = parseSimple(rawTag);
+    if (parsed === null) {
+      return;
+    }
+    const { name, isClose, attrs } = parsed;
+
+    if (parsed.isDeclaration) {
+      // Standalone declaration (!ENTITY / !ELEMENT) — no scope effect.
+      return;
+    }
+
+    if (CLICKABLE_TAGS.has(name)) {
+      if (isClose) {
+        this.closeClickScope(state, name);
+      } else {
+        this.openClickScope(state, name, attrs);
+      }
+      return;
+    }
+
+    // Other tags (rshort, rlong, stat, sound, expire, …) — no scope effect.
+  }
+
+  private openClickScope(
+    state: FilterState,
+    tag: string,
+    attrs: ParsedTagAttrs,
+  ): void {
+    // First, finalise whatever segment we were writing.
+    this.flushCurrent(state);
+
+    const scope: ClickScope = { tag, attrs, content: '' };
+    state.clickStack.push(scope);
+    state.current = { kind: 'click', buf: '', openTag: scope };
+  }
+
+  private closeClickScope(state: FilterState, tag: string): void {
+    // Flush any pending content into the top-of-stack scope first.
+    this.flushCurrent(state);
+
+    // Find the matching open scope. UNItopia uses well-formed tags so this
+    // is almost always the top of the stack; we still walk the stack in
+    // case nested scopes ever appear.
+    let scope: ClickScope | undefined;
+    for (let i = state.clickStack.length - 1; i >= 0; i--) {
+      if (state.clickStack[i].tag === tag) {
+        scope = state.clickStack[i];
+        state.clickStack.splice(i, 1);
+        break;
+      }
+    }
+
+    if (scope !== undefined) {
+      state.segments.push({
+        type: 'clickable',
+        tag: scope.tag,
+        attrs: scope.attrs,
+        content: scope.content,
+      });
+    }
+
+    // Resume the parent scope (if any) or fall back to text mode.
+    if (state.clickStack.length > 0) {
+      state.current = {
+        kind: 'click',
+        buf: '',
+        openTag: state.clickStack[state.clickStack.length - 1],
+      };
+    } else {
+      state.current = { kind: 'text', buf: '' };
+    }
+  }
+
   private looksLikeMxpTag(chunk: string, start: number): boolean {
     if (start + 1 >= chunk.length) {
-      // Could be a tag whose content arrives in the next chunk — buffer.
       return true;
     }
     const next = chunk[start + 1];
@@ -207,11 +347,6 @@ export class MxpStreamFilter {
     return (next >= 'a' && next <= 'z') || (next >= 'A' && next <= 'Z');
   }
 
-  /**
-   * Returns the position of the closing `>` of the buffered tag, or -1 if
-   * the tag is not complete yet. Honours single- and double-quoted attribute
-   * values so a `>` inside `attr="..."` is not mistaken for the terminator.
-   */
   private findClosingTagBracket(buf: string): number {
     let inSingle = false;
     let inDouble = false;
@@ -231,10 +366,83 @@ export class MxpStreamFilter {
     }
     return -1;
   }
+}
 
-  /** Drops any buffered partial sequence (e.g. on disconnect / reconnect). */
-  public reset(): void {
-    this.pending = '';
-    this.pendingKind = 'none';
+// ---------------------------------------------------------------------------
+// Light-weight tag parser used internally to avoid pulling the public
+// `parseMxpTag` here (we only need name + attrs + the open/close/decl flag).
+// ---------------------------------------------------------------------------
+
+function parseSimple(raw: string): {
+  name: string;
+  isClose: boolean;
+  isDeclaration: boolean;
+  attrs: ParsedTagAttrs;
+} | null {
+  let body = raw.trim();
+  if (body.startsWith('<')) body = body.slice(1);
+  if (body.endsWith('>')) body = body.slice(0, -1);
+  body = body.trim();
+  if (body.length === 0) return null;
+
+  const isClose = body.startsWith('/');
+  if (isClose) body = body.slice(1).trim();
+  const isDeclaration = body.startsWith('!');
+  if (isDeclaration) body = body.slice(1).trim();
+
+  const tokens: string[] = [];
+  let i = 0;
+  while (i < body.length) {
+    while (i < body.length && /\s/.test(body[i])) i += 1;
+    if (i >= body.length) break;
+    let token = '';
+    let inSingle = false;
+    let inDouble = false;
+    while (i < body.length) {
+      const c = body[i];
+      if (inSingle) {
+        token += c;
+        i += 1;
+        if (c === "'") inSingle = false;
+        continue;
+      }
+      if (inDouble) {
+        token += c;
+        i += 1;
+        if (c === '"') inDouble = false;
+        continue;
+      }
+      if (/\s/.test(c)) break;
+      if (c === "'") inSingle = true;
+      else if (c === '"') inDouble = true;
+      token += c;
+      i += 1;
+    }
+    if (token.length > 0) tokens.push(token);
   }
+
+  if (tokens.length === 0) return null;
+
+  const name = tokens[0].toLowerCase();
+  const attrs = new Map<string, string>();
+  for (let j = 1; j < tokens.length; j++) {
+    const tok = tokens[j];
+    const eq = tok.indexOf('=');
+    if (eq > 0) {
+      const key = tok.slice(0, eq).toLowerCase();
+      let value = tok.slice(eq + 1);
+      if (
+        value.length >= 2 &&
+        ((value.startsWith('"') && value.endsWith('"')) ||
+          (value.startsWith("'") && value.endsWith("'")))
+      ) {
+        value = value.slice(1, -1);
+      }
+      attrs.set(key, value);
+    } else {
+      attrs.set(tok.toLowerCase(), '');
+    }
+  }
+
+  return { name, isClose, isDeclaration, attrs };
 }

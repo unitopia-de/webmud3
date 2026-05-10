@@ -8,6 +8,8 @@ export * from './mxp-stream-filter';
 export * from './mxp-tag';
 export * from './mxp-entity.service';
 export * from './mxp-stat.service';
+export * from './mxp-element.service';
+export * from './mxp-clickable.service';
 export * from './mxp-tag-router';
 export * from './speech-settings.service';
 export * from './terminal-themes';

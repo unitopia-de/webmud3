@@ -257,19 +257,38 @@ Was der Client umsetzen müsste, damit MXP nutzbar ist:
 lohnt sich, wenn ihr Server-definierte Captions / weitere ENTITYs
 (z.B. Mana, Erfahrung) ohne extra GMCP-Erweiterung sehen wollt.
 
-### Stufe 3 — Inline-Klickbarkeit *(mittel, 1–2 Tage)*
+### Stufe 3 — Inline-Klickbarkeit ✅ *erledigt*
 
-**Hier liegt der eigentliche MXP-Mehrwert.**
-
-- Tag-Parser, der `<rexit>...</rexit>`, `<ircontent>...</ircontent>` etc.
-  im Output erkennt und für jeden Tag eine **Position + Inhalt + Befehl**
-  speichert.
-- xterm Link-Provider-Addon: macht die entsprechenden Bereiche im
-  Buffer als Links anklickbar. Klick → Befehl an Server senden.
-- `&id;`-Substitution beim Click (der Tag-Inhalt enthält variable
-  Placeholder, die durch das `id`-Attribut ersetzt werden).
-- `<expire>`-Handling: alle Klick-Marker der jeweiligen Domain als
-  inaktiv markieren.
+- [MxpStreamFilter](frontend/src/app/features/terminal/mxp-stream-filter.ts)
+  wurde um `processToSegments(chunk)` erweitert: liefert eine Liste aus
+  `text`- und `clickable`-Segmenten. Klickbar sind `rexit`, `send`,
+  `ircontent`, `lrcontent`, `iinventory`. Inhalt zwischen Open- und
+  Close-Tag (inkl. ANSI-Colors) wird als Click-Content gesammelt;
+  MXP-Mode-Switches darin werden weiterhin gestrippt.
+- [MxpElementService](frontend/src/app/features/terminal/mxp-element.service.ts)
+  speichert die `<!ELEMENT>`-Definitionen aus dem Init-Push und exposed
+  eine `resolve(tag, attrs)`-Methode, die `&id;`-Referenzen durch die
+  Source-Tag-Attribute substituiert und `<send href="…" expire="…">`
+  zurückgibt.
+- [MxpClickableService](frontend/src/app/features/terminal/mxp-clickable.service.ts)
+  hält die Klick-Regionen pro xterm-Buffer-Marker (Position folgt dem
+  Scroll automatisch), kennt `expireDomain(name)` für `<expire>`-Tags.
+- [MxpTagRouter](frontend/src/app/features/terminal/mxp-tag-router.ts)
+  routet zusätzlich `<!ELEMENT>` und `<expire name=…>` an die neuen
+  Services.
+- [MudClientComponent](frontend/src/app/core/mud/components/mud-client/mud-client.component.ts):
+  - Stream-Pipeline auf segmentierte Verarbeitung umgestellt
+    (`transformMudOutput` schreibt selbst in `terminal.write` und
+    suppresst AttachAddon's eigenen Write).
+  - Pro klickbarem Segment werden `IMarker` + Spalten-Range gespeichert,
+    inkl. abgeleiteter Click-Action: `rexit` → Inhalt als Befehl,
+    `send`/`ircontent`/… → ELEMENT-Lookup mit Pipe-Split (mehrere
+    Optionen werden für Stufe 3 als „erste Option" gewertet).
+  - `installMxpLinkProvider()` registriert einen xterm-`LinkProvider`,
+    der pro Hover die Treffer aus `MxpClickableService` zurückgibt.
+  - `activateClickRegion(action)` schickt den Befehl per
+    `MudService.sendMessage`.
+  - Disconnect-Reset leert auch die neuen Stores.
 
 ### Stufe 4 — Auswahl-Menüs *(mittel, ~1 Tag)*
 
@@ -299,16 +318,21 @@ lohnt sich, wenn ihr Server-definierte Captions / weitere ENTITYs
 
 ## 6. Empfehlung
 
-**Erledigt:** Stufen 1 und 2 — der Stream wird sauber konsumiert,
-ENTITY-Werte und `<stat>`-Definitionen werden reaktiv erfasst und im
-Char-Footer als Pillen angezeigt.
+**Erledigt:** Stufen 1, 2 und 3.
 
-**Mittelfristig:** Stufe 3 — die Klickbarkeit ist das einzige, was
-GMCP **nicht** kann. Großer UX-Gewinn für Maus-User.
+- **Stufe 1**: Stream wird sauber konsumiert (keine MXP-Bytes im xterm).
+- **Stufe 2**: ENTITY-Werte und `<stat>`-Definitionen reaktiv im Footer.
+- **Stufe 3**: Inline-klickbare Tags via xterm-LinkProvider. Klick auf
+  `<rexit>nord</rexit>` schickt `nord`; Klick auf `<ircontent id="goblin">`
+  schickt den ersten Befehl der `<!ELEMENT>`-Template-Liste (z.B.
+  `betrachte goblin`). `<expire name="room">` deaktiviert Klickbereiche
+  beim Raumwechsel.
 
-**Niedrige Priorität:** Stufen 4, 5. Stufe 4 lohnt nur in Kombination
-mit Stufe 3. Stufe 5 macht nur Sinn, falls GMCP-Sound abgeschaltet
-werden soll.
+**Nächster Schritt:** Stufe 4 — Auswahl-Menü statt automatischer Wahl
+des ersten Befehls. Direkter Build-on auf Stufe 3.
+
+**Niedrige Priorität:** Stufe 5 (`<sound>`-Inline). Macht nur Sinn,
+falls GMCP-Sound abgeschaltet werden soll.
 
 **Nicht empfohlen:** MXP für Datenanzeige *anstelle von* GMCP. Das
 würde uns einen halbgaren XML-Parser einhandeln, wo wir bereits
