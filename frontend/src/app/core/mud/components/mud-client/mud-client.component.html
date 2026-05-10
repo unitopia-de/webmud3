@@ -32,3 +32,10 @@
     (commit)="onMobileInputCommit($event)"
   ></app-mobile-input>
 }
+
+<!--
+  Singleton choice-menu for MXP click-actions with multiple candidate
+  commands (e.g. <ircontent>'s `betrachte | nimm | …`). Hidden when no
+  menu is open; positioned at the click coordinates by the service.
+-->
+<app-mxp-choice-menu></app-mxp-choice-menu>

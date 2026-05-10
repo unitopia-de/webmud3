@@ -290,19 +290,54 @@ lohnt sich, wenn ihr Server-definierte Captions / weitere ENTITYs
     `MudService.sendMessage`.
   - Disconnect-Reset leert auch die neuen Stores.
 
-### Stufe 4 — Auswahl-Menüs *(mittel, ~1 Tag)*
+### Stufe 4 — Auswahl-Menüs ✅ *erledigt*
 
-- Bei `<send href="cmd1|cmd2|cmd3">` öffnet ein Klick statt direkt zu
-  senden ein **Popup-Menü** mit den drei Optionen.
-- Tastatur-Variante: Doppelklick = erste Option, Rechtsklick = Menü?
-  (UX-Entscheidung)
+- [MxpChoiceMenuService](frontend/src/app/features/terminal/mxp-choice-menu.service.ts):
+  Singleton mit `open({commands, x, y, onPick})`, `close()`, `pick(cmd)`
+  und reaktivem `currentMenu$`. Schützt sich gegen stale Klicks (Picks
+  außerhalb der aktuellen Befehlsliste werden ignoriert).
+- [MxpChoiceMenuComponent](frontend/src/app/features/terminal/mxp-choice-menu.component.ts):
+  Floating-Popup an Klick-Koordinaten. Backdrop-Click und Escape
+  schließen ohne Auswahl. Erste Option erhält initial den Fokus
+  (`autofocus`), damit Tastatur-Bedienung direkt funktioniert.
+- [MudClient](frontend/src/app/core/mud/components/mud-client/mud-client.component.ts):
+  - `activate(event)` aus dem LinkProvider gibt das `MouseEvent` an
+    `activateClickRegion` weiter.
+  - `activateClickRegion(action, event)` öffnet bei `kind === 'choice'`
+    das Menu mit `event.clientX/clientY`; `simple` sendet weiterhin
+    sofort.
+  - `<app-mxp-choice-menu>` einmal in `mud-client.component.html`
+    eingebunden.
+  - Disconnect-Reset schließt zusätzlich das offene Menu.
 
-### Stufe 5 — `<sound>` + restliche Tags *(klein)*
+**Verhalten:** Klick auf einen `<ircontent id="goblin">` öffnet ein
+Popup mit `betrachte goblin | fuehle goblin | horche goblin | rieche
+goblin | nimm goblin`. Auswahl per Maus oder Tastatur (Tab + Enter, Esc
+zum Schließen).
 
-- `<sound>`-Inline mit dem bestehenden `SoundService` verdrahten.
-- `<sound Off U="…">` als alternative Quelle für die Base-URL.
-- Kontrollierter Switch: bei aktivem GMCP-`Sound` MXP-Sound ignorieren,
-  damit Sounds nicht doppelt gespielt werden.
+### Stufe 5 — `<sound>` + restliche Tags ✅ *erledigt*
+
+- [MxpSoundService](frontend/src/app/features/terminal/mxp-sound.service.ts):
+  cached die Base-URL aus `<sound Off U="…">` und delegiert das Abspielen
+  inline-Events (`<sound "file">`) an `SoundService.play(absoluteUrl)`.
+  Das vorhandene Sound-Toggle (Footer-Menü) deckt damit beide Quellen ab.
+- `SoundService` exposed `gmcpActive` (true sobald `Sound.Url` empfangen
+  wurde) und `gmcpReset()` für den Disconnect.
+- **Doppel-Schutz**: Solange GMCP-Sound aktiv ist, ignoriert
+  `MxpSoundService.playEvent` jedes Event — gleicher Effekt würde sonst
+  doppelt klingen.
+- [MxpTagRouter](frontend/src/app/features/terminal/mxp-tag-router.ts)
+  routet `<sound>`: ein vorhandenes `U=`-Attribut bedeutet
+  Base-URL-Announcement → `setBaseUrl`; ein `firstNakedValue` (z.B.
+  `<sound "kampf/treffer.mp3">`) → `playEvent`.
+- MudClient cleart bei Disconnect zusätzlich `MxpSoundService.clear()`
+  und `SoundService.gmcpReset()`, damit ein Reconnect zu einem Server
+  ohne GMCP-Sound MXP-Sound nicht weiterhin unterdrückt.
+
+**Test-Infrastruktur-Nebeneffekt:** `jest.config.js` erweitert um
+`moduleNameMapper` (für `@webmud3/frontend/...`-Aliase) und `modulePaths`
+(für `src/...`-Imports), damit Test-Suites transitive Module richtig
+auflösen.
 
 ### Stufe 6 — Tests + Edge-Cases
 
@@ -318,21 +353,20 @@ lohnt sich, wenn ihr Server-definierte Captions / weitere ENTITYs
 
 ## 6. Empfehlung
 
-**Erledigt:** Stufen 1, 2 und 3.
+**Erledigt:** Stufen 1 – 5 vollständig.
 
 - **Stufe 1**: Stream wird sauber konsumiert (keine MXP-Bytes im xterm).
 - **Stufe 2**: ENTITY-Werte und `<stat>`-Definitionen reaktiv im Footer.
-- **Stufe 3**: Inline-klickbare Tags via xterm-LinkProvider. Klick auf
-  `<rexit>nord</rexit>` schickt `nord`; Klick auf `<ircontent id="goblin">`
-  schickt den ersten Befehl der `<!ELEMENT>`-Template-Liste (z.B.
-  `betrachte goblin`). `<expire name="room">` deaktiviert Klickbereiche
-  beim Raumwechsel.
+- **Stufe 3**: Inline-klickbare Tags via xterm-LinkProvider.
+  `<expire name="room">` deaktiviert Klickbereiche beim Raumwechsel.
+- **Stufe 4**: Klick auf `<ircontent>` & Co. öffnet ein Auswahl-Menü
+  mit allen Optionen aus dem `<!ELEMENT>`-Template; `<rexit>`/`<send>`
+  mit nur einem Befehl bleibt direkt-klickbar.
+- **Stufe 5**: `<sound>`-Inline gibt nur dann Audio aus, wenn der
+  GMCP-`Sound`-Channel inaktiv ist; das Sound-Toggle im Footer steuert
+  beide Quellen gemeinsam.
 
-**Nächster Schritt:** Stufe 4 — Auswahl-Menü statt automatischer Wahl
-des ersten Befehls. Direkter Build-on auf Stufe 3.
-
-**Niedrige Priorität:** Stufe 5 (`<sound>`-Inline). Macht nur Sinn,
-falls GMCP-Sound abgeschaltet werden soll.
+Damit ist die MXP-Roadmap zu — keine offenen Stufen mehr.
 
 **Nicht empfohlen:** MXP für Datenanzeige *anstelle von* GMCP. Das
 würde uns einen halbgaren XML-Parser einhandeln, wo wir bereits

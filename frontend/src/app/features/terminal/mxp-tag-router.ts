@@ -3,6 +3,7 @@ import { inject, Injectable } from '@angular/core';
 import { MxpClickableService } from './mxp-clickable.service';
 import { MxpElementService } from './mxp-element.service';
 import { MxpEntityService } from './mxp-entity.service';
+import { MxpSoundService } from './mxp-sound.service';
 import { MxpStatService } from './mxp-stat.service';
 import { parseMxpTag } from './mxp-tag';
 
@@ -24,6 +25,7 @@ export class MxpTagRouter {
   private readonly stats = inject(MxpStatService);
   private readonly elements = inject(MxpElementService);
   private readonly clickables = inject(MxpClickableService);
+  private readonly sounds = inject(MxpSoundService);
 
   public handle(rawTag: string): void {
     const parsed = parseMxpTag(rawTag);
@@ -63,6 +65,35 @@ export class MxpTagRouter {
         this.clickables.expireDomain(domain);
       }
       return;
+    }
+
+    if (parsed.name === 'sound') {
+      this.handleSoundTag(parsed.attrs, parsed.firstNakedValue);
+      return;
+    }
+  }
+
+  /**
+   * Handles `<sound>` tags. Two flavours from UNItopia:
+   *   - `<sound Off U="https://…">` — base URL announcement; we cache it.
+   *   - `<sound "file.mp3">` — inline event; the file plays unless GMCP-
+   *     sound is already active for the same effect.
+   *
+   * Distinguishing them: if a `U` attribute is present we treat the tag as
+   * a base-URL announcement, otherwise the first naked value (the
+   * `firstNakedValue` reported by parseMxpTag) is the file name.
+   */
+  private handleSoundTag(
+    attrs: ReadonlyMap<string, string>,
+    firstNakedValue: string | undefined,
+  ): void {
+    const url = attrs.get('u');
+    if (url !== undefined) {
+      this.sounds.setBaseUrl(url);
+      return;
+    }
+    if (firstNakedValue !== undefined) {
+      this.sounds.playEvent(firstNakedValue);
     }
   }
 

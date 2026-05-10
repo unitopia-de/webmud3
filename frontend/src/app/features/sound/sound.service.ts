@@ -34,6 +34,20 @@ export class SoundService implements OnDestroy {
   private baseUrl = '';
 
   /**
+   * True once a GMCP `Sound.Url` has been received in the current session.
+   * Used by the MXP-sound consumer to suppress its own playback whenever
+   * GMCP would already be playing the same effect — see MxpSoundService.
+   */
+  public get gmcpActive(): boolean {
+    return this.baseUrl !== '';
+  }
+
+  /** Clears the GMCP-side state — call on disconnect / reconnect. */
+  public gmcpReset(): void {
+    this.baseUrl = '';
+  }
+
+  /**
    * Cache of preloaded `HTMLAudioElement`s, keyed by their fully-resolved URL.
    * Reusing them avoids re-decoding identical sounds and keeps memory bounded.
    */

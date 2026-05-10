@@ -1,0 +1,54 @@
+.mxp-choice-backdrop {
+  position: fixed;
+  inset: 0;
+  background: transparent;
+  // Need pointer-events so outside-clicks register. The menu itself sits
+  // on top in the DOM and stops propagation by virtue of its own click
+  // handlers — this is the catcher for everything else.
+  z-index: 2000;
+}
+
+.mxp-choice-menu {
+  position: fixed;
+  z-index: 2001;
+  margin: 0;
+  padding: 4px 0;
+  list-style: none;
+  min-width: 160px;
+  max-width: 320px;
+  background: #1e1e1e;
+  border: 1px solid #444;
+  border-radius: 4px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
+  font-family: sans-serif;
+  font-size: 13px;
+  color: #ddd;
+
+  li {
+    margin: 0;
+    padding: 0;
+  }
+}
+
+.mxp-choice-item {
+  display: block;
+  width: 100%;
+  padding: 6px 12px;
+  background: transparent;
+  border: none;
+  text-align: left;
+  color: #ddd;
+  font-family: monospace;
+  font-size: 12px;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+
+  &:hover,
+  &:focus {
+    background: #094771;
+    color: #fff;
+    outline: none;
+  }
+}

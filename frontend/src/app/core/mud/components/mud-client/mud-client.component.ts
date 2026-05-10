@@ -39,9 +39,12 @@ import {
   MudSocketAdapter,
   MudPromptContext,
   ClickAction,
+  MxpChoiceMenuComponent,
+  MxpChoiceMenuService,
   MxpClickableService,
   MxpElementService,
   MxpEntityService,
+  MxpSoundService,
   MxpStatService,
   MxpStreamFilter,
   MxpTagRouter,
@@ -102,7 +105,7 @@ type MudClientState = {
 @Component({
   selector: 'app-mud-client',
   standalone: true,
-  imports: [MobileInputComponent],
+  imports: [MobileInputComponent, MxpChoiceMenuComponent],
   templateUrl: './mud-client.component.html',
   styleUrls: ['./mud-client.component.scss'],
 })
@@ -149,6 +152,8 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
   private readonly mxpStats = inject(MxpStatService);
   private readonly mxpElements = inject(MxpElementService);
   private readonly mxpClickables = inject(MxpClickableService);
+  private readonly mxpChoiceMenu = inject(MxpChoiceMenuService);
+  private readonly mxpSounds = inject(MxpSoundService);
 
   private readonly MOBILE_INPUT_MENU_ID = 'mobile-input';
   private readonly RECENTER_MENU_ID = 'windows-recenter';
@@ -378,6 +383,11 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
           this.mxpStats.clear();
           this.mxpElements.clear();
           this.mxpClickables.clear();
+          this.mxpChoiceMenu.close();
+          this.mxpSounds.clear();
+          // Drop the GMCP-sound base URL too so a reconnect to a server
+          // without the Sound module does not keep MXP-sound suppressed.
+          this.soundService.gmcpReset();
         }
       },
     );
@@ -1194,7 +1204,8 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
               end: { x: r.xEnd, y: lineNumber },
             },
             text: r.label,
-            activate: () => this.activateClickRegion(r.action),
+            activate: (event: MouseEvent) =>
+              this.activateClickRegion(r.action, event),
           })),
         );
       },
@@ -1202,16 +1213,30 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
   }
 
   /**
-   * Handles a click on an MXP region. Stage 3 sends `simple` actions
-   * directly and picks the first command for `choice` actions; the proper
-   * choice menu lands in stage 4.
+   * Handles a click on an MXP region.
+   *
+   *  - `simple` action: send the single command immediately.
+   *  - `choice` action: open the choice-menu at the click coordinates and
+   *    let the user pick. Picking sends the chosen command; Esc / outside-
+   *    click cancels.
    */
-  private activateClickRegion(action: ClickAction): void {
-    const command =
-      action.kind === 'simple' ? action.command : action.commands[0];
-    if (!command) return;
-    // Backend appends `\r` for edit-mode input — same path as keyboard input.
-    this.mudService.sendMessage(command);
+  private activateClickRegion(action: ClickAction, event: MouseEvent): void {
+    if (action.kind === 'simple') {
+      if (!action.command) return;
+      this.mudService.sendMessage(action.command);
+      return;
+    }
+
+    if (action.commands.length === 0) {
+      return;
+    }
+
+    this.mxpChoiceMenu.open({
+      commands: action.commands,
+      x: event.clientX,
+      y: event.clientY,
+      onPick: (command) => this.mudService.sendMessage(command),
+    });
   }
 
   private installCopyShortcutHandler(): void {
