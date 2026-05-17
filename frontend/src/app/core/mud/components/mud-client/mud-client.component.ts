@@ -1079,6 +1079,19 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
    * Loads and displays saved output history if available.
    * Fills the screenreader history region with old entries (silently, no announcement).
    * Resets the screenreader session timestamp so new output isn't filtered as "too old".
+   *
+   * Server entries are the raw bytes from the previous socket session and
+   * still contain MXP mode-switches (`ESC[1z`, `ESC[7z` …) and tags
+   * (`<rexit>` …). They have to go through an `MxpStreamFilter` so the
+   * markup is stripped instead of rendered literally in xterm.
+   *
+   * We use a throwaway filter (no `onTag` callback) so historical bytes do
+   * not mutate the live `MxpEntityService`/`MxpStatService`/etc. state.
+   * Clickable segments are written as plain text — the rexits in the
+   * scrollback belong to a dead session, so making them clickable would
+   * send commands into a fresh connection that isn't in those rooms.
+   * Input entries (user-typed lines) are not MXP-tagged and are written
+   * verbatim.
    */
   private loadHistoryIfAvailable(): void {
     console.log('[MudClient] Loading history from localStorage');
@@ -1092,12 +1105,17 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
 
     console.log(`[MudClient] Restoring ${entries.length} entries from history`);
 
-    // Write all history entries to terminal in order
-    for (const entry of entries) {
-      this.terminal.write(entry.data);
+    const restoreFilter = new MxpStreamFilter();
 
-      // Also append to screenreader history region (silent, no live announcement)
-      // this.screenReader?.appendToHistory(entry.data);
+    for (const entry of entries) {
+      if (entry.type === 'input') {
+        this.terminal.write(entry.data);
+        continue;
+      }
+      const segments = restoreFilter.processToSegments(entry.data);
+      for (const seg of segments) {
+        this.terminal.write(seg.content);
+      }
     }
 
     this.srLog(

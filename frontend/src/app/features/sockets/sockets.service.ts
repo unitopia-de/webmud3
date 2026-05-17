@@ -35,6 +35,11 @@ export class SocketsService {
   // The first serverHello received after page load. Subsequent serverHello
   // events with a different id mean the backend was restarted; we then
   // reload the page to pick up any new code and drop stale state.
+  //
+  // Persisted to localStorage so the comparison survives a page refresh —
+  // otherwise the first serverHello after a refresh always passes through
+  // unchecked and the old (now-stale) history stays on screen even though
+  // the backend changed identity in the meantime.
   private knownServerId: string | undefined;
 
   public onMudConnect = new EventEmitter<boolean>(); // Emits isNewConnection
@@ -58,6 +63,10 @@ export class SocketsService {
 
     // Initialize or retrieve persistent session token
     this.sessionToken = this.initializeSessionToken();
+    // Restore the last-seen backend id so handleServerHello can detect
+    // a backend restart that happened across a page refresh.
+    this.knownServerId =
+      namespacedStorage.get('webmud3-known-server-id') ?? undefined;
 
     console.log('[Sockets] Socket Service init socket', {
       socketUrl,
@@ -388,7 +397,10 @@ export class SocketsService {
 
   private handleServerHello = (serverId: string) => {
     if (this.knownServerId === undefined) {
+      // First serverHello ever (or right after a clean reload). Persist
+      // the id so a future refresh can detect a backend change.
       this.knownServerId = serverId;
+      this.saveKnownServerId(serverId);
       console.info(
         `[Sockets] Sockets-Service: Server hello, serverId=${serverId}`,
       );
@@ -401,13 +413,17 @@ export class SocketsService {
     }
 
     console.warn(
-      `[Sockets] Sockets-Service: Backend restart detected (old=${this.knownServerId}, new=${serverId}). Clearing local state and reloading.`,
+      `[Sockets] Sockets-Service: Backend change detected (old=${this.knownServerId}, new=${serverId}). Clearing local state and reloading.`,
     );
 
-    // The previous session-token and output-history belong to a backend that
-    // no longer exists. Clear both so the freshly loaded page starts clean
-    // and can establish a new session against the new backend.
+    // The previous session-token and output-history belong to a backend
+    // that no longer exists. Clear both so the freshly loaded page starts
+    // clean and can establish a new session against the new backend.
+    // We also overwrite the stored server-id with the new one — otherwise
+    // the reloaded page would see (stored=old, incoming=new) again and
+    // loop reloading forever.
     this.outputHistoryService.clearAll();
+    this.saveKnownServerId(serverId);
 
     try {
       namespacedStorage.remove('webmud3-session-token');
@@ -420,6 +436,17 @@ export class SocketsService {
 
     window.location.reload();
   };
+
+  private saveKnownServerId(serverId: string): void {
+    try {
+      namespacedStorage.set('webmud3-known-server-id', serverId);
+    } catch (error) {
+      console.error(
+        '[Sockets] Failed to persist known server id to localStorage:',
+        error,
+      );
+    }
+  }
 
   private handleGmcpActive = (active: boolean) => {
     console.info('[Sockets] Sockets-Service: GMCP active:', active);
