@@ -1,10 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 
-import {
-  ClickAction,
-  LineMarker,
-  MxpClickableService,
-} from './mxp-clickable.service';
+import { ClickAction, MxpClickableService } from './mxp-clickable.service';
 
 describe('MxpClickableService', () => {
   let svc: MxpClickableService;
@@ -14,48 +10,54 @@ describe('MxpClickableService', () => {
     svc = TestBed.inject(MxpClickableService);
   });
 
-  function staticMarker(line: number): LineMarker {
-    return { line };
-  }
-
   function simple(command: string): ClickAction {
     return { kind: 'simple', command };
   }
 
-  it('register returns null for a zero-width region', () => {
-    const r = svc.register(staticMarker(5), 0, 0, simple('x'), 'x');
-    expect(r).toBeNull();
+  it('register / lookup round-trip', () => {
+    const id = svc.register(simple('nord'), 'nord');
+    const r = svc.lookup(id);
+    expect(r?.label).toBe('nord');
+    expect(r?.action).toEqual(simple('nord'));
   });
 
-  it('regionsForLine matches the marker line', () => {
-    svc.register(staticMarker(3), 0, 5, simple('nord'), 'nord');
-    svc.register(staticMarker(4), 0, 5, simple('ost'), 'ost');
-    expect(svc.regionsForLine(3).map((r) => r.label)).toEqual(['nord']);
-    expect(svc.regionsForLine(4).map((r) => r.label)).toEqual(['ost']);
-    expect(svc.regionsForLine(5).map((r) => r.label)).toEqual([]);
+  it('lookup returns null for unknown id', () => {
+    expect(svc.lookup(999)).toBeNull();
   });
 
-  it('skips regions whose marker has scrolled out (line < 0)', () => {
-    svc.register(staticMarker(-1), 0, 5, simple('lost'), 'lost');
-    expect(svc.regionsForLine(-1)).toEqual([]);
-  });
-
-  it('expireDomain marks matching regions inactive', () => {
-    svc.register(staticMarker(0), 0, 4, simple('a'), 'a', 'room');
-    svc.register(staticMarker(0), 5, 9, simple('b'), 'b', 'room');
-    svc.register(staticMarker(0), 10, 14, simple('c'), 'c'); // no domain
-
-    expect(svc.regionsForLine(0).length).toBe(3);
+  it('expireDomain("room") invalidates regions registered before the bump', () => {
+    const oldId = svc.register(simple('nord'), 'nord', 'room');
     svc.expireDomain('room');
-    expect(svc.regionsForLine(0).map((r) => r.label)).toEqual(['c']);
+    const newId = svc.register(simple('sued'), 'sued', 'room');
+
+    expect(svc.lookup(oldId)).toBeNull();
+    expect(svc.lookup(newId)?.label).toBe('sued');
   });
 
-  it('clear empties the store and resets ids', () => {
-    const r1 = svc.register(staticMarker(0), 0, 4, simple('a'), 'a')!;
-    expect(r1.id).toBe(1);
+  it('regions without expireDomain survive a room bump', () => {
+    const id = svc.register(simple('inv'), 'inv'); // no domain
+    svc.expireDomain('room');
+    expect(svc.lookup(id)?.label).toBe('inv');
+  });
+
+  it('expireDomain for a non-room domain drops matching regions outright', () => {
+    const a = svc.register(simple('a'), 'a', 'custom');
+    const b = svc.register(simple('b'), 'b'); // no domain
+    svc.expireDomain('custom');
+    expect(svc.lookup(a)).toBeNull();
+    expect(svc.lookup(b)?.label).toBe('b');
+  });
+
+  it('clear empties the store and resets ids + epoch', () => {
+    const id1 = svc.register(simple('a'), 'a');
+    expect(id1).toBe(1);
+    svc.expireDomain('room');
+    expect(svc._currentEpoch()).toBe(1);
+
     svc.clear();
-    expect(svc.regionsForLine(0)).toEqual([]);
-    const r2 = svc.register(staticMarker(0), 0, 4, simple('a'), 'a')!;
-    expect(r2.id).toBe(1);
+    expect(svc.lookup(id1)).toBeNull();
+    expect(svc._currentEpoch()).toBe(0);
+    const id2 = svc.register(simple('a'), 'a');
+    expect(id2).toBe(1);
   });
 });

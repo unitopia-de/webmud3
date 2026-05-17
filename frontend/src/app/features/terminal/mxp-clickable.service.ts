@@ -1,110 +1,108 @@
 import { Injectable } from '@angular/core';
 
 /**
- * Click action attached to a region of the xterm buffer.
+ * Click action attached to an OSC 8 hyperlink in the xterm buffer.
  *
  *  - `simple`: send the `command` verbatim to the MUD.
- *  - `choice`: present `commands` as a menu and send the picked one. Stage 3
- *    sends `commands[0]` immediately; stage 4 will hook in the menu UI.
+ *  - `choice`: present `commands` as a menu and send the picked one.
  */
 export type ClickAction =
   | { kind: 'simple'; command: string }
   | { kind: 'choice'; commands: string[] };
 
 /**
- * Anything we can ask for the current buffer-line of a registered region.
- * Mirrors the shape of xterm.js's `IMarker` so the MudClient can pass a
- * marker straight in without us depending on `@xterm/xterm` here. Markers
- * report `line: -1` once their backing line has scrolled out of the buffer.
- */
-export interface LineMarker {
-  readonly line: number;
-}
-
-/**
- * A single clickable region in the xterm buffer.
+ * Stored region. The `epoch` value snapshots `roomEpoch` at registration
+ * time — a link whose epoch no longer matches the current `roomEpoch`
+ * (after a `<rexpire>`) is treated as expired and clicks are ignored,
+ * so old room exits in the scrollback can't accidentally fire.
  *
- * `marker.line` is dynamic — every time the buffer scrolls or shifts, the
- * marker tracks its anchor row automatically. `xStart` is inclusive, `xEnd`
- * exclusive; both are 0-based column indices into that row.
- *
- * `expireDomain` lets the server invalidate groups of regions in one call
- * via `<expire name="…">` — UNItopia uses "room" so room-bound tags get
- * expired when the player moves.
+ * Regions without an `expireDomain` always stay alive, regardless of
+ * the epoch.
  */
 export type ClickRegion = {
   id: number;
-  marker: LineMarker;
-  xStart: number;
-  xEnd: number;
   action: ClickAction;
   label: string;
   expireDomain?: string;
-  expired: boolean;
+  epoch: number;
 };
 
 @Injectable({ providedIn: 'root' })
 export class MxpClickableService {
   private nextId = 1;
-  private readonly regions: ClickRegion[] = [];
+  private readonly regions = new Map<number, ClickRegion>();
+  /**
+   * Counter that increases every time the server sends `<rexpire>` (i.e.
+   * the player has moved to a new room). Regions registered while
+   * `roomEpoch === N` are only valid as long as `roomEpoch` is still N.
+   */
+  private roomEpoch = 0;
 
   public register(
-    marker: LineMarker,
-    xStart: number,
-    xEnd: number,
     action: ClickAction,
     label: string,
     expireDomain?: string,
-  ): ClickRegion | null {
-    if (xEnd <= xStart) {
-      // Empty region — happens when a clickable tag wraps zero-width
-      // content. Nothing to highlight; skip registration.
-      return null;
-    }
-
-    const region: ClickRegion = {
-      id: this.nextId++,
-      marker,
-      xStart,
-      xEnd,
+  ): number {
+    const id = this.nextId++;
+    this.regions.set(id, {
+      id,
       action,
       label,
       expireDomain,
-      expired: false,
-    };
-    this.regions.push(region);
+      epoch: this.roomEpoch,
+    });
+    return id;
+  }
+
+  /**
+   * Returns the live region for the given id, or null if the region was
+   * cleared or has been expired by a domain switch (e.g. the player has
+   * moved to a new room and clicked an exit from the scrollback).
+   */
+  public lookup(id: number): ClickRegion | null {
+    const region = this.regions.get(id);
+    if (region === undefined) {
+      return null;
+    }
+    if (region.expireDomain === 'room' && region.epoch !== this.roomEpoch) {
+      return null;
+    }
     return region;
   }
 
   /**
-   * Returns all currently-active regions on the given line. Expired
-   * regions and regions whose marker has scrolled out of the buffer
-   * (`marker.line === -1`) are filtered out so the link-provider stops
-   * decorating them.
+   * Invalidates every region in the given domain. For "room" we bump the
+   * roomEpoch so any region registered before this point will fail the
+   * epoch check in `lookup`. Other domains are not used by UNItopia yet,
+   * but we still iterate so the API stays general.
    */
-  public regionsForLine(line: number): ClickRegion[] {
-    return this.regions.filter(
-      (r) => !r.expired && r.marker.line === line && r.marker.line >= 0,
-    );
-  }
-
-  /** Marks every region in the given expire-domain as expired. */
   public expireDomain(name: string): void {
-    for (const r of this.regions) {
+    if (name === 'room') {
+      this.roomEpoch += 1;
+      return;
+    }
+    // Generic case: drop matching regions outright.
+    for (const [id, r] of this.regions) {
       if (r.expireDomain === name) {
-        r.expired = true;
+        this.regions.delete(id);
       }
     }
   }
 
   /** Drops everything — use on disconnect. */
   public clear(): void {
-    this.regions.length = 0;
+    this.regions.clear();
     this.nextId = 1;
+    this.roomEpoch = 0;
   }
 
   /** Test-only accessor. */
   public _all(): readonly ClickRegion[] {
-    return this.regions;
+    return Array.from(this.regions.values());
+  }
+
+  /** Test-only accessor. */
+  public _currentEpoch(): number {
+    return this.roomEpoch;
   }
 }

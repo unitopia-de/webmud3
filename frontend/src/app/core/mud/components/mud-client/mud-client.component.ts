@@ -262,6 +262,21 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
       // the `theme$` subscription wired up in ngAfterViewInit.
       theme: initialTheme.theme,
       minimumContrastRatio: initialTheme.minimumContrastRatio,
+      // Handles clicks on OSC 8 hyperlinks. MXP-clickable rexits etc. are
+      // written into the buffer as `\x1b]8;;mxp:click/<id>\x1b\\…` — when
+      // the user clicks one, xterm calls this handler with the URL string.
+      // We resolve the id via MxpClickableService, which transparently
+      // returns null for regions that have been expired (e.g. exits from
+      // a previous room after a `<rexpire>`).
+      //
+      // `allowNonHttpProtocols: true` is required because our scheme is
+      // `mxp:` — without it xterm silently blocks the click for security.
+      linkHandler: {
+        allowNonHttpProtocols: true,
+        activate: (event, text) => {
+          this.handleMxpHyperlinkClick(text, event);
+        },
+      },
     });
 
     this.inputController = new MudInputController(
@@ -322,7 +337,6 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
     this.terminal.loadAddon(this.terminalClipboardAddon);
     this.terminal.loadAddon(this.terminalFitAddon);
     this.terminal.loadAddon(this.terminalAttachAddon);
-    this.installMxpLinkProvider();
     this.installCopyShortcutHandler();
     this.terminal.focus();
 
@@ -825,8 +839,8 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
    *   2. MXP filter splits the cleaned chunk into segments (`text` /
    *      `clickable`).
    *   3. Each segment is written into xterm via `terminal.write` directly;
-   *      clickable segments register a `ClickRegion` keyed to xterm's
-   *      buffer marker so scrolling does not invalidate them.
+   *      clickable segments are emitted as OSC 8 hyperlinks so xterm
+   *      tracks their position natively as the buffer scrolls.
    *
    * Returning `''` suppresses AttachAddon's own write — we already pushed
    * everything ourselves.
@@ -847,10 +861,27 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
   }
 
   /**
-   * Writes a clickable segment's content into xterm and remembers the
-   * occupied buffer range so the registered link-provider can mark it
-   * up on hover. Multi-line wrapping is currently not registered (rare
-   * for the short tag contents UNItopia emits — `<rexit>nord</rexit>` etc.).
+   * Writes a clickable segment into xterm as an OSC 8 hyperlink wrapped
+   * in ANSI underline codes.
+   *
+   * Why OSC 8 instead of a LinkProvider: the hyperlink is part of the
+   * buffer payload itself, so xterm tracks its position natively as the
+   * buffer scrolls. No marker, no `viewportY` arithmetic, no async cursor
+   * snapshotting — the previous implementation got the position wrong
+   * after the buffer scrolled because the cursor measurements were
+   * coupled to `viewportY` in a way that diverged from xterm's internal
+   * hover-rendering coordinates.
+   *
+   * Format: `ESC]8;;mxp:click/<id>ESC\\ESC[4m<content>ESC[24mESC]8;;ESC\\`
+   *   - The OSC 8 prefix declares an `mxp:click/<id>` URL.
+   *   - `ESC[4m`/`ESC[24m` keep the visible underline so the region is
+   *     obvious even without hovering.
+   *   - The OSC 8 suffix closes the hyperlink range.
+   *
+   * The click is routed through the terminal's `linkHandler` callback
+   * (set in the constructor); `MxpClickableService.lookup` decides
+   * whether the click is still valid — clicks on rexits from a previous
+   * room (whose epoch has been bumped by `<rexpire>`) silently no-op.
    */
   private writeClickableSegment(
     seg: Extract<StreamSegment, { type: 'clickable' }>,
@@ -859,39 +890,51 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
       return;
     }
 
-    const startMarker = this.terminal.registerMarker(0);
-    const startX = this.terminal.buffer.active.cursorX;
-
-    this.terminal.write(seg.content);
-
-    const endX = this.terminal.buffer.active.cursorX;
-    const endLine =
-      this.terminal.buffer.active.baseY +
-      this.terminal.buffer.active.cursorY;
-
-    if (startMarker === undefined) {
-      return;
-    }
-
-    // Skip wrapped regions — provideLinks operates per-line and we have no
-    // UI plan for spanning multiple lines yet.
-    if (startMarker.line !== endLine) {
-      return;
-    }
-
     const action = this.deriveClickAction(seg);
     if (action === null) {
+      // No actionable mapping — still write the content as plain text so
+      // it doesn't get dropped from the visible stream.
+      this.terminal.write(seg.content);
       return;
     }
 
-    this.mxpClickables.register(
-      startMarker,
-      startX,
-      endX,
+    const id = this.mxpClickables.register(
       action.action,
       action.label,
       action.expireDomain,
     );
+
+    const url = `mxp:click/${id}`;
+    // OSC 8 hyperlinks: open + content (with ANSI underline) + close.
+    // ST = `ESC \` (string terminator). xterm.js parses both BEL and ST,
+    // we use ST because it's the form the OSC 8 spec recommends.
+    this.terminal.write(
+      `\x1b]8;;${url}\x1b\\\x1b[4m${seg.content}\x1b[24m\x1b]8;;\x1b\\`,
+    );
+  }
+
+  /**
+   * Called by the terminal's `linkHandler` when the user clicks an OSC 8
+   * hyperlink in the buffer. Routes back to `activateClickRegion` for
+   * MXP-managed links; ignores everything else (UNItopia may emit OSC 8
+   * hyperlinks for other purposes in the future).
+   */
+  private handleMxpHyperlinkClick(url: string, event: MouseEvent): void {
+    const prefix = 'mxp:click/';
+    if (!url.startsWith(prefix)) {
+      return;
+    }
+    const id = Number(url.slice(prefix.length));
+    if (!Number.isFinite(id)) {
+      return;
+    }
+    const region = this.mxpClickables.lookup(id);
+    if (region === null) {
+      // Region was expired by a domain switch — silently swallow the
+      // click so an old scrollback exit doesn't move the player.
+      return;
+    }
+    this.activateClickRegion(region.action, event);
   }
 
   /**
@@ -909,7 +952,17 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
     if (seg.tag === 'rexit') {
       const command = seg.content.trim();
       if (command.length === 0) return null;
-      return { action: { kind: 'simple', command }, label: command };
+      // UNItopia's <!ELEMENT rexit '<send expire="room">' …> binds room
+      // exits to the "room" expire domain. We do not route rexit through
+      // mxpElements.resolve() because the template has no `href` (the
+      // visible content is itself the command), but we still inherit the
+      // expire domain so the server's <expire name="room"> after a move
+      // invalidates these regions.
+      return {
+        action: { kind: 'simple', command },
+        label: command,
+        expireDomain: 'room',
+      };
     }
 
     if (seg.tag === 'send') {
@@ -1175,43 +1228,6 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
    *    behaviour of sending  to the MUD as an interrupt).
    *  - Anything else: bubble through.
    */
-  /**
-   * Registers an xterm link-provider that turns MXP-tagged regions in the
-   * buffer into clickable hot-spots. The provider is asked once per
-   * terminal line that the user is hovering over; we look the regions up
-   * by their stored marker (which xterm keeps current as the buffer
-   * scrolls) and hand each one back as an `ILink`.
-   */
-  private installMxpLinkProvider(): void {
-    this.terminal.registerLinkProvider({
-      provideLinks: (lineNumber, callback) => {
-        // xterm passes a 1-based line number that maps to the current
-        // viewport row; markers expose 0-based buffer rows where 0 is the
-        // first line of scrollback. We need to convert lineNumber → buffer-Y.
-        const bufferY =
-          this.terminal.buffer.active.viewportY + (lineNumber - 1);
-        const regions = this.mxpClickables.regionsForLine(bufferY);
-
-        if (regions.length === 0) {
-          callback(undefined);
-          return;
-        }
-
-        callback(
-          regions.map((r) => ({
-            range: {
-              start: { x: r.xStart + 1, y: lineNumber },
-              end: { x: r.xEnd, y: lineNumber },
-            },
-            text: r.label,
-            activate: (event: MouseEvent) =>
-              this.activateClickRegion(r.action, event),
-          })),
-        );
-      },
-    });
-  }
-
   /**
    * Handles a click on an MXP region.
    *

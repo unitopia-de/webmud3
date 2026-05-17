@@ -67,6 +67,15 @@ export class MxpTagRouter {
       return;
     }
 
+    // UNItopia defines `<!ELEMENT rexpire '<expire name="room">'>` so the
+    // server sends `<rexpire>` directly as a shorthand for clearing the
+    // "room" expire domain. The plain `<expire>` tag is never sent — we
+    // have to translate `<rexpire>` ourselves.
+    if (parsed.name === 'rexpire') {
+      this.clickables.expireDomain('room');
+      return;
+    }
+
     if (parsed.name === 'sound') {
       this.handleSoundTag(parsed.attrs, parsed.firstNakedValue);
       return;
