@@ -1,4 +1,4 @@
-import {
+﻿import {
   AfterViewInit,
   Component,
   ElementRef,
@@ -448,12 +448,15 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
       this.handleOrientationChange,
     );
 
-    // Unregister paste handler
+    // Unregister paste handler. Must mirror the `{ capture: true }` flag
+    // used in setupPasteHandler — capture is part of the listener's
+    // identity, otherwise removeEventListener wouldn't find it.
     if (this.pasteHandler) {
       if (this.terminalRef?.nativeElement) {
         this.terminalRef.nativeElement.removeEventListener(
           'paste',
           this.pasteHandler,
+          { capture: true },
         );
       }
       document.removeEventListener('paste', this.pasteHandler);
@@ -651,28 +654,25 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
   /**
    * Routes terminal keystrokes either directly to the socket (when not in edit mode)
    * or through the {@link MudInputController}.
-   * Special handling for Ctrl+V: intercepts clipboard content and injects it properly.
+   *
+   * Paste is handled by the DOM `paste` event listener installed in
+   * `setupPasteHandler` — that listener has synchronous access to
+   * `event.clipboardData` and calls `event.preventDefault()` to keep the
+   * paste out of xterm's hidden helper textarea. xterm therefore normally
+   * never emits the fallback `SYN` (``) byte here. If one slips
+   * through (xterm lost focus during the paste race), it falls into the
+   * normal data path below; worst case the MUD sees a literal `^V`.
    */
   private handleInput(data: string) {
-    this.pasteLog('[PASTE-DEBUG] Edit mode:', this.state.isEditMode);
-    this.pasteLog('[PASTE-DEBUG] Data received:', JSON.stringify(data));
-    this.pasteLog('[PASTE-DEBUG] Data length:', data.length);
+    this.pasteLog('[INPUT-DEBUG] Edit mode:', this.state.isEditMode);
+    this.pasteLog('[INPUT-DEBUG] Data received:', JSON.stringify(data));
+    this.pasteLog('[INPUT-DEBUG] Data length:', data.length);
 
     // When the native mobile input is active, ignore everything xterm thinks
     // the user typed — input flows through the <app-mobile-input> commit
     // handler instead. This avoids double processing if a stray focus brings
     // the hidden helper textarea back into play on touch devices.
     if (this.state.useMobileInput) {
-      return;
-    }
-
-    // Special handling for Ctrl+V (paste): xterm converts paste to \u0016 in onData()
-    // We need to read the clipboard and inject the actual content
-    if (data === '\u0016') {
-      this.pasteLog(
-        '[MudClient] Ctrl+V detected, reading clipboard from native event...',
-      );
-      this.handlePasteFromClipboard();
       return;
     }
 
@@ -1300,97 +1300,139 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
         return false;
       }
 
+      // Paste shortcut: xterm's keyDown handler would otherwise convert
+      // Ctrl+V into a SYN byte and `preventDefault()` it, which kills the
+      // browser's native `paste` event — so our DOM paste listener never
+      // fires for keyboard paste (it still works for right-click→Paste).
+      // We intercept here, read the clipboard ourselves and inject the
+      // text through the same pipeline as the DOM listener.
+      const isPasteShortcut =
+        (event.ctrlKey || event.metaKey) &&
+        !event.shiftKey &&
+        !event.altKey &&
+        (event.key === 'v' || event.key === 'V');
+
+      if (isPasteShortcut) {
+        void navigator.clipboard
+          .readText()
+          .then((text) => {
+            this.pasteLog('[PASTE-DEBUG] Ctrl+V → clipboard.readText', {
+              length: text.length,
+              preview: text.substring(0, 50),
+              editMode: this.state.isEditMode,
+            });
+            if (!text) {
+              return;
+            }
+            if (!this.state.isEditMode) {
+              this.mudService.sendMessage(text);
+            } else {
+              this.inputController.handleData(text);
+            }
+          })
+          .catch((err) => {
+            // readText needs clipboard-read permission and a focused page.
+            // If it fails, the user can fall back to right-click → Einfügen
+            // which routes through the DOM paste listener instead.
+            console.warn('[MudClient] Clipboard read failed (Ctrl+V):', err);
+          });
+        event.preventDefault();
+        return false;
+      }
+
       const isCopyShortcut =
         (event.ctrlKey || event.metaKey) &&
         !event.shiftKey &&
         !event.altKey &&
         (event.key === 'c' || event.key === 'C');
 
-      if (!isCopyShortcut || !this.terminal.hasSelection()) {
+      if (!isCopyShortcut) {
         return true;
       }
 
-      const selection = this.terminal.getSelection();
+      const hasSelection = this.terminal.hasSelection();
+      const selection = hasSelection ? this.terminal.getSelection() : '';
 
-      if (selection) {
-        void navigator.clipboard.writeText(selection).catch((err) => {
-          console.warn('[MudClient] Clipboard write failed:', err);
-        });
+      this.pasteLog('[COPY-DEBUG] Ctrl+C pressed', {
+        hasSelection,
+        selectionLength: selection.length,
+        selectionPreview: selection.slice(0, 40),
+      });
+
+      if (!selection) {
+        // Empty (or no) selection — fall through so xterm sends ^C as an
+        // interrupt to the MUD, which is the long-standing behaviour.
+        return true;
       }
+
+      void navigator.clipboard.writeText(selection).catch((err) => {
+        // The clipboard write can fail when the page has lost focus or
+        // when the browser denies clipboard permissions. Surface it so
+        // "Strg+C kopiert nicht"-reports are traceable.
+        console.warn('[MudClient] Clipboard write failed:', err);
+      });
 
       // Prevent the browser default (which would also try to copy from xterm's
       // hidden helper textarea and may end up empty) and stop xterm from
-      // emitting  as input.
+      // emitting ^C as input.
       event.preventDefault();
       return false;
     });
   }
 
   /**
-   * Sets up a paste event handler to intercept native clipboard paste operations.
-   * This method listens on the terminal container for paste events that come
-   * directly from the browser (Ctrl+V, right-click paste, etc.) without requiring
-   * explicit clipboard API permissions.
+   * Sets up the single source of truth for paste handling: a DOM `paste`
+   * event listener on the terminal container. It catches Ctrl+V, Cmd+V,
+   * right-click→paste and the touch context-menu paste alike, since all of
+   * them dispatch a native `paste` event on the focused element.
    *
-   * The paste event automatically includes clipboard access through event.clipboardData,
-   * so no navigator.clipboard.readText() call is needed.
+   * The listener runs in the **capture phase** so it fires before xterm's
+   * own paste handler on the hidden helper textarea. That handler would
+   * otherwise call `terminal.paste(text)` (which emits via `onData`,
+   * bypassing our `MudInputController` and therefore the local-echo
+   * suppression that hides passwords) and `stopPropagation()`, so a
+   * bubble-phase listener never gets the event. We additionally call
+   * `stopImmediatePropagation()` and `preventDefault()` so xterm never
+   * sees the event at all — `inputController.handleData(pastedText)` is
+   * then the only place the paste reaches.
+   *
+   * `event.clipboardData.getData('text/plain')` works synchronously and
+   * without `navigator.clipboard` permissions, so this path covers
+   * right-click→Einfügen (and the touch context-menu) without prompting.
    */
   private setupPasteHandler(element: HTMLElement): void {
     this.pasteHandler = (event: ClipboardEvent) => {
-      this.pasteLog('[MudClient] Native paste event intercepted');
+      const pastedText = event.clipboardData?.getData('text/plain') ?? '';
 
-      // Don't prevent default for now - let xterm handle the visual part
-      // We'll just read the clipboard data and inject it properly
-      const pastedText = event.clipboardData?.getData('text/plain');
-
-      this.pasteLog('[MudClient] Clipboard content:', {
-        length: pastedText?.length ?? 0,
-        preview: pastedText?.substring(0, 50),
+      this.pasteLog('[PASTE-DEBUG] Native paste event', {
+        length: pastedText.length,
+        preview: pastedText.substring(0, 50),
+        editMode: this.state.isEditMode,
+        localEchoEnabled: this.state.localEchoEnabled,
+        showEcho: this.state.showEcho,
       });
 
-      if (pastedText) {
-        // Prevent the default onData behavior (which sends \u0016 only)
-        event.preventDefault();
+      // Stop the event so xterm's internal paste handler on the textarea
+      // never fires. `stopImmediatePropagation` also blocks any other
+      // capture-phase listener that might have been registered later.
+      event.stopImmediatePropagation();
+      event.preventDefault();
 
-        if (!this.state.isEditMode) {
-          // In non-edit mode, send paste content directly to server
-          this.mudService.sendMessage(pastedText);
-        } else {
-          // In edit mode, route through input controller for buffering and echo
-          this.inputController.handleData(pastedText);
-        }
+      if (!pastedText) {
+        return;
+      }
+
+      if (!this.state.isEditMode) {
+        // In non-edit mode, send paste content directly to server
+        this.mudService.sendMessage(pastedText);
+      } else {
+        // In edit mode, route through input controller for buffering and echo
+        this.inputController.handleData(pastedText);
       }
     };
 
-    element.addEventListener('paste', this.pasteHandler);
-  }
-
-  /**
-   * Handles paste by reading clipboard content when Ctrl+V is detected.
-   * Uses the Clipboard API which is safe to call here since it's triggered
-   * by a user gesture (Ctrl+V keypress).
-   */
-  private async handlePasteFromClipboard(): Promise<void> {
-    try {
-      const pastedText = await navigator.clipboard.readText();
-
-      this.pasteLog('[MudClient] Clipboard content read:', {
-        length: pastedText.length,
-        preview: pastedText.substring(0, 50),
-      });
-
-      if (pastedText) {
-        if (!this.state.isEditMode) {
-          // In non-edit mode, send paste content directly to server
-          this.mudService.sendMessage(pastedText);
-        } else {
-          // In edit mode, route through input controller for buffering and echo
-          this.inputController.handleData(pastedText);
-        }
-      }
-    } catch (err) {
-      console.error('[MudClient] Failed to read clipboard:', err);
-    }
+    // Capture phase: see the event before xterm's textarea listener.
+    element.addEventListener('paste', this.pasteHandler, { capture: true });
   }
 
   /** Logs only when screenreader debug logging is enabled in the footer menu. */

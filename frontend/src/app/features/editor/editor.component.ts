@@ -259,6 +259,110 @@ export class EditorComponent implements OnInit, AfterViewInit, OnDestroy {
     this.editor.onDidChangeModelContent(() => {
       this.hasUnsavedChanges = this.editor?.getValue() !== this.initialContent;
     });
+
+    this.installClipboardActions(this.editor);
+  }
+
+  /**
+   * Adds working Cut/Copy/Paste actions to the editor's context menu.
+   *
+   * Why: Monaco's stock Cut/Copy/Paste actions go through an internal
+   * command pipeline that calls `accessor.get(IProductService)`. The
+   * standalone build does not register that service, so the menu clicks
+   * throw `[invokeFunction] unknown service 'productService'` and do
+   * nothing. Ctrl+C/V/X aren't affected — they bypass Monaco's command
+   * runner and hit the browser's native clipboard events directly.
+   *
+   * Why unique IDs instead of overriding Monaco's IDs: `addAction` with
+   * the same id as a built-in action does not unregister the built-in's
+   * context-menu entry (that's a separate `MenuRegistry` registration we
+   * can't reach without private API access). So overriding produced
+   * **duplicate** menu items. Using own ids documents the conflict
+   * clearly: the German "Kopieren / Ausschneiden / Einfügen" entries
+   * are the working ones; the English defaults are Monaco's broken
+   * leftovers we can't remove cleanly.
+   *
+   * No `keybindings` set — Ctrl+C/V/X already work via the browser path
+   * and we don't want to shadow them with this slower clipboard-API
+   * implementation.
+   */
+  private installClipboardActions(
+    editor: MonacoNs.editor.IStandaloneCodeEditor,
+  ): void {
+    editor.addAction({
+      id: 'webmud3.editor.clipboardCut',
+      label: 'Ausschneiden',
+      contextMenuGroupId: '9_cutcopypaste',
+      contextMenuOrder: 0.1,
+      run: async (ed) => {
+        if (this.readOnly) {
+          return;
+        }
+        const selection = ed.getSelection();
+        const model = ed.getModel();
+        if (!selection || selection.isEmpty() || !model) {
+          return;
+        }
+        const text = model.getValueInRange(selection);
+        try {
+          await navigator.clipboard.writeText(text);
+          ed.executeEdits('webmud3-cut', [
+            { range: selection, text: '', forceMoveMarkers: true },
+          ]);
+        } catch (err) {
+          console.warn('[Editor] Clipboard cut failed:', err);
+        }
+      },
+    });
+
+    editor.addAction({
+      id: 'webmud3.editor.clipboardCopy',
+      label: 'Kopieren',
+      contextMenuGroupId: '9_cutcopypaste',
+      contextMenuOrder: 0.2,
+      run: async (ed) => {
+        const selection = ed.getSelection();
+        const model = ed.getModel();
+        if (!selection || selection.isEmpty() || !model) {
+          return;
+        }
+        const text = model.getValueInRange(selection);
+        try {
+          await navigator.clipboard.writeText(text);
+        } catch (err) {
+          console.warn('[Editor] Clipboard copy failed:', err);
+        }
+      },
+    });
+
+    editor.addAction({
+      id: 'webmud3.editor.clipboardPaste',
+      label: 'Einfügen',
+      contextMenuGroupId: '9_cutcopypaste',
+      contextMenuOrder: 0.3,
+      run: async (ed) => {
+        if (this.readOnly) {
+          return;
+        }
+        let text: string;
+        try {
+          text = await navigator.clipboard.readText();
+        } catch (err) {
+          console.warn('[Editor] Clipboard read failed:', err);
+          return;
+        }
+        if (!text) {
+          return;
+        }
+        const selection = ed.getSelection();
+        if (!selection) {
+          return;
+        }
+        ed.executeEdits('webmud3-paste', [
+          { range: selection, text, forceMoveMarkers: true },
+        ]);
+      },
+    });
   }
 
   private toMonacoLanguage(editortype: string | undefined): string {

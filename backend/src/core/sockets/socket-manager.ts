@@ -446,19 +446,43 @@ export class SocketManager extends Server<
         });
 
         telnetClient.on('negotiationStateChanged', ({ option, state }) => {
+          // Look up the active socket via the session-token-keyed
+          // `mudConnections` map instead of using the `socket` reference
+          // captured by this closure.  The captured reference points to
+          // the socket that was active when this telnet client was first
+          // created — after a frontend reload + reattach (e.g. driven by
+          // the server-id mismatch path in the client), that socket is
+          // dead while `mudConnections[token].socketId` has been updated
+          // to the new live socket.  Emitting through the stale closure
+          // silently drops the event.  This is the same pattern already
+          // used by the `data`/`close`/`negotiationChanged(TM)` handlers
+          // a few lines up.  The leaked-password-after-reload bug traced
+          // back to exactly this: WILL/WONT ECHO events fired here went
+          // to the dead socket, so the reloaded frontend never learned
+          // that echo had been turned off for the password prompt.
+          const currentSocketId =
+            this.mudConnections[resolvedSessionToken]?.socketId;
+          const currentSocket = currentSocketId
+            ? this.getSocketById(currentSocketId)
+            : undefined;
+
+          if (currentSocket === undefined) {
+            return;
+          }
+
           switch (option) {
             case TelnetOptions.TELOPT_ECHO: {
               const echoState = state as EchoState;
 
               logger.verbose(
-                `[${socket.id}] [Socket-Manager] Telnet Option Echo has changed. Emitting 'setEchoMode'`,
+                `[${currentSocket.id}] [Socket-Manager] Telnet Option Echo has changed. Emitting 'setEchoMode'`,
                 {
                   name: TelnetOptions[TelnetOptions.TELOPT_ECHO],
                   state: state,
                 },
               );
 
-              socket.emit('setEchoMode', echoState.localEchoEnabled);
+              currentSocket.emit('setEchoMode', echoState.localEchoEnabled);
 
               break;
             }
@@ -467,14 +491,14 @@ export class SocketManager extends Server<
               const linemodeState = state as LinemodeState;
 
               logger.verbose(
-                `[${socket.id}] [Socket-Manager] Telnet Option Linemode has changed. Emitting 'setLinemode'`,
+                `[${currentSocket.id}] [Socket-Manager] Telnet Option Linemode has changed. Emitting 'setLinemode'`,
                 {
                   name: TelnetOptions[TelnetOptions.TELOPT_LINEMODE],
                   state: state,
                 },
               );
 
-              socket.emit('setLinemode', linemodeState);
+              currentSocket.emit('setLinemode', linemodeState);
 
               break;
             }
@@ -483,14 +507,14 @@ export class SocketManager extends Server<
               const gmcpState = state as GmcpState;
 
               logger.verbose(
-                `[${socket.id}] [Socket-Manager] Telnet Option GMCP has changed. Emitting 'mudGmcpActive'`,
+                `[${currentSocket.id}] [Socket-Manager] Telnet Option GMCP has changed. Emitting 'mudGmcpActive'`,
                 {
                   name: TelnetOptions[TelnetOptions.TELOPT_GMCP],
                   state: state,
                 },
               );
 
-              socket.emit('mudGmcpActive', gmcpState.active);
+              currentSocket.emit('mudGmcpActive', gmcpState.active);
 
               break;
             }
