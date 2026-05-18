@@ -111,6 +111,19 @@
   }
 }
 
+.select-button {
+  margin-right: 4px;
+
+  // Distinct teal highlight while selection mode is armed so the user can
+  // tell at a glance that the next two taps will mark a range instead of
+  // doing whatever the tap would normally trigger.
+  &.active {
+    background: #264f78;
+    border-color: #4ec9b0;
+    color: #4ec9b0;
+  }
+}
+
 .menu-dropdown {
   position: absolute;
   bottom: calc(100% + 4px);

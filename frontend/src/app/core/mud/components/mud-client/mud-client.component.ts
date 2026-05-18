@@ -1,9 +1,11 @@
 ﻿import {
   AfterViewInit,
   Component,
+  computed,
   ElementRef,
   inject,
   OnDestroy,
+  signal,
   ViewChild,
 } from '@angular/core';
 import { AttachAddon } from '@xterm/addon-attach';
@@ -48,6 +50,7 @@ import {
   MxpStatService,
   MxpStreamFilter,
   MxpTagRouter,
+  SelectionModeService,
   StreamSegment,
   SpeechSettingsService,
   TerminalThemeService,
@@ -154,6 +157,9 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
   private readonly mxpClickables = inject(MxpClickableService);
   private readonly mxpChoiceMenu = inject(MxpChoiceMenuService);
   private readonly mxpSounds = inject(MxpSoundService);
+  // Exposed publicly so the template can read state + marker positions
+  // for the touch-friendly two-tap-then-drag selection UX.
+  public readonly selectionMode = inject(SelectionModeService);
 
   private readonly MOBILE_INPUT_MENU_ID = 'mobile-input';
   private readonly RECENTER_MENU_ID = 'windows-recenter';
@@ -200,6 +206,45 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
   private themeSubscription?: Subscription;
   private mxpResetSubscription?: Subscription;
   private pasteHandler?: (event: ClipboardEvent) => void;
+  private selectionTapHandler?: (event: PointerEvent) => void;
+  private viewportScrollHandler?: (event: Event) => void;
+  private viewportScrollElement?: HTMLElement;
+
+  // Counter that gets bumped on every event that can invalidate the
+  // on-screen marker positions (scroll, resize, font change). Computed
+  // marker-position signals read this so they re-evaluate without us
+  // having to wire every event into the signal graph manually.
+  private readonly markerInvalidator = signal(0);
+
+  /**
+   * Pixel coordinates (relative to the terminal container) for the start
+   * marker, or `null` when it's not active or its buffer row has been
+   * scrolled out of the visible viewport.
+   */
+  public readonly xtermStartMarkerPos = computed<{
+    x: number;
+    y: number;
+  } | null>(() => {
+    this.markerInvalidator();
+    const anchor = this.selectionMode.anchor();
+    if (anchor === null || anchor.target !== 'xterm') return null;
+    return this.xtermBufferPosToPixel(
+      anchor.data as { col: number; row: number },
+    );
+  });
+
+  /** Same as `xtermStartMarkerPos` for the end marker. */
+  public readonly xtermEndMarkerPos = computed<{
+    x: number;
+    y: number;
+  } | null>(() => {
+    this.markerInvalidator();
+    const end = this.selectionMode.end();
+    if (end === null || end.target !== 'xterm') return null;
+    return this.xtermBufferPosToPixel(
+      end.data as { col: number; row: number },
+    );
+  });
   /** Read-only state accessor for template bindings. */
   public get useMobileInput(): boolean {
     return this.state.useMobileInput;
@@ -354,9 +399,45 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
     // Set up paste handler on terminal container (for native paste events)
     this.setupPasteHandler(this.terminalRef.nativeElement);
 
+    // Touch-friendly "two-tap range selection": when the footer toggles
+    // selection mode, the next two taps inside the terminal define start
+    // and end of the selection — xterm has no usable touch-drag of its
+    // own (canvas-rendered, no native selection markers).
+    this.setupSelectionTapHandler(this.terminalRef.nativeElement);
+
+    // `terminal.onScroll` only fires when new content shifts the buffer
+    // from the bottom — NOT when the user scrolls back through history
+    // via mousewheel/touch. For our selection markers to follow the
+    // buffer through user-initiated scrollback we hook the native
+    // `scroll` event on xterm's `.xterm-viewport` element directly.
+    // Re-bump the invalidator so the marker pixel positions are
+    // recomputed against the new viewport offset.
+    this.viewportScrollElement =
+      this.terminalRef.nativeElement.querySelector<HTMLElement>(
+        '.xterm-viewport',
+      ) ?? undefined;
+    if (this.viewportScrollElement) {
+      this.viewportScrollHandler = () =>
+        this.markerInvalidator.update((n) => n + 1);
+      this.viewportScrollElement.addEventListener(
+        'scroll',
+        this.viewportScrollHandler,
+        { passive: true },
+      );
+    }
+
     this.terminalDisposables.push(
       this.terminal.onData((data) => this.handleInput(data)),
       this.terminal.onBell(() => this.playBell()),
+      // Re-evaluate marker pixel positions whenever the buffer scrolls
+      // or the cell grid changes size — otherwise the handles would
+      // drift relative to the cells they're anchored to.
+      this.terminal.onScroll(() =>
+        this.markerInvalidator.update((n) => n + 1),
+      ),
+      this.terminal.onResize(() =>
+        this.markerInvalidator.update((n) => n + 1),
+      ),
     );
 
     this.showEchoSubscription = this.showEcho$.subscribe((showEcho) => {
@@ -461,6 +542,23 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
       }
       document.removeEventListener('paste', this.pasteHandler);
     }
+
+    if (this.selectionTapHandler && this.terminalRef?.nativeElement) {
+      this.terminalRef.nativeElement.removeEventListener(
+        'pointerdown',
+        this.selectionTapHandler,
+        { capture: true },
+      );
+    }
+
+    if (this.viewportScrollElement && this.viewportScrollHandler) {
+      this.viewportScrollElement.removeEventListener(
+        'scroll',
+        this.viewportScrollHandler,
+      );
+    }
+    this.viewportScrollElement = undefined;
+    this.viewportScrollHandler = undefined;
 
     this.terminalDisposables.forEach((disposable) => disposable.dispose());
     this.showEchoSubscription?.unsubscribe();
@@ -965,6 +1063,30 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
       };
     }
 
+    // Encyclopedia helpers — the visible text is the lookup target, the
+    // command is built by prefixing it. The server emits `<enzyfun>X</enzyfun>`
+    // resp. `<enzybsp>X</enzybsp>` (no attributes); no `<!ELEMENT>` is
+    // declared for these, so the resolve path below would fail. Each entry
+    // gets a fresh epoch (no expire domain) — encyclopedia clicks stay
+    // valid regardless of room moves.
+    if (seg.tag === 'enzyfun') {
+      const target = seg.content.trim();
+      if (target.length === 0) return null;
+      return {
+        action: { kind: 'simple', command: `? ${target}` },
+        label: target,
+      };
+    }
+
+    if (seg.tag === 'enzybsp') {
+      const target = seg.content.trim();
+      if (target.length === 0) return null;
+      return {
+        action: { kind: 'simple', command: `bsp? ${target}` },
+        label: target,
+      };
+    }
+
     if (seg.tag === 'send') {
       const href = seg.attrs.get('href');
       if (href === undefined) return null;
@@ -1257,7 +1379,7 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
   private activateClickRegion(action: ClickAction, event: MouseEvent): void {
     if (action.kind === 'simple') {
       if (!action.command) return;
-      this.mudService.sendMessage(action.command);
+      this.sendClickCommand(action.command);
       return;
     }
 
@@ -1269,8 +1391,24 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
       commands: action.commands,
       x: event.clientX,
       y: event.clientY,
-      onPick: (command) => this.mudService.sendMessage(command),
+      onPick: (command) => this.sendClickCommand(command),
     });
+  }
+
+  /**
+   * Sends a full command line generated by a click (MXP-clickable or choice
+   * menu). In normal line-edit mode the backend appends `\r` automatically,
+   * so we just hand over the bare command. When the server has switched the
+   * session to character mode (e.g. UNItopia's `vt100client` for the
+   * separate input line) the backend's auto-Enter is suppressed — there
+   * every keystroke is forwarded as-is and the user's own Enter key
+   * carries the `\r`. A click then has to ship its own terminator,
+   * otherwise the command sits in the MUD's input buffer waiting for
+   * input that will never come.
+   */
+  private sendClickCommand(command: string): void {
+    const payload = this.state.isEditMode ? command : `${command}\r`;
+    this.mudService.sendMessage(payload);
   }
 
   private installCopyShortcutHandler(): void {
@@ -1433,6 +1571,234 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
 
     // Capture phase: see the event before xterm's textarea listener.
     element.addEventListener('paste', this.pasteHandler, { capture: true });
+  }
+
+  /**
+   * Installs a capture-phase pointer listener on the terminal container
+   * that drives the touch-friendly range-selection flow. Behaviour depends
+   * on `SelectionModeService.state()`:
+   *
+   *   - `inactive` → no-op, xterm's own pointer handling runs unchanged.
+   *   - `awaiting-anchor` → first tap places the start marker.
+   *   - `awaiting-extend` → second tap places the end marker and renders
+   *     the initial selection. State becomes `adjusting`.
+   *   - `adjusting` → taps outside the marker handles are ignored; the
+   *     user refines the selection by dragging a handle (each handle
+   *     manages its own pointer events via `onXtermMarkerPointerDown`).
+   *
+   * Why capture-phase pointer events: we need to beat xterm's internal
+   * mousedown listener on the canvas/textarea (same trick the paste
+   * handler uses). Pointer events cover mouse and touch with one path.
+   */
+  private setupSelectionTapHandler(element: HTMLElement): void {
+    this.selectionTapHandler = (event: PointerEvent) => {
+      if (!this.selectionMode.isActive()) {
+        return;
+      }
+
+      // Marker handles live inside the same container — let them process
+      // their own pointer events. Without this guard the capture-phase
+      // listener would swallow the drag-start.
+      const target = event.target as HTMLElement | null;
+      if (target?.closest('.selection-marker')) {
+        return;
+      }
+
+      // In `adjusting` we only react to drag events on the handles. A
+      // stray tap on the background must not re-anchor or commit — the
+      // user explicitly ends adjusting via the footer button.
+      if (this.selectionMode.state() === 'adjusting') {
+        return;
+      }
+
+      const pos = this.pointerToXtermBufferPos(event.clientX, event.clientY);
+      if (pos === null) {
+        return;
+      }
+
+      event.preventDefault();
+      event.stopPropagation();
+
+      const anchor = this.selectionMode.anchor();
+      if (anchor === null || anchor.target !== 'xterm') {
+        // First tap (or anchor was set in a different target — re-anchor).
+        this.selectionMode.setAnchor('xterm', pos);
+        return;
+      }
+
+      // Second tap → place end marker, render the initial range, enter
+      // adjusting mode. Selection persists from here until the user hits
+      // the footer button to commit.
+      this.selectionMode.setEnd('xterm', pos);
+      this.applyXtermSelectionFromMarkers();
+      this.terminal.focus();
+    };
+
+    // Capture phase so we win against xterm's own pointer handlers on the
+    // canvas/textarea — same trick we use for the paste listener.
+    element.addEventListener('pointerdown', this.selectionTapHandler, {
+      capture: true,
+    });
+  }
+
+  /**
+   * Pixel coords (clientX/Y in viewport space) → buffer position
+   * (`{col, row}`, where `row` is the ABSOLUTE buffer row including
+   * scrollback offset). Returns `null` when the terminal hasn't rendered
+   * yet or the pointer is outside the cell grid.
+   */
+  private pointerToXtermBufferPos(
+    clientX: number,
+    clientY: number,
+  ): { col: number; row: number } | null {
+    const screen =
+      this.terminalRef.nativeElement.querySelector<HTMLElement>(
+        '.xterm-screen',
+      );
+    const rect = (screen ?? this.terminalRef.nativeElement)
+      .getBoundingClientRect();
+    if (rect.width === 0 || rect.height === 0) {
+      return null;
+    }
+
+    const cellWidth = rect.width / this.terminal.cols;
+    const cellHeight = rect.height / this.terminal.rows;
+    const col = Math.max(
+      0,
+      Math.min(
+        this.terminal.cols - 1,
+        Math.floor((clientX - rect.left) / cellWidth),
+      ),
+    );
+    const viewportRow = Math.max(
+      0,
+      Math.min(
+        this.terminal.rows - 1,
+        Math.floor((clientY - rect.top) / cellHeight),
+      ),
+    );
+    const bufferRow = this.terminal.buffer.active.viewportY + viewportRow;
+    return { col, row: bufferRow };
+  }
+
+  /**
+   * Buffer position → pixel coords relative to the terminal container,
+   * suitable for absolute-positioning a marker overlay. Returns `null`
+   * when the buffer row is currently scrolled off-screen — the marker
+   * should be hidden in that case so it doesn't float over unrelated
+   * cells.
+   */
+  private xtermBufferPosToPixel(pos: {
+    col: number;
+    row: number;
+  }): { x: number; y: number } | null {
+    const screen =
+      this.terminalRef.nativeElement.querySelector<HTMLElement>(
+        '.xterm-screen',
+      );
+    if (!screen) return null;
+
+    const screenRect = screen.getBoundingClientRect();
+    const containerRect =
+      this.terminalRef.nativeElement.getBoundingClientRect();
+    if (screenRect.width === 0 || screenRect.height === 0) return null;
+
+    const viewportRow = pos.row - this.terminal.buffer.active.viewportY;
+    if (viewportRow < 0 || viewportRow >= this.terminal.rows) {
+      // Buffer row is scrolled out of view — hide the marker.
+      return null;
+    }
+
+    const cellWidth = screenRect.width / this.terminal.cols;
+    const cellHeight = screenRect.height / this.terminal.rows;
+
+    // Place the marker centered on the cell. The visual handle is bigger
+    // than a single cell so a tiny offset error doesn't matter; what
+    // matters is the user can grab and drag it.
+    const x =
+      screenRect.left - containerRect.left + (pos.col + 0.5) * cellWidth;
+    const y =
+      screenRect.top - containerRect.top + (viewportRow + 0.5) * cellHeight;
+
+    return { x, y };
+  }
+
+  /**
+   * Reads the current anchor/end signals and applies the range to xterm
+   * via `Terminal.select(...)`. Called after the second tap and on every
+   * pointermove during a drag.
+   */
+  private applyXtermSelectionFromMarkers(): void {
+    const anchor = this.selectionMode.anchor();
+    const end = this.selectionMode.end();
+    if (
+      anchor === null ||
+      end === null ||
+      anchor.target !== 'xterm' ||
+      end.target !== 'xterm'
+    ) {
+      return;
+    }
+
+    const a = anchor.data as { col: number; row: number };
+    const b = end.data as { col: number; row: number };
+
+    let startCol = a.col;
+    let startRow = a.row;
+    let endCol = b.col;
+    let endRow = b.row;
+    if (startRow > endRow || (startRow === endRow && startCol > endCol)) {
+      [startCol, startRow, endCol, endRow] = [
+        endCol,
+        endRow,
+        startCol,
+        startRow,
+      ];
+    }
+
+    const length =
+      (endRow - startRow) * this.terminal.cols + (endCol - startCol) + 1;
+    this.terminal.select(startCol, startRow, length);
+  }
+
+  /**
+   * Drag-start handler invoked when the user pointerdowns on a marker
+   * overlay. Captures the pointer to the handle so we keep receiving
+   * pointermoves even when the finger slides off the handle, then
+   * mirrors every movement into the selection-service signal and
+   * re-renders the selection.
+   */
+  public onXtermMarkerPointerDown(
+    event: PointerEvent,
+    which: 'start' | 'end',
+  ): void {
+    event.preventDefault();
+    event.stopPropagation();
+
+    const handle = event.currentTarget as HTMLElement;
+    handle.setPointerCapture(event.pointerId);
+
+    const onMove = (e: PointerEvent) => {
+      const pos = this.pointerToXtermBufferPos(e.clientX, e.clientY);
+      if (pos === null) return;
+      if (which === 'start') {
+        this.selectionMode.updateAnchor(pos);
+      } else {
+        this.selectionMode.updateEnd(pos);
+      }
+      this.applyXtermSelectionFromMarkers();
+    };
+
+    const onUp = () => {
+      handle.releasePointerCapture(event.pointerId);
+      handle.removeEventListener('pointermove', onMove);
+      handle.removeEventListener('pointerup', onUp);
+      handle.removeEventListener('pointercancel', onUp);
+    };
+
+    handle.addEventListener('pointermove', onMove);
+    handle.addEventListener('pointerup', onUp);
+    handle.addEventListener('pointercancel', onUp);
   }
 
   /** Logs only when screenreader debug logging is enabled in the footer menu. */

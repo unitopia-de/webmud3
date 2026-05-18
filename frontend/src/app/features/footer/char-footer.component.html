@@ -23,6 +23,18 @@
 
 <div class="spacer"></div>
 
+<button
+  type="button"
+  class="menu-button select-button"
+  [class.active]="selectionActive()"
+  (click)="toggleSelection($event)"
+  [attr.aria-label]="selectionTooltip()"
+  [attr.aria-pressed]="selectionActive()"
+  [title]="selectionTooltip()"
+>
+  ⛶
+</button>
+
 <div #menuRoot class="menu-root">
   <button
     type="button"

@@ -58,6 +58,36 @@
   flex: 1 1 auto;
   min-height: 240px;
   width: 100%;
+  // Anchor point for the absolutely positioned selection markers;
+  // without it they'd hop to the page origin.
+  position: relative;
+}
+
+// Selection markers (two-tap-then-drag range selection on touch).
+// Mirrors the styling used in `mud-client.component.scss` so both
+// windows feel like one feature.
+.selection-marker {
+  position: absolute;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 2px solid #4ec9b0;
+  background: rgba(78, 201, 176, 0.4);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
+  transform: translate(-50%, -50%);
+  cursor: grab;
+  touch-action: none;
+  z-index: 20;
+  padding: 0;
+
+  &:active {
+    cursor: grabbing;
+    background: rgba(78, 201, 176, 0.7);
+  }
+}
+
+.selection-marker-start {
+  border-width: 3px;
 }
 
 .editor-status {

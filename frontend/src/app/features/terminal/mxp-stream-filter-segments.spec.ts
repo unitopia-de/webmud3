@@ -35,7 +35,9 @@ describe('MxpStreamFilter.processToSegments', () => {
   });
 
   it('isolates a clickable segment', () => {
-    const out = filter.processToSegments('Pre <rexit>nord</rexit> Post');
+    const out = filter.processToSegments(
+      `Pre ${ESC}[1z<rexit>nord</rexit>${ESC}[7z Post`,
+    );
     expect(out.map(shape)).toEqual([
       { type: 'text', content: 'Pre ' },
       { type: 'clickable', tag: 'rexit', content: 'nord', attrs: {} },
@@ -45,7 +47,7 @@ describe('MxpStreamFilter.processToSegments', () => {
 
   it('captures attributes on the open tag', () => {
     const out = filter.processToSegments(
-      '<ircontent id="goblin">der Goblin</ircontent>',
+      `${ESC}[1z<ircontent id="goblin">der Goblin</ircontent>${ESC}[7z`,
     );
     expect(out.map(shape)).toEqual([
       {
@@ -58,9 +60,9 @@ describe('MxpStreamFilter.processToSegments', () => {
   });
 
   it('handles a clickable scope split across chunks', () => {
-    const a = filter.processToSegments('Vorne <rexit>nord');
+    const a = filter.processToSegments(`${ESC}[1zVorne <rexit>nord`);
     expect(a.map(shape)).toEqual([{ type: 'text', content: 'Vorne ' }]);
-    const b = filter.processToSegments('en</rexit> Hinten');
+    const b = filter.processToSegments(`en</rexit> Hinten${ESC}[7z`);
     expect(b.map(shape)).toEqual([
       { type: 'clickable', tag: 'rexit', content: 'norden', attrs: {} },
       { type: 'text', content: ' Hinten' },
@@ -69,7 +71,7 @@ describe('MxpStreamFilter.processToSegments', () => {
 
   it('preserves ANSI colour inside a clickable region', () => {
     const out = filter.processToSegments(
-      `<rexit>${ESC}[33mnord${ESC}[0m</rexit>`,
+      `${ESC}[1z<rexit>${ESC}[33mnord${ESC}[0m</rexit>${ESC}[7z`,
     );
     const seg = out[0];
     expect(seg.type).toBe('clickable');
@@ -91,12 +93,15 @@ describe('MxpStreamFilter.processToSegments', () => {
 
   it('joins multiple clickable + text segments correctly via process()', () => {
     expect(
-      filter.process('a <rexit>x</rexit> b <rexit>y</rexit> c'),
+      filter.process(
+        `${ESC}[1za <rexit>x</rexit> b <rexit>y</rexit> c${ESC}[7z`,
+      ),
     ).toBe('a x b y c');
   });
 
   it('treats <rshort>/<rlong>/<stat>/<sound> as non-clickable', () => {
-    const input = '<rshort>Marktplatz</rshort> <rlong>...</rlong>';
+    const input =
+      `${ESC}[1z<rshort>Marktplatz</rshort> <rlong>...</rlong>${ESC}[7z`;
     const out = filter.processToSegments(input);
     // Text-only — rshort/rlong tags are stripped but their content is kept
     // as plain text (just like in stage 1).

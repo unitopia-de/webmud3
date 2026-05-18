@@ -23,7 +23,40 @@
   #historyRegionRef
 ></div>
 
-<div class="mud-output" #hostRef></div>
+<div class="mud-output" #hostRef>
+  <!--
+    Two draggable handles for the touch-friendly range-selection mode.
+    Positioned absolutely over the xterm canvas. The host computes
+    `xtermStartMarkerPos` / `xtermEndMarkerPos` from the anchor/end
+    buffer coordinates; the computed signals re-evaluate whenever the
+    terminal scrolls or resizes. Each handle owns its drag-pointer
+    pipeline via `onXtermMarkerPointerDown` — the surrounding
+    capture-phase pointer listener checks `closest('.selection-marker')`
+    so it doesn't swallow the drag start.
+  -->
+  @if (selectionMode.isActive()) {
+    @if (xtermStartMarkerPos(); as p) {
+      <button
+        type="button"
+        class="selection-marker selection-marker-start"
+        [style.left.px]="p.x"
+        [style.top.px]="p.y"
+        (pointerdown)="onXtermMarkerPointerDown($event, 'start')"
+        aria-label="Markierungs-Start verschieben"
+      ></button>
+    }
+    @if (xtermEndMarkerPos(); as p) {
+      <button
+        type="button"
+        class="selection-marker selection-marker-end"
+        [style.left.px]="p.x"
+        [style.top.px]="p.y"
+        (pointerdown)="onXtermMarkerPointerDown($event, 'end')"
+        aria-label="Markierungs-Ende verschieben"
+      ></button>
+    }
+  }
+</div>
 
 @if (useMobileInput) {
   <app-mobile-input

@@ -30,6 +30,14 @@ const CLICKABLE_TAGS = new Set([
   'ircontent',
   'lrcontent',
   'iinventory',
+  // Encyclopedia helpers: `<enzyfun>X</enzyfun>` sends `? X` (function
+  // lookup), `<enzybsp>X</enzybsp>` sends `bsp? X` (example lookup). The
+  // server emits them as bare tags with the lookup target as the visible
+  // text — same shape as `<rexit>`. The actual command is built in
+  // `deriveClickAction` (rexit-style special case), no `<!ELEMENT>`
+  // declaration is needed because we never go through the resolve path.
+  'enzyfun',
+  'enzybsp',
 ]);
 
 export type ParsedTagAttrs = ReadonlyMap<string, string>;
@@ -72,11 +80,37 @@ type ClickScope = {
   content: string;
 };
 
+/**
+ * MXP parser mode driven by the `ESC[Nz` switches in the server stream.
+ *
+ *   - `locked` — `<` is literal text. The default at session start and
+ *                between MXP sequences. UNItopia's workaround for
+ *                non-mudlet clients (us) explicitly closes every
+ *                MXP sequence with `ESC[7z`, so plain output between
+ *                tags stays here.
+ *   - `secure` — entered via `ESC[1z` (line secure, used for the init
+ *                push) or `ESC[4z` (temp secure, wrapped around each
+ *                inline tag). Tags inside this range are parsed.
+ *
+ * The MXP spec technically distinguishes `[1z` (until newline) and
+ * `[4z` (single tag, then auto-revert). UNItopia always pairs both
+ * with an explicit `ESC[7z`, so collapsing the two into a single
+ * `secure` state matches the wire reality and is simpler. The auto-
+ * revert variant would break UNItopia's `ESC[4z<tag>content</tag>ESC[7z`
+ * pattern (the closing tag would land in locked mode and not be parsed).
+ *
+ * Without mode tracking the filter swallowed any `<…>` pattern even in
+ * plain content — e.g. `cat foo.c` showing `#include <stdio.h>` lost
+ * the `<stdio.h>`.
+ */
+type MxpMode = 'locked' | 'secure';
+
 export class MxpStreamFilter {
   private pending = '';
   private pendingKind: 'csi' | 'tag' | 'none' = 'none';
   /** Click-scopes currently open across chunks. */
   private clickStack: ClickScope[] = [];
+  private mxpMode: MxpMode = 'locked';
 
   constructor(private readonly onTag?: MxpTagCallback) {}
 
@@ -124,7 +158,11 @@ export class MxpStreamFilter {
           continue;
         }
 
-        if (ch === '<' && this.looksLikeMxpTag(chunk, i)) {
+        if (
+          ch === '<' &&
+          this.mxpMode !== 'locked' &&
+          this.looksLikeMxpTag(chunk, i)
+        ) {
           buf = '<';
           kind = 'tag';
           i += 1;
@@ -155,11 +193,24 @@ export class MxpStreamFilter {
           continue;
         }
         if (tail === 'z') {
-          // Confirmed MXP mode switch — drop entirely.
+          // Confirmed MXP mode switch — drop the bytes and update state.
           if (buf.length === 3) {
             // `ESC[z` (no digits) — malformed, emit verbatim instead of
-            // silently swallowing it.
+            // silently swallowing it. Mode stays put.
             for (const c of buf) this.appendVisible(state, c);
+          } else {
+            // Digits between `ESC[` and `z` identify the new mode.
+            // Per MXP.md §2.1: 1 = Line Secure, 4 = Temp Secure, 7 =
+            // Locked. We collapse 1 and 4 into `secure` (see the type
+            // declaration above for why). Unknown codes leave the mode
+            // alone — the bytes are still stripped because the server
+            // clearly intended a mode switch.
+            const digits = buf.slice(2, -1);
+            if (digits === '1' || digits === '4') {
+              this.mxpMode = 'secure';
+            } else if (digits === '7') {
+              this.mxpMode = 'locked';
+            }
           }
           buf = '';
           kind = 'none';
@@ -223,6 +274,7 @@ export class MxpStreamFilter {
     this.pending = '';
     this.pendingKind = 'none';
     this.clickStack = [];
+    this.mxpMode = 'locked';
   }
 
   // ---------------------------------------------------------------------------

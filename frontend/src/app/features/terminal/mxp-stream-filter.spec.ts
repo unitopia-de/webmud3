@@ -23,9 +23,28 @@ describe('MxpStreamFilter', () => {
     expect(filter.process(`${ESC}[4zX`)).toBe('X');
   });
 
-  it('strips a simple MXP open/close tag pair', () => {
-    expect(filter.process('Hier: <rexit>norden</rexit> raus.')).toBe(
-      'Hier: norden raus.',
+  it('strips a simple MXP open/close tag pair when in secure mode', () => {
+    expect(
+      filter.process(
+        `${ESC}[1zHier: <rexit>norden</rexit> raus.${ESC}[7z`,
+      ),
+    ).toBe('Hier: norden raus.');
+  });
+
+  it('leaves angle brackets alone in locked mode (default)', () => {
+    // Regression test: a `cat foo.c` showing `#include <stdio.h>` used to
+    // lose the `<stdio.h>` because the filter parsed every `<…>` as an
+    // MXP tag regardless of mode. UNItopia wraps real MXP with
+    // `ESC[4z…ESC[7z`, so plain content stays in locked mode and `<`
+    // must be literal there.
+    expect(filter.process('#include <stdio.h>\n')).toBe(
+      '#include <stdio.h>\n',
+    );
+    expect(filter.process('#include <sys/stat.h>\n')).toBe(
+      '#include <sys/stat.h>\n',
+    );
+    expect(filter.process('using std::vector;\nstd::vector<int> v;\n')).toBe(
+      'using std::vector;\nstd::vector<int> v;\n',
     );
   });
 
@@ -37,7 +56,7 @@ describe('MxpStreamFilter', () => {
   });
 
   it('honours quoted attributes that contain a >', () => {
-    const input = `<send href="a > b">click</send>`;
+    const input = `${ESC}[1z<send href="a > b">click</send>${ESC}[7z`;
     expect(filter.process(input)).toBe('click');
   });
 
@@ -46,8 +65,11 @@ describe('MxpStreamFilter', () => {
     expect(filter.process('Vergleich: 1 < 2 ist wahr.')).toBe(
       'Vergleich: 1 < 2 ist wahr.',
     );
-    // But < followed by a letter is treated as a tag start.
-    expect(filter.process('Test <abc>X</abc> done')).toBe('Test X done');
+    // < followed by a letter is treated as a tag start, but only when
+    // we're in MXP secure mode.
+    expect(
+      filter.process(`${ESC}[1zTest <abc>X</abc> done${ESC}[7z`),
+    ).toBe('Test X done');
   });
 
   it('preserves & and entity references untouched', () => {
@@ -72,13 +94,13 @@ describe('MxpStreamFilter', () => {
   });
 
   it('handles an MXP tag split across two chunks', () => {
-    expect(filter.process('Drinnen: <rex')).toBe('Drinnen: ');
-    expect(filter.process('it>nord</rexit> da')).toBe('nord da');
+    expect(filter.process(`${ESC}[1zDrinnen: <rex`)).toBe('Drinnen: ');
+    expect(filter.process(`it>nord</rexit> da${ESC}[7z`)).toBe('nord da');
   });
 
   it('handles a tag whose < is the very last byte of a chunk', () => {
-    expect(filter.process('Text <')).toBe('Text ');
-    expect(filter.process('rshort>X</rshort>!')).toBe('X!');
+    expect(filter.process(`${ESC}[1zText <`)).toBe('Text ');
+    expect(filter.process(`rshort>X</rshort>!${ESC}[7z`)).toBe('X!');
   });
 
   it('keeps the buffer empty after a complete clean run', () => {
@@ -106,7 +128,8 @@ describe('MxpStreamFilter', () => {
   });
 
   it('strips inline tags mixed with normal text and ANSI', () => {
-    const input = `${ESC}[33mDu siehst hier:${ESC}[0m <ircontent id="schwert">ein Schwert</ircontent>.`;
+    const input =
+      `${ESC}[33mDu siehst hier:${ESC}[0m ${ESC}[4z<ircontent id="schwert">ein Schwert</ircontent>${ESC}[7z.`;
     expect(filter.process(input)).toBe(
       `${ESC}[33mDu siehst hier:${ESC}[0m ein Schwert.`,
     );
@@ -124,7 +147,9 @@ describe('MxpStreamFilter', () => {
     it('emits each complete tag verbatim', () => {
       const seen: string[] = [];
       const f = new MxpStreamFilter((raw) => seen.push(raw));
-      f.process(`<!ENTITY ap "100" PUBLISH><stat ap max=maxap caption="AP:">Hello`);
+      f.process(
+        `${ESC}[1z<!ENTITY ap "100" PUBLISH><stat ap max=maxap caption="AP:">Hello${ESC}[7z`,
+      );
       expect(seen).toEqual([
         '<!ENTITY ap "100" PUBLISH>',
         '<stat ap max=maxap caption="AP:">',
@@ -134,16 +159,16 @@ describe('MxpStreamFilter', () => {
     it('emits a tag only after it is complete (across chunks)', () => {
       const seen: string[] = [];
       const f = new MxpStreamFilter((raw) => seen.push(raw));
-      f.process('<!ENTITY ap ');
+      f.process(`${ESC}[1z<!ENTITY ap `);
       expect(seen).toEqual([]);
-      f.process('"100" PUBLISH>tail');
+      f.process(`"100" PUBLISH>tail${ESC}[7z`);
       expect(seen).toEqual(['<!ENTITY ap "100" PUBLISH>']);
     });
 
     it('still strips the tag bytes from the output', () => {
       const seen: string[] = [];
       const f = new MxpStreamFilter((raw) => seen.push(raw));
-      const out = f.process('Pre <stat foo>Post');
+      const out = f.process(`Pre ${ESC}[4z<stat foo>${ESC}[7zPost`);
       expect(out).toBe('Pre Post');
       expect(seen).toEqual(['<stat foo>']);
     });

@@ -14,6 +14,7 @@ export * from './mxp-sound.service';
 export * from './mxp-tag-router';
 export * from './mxp-choice-menu.service';
 export * from './mxp-choice-menu.component';
+export * from './selection-mode.service';
 export * from './speech-settings.service';
 export * from './terminal-themes';
 export * from './terminal-theme.service';

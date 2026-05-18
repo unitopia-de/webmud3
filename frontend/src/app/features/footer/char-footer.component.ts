@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
+  computed,
   ElementRef,
   HostListener,
   inject,
@@ -17,6 +18,7 @@ import { MudSignalService } from '@webmud3/frontend/features/gmcp/signals/mud-si
 import {
   MxpEntityService,
   MxpStatService,
+  SelectionModeService,
 } from '@webmud3/frontend/features/terminal';
 import { FooterMenuService } from './footer-menu.service';
 
@@ -43,6 +45,26 @@ export class CharFooterComponent implements OnInit, OnDestroy {
   private readonly menu = inject(FooterMenuService);
   private readonly mxpStats = inject(MxpStatService);
   private readonly mxpEntities = inject(MxpEntityService);
+  private readonly selectionMode = inject(SelectionModeService);
+
+  /** True when the user has armed the two-tap range selection mode. */
+  public readonly selectionActive = computed(
+    () => this.selectionMode.state() !== 'inactive',
+  );
+
+  /** Tooltip that mirrors the current selection-mode phase. */
+  public readonly selectionTooltip = computed(() => {
+    switch (this.selectionMode.state()) {
+      case 'awaiting-anchor':
+        return 'Markieren: Startposition im Editor oder Ausgabefenster tippen';
+      case 'awaiting-extend':
+        return 'Markieren: Endposition tippen';
+      case 'adjusting':
+        return 'Markieren: Marker ziehen zum Feinjustieren, Button drücken zum Bestätigen';
+      default:
+        return 'Bereich markieren (zwei Taps)';
+    }
+  });
 
   /** Reactive view-model for the MXP status pills next to the vitals. */
   public readonly mxpDisplay$ = combineLatest([
@@ -128,6 +150,11 @@ export class CharFooterComponent implements OnInit, OnDestroy {
     if (!willOpen) {
       this.openSubmenuId.set(null);
     }
+  }
+
+  public toggleSelection(event: Event): void {
+    event.stopPropagation();
+    this.selectionMode.toggle();
   }
 
   /** Opens / closes a submenu without closing the parent dropdown. */

@@ -4,17 +4,20 @@ import {
   ChangeDetectionStrategy,
   ChangeDetectorRef,
   Component,
+  computed,
   ElementRef,
   inject,
   Input,
   OnDestroy,
   OnInit,
+  signal,
   ViewChild,
 } from '@angular/core';
 import loader from '@monaco-editor/loader';
 import type * as MonacoNs from 'monaco-editor';
 
 import { MudNoticeService } from '@webmud3/frontend/core/mud/services/mud-notice.service';
+import { SelectionModeService } from '@webmud3/frontend/features/terminal';
 import type { WindowConfig } from '@webmud3/frontend/features/windows/window-config';
 import type { FileInfo } from '../gmcp/signals/mud-signals';
 import { FilesService } from './files.service';
@@ -53,6 +56,51 @@ export class EditorComponent implements OnInit, AfterViewInit, OnDestroy {
   private readonly files = inject(FilesService);
   private readonly mudNotices = inject(MudNoticeService);
   private readonly cdr = inject(ChangeDetectorRef);
+  public readonly selectionMode = inject(SelectionModeService);
+
+  // DOM-level pointer listener for the two-tap range selection feature.
+  // We use a raw DOM listener rather than `editor.onMouseDown` because
+  // Monaco's normalised mouse event does not fire reliably for touch
+  // input on canvas-rendered builds, while the underlying pointerdown
+  // always does.
+  private selectionPointerHandler?: (event: PointerEvent) => void;
+  private selectionPointerHandlerTarget?: HTMLElement;
+  private scrollDisposable?: MonacoNs.IDisposable;
+  private layoutDisposable?: MonacoNs.IDisposable;
+
+  // Bumped on every Monaco scroll/layout event so the computed marker
+  // positions re-evaluate — same pattern as the xterm side.
+  private readonly markerInvalidator = signal(0);
+
+  /**
+   * Pixel coordinates (relative to the editor's outer DOM node) for the
+   * start marker. `null` when no anchor is set, when the anchor is in a
+   * different target, or when the position has scrolled off-screen.
+   */
+  public readonly startMarkerPos = computed<{
+    x: number;
+    y: number;
+  } | null>(() => {
+    this.markerInvalidator();
+    const anchor = this.selectionMode.anchor();
+    if (anchor === null || anchor.target !== 'editor') return null;
+    return this.editorPosToPixel(
+      anchor.data as { lineNumber: number; column: number },
+    );
+  });
+
+  /** Same as `startMarkerPos` for the end marker. */
+  public readonly endMarkerPos = computed<{
+    x: number;
+    y: number;
+  } | null>(() => {
+    this.markerInvalidator();
+    const end = this.selectionMode.end();
+    if (end === null || end.target !== 'editor') return null;
+    return this.editorPosToPixel(
+      end.data as { lineNumber: number; column: number },
+    );
+  });
 
   private editor: MonacoNs.editor.IStandaloneCodeEditor | undefined;
   private initialContent = '';
@@ -105,6 +153,20 @@ export class EditorComponent implements OnInit, AfterViewInit, OnDestroy {
     // route change, ...) and still notify the MUD so the temp file gets
     // released. Idempotent via `cancelSent` if onCancel already ran.
     this.sendCancelToMud();
+
+    if (this.selectionPointerHandler && this.selectionPointerHandlerTarget) {
+      this.selectionPointerHandlerTarget.removeEventListener(
+        'pointerdown',
+        this.selectionPointerHandler,
+        { capture: true },
+      );
+    }
+    this.selectionPointerHandler = undefined;
+    this.selectionPointerHandlerTarget = undefined;
+    this.scrollDisposable?.dispose();
+    this.scrollDisposable = undefined;
+    this.layoutDisposable?.dispose();
+    this.layoutDisposable = undefined;
 
     if (this.editor) {
       const model = this.editor.getModel();
@@ -261,6 +323,196 @@ export class EditorComponent implements OnInit, AfterViewInit, OnDestroy {
     });
 
     this.installClipboardActions(this.editor);
+    this.installSelectionTapHandler(this.editor);
+  }
+
+  /**
+   * Wires the two-tap range-selection flow into Monaco via a capture-phase
+   * DOM pointerdown listener on the editor's root node. When the footer
+   * button is armed, the first tap stores the buffer position as anchor
+   * and the second tap calls `editor.setSelection(...)`. Outside selection
+   * mode the listener is a no-op and Monaco's normal handling runs.
+   *
+   * Why a DOM listener instead of `editor.onMouseDown`: that event does
+   * not reliably fire for touch input on canvas-rendered builds of Monaco,
+   * which is exactly the platform this feature targets. Pointer events on
+   * the editor's outer DOM node fire for mouse and touch alike. We use
+   * `editor.getTargetAtClientPoint(x, y)` to resolve the tap coordinates
+   * back to an editor position — same conversion Monaco does internally
+   * for clicks.
+   */
+  private installSelectionTapHandler(
+    editor: MonacoNs.editor.IStandaloneCodeEditor,
+  ): void {
+    const editorDom = editor.getDomNode();
+    if (!editorDom) {
+      return;
+    }
+
+    this.selectionPointerHandler = (event: PointerEvent) => {
+      if (!this.selectionMode.isActive()) {
+        return;
+      }
+
+      // Marker handles live inside the editor's overlay container —
+      // let them process their own pointer events for dragging.
+      const eventTarget = event.target as HTMLElement | null;
+      if (eventTarget?.closest('.selection-marker')) {
+        return;
+      }
+
+      // In `adjusting` the user refines via the handles. A bare tap on
+      // the editor background must not re-anchor — they hit the footer
+      // button to commit explicitly.
+      if (this.selectionMode.state() === 'adjusting') {
+        return;
+      }
+
+      const target = editor.getTargetAtClientPoint(
+        event.clientX,
+        event.clientY,
+      );
+      const position = target?.position;
+      if (!position) {
+        return;
+      }
+
+      // Suppress Monaco's normal cursor-placement so the tap is fully
+      // ours. Without this, the editor would move the caret into the
+      // buffer and the user would see a transient blink before our
+      // selection lands.
+      event.preventDefault();
+      event.stopPropagation();
+
+      const editorPos = {
+        lineNumber: position.lineNumber,
+        column: position.column,
+      };
+
+      const anchor = this.selectionMode.anchor();
+      if (anchor === null || anchor.target !== 'editor') {
+        this.selectionMode.setAnchor('editor', editorPos);
+        return;
+      }
+
+      // Second tap → place end marker, render initial range, enter
+      // adjusting mode for fine-tuning via handle drag.
+      this.selectionMode.setEnd('editor', editorPos);
+      this.applyMonacoSelectionFromMarkers();
+      editor.focus();
+    };
+
+    this.selectionPointerHandlerTarget = editorDom;
+    editorDom.addEventListener(
+      'pointerdown',
+      this.selectionPointerHandler,
+      { capture: true },
+    );
+
+    // Re-evaluate marker pixel positions whenever Monaco scrolls or
+    // re-layouts (font change, resize, …) — without this the handles
+    // drift off their anchor cells.
+    this.scrollDisposable = editor.onDidScrollChange(() =>
+      this.markerInvalidator.update((n) => n + 1),
+    );
+    this.layoutDisposable = editor.onDidLayoutChange(() =>
+      this.markerInvalidator.update((n) => n + 1),
+    );
+  }
+
+  /**
+   * Buffer position → pixel coords (relative to the editor's outer DOM
+   * node). Returns `null` when the position is scrolled off-screen.
+   * Wraps Monaco's public `getScrolledVisiblePosition` API which
+   * already accounts for line height, character width and scroll
+   * offset.
+   */
+  private editorPosToPixel(pos: {
+    lineNumber: number;
+    column: number;
+  }): { x: number; y: number } | null {
+    if (!this.editor) return null;
+    const visible = this.editor.getScrolledVisiblePosition(pos);
+    if (visible === null) return null;
+    // Monaco returns `{ top, left, height }`. Centre the handle
+    // vertically on the line; we use `left` as the horizontal anchor
+    // (cursor sits between cells, not in the middle of one).
+    return { x: visible.left, y: visible.top + visible.height / 2 };
+  }
+
+  /**
+   * Reads anchor/end signals and applies the range via
+   * `editor.setSelection(...)`. Called after the second tap and on
+   * every pointermove during a marker drag.
+   */
+  private applyMonacoSelectionFromMarkers(): void {
+    if (!this.editor) return;
+    const anchor = this.selectionMode.anchor();
+    const end = this.selectionMode.end();
+    if (
+      anchor === null ||
+      end === null ||
+      anchor.target !== 'editor' ||
+      end.target !== 'editor'
+    ) {
+      return;
+    }
+
+    const a = anchor.data as { lineNumber: number; column: number };
+    const b = end.data as { lineNumber: number; column: number };
+
+    this.editor.setSelection({
+      startLineNumber: a.lineNumber,
+      startColumn: a.column,
+      endLineNumber: b.lineNumber,
+      endColumn: b.column,
+    });
+  }
+
+  /**
+   * Drag-start handler for the marker overlays. Mirrors the xterm path:
+   * capture the pointer to the handle, recompute editor position from
+   * each pointermove via `getTargetAtClientPoint`, push into the
+   * selection service and re-render.
+   */
+  public onMarkerPointerDown(
+    event: PointerEvent,
+    which: 'start' | 'end',
+  ): void {
+    if (!this.editor) return;
+    event.preventDefault();
+    event.stopPropagation();
+
+    const editor = this.editor;
+    const handle = event.currentTarget as HTMLElement;
+    handle.setPointerCapture(event.pointerId);
+
+    const onMove = (e: PointerEvent) => {
+      const target = editor.getTargetAtClientPoint(e.clientX, e.clientY);
+      const position = target?.position;
+      if (!position) return;
+      const editorPos = {
+        lineNumber: position.lineNumber,
+        column: position.column,
+      };
+      if (which === 'start') {
+        this.selectionMode.updateAnchor(editorPos);
+      } else {
+        this.selectionMode.updateEnd(editorPos);
+      }
+      this.applyMonacoSelectionFromMarkers();
+    };
+
+    const onUp = () => {
+      handle.releasePointerCapture(event.pointerId);
+      handle.removeEventListener('pointermove', onMove);
+      handle.removeEventListener('pointerup', onUp);
+      handle.removeEventListener('pointercancel', onUp);
+    };
+
+    handle.addEventListener('pointermove', onMove);
+    handle.addEventListener('pointerup', onUp);
+    handle.addEventListener('pointercancel', onUp);
   }
 
   /**

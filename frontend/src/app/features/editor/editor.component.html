@@ -28,7 +28,35 @@
   </button>
 </div>
 
-<div class="editor-host" #host aria-label="Editor-Bereich"></div>
+<div class="editor-host" #host aria-label="Editor-Bereich">
+  <!--
+    Drag-handles for the touch-friendly range-selection mode. Positioned
+    absolutely above the Monaco canvas. Visible while selection mode is
+    active; pixel coordinates come from `editor.getScrolledVisiblePosition`
+    via the `startMarkerPos` / `endMarkerPos` computed signals which
+    re-evaluate on Monaco's scroll/layout events.
+  -->
+  <ng-container *ngIf="selectionMode.isActive()">
+    <button
+      *ngIf="startMarkerPos() as p"
+      type="button"
+      class="selection-marker selection-marker-start"
+      [style.left.px]="p.x"
+      [style.top.px]="p.y"
+      (pointerdown)="onMarkerPointerDown($event, 'start')"
+      aria-label="Markierungs-Start verschieben"
+    ></button>
+    <button
+      *ngIf="endMarkerPos() as p"
+      type="button"
+      class="selection-marker selection-marker-end"
+      [style.left.px]="p.x"
+      [style.top.px]="p.y"
+      (pointerdown)="onMarkerPointerDown($event, 'end')"
+      aria-label="Markierungs-Ende verschieben"
+    ></button>
+  </ng-container>
+</div>
 
 <div
   class="editor-status"
