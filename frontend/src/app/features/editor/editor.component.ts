@@ -1,4 +1,5 @@
 import { CommonModule } from '@angular/common';
+import { HttpErrorResponse } from '@angular/common/http';
 import {
   AfterViewInit,
   ChangeDetectionStrategy,
@@ -287,13 +288,23 @@ export class EditorComponent implements OnInit, AfterViewInit, OnDestroy {
 
     let content = fileinfo.content ?? '';
 
+    let statusAfterLoad = 'Datei geladen';
+
     if (content === '' && fileinfo.lasturl) {
       try {
-        content = await this.files.loadContent(fileinfo).toPromise() ?? '';
+        content = (await this.files.loadContent(fileinfo).toPromise()) ?? '';
       } catch (err) {
-        this.errorMessage = `Datei konnte nicht geladen werden: ${this.formatError(err)}`;
-        this.statusMessage = '';
-        return;
+        if (err instanceof HttpErrorResponse && err.status === 404) {
+          // 404 = Datei existiert auf dem MUD-Server noch nicht.
+          // Editor mit leerem Inhalt öffnen, damit der User sie anlegen kann.
+          content = '';
+          statusAfterLoad = 'Neue Datei';
+        } else {
+          this.errorMessage = `Datei konnte nicht geladen werden: ${this.formatError(err)}`;
+          this.statusMessage = '';
+          this.cdr.markForCheck();
+          return;
+        }
       }
     }
 
@@ -302,7 +313,10 @@ export class EditorComponent implements OnInit, AfterViewInit, OnDestroy {
     }
 
     this.initialContent = content;
-    this.statusMessage = '';
+    this.statusMessage = statusAfterLoad;
+    // OnPush: ohne markForCheck bleibt die Statuszeile auf "Lade Datei …" hängen,
+    // weil die Zuweisung aus einer async-Promise-Kette nach ngAfterViewInit kommt.
+    this.cdr.markForCheck();
 
     this.editor = monaco.editor.create(this.hostRef.nativeElement, {
       value: content,
