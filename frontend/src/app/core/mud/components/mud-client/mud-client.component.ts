@@ -23,6 +23,10 @@ import { hexDump } from '@webmud3/frontend/features/debug/hex-dump';
 import { FooterMenuService } from '@webmud3/frontend/features/footer/footer-menu.service';
 import { DirlistWindowService } from '@webmud3/frontend/features/editor/dirlist-window.service';
 import { SoundService } from '@webmud3/frontend/features/sound/sound.service';
+import {
+  SoundPlayerService as TriggerSoundPlayerService,
+  TriggerEngineService,
+} from '@webmud3/frontend/features/triggers';
 import { EditorWindowService } from '@webmud3/frontend/features/editor/editor-window.service';
 import { InputCompletionService } from '@webmud3/frontend/features/gmcp/input-completion.service';
 import { CharGmcpModule } from '@webmud3/frontend/features/gmcp/modules/char-gmcp.module';
@@ -157,6 +161,12 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
   private readonly mxpClickables = inject(MxpClickableService);
   private readonly mxpChoiceMenu = inject(MxpChoiceMenuService);
   private readonly mxpSounds = inject(MxpSoundService);
+  // Trigger engine + its dedicated sound player. The engine runs after MXP
+  // segmentation; matched substrings are wrapped with ANSI highlight codes
+  // and sound-action triggers are forwarded to the trigger sound player —
+  // independent of the GMCP-driven SoundService above.
+  private readonly triggerEngine = inject(TriggerEngineService);
+  private readonly triggerSoundPlayer = inject(TriggerSoundPlayerService);
   // Exposed publicly so the template can read state + marker positions
   // for the touch-friendly two-tap-then-drag selection UX.
   public readonly selectionMode = inject(SelectionModeService);
@@ -949,7 +959,13 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
 
     for (const seg of segments) {
       if (seg.type === 'text') {
-        this.terminal.write(seg.content);
+        // Triggers run on text segments only — clickable spans keep their OSC 8
+        // wrapper unchanged so the click region isn't broken by ANSI injection.
+        const result = this.triggerEngine.processChunk(seg.content);
+        this.terminal.write(result.text);
+        for (const s of result.sounds) {
+          this.triggerSoundPlayer.play(s.soundId, s.volume);
+        }
       } else {
         this.writeClickableSegment(seg);
       }
