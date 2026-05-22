@@ -1,0 +1,9 @@
+{
+  "version": 1,
+  "sounds": [
+    { "id": "alert",  "label": "Alert",  "file": "alert.wav" },
+    { "id": "bell",   "label": "Bell",   "file": "bell.wav" },
+    { "id": "ding",   "label": "Ding",   "file": "ding.wav" },
+    { "id": "notify", "label": "Notify", "file": "notify.wav" }
+  ]
+}
