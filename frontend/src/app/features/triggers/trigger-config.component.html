@@ -8,14 +8,56 @@
       />
       Trigger aktiv
     </label>
+    <label class="tc-toggle" title="Master-Lautstärke für alle Sound-Trigger">
+      🔊
+      <input
+        type="range"
+        min="0"
+        max="1"
+        step="0.05"
+        [value]="settings().masterVolume"
+        (input)="setMasterVolume(+$any($event.target).value)"
+      />
+      <span class="tc-hint">
+        {{ settings().masterVolume * 100 | number: '1.0-0' }}%
+      </span>
+    </label>
+    <span class="tc-spacer"></span>
+    <button
+      type="button"
+      class="tc-btn small"
+      (click)="exportJson()"
+      title="Trigger als JSON exportieren"
+    >
+      ⬇ Export
+    </button>
+    <button
+      type="button"
+      class="tc-btn small"
+      (click)="openImportPicker()"
+      title="Trigger aus JSON importieren"
+    >
+      ⬆ Import
+    </button>
+    <input
+      #importInput
+      type="file"
+      accept="application/json,.json"
+      class="tc-file-input"
+      (change)="onImportFileChosen($event)"
+    />
     <button type="button" class="tc-btn primary" (click)="openNew()">
       + Neuer Trigger
     </button>
   </header>
 
+  <div *ngIf="importError() !== ''" class="tc-error tc-import-error">
+    {{ importError() }}
+  </div>
+
   <ul class="tc-list" *ngIf="triggerList().length > 0; else empty">
     <li
-      *ngFor="let t of triggerList()"
+      *ngFor="let t of triggerList(); let i = index; let last = last"
       class="tc-row"
       [class.disabled]="!t.enabled"
     >
@@ -32,6 +74,24 @@
       <span class="tc-name">{{ t.name }}</span>
       <code class="tc-pattern">/{{ t.pattern }}/{{ t.flags }}</code>
       <span class="tc-summary">{{ actionSummary(t.action) }}</span>
+      <button
+        type="button"
+        class="tc-btn small"
+        [disabled]="i === 0"
+        (click)="moveUp(t)"
+        title="Nach oben"
+      >
+        ▲
+      </button>
+      <button
+        type="button"
+        class="tc-btn small"
+        [disabled]="last"
+        (click)="moveDown(t)"
+        title="Nach unten"
+      >
+        ▼
+      </button>
       <button type="button" class="tc-btn" (click)="openEdit(t)">
         Bearbeiten
       </button>

@@ -178,4 +178,115 @@ describe('TriggerConfigComponent', () => {
     component.toggleEnabled(created);
     expect(triggerService.triggers[0].enabled).toBe(false);
   });
+
+  it('setMasterVolume forwards the clamped value to the service', () => {
+    const { component, triggerService } = setup();
+
+    component.setMasterVolume(0.5);
+    expect(triggerService.settings.masterVolume).toBe(0.5);
+
+    component.setMasterVolume(2);
+    expect(triggerService.settings.masterVolume).toBe(1);
+  });
+
+  it('moveUp / moveDown shift triggers in the list', () => {
+    const { component, triggerService } = setup();
+    const a = triggerService.create({
+      name: 'A', pattern: 'a', flags: '', enabled: true,
+      action: { kind: 'highlight', foreground: '#fff' },
+    });
+    const b = triggerService.create({
+      name: 'B', pattern: 'b', flags: '', enabled: true,
+      action: { kind: 'highlight', foreground: '#fff' },
+    });
+    const c = triggerService.create({
+      name: 'C', pattern: 'c', flags: '', enabled: true,
+      action: { kind: 'highlight', foreground: '#fff' },
+    });
+
+    component.moveDown(a);
+    expect(triggerService.triggers.map((t) => t.name)).toEqual(['B', 'A', 'C']);
+
+    component.moveUp(c);
+    expect(triggerService.triggers.map((t) => t.name)).toEqual(['B', 'C', 'A']);
+  });
+
+  it('moveUp is a no-op for the first trigger and moveDown for the last', () => {
+    const { component, triggerService } = setup();
+    const a = triggerService.create({
+      name: 'A', pattern: 'a', flags: '', enabled: true,
+      action: { kind: 'highlight', foreground: '#fff' },
+    });
+    const b = triggerService.create({
+      name: 'B', pattern: 'b', flags: '', enabled: true,
+      action: { kind: 'highlight', foreground: '#fff' },
+    });
+
+    component.moveUp(a);
+    expect(triggerService.triggers[0].id).toBe(a.id);
+
+    component.moveDown(b);
+    expect(triggerService.triggers[1].id).toBe(b.id);
+  });
+
+  it('imports a valid JSON array and surfaces partial errors', async () => {
+    const { component, triggerService } = setup();
+
+    const good = {
+      name: 'Imported',
+      pattern: 'gold',
+      flags: 'i',
+      action: { kind: 'highlight', foreground: '#fff' },
+      enabled: true,
+    };
+    const broken = { ...good, name: 'Broken', pattern: '([unclosed' };
+    const malformed = { not: 'a trigger' };
+
+    const json = JSON.stringify([good, broken, malformed]);
+    const file = new File([json], 'triggers.json', {
+      type: 'application/json',
+    });
+
+    const fakeEvent = {
+      target: { files: [file], value: '' },
+    } as unknown as Event;
+
+    await component.onImportFileChosen(fakeEvent);
+
+    // "good" gets created, the other two are reported in importError.
+    expect(triggerService.triggers).toHaveLength(1);
+    expect(triggerService.triggers[0].name).toBe('Imported');
+    expect(component.importError()).toMatch(/1 importiert/);
+    expect(component.importError()).toMatch(/Broken/);
+  });
+
+  it('rejects an import payload that is not a JSON array', async () => {
+    const { component, triggerService } = setup();
+
+    const file = new File(['{"not":"an array"}'], 'x.json', {
+      type: 'application/json',
+    });
+    const fakeEvent = {
+      target: { files: [file], value: '' },
+    } as unknown as Event;
+
+    await component.onImportFileChosen(fakeEvent);
+
+    expect(triggerService.triggers).toEqual([]);
+    expect(component.importError()).toMatch(/keine Trigger-Liste/);
+  });
+
+  it('rejects malformed JSON with a parser error', async () => {
+    const { component } = setup();
+
+    const file = new File(['{broken json'], 'x.json', {
+      type: 'application/json',
+    });
+    const fakeEvent = {
+      target: { files: [file], value: '' },
+    } as unknown as Event;
+
+    await component.onImportFileChosen(fakeEvent);
+    expect(component.importError()).not.toBe('');
+  });
 });

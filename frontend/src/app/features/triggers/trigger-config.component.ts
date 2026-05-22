@@ -3,13 +3,20 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  ElementRef,
   inject,
   signal,
+  ViewChild,
 } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 
-import { compileTrigger, type Trigger, type TriggerAction } from './models/trigger';
+import {
+  compileTrigger,
+  type Trigger,
+  type TriggerAction,
+  type TriggerDraft,
+} from './models/trigger';
 import { SoundLibraryService } from './sound-library.service';
 import { SoundPlayerService } from './sound-player.service';
 import { TriggerService } from './trigger.service';
@@ -74,6 +81,9 @@ export class TriggerConfigComponent {
   public readonly volumeField = signal<number>(1);
   public readonly testInput = signal<string>('');
   public readonly saveError = signal<string>('');
+  public readonly importError = signal<string>('');
+
+  @ViewChild('importInput') importInput?: ElementRef<HTMLInputElement>;
 
   public readonly isEditing = computed(() => this.editingId() !== undefined);
 
@@ -160,6 +170,99 @@ export class TriggerConfigComponent {
 
   public setGloballyEnabled(enabled: boolean): void {
     this.triggers.setGloballyEnabled(enabled);
+  }
+
+  public setMasterVolume(volume: number): void {
+    this.triggers.setMasterVolume(volume);
+  }
+
+  public moveUp(t: Trigger): void {
+    const list = this.triggerList();
+    const idx = list.findIndex((x) => x.id === t.id);
+    if (idx > 0) {
+      this.triggers.reorder(t.id, idx - 1);
+    }
+  }
+
+  public moveDown(t: Trigger): void {
+    const list = this.triggerList();
+    const idx = list.findIndex((x) => x.id === t.id);
+    if (idx >= 0 && idx < list.length - 1) {
+      this.triggers.reorder(t.id, idx + 1);
+    }
+  }
+
+  /**
+   * Saves the current trigger list as a JSON file. Uses a transient anchor
+   * element + object URL — no library, no router involvement.
+   */
+  public exportJson(): void {
+    const data = JSON.stringify(this.triggers.triggers, null, 2);
+    const blob = new Blob([data], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `triggers-${dateStamp()}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  /** Opens the hidden file input for importing a trigger JSON file. */
+  public openImportPicker(): void {
+    this.importError.set('');
+    this.importInput?.nativeElement.click();
+  }
+
+  /**
+   * Reads the chosen JSON file and appends every valid trigger to the
+   * existing list. Invalid entries are skipped; bad regex patterns surface
+   * as service errors and are aggregated into a single summary message.
+   */
+  public async onImportFileChosen(event: Event): Promise<void> {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = '';
+
+    if (!file) return;
+
+    try {
+      const raw = await readFileAsText(file);
+      const parsed = JSON.parse(raw) as unknown;
+
+      if (!Array.isArray(parsed)) {
+        throw new Error('Datei enthält keine Trigger-Liste (Array erwartet).');
+      }
+
+      const errors: string[] = [];
+      let imported = 0;
+
+      for (const entry of parsed) {
+        const draft = toDraftOrNull(entry);
+        if (draft === null) {
+          errors.push('Ein Eintrag wurde übersprungen (ungültige Struktur).');
+          continue;
+        }
+        try {
+          this.triggers.create(draft);
+          imported++;
+        } catch (err) {
+          errors.push(
+            `"${draft.name}": ${err instanceof Error ? err.message : String(err)}`,
+          );
+        }
+      }
+
+      if (errors.length > 0) {
+        this.importError.set(
+          `${imported} importiert. Fehler: ${errors.slice(0, 3).join(' • ')}` +
+            (errors.length > 3 ? ` (+${errors.length - 3} weitere)` : ''),
+        );
+      }
+    } catch (err) {
+      this.importError.set(
+        err instanceof Error ? err.message : String(err),
+      );
+    }
   }
 
   public actionSummary(action: TriggerAction): string {
@@ -295,4 +398,57 @@ export class TriggerConfigComponent {
       'outline-offset': '1px',
     };
   }
+}
+
+/** Filename helper: `YYYY-MM-DD` for the export download. */
+function dateStamp(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
+/**
+ * `File.text()` is missing in jsdom (and older browsers), so we read via
+ * the `FileReader` API which is widely available and works under test.
+ */
+function readFileAsText(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result;
+      if (typeof result !== 'string') {
+        reject(new Error('Unexpected FileReader result type'));
+        return;
+      }
+      resolve(result);
+    };
+    reader.onerror = () =>
+      reject(reader.error ?? new Error('FileReader failed'));
+    reader.readAsText(file);
+  });
+}
+
+/**
+ * Best-effort coercion of an unknown record (from JSON.parse) into a valid
+ * `TriggerDraft`. Returns `null` for entries that don't fit the shape — the
+ * caller skips them rather than aborting the whole import.
+ */
+function toDraftOrNull(value: unknown): TriggerDraft | null {
+  if (typeof value !== 'object' || value === null) return null;
+  const v = value as Record<string, unknown>;
+
+  if (typeof v['name'] !== 'string') return null;
+  if (typeof v['pattern'] !== 'string') return null;
+  if (typeof v['flags'] !== 'string') return null;
+
+  const action = v['action'];
+  if (typeof action !== 'object' || action === null) return null;
+  const kind = (action as Record<string, unknown>)['kind'];
+  if (kind !== 'highlight' && kind !== 'sound') return null;
+
+  return {
+    name: v['name'],
+    pattern: v['pattern'],
+    flags: v['flags'],
+    action: action as TriggerAction,
+    enabled: v['enabled'] !== false,
+  };
 }

@@ -18,8 +18,8 @@
 .tc-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 8px;
+  flex-wrap: wrap;
 }
 
 .tc-toggle {
@@ -39,7 +39,7 @@
 
 .tc-row {
   display: grid;
-  grid-template-columns: auto auto 1fr 2fr 1.5fr auto auto;
+  grid-template-columns: auto auto 1fr 2fr 1.5fr auto auto auto auto;
   align-items: center;
   gap: 6px;
   padding: 4px 6px;
@@ -50,6 +50,20 @@
   &.disabled {
     opacity: 0.5;
   }
+}
+
+.tc-spacer {
+  flex: 1 1 auto;
+}
+
+.tc-file-input {
+  display: none;
+}
+
+.tc-import-error {
+  padding: 4px 6px;
+  background: #3a1e1e;
+  border-radius: 2px;
 }
 
 .tc-kind {
@@ -192,8 +206,14 @@
   cursor: pointer;
   font: inherit;
 
-  &:hover {
+  &:hover:not(:disabled) {
     background: #4a4a4f;
+  }
+
+  &:disabled {
+    color: #666;
+    cursor: not-allowed;
+    opacity: 0.5;
   }
 
   &.primary {
