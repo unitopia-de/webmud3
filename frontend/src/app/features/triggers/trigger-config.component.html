@@ -1,0 +1,259 @@
+<div class="trigger-config">
+  <header class="tc-header">
+    <label class="tc-toggle">
+      <input
+        type="checkbox"
+        [checked]="settings().globallyEnabled"
+        (change)="setGloballyEnabled($any($event.target).checked)"
+      />
+      Trigger aktiv
+    </label>
+    <button type="button" class="tc-btn primary" (click)="openNew()">
+      + Neuer Trigger
+    </button>
+  </header>
+
+  <ul class="tc-list" *ngIf="triggerList().length > 0; else empty">
+    <li
+      *ngFor="let t of triggerList()"
+      class="tc-row"
+      [class.disabled]="!t.enabled"
+    >
+      <input
+        type="checkbox"
+        class="tc-enabled"
+        [checked]="t.enabled"
+        (change)="toggleEnabled(t)"
+        [title]="t.enabled ? 'Aktiv' : 'Inaktiv'"
+      />
+      <span class="tc-kind" [title]="t.action.kind">
+        {{ t.action.kind === 'highlight' ? '🎨' : '🔊' }}
+      </span>
+      <span class="tc-name">{{ t.name }}</span>
+      <code class="tc-pattern">/{{ t.pattern }}/{{ t.flags }}</code>
+      <span class="tc-summary">{{ actionSummary(t.action) }}</span>
+      <button type="button" class="tc-btn" (click)="openEdit(t)">
+        Bearbeiten
+      </button>
+      <button type="button" class="tc-btn danger" (click)="deleteTrigger(t)">
+        Löschen
+      </button>
+    </li>
+  </ul>
+
+  <ng-template #empty>
+    <p class="tc-empty">Noch keine Trigger angelegt.</p>
+  </ng-template>
+
+  <section *ngIf="editorOpen()" class="tc-editor">
+    <h3>{{ isEditing() ? 'Trigger bearbeiten' : 'Neuer Trigger' }}</h3>
+
+    <div class="tc-row-input">
+      <label>Name</label>
+      <input
+        type="text"
+        [ngModel]="nameField()"
+        (ngModelChange)="nameField.set($event)"
+        placeholder="z. B. Gold"
+      />
+    </div>
+
+    <div class="tc-row-input">
+      <label>Pattern</label>
+      <input
+        type="text"
+        spellcheck="false"
+        [ngModel]="patternField()"
+        (ngModelChange)="patternField.set($event)"
+        placeholder="z. B. \bgold\b"
+      />
+    </div>
+
+    <div class="tc-row-input">
+      <label>Flags</label>
+      <input
+        type="text"
+        spellcheck="false"
+        maxlength="5"
+        class="tc-flags"
+        [ngModel]="flagsField()"
+        (ngModelChange)="flagsField.set($event)"
+        placeholder="i"
+      />
+      <span class="tc-hint">erlaubt: i m s u</span>
+    </div>
+
+    <div class="tc-row-input">
+      <label>
+        <input
+          type="checkbox"
+          [checked]="enabledField()"
+          (change)="enabledField.set($any($event.target).checked)"
+        />
+        Aktiv
+      </label>
+    </div>
+
+    <fieldset class="tc-fieldset">
+      <legend>Aktion</legend>
+      <label class="tc-radio">
+        <input
+          type="radio"
+          name="actionKind"
+          [checked]="actionKindField() === 'highlight'"
+          (change)="actionKindField.set('highlight')"
+        />
+        Hervorheben
+      </label>
+      <label class="tc-radio">
+        <input
+          type="radio"
+          name="actionKind"
+          [checked]="actionKindField() === 'sound'"
+          (change)="actionKindField.set('sound')"
+        />
+        Sound
+      </label>
+
+      <ng-container *ngIf="actionKindField() === 'highlight'">
+        <div class="tc-row-input">
+          <label>Vordergrund</label>
+          <input
+            type="color"
+            [ngModel]="foregroundField() || '#ffffff'"
+            (ngModelChange)="foregroundField.set($event)"
+          />
+          <button
+            type="button"
+            class="tc-btn small"
+            (click)="foregroundField.set('')"
+            title="Vordergrund zurücksetzen"
+          >
+            ×
+          </button>
+        </div>
+        <div class="tc-row-input">
+          <label>Hintergrund</label>
+          <input
+            type="color"
+            [ngModel]="backgroundField() || '#000000'"
+            (ngModelChange)="backgroundField.set($event)"
+          />
+          <button
+            type="button"
+            class="tc-btn small"
+            (click)="clearBackground()"
+            title="Hintergrund zurücksetzen"
+          >
+            ×
+          </button>
+        </div>
+        <div class="tc-row-input">
+          <label>
+            <input
+              type="checkbox"
+              [checked]="boldField()"
+              (change)="boldField.set($any($event.target).checked)"
+            />
+            Fett
+          </label>
+        </div>
+      </ng-container>
+
+      <ng-container *ngIf="actionKindField() === 'sound'">
+        <div class="tc-row-input">
+          <label>Sound</label>
+          <select
+            [ngModel]="soundIdField()"
+            (ngModelChange)="soundIdField.set($event)"
+          >
+            <optgroup label="Allgemein">
+              <option
+                *ngFor="let s of builtinSounds()"
+                [value]="'builtin:' + s.id"
+              >
+                {{ s.label }}
+              </option>
+            </optgroup>
+            <optgroup label="Persönlich" *ngIf="personalSounds().length > 0">
+              <option
+                *ngFor="let s of personalSounds()"
+                [value]="'personal:' + s.id"
+              >
+                {{ s.label }}
+              </option>
+            </optgroup>
+          </select>
+          <button
+            type="button"
+            class="tc-btn small"
+            (click)="previewSound()"
+            title="Vorhören"
+          >
+            ▶
+          </button>
+        </div>
+        <div class="tc-row-input">
+          <label>Lautstärke</label>
+          <input
+            type="range"
+            min="0"
+            max="1"
+            step="0.05"
+            [ngModel]="volumeField()"
+            (ngModelChange)="volumeField.set(+$event)"
+          />
+          <span class="tc-hint">
+            {{ volumeField() * 100 | number: '1.0-0' }}%
+          </span>
+        </div>
+      </ng-container>
+    </fieldset>
+
+    <fieldset class="tc-fieldset">
+      <legend>Test</legend>
+      <textarea
+        rows="3"
+        [ngModel]="testInput()"
+        (ngModelChange)="testInput.set($event)"
+        placeholder="Beispieltext, gegen den das Pattern getestet wird…"
+      ></textarea>
+
+      <div *ngIf="compileError() !== ''" class="tc-error">
+        Ungültiges Pattern: {{ compileError() }}
+      </div>
+
+      <div class="tc-preview-row" *ngIf="compileError() === ''">
+        <span class="tc-hint">
+          {{ matchCount() }} Treffer
+        </span>
+        <div class="tc-preview">
+          <span
+            *ngFor="let seg of previewSegments()"
+            [class.match]="seg.matched"
+            [ngStyle]="seg.style || {}"
+            >{{ seg.text }}</span
+          >
+        </div>
+      </div>
+    </fieldset>
+
+    <div *ngIf="saveError() !== ''" class="tc-error">
+      {{ saveError() }}
+    </div>
+
+    <div class="tc-actions">
+      <button
+        type="button"
+        class="tc-btn primary"
+        (click)="save()"
+        [disabled]="compileError() !== ''"
+      >
+        Speichern
+      </button>
+      <button type="button" class="tc-btn" (click)="closeEditor()">
+        Abbrechen
+      </button>
+    </div>
+  </section>
+</div>

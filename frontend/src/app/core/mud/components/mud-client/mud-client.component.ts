@@ -25,6 +25,7 @@ import { DirlistWindowService } from '@webmud3/frontend/features/editor/dirlist-
 import { SoundService } from '@webmud3/frontend/features/sound/sound.service';
 import {
   SoundPlayerService as TriggerSoundPlayerService,
+  TriggerConfigWindowService,
   TriggerEngineService,
 } from '@webmud3/frontend/features/triggers';
 import { EditorWindowService } from '@webmud3/frontend/features/editor/editor-window.service';
@@ -167,6 +168,9 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
   // independent of the GMCP-driven SoundService above.
   private readonly triggerEngine = inject(TriggerEngineService);
   private readonly triggerSoundPlayer = inject(TriggerSoundPlayerService);
+  // Bootstraps the trigger configuration window: registers the "Trigger…"
+  // footer-menu entry and opens / closes the modeless window on demand.
+  private readonly _triggerConfigWindow = inject(TriggerConfigWindowService);
   // Exposed publicly so the template can read state + marker positions
   // for the touch-friendly two-tap-then-drag selection UX.
   public readonly selectionMode = inject(SelectionModeService);

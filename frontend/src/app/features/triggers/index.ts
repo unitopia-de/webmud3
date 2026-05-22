@@ -4,5 +4,7 @@ export * from './models/sound';
 export * from './models/trigger';
 export * from './sound-library.service';
 export * from './sound-player.service';
+export * from './trigger-config-window.service';
+export * from './trigger-config.component';
 export * from './trigger-engine.service';
 export * from './trigger.service';
