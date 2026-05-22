@@ -6,6 +6,7 @@ import { InventoryComponent } from '@webmud3/frontend/features/inventory/invento
 import { NumpadConfigComponent } from '@webmud3/frontend/features/numpad/numpad-config.component';
 import { PlayermapComponent } from '@webmud3/frontend/features/playermap/playermap.component';
 import { SettingsComponent } from '@webmud3/frontend/features/settings/settings.component';
+import { SoundLibraryComponent } from '@webmud3/frontend/features/triggers/sound-library.component';
 import { TriggerConfigComponent } from '@webmud3/frontend/features/triggers/trigger-config.component';
 
 /**
@@ -23,4 +24,5 @@ export const WINDOW_COMPONENTS: Record<string, Type<unknown>> = {
   playermap: PlayermapComponent,
   settings: SettingsComponent,
   'trigger-config': TriggerConfigComponent,
+  'sound-library': SoundLibraryComponent,
 };

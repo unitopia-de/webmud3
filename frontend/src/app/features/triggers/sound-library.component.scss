@@ -1,0 +1,161 @@
+:host {
+  display: block;
+  color: #ddd;
+  font-family: sans-serif;
+  font-size: 12px;
+  height: 100%;
+  overflow: auto;
+}
+
+.sound-library {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  box-sizing: border-box;
+}
+
+.sl-tabs {
+  display: flex;
+  border-bottom: 1px solid #555;
+  background: #232325;
+}
+
+.sl-tab {
+  flex: 1 1 auto;
+  background: transparent;
+  color: #aaa;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: 8px 12px;
+  cursor: pointer;
+  font: inherit;
+
+  &:hover {
+    background: #2d2d30;
+  }
+
+  &.active {
+    color: #ddd;
+    border-bottom-color: #3a76c4;
+  }
+}
+
+.sl-panel {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  padding: 8px;
+  gap: 8px;
+  overflow: auto;
+}
+
+.sl-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sl-row {
+  display: grid;
+  grid-template-columns: auto 1fr auto auto auto auto;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 6px;
+  background: #2d2d30;
+  border: 1px solid #444;
+  border-radius: 3px;
+}
+
+.sl-name {
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sl-id {
+  font-family: ui-monospace, "JetBrainsMono", monospace;
+  background: #1e1e1e;
+  padding: 1px 4px;
+  border-radius: 2px;
+  color: #888;
+  font-size: 11px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 220px;
+}
+
+.sl-meta {
+  color: #999;
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.sl-empty {
+  color: #999;
+  font-style: italic;
+  margin: 4px 0;
+}
+
+.sl-footer {
+  margin-top: auto;
+  padding-top: 8px;
+  border-top: 1px solid #444;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sl-quota {
+  color: #ccc;
+}
+
+.sl-hint {
+  color: #888;
+  font-size: 11px;
+}
+
+.sl-error {
+  color: #ff6b6b;
+}
+
+.sl-file-input {
+  display: none;
+}
+
+.sl-btn {
+  background: #3a3a3d;
+  color: #ddd;
+  border: 1px solid #555;
+  border-radius: 2px;
+  padding: 3px 8px;
+  cursor: pointer;
+  font: inherit;
+
+  &:hover {
+    background: #4a4a4f;
+  }
+
+  &.primary {
+    background: #2d5fa0;
+    border-color: #3a76c4;
+    align-self: flex-start;
+
+    &:hover {
+      background: #356dad;
+    }
+  }
+
+  &.danger:hover {
+    background: #6a2d2d;
+  }
+
+  &.small {
+    padding: 1px 6px;
+    line-height: 1.2;
+  }
+}

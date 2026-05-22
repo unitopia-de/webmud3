@@ -24,6 +24,7 @@ import { FooterMenuService } from '@webmud3/frontend/features/footer/footer-menu
 import { DirlistWindowService } from '@webmud3/frontend/features/editor/dirlist-window.service';
 import { SoundService } from '@webmud3/frontend/features/sound/sound.service';
 import {
+  SoundLibraryWindowService,
   SoundPlayerService as TriggerSoundPlayerService,
   TriggerConfigWindowService,
   TriggerEngineService,
@@ -171,6 +172,8 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
   // Bootstraps the trigger configuration window: registers the "Trigger…"
   // footer-menu entry and opens / closes the modeless window on demand.
   private readonly _triggerConfigWindow = inject(TriggerConfigWindowService);
+  // Same pattern for the sound library window ("Sounds…").
+  private readonly _soundLibraryWindow = inject(SoundLibraryWindowService);
   // Exposed publicly so the template can read state + marker positions
   // for the touch-friendly two-tap-then-drag selection UX.
   public readonly selectionMode = inject(SelectionModeService);
