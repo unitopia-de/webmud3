@@ -29,30 +29,6 @@
   <label class="settings-row">
     <input
       type="checkbox"
-      [checked]="announceWord$ | async"
-      (change)="toggleAnnounceWord()"
-    />
-    <span class="row-label">Eingabe ansagen (Wort)</span>
-    <span class="row-hint">
-      Liest jedes vollständige Wort vor, sobald ein Leerzeichen folgt.
-    </span>
-  </label>
-
-  <label class="settings-row">
-    <input
-      type="checkbox"
-      [checked]="announceCommit$ | async"
-      (change)="toggleAnnounceCommit()"
-    />
-    <span class="row-label">Eingabe ansagen (Zeile)</span>
-    <span class="row-hint">
-      Liest die komplette Befehlszeile nach Drücken der Eingabetaste vor.
-    </span>
-  </label>
-
-  <label class="settings-row">
-    <input
-      type="checkbox"
       [checked]="politeInput$ | async"
       (change)="togglePoliteInput()"
     />

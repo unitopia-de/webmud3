@@ -1,4 +1,4 @@
-const INPUT_CLEAR_DELAY_MS = 700;
+const LIVE_CLEAR_DELAY_MS = 2000;
 const ANSI_ESCAPE_PATTERN = /\x1B\[[0-9;?]*[ -\/]*[@-~]/g;
 const CONTROL_CHAR_PATTERN = /[\x00-\x08\x0B-\x1F\x7F]/g;
 
@@ -11,19 +11,13 @@ const CONTROL_CHAR_PATTERN = /[\x00-\x08\x0B-\x1F\x7F]/g;
  * - Clear the live region shortly after announcing to avoid re-reading history
  */
 export class MudScreenReaderAnnouncer {
-  private inputClearTimer: number | undefined;
+  private liveClearTimer: number | undefined;
   private sessionStartedAt: number;
-  private lastAnnouncedBuffer = '';
 
   constructor(
     private readonly liveRegion: HTMLElement,
     private readonly historyRegion?: HTMLElement,
-    private readonly inputRegion?: HTMLElement,
     private readonly isLoggingEnabled: () => boolean = () => false,
-    /** Whether per-word input announcements are emitted (toggled at runtime). */
-    private readonly isInputWordAnnounceEnabled: () => boolean = () => true,
-    /** Whether the full input line is announced after Enter. */
-    private readonly isInputCommitAnnounceEnabled: () => boolean = () => true,
   ) {
     this.sessionStartedAt = Date.now();
   }
@@ -42,7 +36,6 @@ export class MudScreenReaderAnnouncer {
     this.sessionStartedAt = timestamp;
     this.stopAnnouncements();
     this.clearHistory();
-    this.lastAnnouncedBuffer = '';
   }
 
   /**
@@ -87,6 +80,7 @@ export class MudScreenReaderAnnouncer {
    * Stops any in-flight announcements and drops the queued backlog.
    */
   public stopAnnouncements(): void {
+    this.cancelLiveClearTimer();
     this.clear();
   }
 
@@ -95,7 +89,7 @@ export class MudScreenReaderAnnouncer {
    */
   public dispose(): void {
     this.stopAnnouncements();
-    this.cancelInputClearTimer();
+    this.cancelLiveClearTimer();
   }
 
   /**
@@ -140,191 +134,30 @@ export class MudScreenReaderAnnouncer {
     }
   }
 
-  /**
-   * Announces input changes with three levels:
-   * (a) Per-character: textarea is read automatically by SR; no manual announcement
-   * (b) Per-word: when whitespace is encountered, announce the complete word
-   * (c) On commit: full line is announced via announceInputCommitted()
-   *
-   * Note: Per-character feedback is handled by the helper textarea being read
-   * by the screen reader automatically, so we skip manual textContent updates
-   * for individual chars to avoid double announcements.
-   */
-  public announceInput(buffer: string): void {
-    if (!this.inputRegion) {
-      return;
-    }
-
-    const lastLength = this.lastAnnouncedBuffer.length;
-    const currentLength = buffer.length;
-
-    if (currentLength > lastLength) {
-      const newestChar = buffer[currentLength - 1];
-
-      this.log('[ScreenReader] Input changed:', {
-        newestChar,
-        lastLength,
-        currentLength,
-      });
-
-      // (b) Check if we just completed a word (whitespace as delimiter)
-      if (/\s/.test(newestChar) && this.isInputWordAnnounceEnabled()) {
-        const lastWord = this.extractLastWord(buffer);
-        const normalizedWord = lastWord ? this.normalizeInput(lastWord) : '';
-
-        this.log('[ScreenReader] Word boundary detected:', {
-          lastWord,
-          normalizedWord,
-        });
-
-        // Announce the word (or fallback to the whitespace token if empty)
-        this.inputRegion.textContent =
-          normalizedWord || this.describeChar(newestChar);
-      }
-    } else if (currentLength < lastLength) {
-      // Backspace/delete: silently track, textarea is read by SR automatically
-      this.log('[ScreenReader] Buffer shortened (backspace/delete):', {
-        lastLength,
-        currentLength,
-      });
-    }
-
-    this.lastAnnouncedBuffer = buffer;
-  }
-
-  /**
-   * Extracts the last word from the buffer (text before the last whitespace).
-   * Used for per-word announcements when user types a space.
-   */
-  private extractLastWord(buffer: string): string {
-    if (!buffer) return '';
-
-    // Find the last whitespace (remove trailing whitespace)
-    const trimmedFromRight = buffer.replace(/\s+$/, '');
-    if (trimmedFromRight === buffer) {
-      // No trailing whitespace, return empty
-      return '';
-    }
-
-    // Find position of last word (before trailing whitespace)
-    let lastNonWhitespace = -1;
-    for (let i = trimmedFromRight.length - 1; i >= 0; i--) {
-      if (/\S/.test(trimmedFromRight[i])) {
-        lastNonWhitespace = i;
-        break;
-      }
-    }
-
-    if (lastNonWhitespace === -1) {
-      return '';
-    }
-
-    // Find the start of the last word (after previous whitespace)
-    let wordStart = 0;
-    for (let i = lastNonWhitespace; i >= 0; i--) {
-      if (/\s/.test(trimmedFromRight[i])) {
-        wordStart = i + 1;
-        break;
-      }
-    }
-
-    return trimmedFromRight.slice(wordStart, lastNonWhitespace + 1);
-  }
-
-  /**
-   * Maps characters to speakable tokens for screen readers.
-   */
-  private describeChar(char: string): string {
-    if (char === ' ') {
-      return 'Leerzeichen';
-    }
-
-    if (char === '\n') {
-      return 'Zeilenumbruch';
-    }
-
-    if (char === '\t') {
-      return 'Tab';
-    }
-
-    const normalized = this.normalizeInput(char);
-    return normalized || '';
-  }
-
-  /**
-   * (c) Announces the complete, committed input after user presses Enter.
-   * Reads back the entire line so the user can verify what they typed.
-   * Auto-clears after a delay to reset for the next input line.
-   */
-  public announceInputCommitted(buffer: string): void {
-    if (!this.inputRegion || !this.isInputCommitAnnounceEnabled()) {
-      this.lastAnnouncedBuffer = '';
-      return;
-    }
-
-    const normalized = this.normalize(buffer);
-
-    this.log('[ScreenReader] Announcing committed input:', {
-      raw: buffer.substring(0, 100),
-      normalized: normalized.substring(0, 100),
-    });
-
-    if (!normalized) {
-      this.lastAnnouncedBuffer = '';
-      return;
-    }
-
-    this.inputRegion.textContent = normalized;
-
-    // Auto-clear after delay so user gets confirmation but next input starts fresh
-    this.scheduleInputClear();
-
-    // Reset buffer tracker since we're starting fresh after commit
-    this.lastAnnouncedBuffer = '';
-  }
-
   private appendToLiveRegion(normalized: string): void {
     const doc = this.liveRegion.ownerDocument;
     this.liveRegion.appendChild(doc.createTextNode(`${normalized}\n`));
+    this.scheduleLiveClear();
+  }
+
+  private scheduleLiveClear(): void {
+    this.cancelLiveClearTimer();
+    this.liveClearTimer = window.setTimeout(() => {
+      this.liveRegion.textContent = '';
+    }, LIVE_CLEAR_DELAY_MS);
+  }
+
+  private cancelLiveClearTimer(): void {
+    if (this.liveClearTimer !== undefined) {
+      window.clearTimeout(this.liveClearTimer);
+      this.liveClearTimer = undefined;
+    }
   }
 
   public normalizeForComparison(raw: string): string {
     return this.normalize(raw);
   }
 
-  // Input clear helpers are retained for potential future use (currently unused)
-  private scheduleInputClear(): void {
-    this.cancelInputClearTimer();
-
-    this.inputClearTimer = window.setTimeout(() => {
-      this.clearInputRegion();
-    }, INPUT_CLEAR_DELAY_MS);
-  }
-
-  private cancelInputClearTimer(): void {
-    if (this.inputClearTimer !== undefined) {
-      window.clearTimeout(this.inputClearTimer);
-      this.inputClearTimer = undefined;
-    }
-  }
-
-  private clearInputRegion(): void {
-    if (this.inputRegion) {
-      this.inputRegion.textContent = '';
-    }
-  }
-
-  private normalizeInput(raw: string): string {
-    if (raw === undefined || raw === null) {
-      return '';
-    }
-
-    // Do not trim for input to preserve spaces; still strip ANSI/control chars.
-    const unifiedNewlines = raw.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
-    const withoutAnsi = unifiedNewlines.replace(ANSI_ESCAPE_PATTERN, '');
-    const withoutControl = withoutAnsi.replace(CONTROL_CHAR_PATTERN, '');
-    return withoutControl;
-  }
   private normalize(raw: string): string {
     if (!raw) {
       return '';

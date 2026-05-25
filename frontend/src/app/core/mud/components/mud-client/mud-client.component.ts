@@ -344,7 +344,7 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
     this.inputController = new MudInputController(
       this.terminal,
       ({ message, echoed }) => this.handleCommittedInput(message, echoed),
-      ({ buffer }) => this.announceInputToScreenReader(buffer),
+      ({ buffer }) => this.updateHelperTextarea(buffer),
       (buffer) => this.inputCompletion.requestCompletion(buffer),
     );
     this.inputController.setLocalEcho(this.state.localEchoEnabled);
@@ -365,10 +365,7 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
     this.screenReader = new MudScreenReaderAnnouncer(
       this.liveRegionRef.nativeElement,
       this.historyRegionRef.nativeElement,
-      this.inputRegionRef.nativeElement,
       () => this.debugSettings.screenReaderLogging,
-      () => this.speechSettings.announceInputWord,
-      () => this.speechSettings.announceInputCommit,
     );
 
     this.applyPoliteInputMode(this.speechSettings.politeInputMode);
@@ -754,16 +751,6 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
       // Refocus xterm so keystrokes flow back through onData.
       this.terminal.focus();
     }
-  }
-
-  /**
-   * Announces input buffer changes to the screen reader announcer.
-   * Called whenever the user types, deletes, etc. (but not for cursor-only moves).
-   * This ensures screen reader users can hear their input in real-time.
-   */
-  private announceInputToScreenReader(buffer: string): void {
-    this.screenReader?.announceInput(buffer);
-    this.updateHelperTextarea(buffer);
   }
 
   /**

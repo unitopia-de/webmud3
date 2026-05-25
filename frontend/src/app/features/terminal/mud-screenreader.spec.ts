@@ -52,6 +52,25 @@ describe('MudScreenReaderAnnouncer', () => {
 
     expect(liveRegion.textContent).toBe('');
   });
+
+  it('clears the live region 2s after the last announcement', () => {
+    jest.useFakeTimers();
+    try {
+      announcer.announce('First');
+      jest.advanceTimersByTime(1500);
+      announcer.announce('Second');
+      // 1500ms after the second announce the timer was reset, so the chunk
+      // is still readable for VoiceOver.
+      jest.advanceTimersByTime(1500);
+      expect(liveRegion.textContent).toBe('First\nSecond\n');
+      // 2000ms after the last announce the region must be empty so VoiceOver
+      // has no stale content to re-read when the next chunk arrives.
+      jest.advanceTimersByTime(600);
+      expect(liveRegion.textContent).toBe('');
+    } finally {
+      jest.useRealTimers();
+    }
+  });
 });
 
 describe('MudScreenReaderAnnouncer - appendToHistory', () => {

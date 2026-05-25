@@ -14,8 +14,7 @@ type TabId = 'accessibility' | 'diagnostics';
 /**
  * Settings dialog hosted in a modeless window. Currently exposes two tabs:
  *
- *   - Barrierefreiheit: speech-related toggles (per-word announce, full-line
- *     announce, polite Safari mode).
+ *   - Barrierefreiheit: polite Safari input mode.
  *   - Diagnose: rarely-used dev / support toggles (screen reader debug log,
  *     paste debug log, raw output hex dump).
  *
@@ -39,8 +38,6 @@ export class SettingsComponent {
 
   // ---- Streams consumed by the template via the async pipe -----------------
 
-  public readonly announceWord$ = this.speech.announceInputWord$;
-  public readonly announceCommit$ = this.speech.announceInputCommit$;
   public readonly politeInput$ = this.speech.politeInputMode$;
 
   public readonly screenReaderLogging$ = this.debug.screenReaderLogging$;
@@ -54,14 +51,6 @@ export class SettingsComponent {
   }
 
   // ---- Toggle dispatchers --------------------------------------------------
-
-  public toggleAnnounceWord(): void {
-    this.speech.toggleAnnounceInputWord();
-  }
-
-  public toggleAnnounceCommit(): void {
-    this.speech.toggleAnnounceInputCommit();
-  }
 
   public togglePoliteInput(): void {
     this.speech.togglePoliteInputMode();
