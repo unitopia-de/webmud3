@@ -53,20 +53,17 @@ describe('MudScreenReaderAnnouncer', () => {
     expect(liveRegion.textContent).toBe('');
   });
 
-  it('clears the live region 2s after the last announcement', () => {
+  it('does NOT auto-clear the live region after announcing', () => {
+    // Auto-clearing within ~2s breaks NVDA/JAWS on Windows — the screen
+    // reader notices the change but the content is gone before it reads it.
+    // Stale content is drained on session start / explicit clear instead.
     jest.useFakeTimers();
     try {
       announcer.announce('First');
-      jest.advanceTimersByTime(1500);
       announcer.announce('Second');
-      // 1500ms after the second announce the timer was reset, so the chunk
-      // is still readable for VoiceOver.
-      jest.advanceTimersByTime(1500);
+      jest.advanceTimersByTime(10_000);
+
       expect(liveRegion.textContent).toBe('First\nSecond\n');
-      // 2000ms after the last announce the region must be empty so VoiceOver
-      // has no stale content to re-read when the next chunk arrives.
-      jest.advanceTimersByTime(600);
-      expect(liveRegion.textContent).toBe('');
     } finally {
       jest.useRealTimers();
     }
@@ -171,5 +168,182 @@ describe('MudScreenReaderAnnouncer - appendToHistory', () => {
     expect(items.length).toBe(2);
     expect(items[0].textContent).toBe('Line 1');
     expect(items[1].textContent).toBe('Line 5');
+  });
+});
+
+describe('MudScreenReaderAnnouncer - announceInput', () => {
+  let inputRegion: HTMLElement;
+  let announcer: MudScreenReaderAnnouncer;
+
+  beforeEach(() => {
+    inputRegion = document.createElement('div');
+    announcer = new MudScreenReaderAnnouncer(
+      document.createElement('div'),
+      document.createElement('div'),
+      () => false,
+      inputRegion,
+    );
+  });
+
+  afterEach(() => {
+    announcer.dispose();
+  });
+
+  it('does not write to the input region while typing a single word', () => {
+    announcer.announceInput('h');
+    announcer.announceInput('ha');
+    announcer.announceInput('hal');
+    announcer.announceInput('hall');
+    announcer.announceInput('hallo');
+
+    expect(inputRegion.textContent).toBe('');
+  });
+
+  it('writes the completed word into the input region on whitespace', () => {
+    announcer.announceInput('h');
+    announcer.announceInput('ha');
+    announcer.announceInput('hal');
+    announcer.announceInput('hall');
+    announcer.announceInput('hallo');
+    announcer.announceInput('hallo ');
+
+    expect(inputRegion.textContent).toBe('hallo');
+  });
+
+  it('writes each newly completed word as the user keeps typing', () => {
+    announcer.announceInput('schau');
+    announcer.announceInput('schau ');
+    expect(inputRegion.textContent).toBe('schau');
+
+    announcer.announceInput('schau n');
+    announcer.announceInput('schau na');
+    announcer.announceInput('schau nach');
+    announcer.announceInput('schau nach ');
+    expect(inputRegion.textContent).toBe('nach');
+  });
+
+  it('stays silent on backspace (textarea echo handles it)', () => {
+    announcer.announceInput('hallo');
+    announcer.announceInput('hallo ');
+    expect(inputRegion.textContent).toBe('hallo');
+
+    announcer.announceInput('hallo');
+    // The input region still shows the previous word — backspace does not
+    // overwrite it. The auto-clearing live region drains it.
+    expect(inputRegion.textContent).toBe('hallo');
+  });
+
+  it('does nothing when input region is not provided', () => {
+    const announcer2 = new MudScreenReaderAnnouncer(
+      document.createElement('div'),
+      document.createElement('div'),
+      () => false,
+      undefined,
+    );
+
+    // Should not throw
+    announcer2.announceInput('hallo ');
+  });
+});
+
+describe('MudScreenReaderAnnouncer - announceInputCommitted', () => {
+  let inputRegion: HTMLElement;
+  let announcer: MudScreenReaderAnnouncer;
+
+  beforeEach(() => {
+    inputRegion = document.createElement('div');
+    announcer = new MudScreenReaderAnnouncer(
+      document.createElement('div'),
+      document.createElement('div'),
+      () => false,
+      inputRegion,
+    );
+  });
+
+  afterEach(() => {
+    announcer.dispose();
+  });
+
+  it('writes only the tail word of a multi-word command', () => {
+    // The earlier words ("betrachte") were already spoken by announceInput
+    // when the user typed the space — reading the whole line would echo
+    // them a second time. Only the trailing "mich" is new.
+    announcer.announceInputCommitted('betrachte mich');
+
+    expect(inputRegion.textContent).toBe('mich');
+  });
+
+  it('writes the whole input for a single-word command', () => {
+    // No whitespace → the whole input is the "tail word", so it's spoken
+    // in full. Without this fallback, "schau" + Enter would announce nothing.
+    announcer.announceInputCommitted('schau');
+
+    expect(inputRegion.textContent).toBe('schau');
+  });
+
+  it('strips ANSI escape sequences from the announced tail word', () => {
+    announcer.announceInputCommitted('hallo \x1b[31mwelt\x1b[0m');
+
+    expect(inputRegion.textContent).toBe('welt');
+  });
+
+  it('says nothing if the buffer ends in whitespace', () => {
+    // Trailing whitespace means announceInput already spoke the last word
+    // when the user typed the space — committing now would be a duplicate.
+    announcer.announceInputCommitted('hallo welt ');
+
+    expect(inputRegion.textContent).toBe('');
+  });
+
+  it('ignores empty input after normalization', () => {
+    announcer.announceInputCommitted('   ');
+
+    expect(inputRegion.textContent).toBe('');
+  });
+
+  it('clears the input region 700ms after a commit', () => {
+    jest.useFakeTimers();
+    try {
+      announcer.announceInputCommitted('betrachte mich');
+      expect(inputRegion.textContent).toBe('mich');
+
+      jest.advanceTimersByTime(699);
+      expect(inputRegion.textContent).toBe('mich');
+
+      jest.advanceTimersByTime(2);
+      expect(inputRegion.textContent).toBe('');
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it('does nothing when input region is not provided', () => {
+    const announcer2 = new MudScreenReaderAnnouncer(
+      document.createElement('div'),
+      document.createElement('div'),
+      () => false,
+      undefined,
+    );
+
+    // Should not throw
+    announcer2.announceInputCommitted('betrachte mich');
+  });
+
+  it('resets the per-word buffer tracker after commit', () => {
+    // Type a word, commit, then type the same prefix again — the new prefix
+    // must not be treated as a continuation of the previous buffer.
+    announcer.announceInput('hallo');
+    announcer.announceInputCommitted('hallo');
+
+    // After commit the auto-clear timer will fire later; for this test we
+    // care that the very next character behaves as if the buffer started
+    // fresh (no spurious word boundary).
+    announcer.announceInput('h');
+    announcer.announceInput('ha');
+    // Still typing — no whitespace yet, region content is whatever the
+    // commit left there (cleared after the timeout in the real flow).
+    // Important: announceInput must not crash because lastAnnouncedBuffer
+    // was reset on commit.
+    expect(() => announcer.announceInput('hal')).not.toThrow();
   });
 });

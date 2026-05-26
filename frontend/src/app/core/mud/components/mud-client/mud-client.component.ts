@@ -13,6 +13,7 @@ import { ClipboardAddon } from '@xterm/addon-clipboard';
 import { FitAddon } from '@xterm/addon-fit';
 import { IDisposable, Terminal } from '@xterm/xterm';
 import { Subscription } from 'rxjs';
+import { pairwise } from 'rxjs/operators';
 
 import { MudService } from '../../services/mud.service';
 import { MudNoticeService } from '../../services/mud-notice.service';
@@ -34,6 +35,7 @@ import { InputCompletionService } from '@webmud3/frontend/features/gmcp/input-co
 import { CharGmcpModule } from '@webmud3/frontend/features/gmcp/modules/char-gmcp.module';
 import { InventoryWindowService } from '@webmud3/frontend/features/inventory/inventory-window.service';
 import { ConnectionMenuService } from '@webmud3/frontend/features/connection/connection-menu.service';
+import { WakeLockService } from '@webmud3/frontend/features/connection/wake-lock.service';
 import { NumpadWindowService } from '@webmud3/frontend/features/numpad/numpad-window.service';
 import { PlayermapWindowService } from '@webmud3/frontend/features/playermap/playermap-window.service';
 import { SettingsWindowService } from '@webmud3/frontend/features/settings/settings-window.service';
@@ -134,6 +136,9 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
   private readonly _inventoryWindow = inject(InventoryWindowService);
   // Bootstraps the "Verbinden / Trennen" entry in the footer menu.
   private readonly _connectionMenu = inject(ConnectionMenuService);
+  // Keeps the screen awake while a MUD session is open so mobile browsers
+  // (mainly iOS Safari) don't suspend the tab and drop the connection.
+  private readonly wakeLock = inject(WakeLockService);
   // Bootstraps the "Numpad-Konfiguration" entry in the footer menu and
   // loads numpad bindings from localStorage.
   private readonly _numpadWindow = inject(NumpadWindowService);
@@ -199,6 +204,15 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
   private terminalAttachAddon?: AttachAddon;
   private pendingEchoSuppression: string | null = null;
 
+  // Plain-text aggregation of the current chunk after MXP / trigger
+  // processing, populated by `transformMudOutput` and consumed by
+  // `afterMudOutput`. We can't reuse the `data` argument of `afterMessage`
+  // because `transformMudOutput` writes into xterm itself and returns ''
+  // to suppress the adapter's own dispatch — the raw `data` would still
+  // contain `<ircontent>` / `<send>` MXP markup that the screen reader
+  // would otherwise speak literally.
+  private screenReaderChunkBuffer = '';
+
   private readonly terminalDisposables: IDisposable[] = [];
   private readonly resizeObs = new ResizeObserver(() => {
     this.handleTerminalResize();
@@ -222,6 +236,7 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
   private noticeSubscription?: Subscription;
   private themeSubscription?: Subscription;
   private mxpResetSubscription?: Subscription;
+  private disconnectNoticeSubscription?: Subscription;
   private pasteHandler?: (event: ClipboardEvent) => void;
   private selectionTapHandler?: (event: PointerEvent) => void;
   private viewportScrollHandler?: (event: Event) => void;
@@ -344,7 +359,7 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
     this.inputController = new MudInputController(
       this.terminal,
       ({ message, echoed }) => this.handleCommittedInput(message, echoed),
-      ({ buffer }) => this.updateHelperTextarea(buffer),
+      ({ buffer }) => this.onInputBufferChanged(buffer),
       (buffer) => this.inputCompletion.requestCompletion(buffer),
     );
     this.inputController.setLocalEcho(this.state.localEchoEnabled);
@@ -366,6 +381,7 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
       this.liveRegionRef.nativeElement,
       this.historyRegionRef.nativeElement,
       () => this.debugSettings.screenReaderLogging,
+      this.inputRegionRef.nativeElement,
     );
 
     this.applyPoliteInputMode(this.speechSettings.politeInputMode);
@@ -501,6 +517,17 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
       },
     );
 
+    // Visible notice in the terminal on real disconnects only (true → false).
+    // pairwise() suppresses the initial `false` emission from the BehaviorSubject
+    // before the first connection has been established.
+    this.disconnectNoticeSubscription = this.mudService.connectedToMud$
+      .pipe(pairwise())
+      .subscribe(([prev, next]) => {
+        if (prev && !next) {
+          this.writeLocalNotice('[Verbindung getrennt]');
+        }
+      });
+
     this.resizeObs.observe(this.terminalRef.nativeElement);
     this.setState({ terminalReady: true });
 
@@ -520,6 +547,10 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
     const rows = this.terminal.rows + 1;
 
     this.mudService.connect({ columns, rows });
+
+    // Hold a screen wake lock so iOS Safari / Android Chrome don't suspend
+    // the tab and drop the socket. Silently no-ops on unsupported browsers.
+    void this.wakeLock.acquire();
   }
 
   /**
@@ -531,6 +562,10 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
     this.footerMenu.unregister(this.SOUND_MENU_ID);
     this.footerMenu.unregister(this.THEME_PARENT_MENU_ID);
     this.resizeObs.disconnect();
+
+    // Drop the screen wake lock. The service is providedIn: 'root', so it
+    // wouldn't release on its own when this component is destroyed.
+    void this.wakeLock.release();
 
     // Unregister visibility change listener
     document.removeEventListener(
@@ -580,6 +615,7 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
     this.noticeSubscription?.unsubscribe();
     this.themeSubscription?.unsubscribe();
     this.mxpResetSubscription?.unsubscribe();
+    this.disconnectNoticeSubscription?.unsubscribe();
     for (const sub of this.completionSubscriptions) {
       sub.unsubscribe();
     }
@@ -693,6 +729,13 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
         ? normalizedInput
         : null;
       this.screenReader?.appendToHistory(payload);
+      // NOTE: No commit announcement on Enter. The screen reader already
+      // speaks each character as the user types (via the xterm helper
+      // textarea), and `announceInput` emits the words on whitespace —
+      // re-reading the line on Enter is pure duplication. Verified with
+      // the blind tester on 2026-05-26. `announceInputCommitted` remains
+      // available on the announcer in case we want to bring it back
+      // behind a setting later.
     }
 
     this.mudService.sendMessage(payload);
@@ -928,8 +971,18 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
    */
   private afterMudOutput(data: string) {
     this.promptManager.afterServerOutput(data, this.getPromptContext());
-    this.announceToScreenReader(data);
-    this.screenReader?.appendToHistory(data);
+
+    // The screen reader gets the MXP/trigger-cleaned aggregate that
+    // `transformMudOutput` already produced — feeding `data` here would
+    // either be '' (adapter passes through the transform return value)
+    // or contain literal MXP tags. Reset the buffer so a chunk without
+    // server output (e.g. a pure prompt update) doesn't replay the
+    // previous announcement.
+    const announcement = this.screenReaderChunkBuffer;
+    this.screenReaderChunkBuffer = '';
+
+    this.announceToScreenReader(announcement);
+    this.screenReader?.appendToHistory(announcement);
     this.updateHelperTextarea();
   }
 
@@ -951,19 +1004,27 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
     const cleaned = this.promptManager.transformOutput(data);
     const segments = this.mxpFilter.processToSegments(cleaned);
 
+    let announcementChunk = '';
+
     for (const seg of segments) {
       if (seg.type === 'text') {
         // Triggers run on text segments only — clickable spans keep their OSC 8
         // wrapper unchanged so the click region isn't broken by ANSI injection.
         const result = this.triggerEngine.processChunk(seg.content);
         this.terminal.write(result.text);
+        announcementChunk += result.text;
         for (const s of result.sounds) {
           this.triggerSoundPlayer.play(s.soundId, s.volume);
         }
       } else {
         this.writeClickableSegment(seg);
+        // The clickable text itself (without the MXP wrapper) is part of the
+        // visible output, so the screen reader should hear it too.
+        announcementChunk += seg.content;
       }
     }
+
+    this.screenReaderChunkBuffer = announcementChunk;
 
     return '';
   }
@@ -1361,6 +1422,24 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
       buffer !== undefined ? buffer : this.inputController.getSnapshot().buffer;
 
     this.helperTextarea.value = `${prompt}${effectiveBuffer ?? ''}`;
+  }
+
+  /**
+   * Reacts to every change of the input buffer:
+   * - Mirrors prompt + buffer into the xterm helper textarea (per-character
+   *   feedback for screen readers that read typed chars from form controls).
+   * - Notifies the screenreader announcer so it can emit word-level
+   *   announcements when whitespace is typed (`announceInput`).
+   *
+   * Local echo off (e.g. password entry) suppresses the word-level
+   * announcement to avoid leaking secrets through the live region.
+   */
+  private onInputBufferChanged(buffer: string): void {
+    this.updateHelperTextarea(buffer);
+
+    if (this.state.localEchoEnabled) {
+      this.screenReader?.announceInput(buffer);
+    }
   }
 
   /**

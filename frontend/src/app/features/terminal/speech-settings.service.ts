@@ -26,10 +26,11 @@ const STORAGE_SUFFIX = 'webmud3-speech-settings';
 
 /**
  * Runtime-toggleable speech / aria-live announcer settings. Currently only
- * exposes the polite-input-mode flag; per-word and per-line announcements were
- * removed because the default screen reader behaviour (helper textarea +
- * auto-clearing live log region) covers the same need without cross-region
- * interference.
+ * exposes the polite-input-mode flag. Per-word and per-line input
+ * announcements are emitted by `MudScreenReaderAnnouncer` into the
+ * `#inputRegionRef` live region; this flag switches that region between
+ * `assertive` and `polite` to work around a VoiceOver/Safari issue where
+ * assertive updates next to a polite log region trigger a re-read of the log.
  */
 @Injectable({ providedIn: 'root' })
 export class SpeechSettingsService {

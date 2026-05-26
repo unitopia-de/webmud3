@@ -7,6 +7,8 @@
 
 docker build -f Dockerfile -t myonara/webmud3:develop .
 
+docker push myonara/webmud3:develop
+
 docker build -f Dockerfile -t myonara/webmud3:latest .
 
 docker build -f dockerfiles/unitopia_dev.dockerfile -t myonara/webmud3:unitopiatest .
