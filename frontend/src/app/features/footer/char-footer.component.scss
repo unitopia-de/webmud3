@@ -124,6 +124,27 @@
   }
 }
 
+// Settings-menu trigger: gear icon plus "Menü" label side-by-side so users
+// (sighted and screen-reader-assisted alike) can tell what the button does
+// without having to guess from a lone glyph.
+.menu-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  // Override .menu-button's 16px so the label sits at the footer's regular
+  // 13px reading size; the icon keeps its larger size via its own rule below.
+  font-size: 13px;
+
+  .trigger-icon {
+    font-size: 16px;
+    line-height: 1;
+  }
+
+  .trigger-text {
+    line-height: 1;
+  }
+}
+
 .menu-dropdown {
   position: absolute;
   bottom: calc(100% + 4px);

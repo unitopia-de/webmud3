@@ -43,9 +43,19 @@ const MIN_VISIBLE_PX = 32;
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class WindowComponent implements AfterViewInit, OnDestroy {
+  // Monotonic counter so every window instance gets a unique title-id
+  // that aria-labelledby on the host can point to. Without this two
+  // windows would share the same id, and the screen reader would announce
+  // the wrong title.
+  private static instanceCounter = 0;
+
   @Input({ required: true }) config!: WindowConfig;
 
   @ViewChild('titleBar', { static: true }) titleBar!: ElementRef<HTMLElement>;
+
+  // ID rendered onto the <h2> title and referenced by the host's
+  // aria-labelledby. Exposed as a public field so the template can bind it.
+  public readonly titleId = `window-title-${++WindowComponent.instanceCounter}`;
 
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
   private readonly zone = inject(NgZone);
@@ -79,6 +89,31 @@ export class WindowComponent implements AfterViewInit, OnDestroy {
   @HostBinding('style.display') get display(): string {
     return this.config.visible ? 'flex' : 'none';
   }
+
+  // ARIA: expose the window as a (modeless) dialog so screen readers
+  // announce both the title and the role when the window opens / receives
+  // focus. Without these attributes the host is just a styled <div> and
+  // sighted-only — the blind tester reported that none of the windows
+  // were announced.
+  @HostBinding('attr.role') readonly role = 'dialog';
+
+  // aria-labelledby points at the <h2> title inside the title bar, so the
+  // dialog's accessible name comes from exactly one source — no duplicate
+  // announcement. The <h2> also gives screen reader users a heading they
+  // can navigate to with the H key.
+  @HostBinding('attr.aria-labelledby') get ariaLabelledBy(): string {
+    return this.titleId;
+  }
+
+  // Explicit modeless flag (default for `role="dialog"` is also non-modal,
+  // but stating it removes ambiguity for screen readers that vary in their
+  // defaults).
+  @HostBinding('attr.aria-modal') readonly ariaModal = 'false';
+
+  // Programmatic focus target — without `tabindex` we couldn't move focus
+  // here from `ngAfterViewInit`, and the screen reader wouldn't pick up
+  // the dialog announcement.
+  @HostBinding('attr.tabindex') readonly tabindex = '-1';
 
   @HostListener('pointerdown')
   onHostClick(): void {
@@ -147,6 +182,16 @@ export class WindowComponent implements AfterViewInit, OnDestroy {
   }
 
   ngAfterViewInit(): void {
+    // Move focus into the freshly-opened window so the screen reader
+    // announces the dialog role + title. Deferred to a microtask so the
+    // host element is fully rendered before `focus()` runs; also skipped
+    // when the window opens hidden (it'll be focused later when shown).
+    if (this.config.visible) {
+      queueMicrotask(() => {
+        this.host.nativeElement.focus({ preventScroll: true });
+      });
+    }
+
     // Skip resize tracking for auto-sized windows (width/height = 0): we
     // would otherwise pin them to whatever the layout produces on the first
     // tick and lose the auto-sizing semantics.

@@ -6,14 +6,18 @@
   (pointerup)="onTitleBarPointerUp($event)"
   (contextmenu)="$event.preventDefault()"
 >
-  <span class="title" [title]="config.tooltip ?? config.title">{{ config.title }}</span>
+  <h2
+    class="title"
+    [id]="titleId"
+    [title]="config.tooltip ?? config.title"
+  >{{ config.title }}</h2>
   <button
     type="button"
     class="close-btn"
     (click)="onClose($event)"
-    aria-label="Close window"
+    aria-label="Fenster schließen"
   >
-    ×
+    <span aria-hidden="true">×</span>
   </button>
 </div>
 <div class="content">

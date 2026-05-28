@@ -38,14 +38,15 @@
 <div #menuRoot class="menu-root">
   <button
     type="button"
-    class="menu-button"
+    class="menu-button menu-trigger"
     (click)="toggleMenu($event)"
     [class.open]="menuOpen()"
-    aria-label="Open settings menu"
+    aria-label="Einstellungsmenü"
     aria-haspopup="true"
     [attr.aria-expanded]="menuOpen()"
   >
-    ⚙
+    <span class="trigger-icon" aria-hidden="true">⚙</span>
+    <span class="trigger-text" role="heading" aria-level="2">Menü</span>
   </button>
 
   <div class="menu-dropdown" *ngIf="menuOpen()" role="menu">
@@ -59,13 +60,14 @@
             role="menuitem"
             aria-haspopup="true"
             [attr.aria-expanded]="openSubmenuId() === item.id"
+            [attr.aria-label]="item.label"
             [disabled]="item.disabled"
             (click)="toggleSubmenu($event, item.id)"
           >
-            <span class="check">{{ item.checked ? '✓' : '' }}</span>
-            <span class="icon" *ngIf="item.icon">{{ item.icon }}</span>
+            <span class="check" aria-hidden="true">{{ item.checked ? '✓' : '' }}</span>
+            <span class="icon" aria-hidden="true" *ngIf="item.icon">{{ item.icon }}</span>
             <span class="label">{{ item.label }}</span>
-            <span class="submenu-arrow">▶</span>
+            <span class="submenu-arrow" aria-hidden="true">▶</span>
           </button>
           <div
             class="submenu"
@@ -77,11 +79,12 @@
               type="button"
               class="menu-item"
               role="menuitem"
+              [attr.aria-label]="child.label"
               [disabled]="child.disabled"
               (click)="onMenuItemClick(child.action)"
             >
-              <span class="check">{{ child.checked ? '✓' : '' }}</span>
-              <span class="icon" *ngIf="child.icon">{{ child.icon }}</span>
+              <span class="check" aria-hidden="true">{{ child.checked ? '✓' : '' }}</span>
+              <span class="icon" aria-hidden="true" *ngIf="child.icon">{{ child.icon }}</span>
               <span class="label">{{ child.label }}</span>
             </button>
           </div>
@@ -93,11 +96,12 @@
             type="button"
             class="menu-item"
             role="menuitem"
+            [attr.aria-label]="item.label"
             [disabled]="item.disabled"
             (click)="onMenuItemClick(item.action)"
           >
-            <span class="check">{{ item.checked ? '✓' : '' }}</span>
-            <span class="icon" *ngIf="item.icon">{{ item.icon }}</span>
+            <span class="check" aria-hidden="true">{{ item.checked ? '✓' : '' }}</span>
+            <span class="icon" aria-hidden="true" *ngIf="item.icon">{{ item.icon }}</span>
             <span class="label">{{ item.label }}</span>
           </button>
         </ng-template>

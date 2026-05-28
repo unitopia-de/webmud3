@@ -40,6 +40,13 @@
   overflow: hidden;
   text-overflow: ellipsis;
   flex: 1 1 auto;
+  // Reset <h2> browser defaults so the title bar looks unchanged. The
+  // element is an <h2> for screen-reader heading navigation (H key),
+  // not for visual hierarchy — appearance stays at the surrounding
+  // 13 px body size.
+  margin: 0;
+  font-size: inherit;
+  font-weight: inherit;
 }
 
 .close-btn {
