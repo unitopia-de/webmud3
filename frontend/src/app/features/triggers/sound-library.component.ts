@@ -1,4 +1,3 @@
-import { CommonModule } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -17,7 +16,11 @@ import {
 } from './sound-library.service';
 import { SoundPlayerService } from './sound-player.service';
 import { TriggerService } from './trigger.service';
-import { builtinSoundId, personalSoundId, type PersonalSound } from './models/sound';
+import {
+  builtinSoundId,
+  personalSoundId,
+  type PersonalSound,
+} from './models/sound';
 
 type Tab = 'builtin' | 'personal';
 
@@ -35,7 +38,7 @@ type Tab = 'builtin' | 'personal';
   templateUrl: './sound-library.component.html',
   styleUrls: ['./sound-library.component.scss'],
   standalone: true,
-  imports: [CommonModule],
+  imports: [],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SoundLibraryComponent {

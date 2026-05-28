@@ -1,11 +1,10 @@
-<ng-container *ngIf="menu$ | async as menu">
+@if (menu$ | async; as menu) {
   <!--
-    The backdrop catches outside-clicks. It is fully transparent so the
-    terminal underneath stays visible; pointer-events are needed so the
-    click handler actually fires.
+  The backdrop catches outside-clicks. It is fully transparent so the
+  terminal underneath stays visible; pointer-events are needed so the
+  click handler actually fires.
   -->
   <div class="mxp-choice-backdrop" (click)="onBackdropClick()"></div>
-
   <ul
     class="mxp-choice-menu"
     role="menu"
@@ -13,18 +12,17 @@
     [style.left.px]="menu.x"
     [style.top.px]="menu.y"
   >
-    <li
-      *ngFor="let cmd of menu.commands; let i = index"
-      role="menuitem"
-    >
-      <button
-        type="button"
-        class="mxp-choice-item"
-        [autofocus]="i === 0"
-        (click)="onPick(cmd)"
-      >
-        {{ cmd }}
-      </button>
-    </li>
+    @for (cmd of menu.commands; track cmd; let i = $index) {
+      <li role="menuitem">
+        <button
+          type="button"
+          class="mxp-choice-item"
+          [autofocus]="i === 0"
+          (click)="onPick(cmd)"
+        >
+          {{ cmd }}
+        </button>
+      </li>
+    }
   </ul>
-</ng-container>
+}

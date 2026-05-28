@@ -1,18 +1,16 @@
-<ng-container *ngIf="viewModel$ | async as vm">
+@if (viewModel$ | async; as vm) {
   <div class="pmap-grid" [class.pmap-empty]="vm.empty">
-    <div
-      *ngFor="let row of vm.rows; trackBy: trackRow"
-      class="pmap-row"
-    >
-      <span
-        *ngFor="let cell of row; trackBy: trackCell"
-        class="pmap-cell"
-        [class.pmap-player]="cell.isPlayer"
-      >{{ cell.ch }}</span>
-    </div>
+    @for (row of vm.rows; track trackRow($index, row)) {
+      <div class="pmap-row">
+        @for (cell of row; track trackCell($index, cell)) {
+          <span class="pmap-cell" [class.pmap-player]="cell.isPlayer">{{
+            cell.ch
+          }}</span>
+        }
+      </div>
+    }
   </div>
-
-  <div *ngIf="vm.empty" class="pmap-empty-hint">
-    Keine Karte für diesen Raum.
-  </div>
-</ng-container>
+  @if (vm.empty) {
+    <div class="pmap-empty-hint">Keine Karte für diesen Raum.</div>
+  }
+}

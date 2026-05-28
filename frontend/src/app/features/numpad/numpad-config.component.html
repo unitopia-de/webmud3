@@ -1,43 +1,55 @@
-<div class="numpad-host" *ngIf="bindings$ | async as bindings">
-  <div class="numpad-grid">
-    <ng-container *ngFor="let cell of layout">
-      <button
-        *ngIf="cell.key; else gap"
-        type="button"
-        class="numpad-key"
-        [class.span-2]="cell.span === 2"
-        [title]="commandFor(bindings, cell.key) || '(unbelegt)'"
-        (click)="onKeyClick(cell.key)"
-      >
-        <span class="numpad-label">{{ cell.label }}</span>
-        <span class="numpad-cmd">{{ commandFor(bindings, cell.key) || '—' }}</span>
-        <span
-          class="numpad-edit"
-          (click)="startEdit(cell.key, commandFor(bindings, cell.key), $event)"
-          title="Bearbeiten"
-        >✎</span>
-      </button>
-      <ng-template #gap><span class="numpad-gap"></span></ng-template>
-    </ng-container>
-  </div>
-
-  <div class="numpad-actions">
-    <button type="button" (click)="onResetClick()">Defaults</button>
-  </div>
-
-  <div class="numpad-edit-overlay" *ngIf="editingKey() as key">
-    <p>Befehl für <strong>{{ key }}</strong>:</p>
-    <input
-      type="text"
-      [ngModel]="editingValue()"
-      (ngModelChange)="editingValue.set($event)"
-      (keyup.enter)="saveEdit()"
-      (keyup.escape)="cancelEdit()"
-      autofocus
-    />
-    <div class="numpad-edit-buttons">
-      <button type="button" (click)="saveEdit()">Speichern</button>
-      <button type="button" (click)="cancelEdit()">Abbrechen</button>
+@if (bindings$ | async; as bindings) {
+  <div class="numpad-host">
+    <div class="numpad-grid">
+      @for (cell of layout; track cell) {
+        @if (cell.key) {
+          <button
+            type="button"
+            class="numpad-key"
+            [class.span-2]="cell.span === 2"
+            [title]="commandFor(bindings, cell.key) || '(unbelegt)'"
+            (click)="onKeyClick(cell.key)"
+          >
+            <span class="numpad-label">{{ cell.label }}</span>
+            <span class="numpad-cmd">{{
+              commandFor(bindings, cell.key) || "—"
+            }}</span>
+            <span
+              class="numpad-edit"
+              (click)="
+                startEdit(cell.key, commandFor(bindings, cell.key), $event)
+              "
+              title="Bearbeiten"
+              >✎</span
+            >
+          </button>
+        } @else {
+          <span class="numpad-gap"></span>
+        }
+      }
     </div>
+    <div class="numpad-actions">
+      <button type="button" (click)="onResetClick()">Defaults</button>
+    </div>
+    @if (editingKey(); as key) {
+      <div class="numpad-edit-overlay">
+        <p>
+          Befehl für <strong>{{ key }}</strong
+          >:
+        </p>
+        <input
+          type="text"
+          [ngModel]="editingValue()"
+          (ngModelChange)="editingValue.set($event)"
+          (keyup.enter)="saveEdit()"
+          (keyup.escape)="cancelEdit()"
+          autofocus
+        />
+        <div class="numpad-edit-buttons">
+          <button type="button" (click)="saveEdit()">Speichern</button>
+          <button type="button" (click)="cancelEdit()">Abbrechen</button>
+        </div>
+      </div>
+    }
   </div>
-</div>
+}

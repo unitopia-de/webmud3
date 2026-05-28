@@ -1,4 +1,3 @@
-import { CommonModule } from '@angular/common';
 import {
   Component,
   ElementRef,
@@ -42,7 +41,7 @@ export interface MobileInputHistoryProvider {
 @Component({
   selector: 'app-mobile-input',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [FormsModule],
   templateUrl: './mobile-input.component.html',
   styleUrls: ['./mobile-input.component.scss'],
 })

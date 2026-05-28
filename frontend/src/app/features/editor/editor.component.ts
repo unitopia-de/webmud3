@@ -1,4 +1,3 @@
-import { CommonModule } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import {
   AfterViewInit,
@@ -45,7 +44,7 @@ type EditorPayload = {
   templateUrl: './editor.component.html',
   styleUrls: ['./editor.component.scss'],
   standalone: true,
-  imports: [CommonModule],
+  imports: [],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class EditorComponent implements OnInit, AfterViewInit, OnDestroy {
@@ -417,11 +416,9 @@ export class EditorComponent implements OnInit, AfterViewInit, OnDestroy {
     };
 
     this.selectionPointerHandlerTarget = editorDom;
-    editorDom.addEventListener(
-      'pointerdown',
-      this.selectionPointerHandler,
-      { capture: true },
-    );
+    editorDom.addEventListener('pointerdown', this.selectionPointerHandler, {
+      capture: true,
+    });
 
     // Re-evaluate marker pixel positions whenever Monaco scrolls or
     // re-layouts (font change, resize, …) — without this the handles

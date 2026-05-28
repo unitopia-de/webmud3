@@ -1,17 +1,15 @@
-<app-window
-  *ngFor="let cfg of windows$ | async; trackBy: trackByWindowId"
-  [config]="cfg"
->
-  <ng-container
-    *ngIf="componentFor(cfg) as cmp; else placeholder"
-    [ngComponentOutlet]="cmp"
-    [ngComponentOutletInputs]="{ config: cfg }"
-  ></ng-container>
-
-  <ng-template #placeholder>
-    <div class="placeholder">
-      <p><strong>Component:</strong> {{ cfg.component }}</p>
-      <pre>{{ toJson(cfg.data) }}</pre>
-    </div>
-  </ng-template>
-</app-window>
+@for (cfg of windows$ | async; track trackByWindowId($index, cfg)) {
+  <app-window [config]="cfg">
+    @if (componentFor(cfg); as cmp) {
+      <ng-container
+        [ngComponentOutlet]="cmp"
+        [ngComponentOutletInputs]="{ config: cfg }"
+      ></ng-container>
+    } @else {
+      <div class="placeholder">
+        <p><strong>Component:</strong> {{ cfg.component }}</p>
+        <pre>{{ toJson(cfg.data) }}</pre>
+      </div>
+    }
+  </app-window>
+}

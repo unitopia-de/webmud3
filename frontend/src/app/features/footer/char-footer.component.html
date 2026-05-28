@@ -1,24 +1,30 @@
 <div class="char-info">
-  <span class="char-name" *ngIf="charName(); else noChar">{{ charName() }}</span>
-  <ng-template #noChar><span class="placeholder">no character</span></ng-template>
+  @if (charName()) {
+    <span class="char-name">{{ charName() }}</span>
+  } @else {
+    <span class="placeholder">no character</span>
+  }
 
-  <span
-    class="char-vitals"
-    [class.flashing]="vitalsFlash()"
-    *ngIf="vitalsText() as v"
-  >{{ v }}</span>
+  @if (vitalsText(); as v) {
+    <span class="char-vitals" [class.flashing]="vitalsFlash()">{{ v }}</span>
+  }
 
-  <span class="mxp-stats" *ngIf="(mxpDisplay$ | async)?.length">
-    <span
-      *ngFor="let s of mxpDisplay$ | async"
-      class="mxp-stat-pill"
-      [title]="s.caption + ' ' + s.value + (s.max ? ' / ' + s.max : '')"
-    >
-      <span class="mxp-stat-caption">{{ s.caption }}</span>
-      <span class="mxp-stat-value">{{ s.value }}</span>
-      <span class="mxp-stat-max" *ngIf="s.max">/{{ s.max }}</span>
+  @if ((mxpDisplay$ | async)?.length) {
+    <span class="mxp-stats">
+      @for (s of mxpDisplay$ | async; track s) {
+        <span
+          class="mxp-stat-pill"
+          [title]="s.caption + ' ' + s.value + (s.max ? ' / ' + s.max : '')"
+        >
+          <span class="mxp-stat-caption">{{ s.caption }}</span>
+          <span class="mxp-stat-value">{{ s.value }}</span>
+          @if (s.max) {
+            <span class="mxp-stat-max">/{{ s.max }}</span>
+          }
+        </span>
+      }
     </span>
-  </span>
+  }
 </div>
 
 <div class="spacer"></div>
@@ -49,66 +55,80 @@
     <span class="trigger-text" role="heading" aria-level="2">Menü</span>
   </button>
 
-  <div class="menu-dropdown" *ngIf="menuOpen()" role="menu">
-    <ng-container *ngIf="(menuItems$ | async)?.length; else emptyMenu">
-      <ng-container *ngFor="let item of menuItems$ | async">
-        <!-- Item with submenu: clicking toggles the flyout instead of an action -->
-        <div *ngIf="item.children?.length; else leaf" class="menu-item-wrapper">
-          <button
-            type="button"
-            class="menu-item has-children"
-            role="menuitem"
-            aria-haspopup="true"
-            [attr.aria-expanded]="openSubmenuId() === item.id"
-            [attr.aria-label]="item.label"
-            [disabled]="item.disabled"
-            (click)="toggleSubmenu($event, item.id)"
-          >
-            <span class="check" aria-hidden="true">{{ item.checked ? '✓' : '' }}</span>
-            <span class="icon" aria-hidden="true" *ngIf="item.icon">{{ item.icon }}</span>
-            <span class="label">{{ item.label }}</span>
-            <span class="submenu-arrow" aria-hidden="true">▶</span>
-          </button>
-          <div
-            class="submenu"
-            *ngIf="openSubmenuId() === item.id"
-            role="menu"
-          >
+  @if (menuOpen()) {
+    <div class="menu-dropdown" role="menu">
+      @if ((menuItems$ | async)?.length) {
+        @for (item of menuItems$ | async; track item) {
+          <!-- Item with submenu: clicking toggles the flyout instead of an action -->
+          @if (item.children?.length) {
+            <div class="menu-item-wrapper">
+              <button
+                type="button"
+                class="menu-item has-children"
+                role="menuitem"
+                aria-haspopup="true"
+                [attr.aria-expanded]="openSubmenuId() === item.id"
+                [attr.aria-label]="item.label"
+                [disabled]="item.disabled"
+                (click)="toggleSubmenu($event, item.id)"
+              >
+                <span class="check" aria-hidden="true">{{
+                  item.checked ? "✓" : ""
+                }}</span>
+                @if (item.icon) {
+                  <span class="icon" aria-hidden="true">{{ item.icon }}</span>
+                }
+                <span class="label">{{ item.label }}</span>
+                <span class="submenu-arrow" aria-hidden="true">▶</span>
+              </button>
+              @if (openSubmenuId() === item.id) {
+                <div class="submenu" role="menu">
+                  @for (child of item.children; track child) {
+                    <button
+                      type="button"
+                      class="menu-item"
+                      role="menuitem"
+                      [attr.aria-label]="child.label"
+                      [disabled]="child.disabled"
+                      (click)="onMenuItemClick(child.action)"
+                    >
+                      <span class="check" aria-hidden="true">{{
+                        child.checked ? "✓" : ""
+                      }}</span>
+                      @if (child.icon) {
+                        <span class="icon" aria-hidden="true">{{
+                          child.icon
+                        }}</span>
+                      }
+                      <span class="label">{{ child.label }}</span>
+                    </button>
+                  }
+                </div>
+              }
+            </div>
+          } @else {
             <button
-              *ngFor="let child of item.children"
               type="button"
               class="menu-item"
               role="menuitem"
-              [attr.aria-label]="child.label"
-              [disabled]="child.disabled"
-              (click)="onMenuItemClick(child.action)"
+              [attr.aria-label]="item.label"
+              [disabled]="item.disabled"
+              (click)="onMenuItemClick(item.action)"
             >
-              <span class="check" aria-hidden="true">{{ child.checked ? '✓' : '' }}</span>
-              <span class="icon" aria-hidden="true" *ngIf="child.icon">{{ child.icon }}</span>
-              <span class="label">{{ child.label }}</span>
+              <span class="check" aria-hidden="true">{{
+                item.checked ? "✓" : ""
+              }}</span>
+              @if (item.icon) {
+                <span class="icon" aria-hidden="true">{{ item.icon }}</span>
+              }
+              <span class="label">{{ item.label }}</span>
             </button>
-          </div>
-        </div>
-
-        <!-- Leaf item -->
-        <ng-template #leaf>
-          <button
-            type="button"
-            class="menu-item"
-            role="menuitem"
-            [attr.aria-label]="item.label"
-            [disabled]="item.disabled"
-            (click)="onMenuItemClick(item.action)"
-          >
-            <span class="check" aria-hidden="true">{{ item.checked ? '✓' : '' }}</span>
-            <span class="icon" aria-hidden="true" *ngIf="item.icon">{{ item.icon }}</span>
-            <span class="label">{{ item.label }}</span>
-          </button>
-        </ng-template>
-      </ng-container>
-    </ng-container>
-    <ng-template #emptyMenu>
-      <div class="menu-empty">no entries</div>
-    </ng-template>
-  </div>
+          }
+          <!-- Leaf item -->
+        }
+      } @else {
+        <div class="menu-empty">no entries</div>
+      }
+    </div>
+  }
 </div>

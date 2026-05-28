@@ -1,6 +1,6 @@
 <div class="editor-toolbar" role="toolbar" aria-label="Editor-Aktionen">
   <span class="editor-path" [title]="fileinfo?.file ?? ''">
-    {{ fileinfo?.filename ?? '' }}
+    {{ fileinfo?.filename ?? "" }}
   </span>
 
   <span class="editor-flex-spacer"></span>
@@ -30,40 +30,43 @@
 
 <div class="editor-host" #host aria-label="Editor-Bereich">
   <!--
-    Drag-handles for the touch-friendly range-selection mode. Positioned
-    absolutely above the Monaco canvas. Visible while selection mode is
-    active; pixel coordinates come from `editor.getScrolledVisiblePosition`
-    via the `startMarkerPos` / `endMarkerPos` computed signals which
-    re-evaluate on Monaco's scroll/layout events.
+  Drag-handles for the touch-friendly range-selection mode. Positioned
+  absolutely above the Monaco canvas. Visible while selection mode is
+  active; pixel coordinates come from `editor.getScrolledVisiblePosition`
+  via the `startMarkerPos` / `endMarkerPos` computed signals which
+  re-evaluate on Monaco's scroll/layout events.
   -->
-  <ng-container *ngIf="selectionMode.isActive()">
-    <button
-      *ngIf="startMarkerPos() as p"
-      type="button"
-      class="selection-marker selection-marker-start"
-      [style.left.px]="p.x"
-      [style.top.px]="p.y"
-      (pointerdown)="onMarkerPointerDown($event, 'start')"
-      aria-label="Markierungs-Start verschieben"
-    ></button>
-    <button
-      *ngIf="endMarkerPos() as p"
-      type="button"
-      class="selection-marker selection-marker-end"
-      [style.left.px]="p.x"
-      [style.top.px]="p.y"
-      (pointerdown)="onMarkerPointerDown($event, 'end')"
-      aria-label="Markierungs-Ende verschieben"
-    ></button>
-  </ng-container>
+  @if (selectionMode.isActive()) {
+    @if (startMarkerPos(); as p) {
+      <button
+        type="button"
+        class="selection-marker selection-marker-start"
+        [style.left.px]="p.x"
+        [style.top.px]="p.y"
+        (pointerdown)="onMarkerPointerDown($event, 'start')"
+        aria-label="Markierungs-Start verschieben"
+      ></button>
+    }
+    @if (endMarkerPos(); as p) {
+      <button
+        type="button"
+        class="selection-marker selection-marker-end"
+        [style.left.px]="p.x"
+        [style.top.px]="p.y"
+        (pointerdown)="onMarkerPointerDown($event, 'end')"
+        aria-label="Markierungs-Ende verschieben"
+      ></button>
+    }
+  }
 </div>
 
-<div
-  class="editor-status"
-  role="status"
-  aria-live="polite"
-  *ngIf="statusMessage || errorMessage"
->
-  <span *ngIf="errorMessage" class="editor-error">{{ errorMessage }}</span>
-  <span *ngIf="!errorMessage && statusMessage">{{ statusMessage }}</span>
-</div>
+@if (statusMessage || errorMessage) {
+  <div class="editor-status" role="status" aria-live="polite">
+    @if (errorMessage) {
+      <span class="editor-error">{{ errorMessage }}</span>
+    }
+    @if (!errorMessage && statusMessage) {
+      <span>{{ statusMessage }}</span>
+    }
+  </div>
+}

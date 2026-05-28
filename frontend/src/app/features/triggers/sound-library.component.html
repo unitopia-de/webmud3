@@ -20,85 +20,97 @@
     </button>
   </header>
 
-  <section *ngIf="tab() === 'builtin'" class="sl-panel">
-    <ul class="sl-list" *ngIf="builtinSounds().length > 0; else noBuiltin">
-      <li *ngFor="let s of builtinSounds()" class="sl-row">
-        <button
-          type="button"
-          class="sl-btn small"
-          (click)="playBuiltin(s.id)"
-          title="Abspielen"
-        >
-          ▶
-        </button>
-        <span class="sl-name">{{ s.label }}</span>
-        <code class="sl-id">builtin:{{ s.id }}</code>
-      </li>
-    </ul>
-    <ng-template #noBuiltin>
-      <p class="sl-empty">Keine allgemeinen Sounds gefunden.</p>
-    </ng-template>
-  </section>
+  @if (tab() === "builtin") {
+    <section class="sl-panel">
+      @if (builtinSounds().length > 0) {
+        <ul class="sl-list">
+          @for (s of builtinSounds(); track s) {
+            <li class="sl-row">
+              <button
+                type="button"
+                class="sl-btn small"
+                (click)="playBuiltin(s.id)"
+                title="Abspielen"
+              >
+                ▶
+              </button>
+              <span class="sl-name">{{ s.label }}</span>
+              <code class="sl-id">builtin:{{ s.id }}</code>
+            </li>
+          }
+        </ul>
+      } @else {
+        <p class="sl-empty">Keine allgemeinen Sounds gefunden.</p>
+      }
+    </section>
+  }
 
-  <section *ngIf="tab() === 'personal'" class="sl-panel">
-    <ul class="sl-list" *ngIf="personalSounds().length > 0; else noPersonal">
-      <li *ngFor="let s of personalSounds()" class="sl-row">
-        <button
-          type="button"
-          class="sl-btn small"
-          (click)="playPersonal(s.id)"
-          title="Abspielen"
-        >
-          ▶
+  @if (tab() === "personal") {
+    <section class="sl-panel">
+      @if (personalSounds().length > 0) {
+        <ul class="sl-list">
+          @for (s of personalSounds(); track s) {
+            <li class="sl-row">
+              <button
+                type="button"
+                class="sl-btn small"
+                (click)="playPersonal(s.id)"
+                title="Abspielen"
+              >
+                ▶
+              </button>
+              <span class="sl-name">{{ s.label }}</span>
+              <code class="sl-id">personal:{{ s.id }}</code>
+              <span class="sl-meta">{{ formatBytes(s.sizeBytes) }}</span>
+              <button
+                type="button"
+                class="sl-btn small"
+                (click)="renamePersonal(s)"
+                title="Umbenennen"
+              >
+                ✎
+              </button>
+              <button
+                type="button"
+                class="sl-btn small danger"
+                (click)="deletePersonal(s)"
+                title="Löschen"
+              >
+                ✕
+              </button>
+            </li>
+          }
+        </ul>
+      } @else {
+        <p class="sl-empty">Noch keine persönlichen Sounds importiert.</p>
+      }
+      <footer class="sl-footer">
+        <div class="sl-quota">
+          Verbrauch:
+          <strong>{{ formatBytes(personalBytes()) }}</strong>
+          von
+          <strong>{{ formatBytes(maxPersonalBytes) }}</strong>
+        </div>
+        <div class="sl-hint">
+          Max. {{ maxPerSoundLabel }} pro Datei. Erlaubte Formate: OGG, MP3,
+          WAV.
+        </div>
+        <button type="button" class="sl-btn primary" (click)="openFilePicker()">
+          + Sound importieren
         </button>
-        <span class="sl-name">{{ s.label }}</span>
-        <code class="sl-id">personal:{{ s.id }}</code>
-        <span class="sl-meta">{{ formatBytes(s.sizeBytes) }}</span>
-        <button
-          type="button"
-          class="sl-btn small"
-          (click)="renamePersonal(s)"
-          title="Umbenennen"
-        >
-          ✎
-        </button>
-        <button
-          type="button"
-          class="sl-btn small danger"
-          (click)="deletePersonal(s)"
-          title="Löschen"
-        >
-          ✕
-        </button>
-      </li>
-    </ul>
-    <ng-template #noPersonal>
-      <p class="sl-empty">Noch keine persönlichen Sounds importiert.</p>
-    </ng-template>
-
-    <footer class="sl-footer">
-      <div class="sl-quota">
-        Verbrauch:
-        <strong>{{ formatBytes(personalBytes()) }}</strong>
-        von
-        <strong>{{ formatBytes(maxPersonalBytes) }}</strong>
-      </div>
-      <div class="sl-hint">
-        Max. {{ maxPerSoundLabel }} pro Datei. Erlaubte Formate: OGG, MP3, WAV.
-      </div>
-      <button type="button" class="sl-btn primary" (click)="openFilePicker()">
-        + Sound importieren
-      </button>
-      <input
-        #fileInput
-        type="file"
-        [accept]="acceptAttr"
-        class="sl-file-input"
-        (change)="onFileChosen($event)"
-      />
-      <div *ngIf="importError() !== ''" class="sl-error">
-        {{ importError() }}
-      </div>
-    </footer>
-  </section>
+        <input
+          #fileInput
+          type="file"
+          [accept]="acceptAttr"
+          class="sl-file-input"
+          (change)="onFileChosen($event)"
+        />
+        @if (importError() !== "") {
+          <div class="sl-error">
+            {{ importError() }}
+          </div>
+        }
+      </footer>
+    </section>
+  }
 </div>
