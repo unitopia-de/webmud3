@@ -1,4 +1,4 @@
-@for (cfg of windows$ | async; track trackByWindowId($index, cfg)) {
+@for (cfg of windows$ | async; track cfg.windowId) {
   <app-window [config]="cfg">
     @if (componentFor(cfg); as cmp) {
       <ng-container

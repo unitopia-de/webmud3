@@ -1,8 +1,8 @@
 @if (viewModel$ | async; as vm) {
   <div class="pmap-grid" [class.pmap-empty]="vm.empty">
-    @for (row of vm.rows; track trackRow($index, row)) {
+    @for (row of vm.rows; track $index) {
       <div class="pmap-row">
-        @for (cell of row; track trackCell($index, cell)) {
+        @for (cell of row; track $index) {
           <span class="pmap-cell" [class.pmap-player]="cell.isPlayer">{{
             cell.ch
           }}</span>

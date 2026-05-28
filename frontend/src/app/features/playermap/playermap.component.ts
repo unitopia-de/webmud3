@@ -55,15 +55,6 @@ export class PlayermapComponent {
     map((state) => this.buildView(state)),
   );
 
-  /** Track-by helpers keep the DOM stable when only a few characters change. */
-  public trackRow(index: number): number {
-    return index;
-  }
-
-  public trackCell(index: number): number {
-    return index;
-  }
-
   private buildView(state: PlayermapState): ViewModel {
     const fill = state.fill && state.fill.length > 0 ? state.fill[0] : ' ';
 

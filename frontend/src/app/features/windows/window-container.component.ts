@@ -33,10 +33,6 @@ export class WindowContainerComponent {
 
   public readonly windows$ = this.windowService.windows$;
 
-  public trackByWindowId(_index: number, cfg: WindowConfig): string {
-    return cfg.windowId;
-  }
-
   public componentFor(cfg: WindowConfig): Type<unknown> | null {
     return WINDOW_COMPONENTS[cfg.component] ?? null;
   }
