@@ -11,6 +11,7 @@ import { Router } from '@angular/router';
 import { Subscription } from 'rxjs';
 
 import { MudService } from '@webmud3/frontend/core/mud/services/mud.service';
+import { OutputHistoryService } from '@webmud3/frontend/shared/services/output-history.service';
 import { ConnectionMenuService } from '@webmud3/frontend/features/connection/connection-menu.service';
 import { WakeLockService } from '@webmud3/frontend/features/connection/wake-lock.service';
 import { DirlistWindowService } from '@webmud3/frontend/features/editor/dirlist-window.service';
@@ -78,6 +79,7 @@ import { WindowService } from '@webmud3/frontend/features/windows/window.service
 })
 export class EzShellComponent implements OnInit, AfterViewInit, OnDestroy {
   private readonly mudService = inject(MudService);
+  private readonly outputHistory = inject(OutputHistoryService);
   private readonly footerMenu = inject(FooterMenuService);
   private readonly windowService = inject(WindowService);
   private readonly soundService = inject(SoundService);
@@ -157,14 +159,27 @@ export class EzShellComponent implements OnInit, AfterViewInit, OnDestroy {
   protected onCommit(submission: EzInputSubmission): void {
     switch (submission.mode) {
       case 'password':
+        // SecureString path: never echo, never log, never persist.
+        // Passwords have no business in the localStorage backlog.
         this.mudService.sendMessage({ value: submission.value });
         return;
+
       case 'default':
         this.mudService.sendMessage(submission.value);
         this.ezOutput.writeLocalEcho(submission.value);
+        // Persist the input so the backlog re-injection on the next route
+        // switch shows the same line the user actually typed. Stored as
+        // `value\r\n` (without a prompt prefix; EZ has no prompt-manager).
+        this.outputHistory.appendInputLine(`${submission.value}\r\n`);
         return;
+
       case 'editor':
+        // Server echoes the line itself in editor mode, so no local echo.
+        // We still persist the input line so the backlog matches what
+        // the user typed even when the server's echo arrives in a
+        // separate chunk during a later session.
         this.mudService.sendMessage(submission.value);
+        this.outputHistory.appendInputLine(`${submission.value}\r\n`);
         return;
     }
   }

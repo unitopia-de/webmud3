@@ -14,6 +14,7 @@ import { pairwise } from 'rxjs/operators';
 
 import { MudService } from '@webmud3/frontend/core/mud/services/mud.service';
 import { DebugSettingsService } from '@webmud3/frontend/features/debug/debug-settings.service';
+import { OutputHistoryService } from '@webmud3/frontend/shared/services/output-history.service';
 import {
   ClickAction,
   MudScreenReaderAnnouncer,
@@ -73,6 +74,7 @@ export class EzOutputComponent implements AfterViewInit, OnDestroy {
   private readonly mudService = inject(MudService);
   private readonly terminalThemes = inject(TerminalThemeService);
   private readonly debugSettings = inject(DebugSettingsService);
+  private readonly outputHistory = inject(OutputHistoryService);
   private readonly mxpRouter = inject(MxpTagRouter);
   private readonly mxpClickables = inject(MxpClickableService);
   private readonly mxpElements = inject(MxpElementService);
@@ -224,6 +226,14 @@ export class EzOutputComponent implements AfterViewInit, OnDestroy {
       }
     };
     window.addEventListener('resize', this.resizeListener);
+
+    // Re-inject any persisted backlog (e.g. the user navigated here from
+    // `/` after a long Classic session). Must run AFTER subscribing to
+    // mudOutput$ so that any chunk that arrives while we're walking the
+    // localStorage entries still lands in the terminal — but BEFORE the
+    // user can type, so the prompt the MUD sends after the existing
+    // backlog appears on a fresh line.
+    this.loadHistoryIfAvailable();
   }
 
   ngOnDestroy(): void {
@@ -253,6 +263,49 @@ export class EzOutputComponent implements AfterViewInit, OnDestroy {
     if (!this.terminal) return;
     this.terminal.write(`${line}\r\n`);
     this.screenReader?.appendToHistory(`${line}\n`);
+  }
+
+  /**
+   * Re-injects the persisted MUD-output backlog into a freshly mounted
+   * EZ terminal. Used when the user navigated here from `/` and the
+   * Classic shell tore down its terminal — the SocketsService persists
+   * every chunk into `OutputHistoryService` regardless of which shell
+   * is active, so we always have something to restore.
+   *
+   * Important details (kept in sync with
+   * `MudClientComponent.loadHistoryIfAvailable`):
+   *
+   *  - Uses a **fresh** `MxpStreamFilter` with NO tag callback so MXP
+   *    tag side-effects (entity / stat / element registration, click
+   *    region IDs) don't fire a second time. The live filter already
+   *    populated those singletons during the original session.
+   *  - Writes only via `terminal.write` — no `screenReader.announce`,
+   *    no `appendToHistory`. The restored content is visible in xterm
+   *    but is NOT replayed audibly: AT users would otherwise be flooded
+   *    with hours of old output every time they switch shells.
+   *  - Clickable segments are written as plain text (no OSC 8 wrapping).
+   *    Scrollback exits should not be clickable: a click on a stale
+   *    exit in the old buffer could move the player out of the current
+   *    room.
+   */
+  private loadHistoryIfAvailable(): void {
+    const entries = this.outputHistory.loadEntries();
+    if (entries.length === 0) {
+      return;
+    }
+
+    const restoreFilter = new MxpStreamFilter();
+
+    for (const entry of entries) {
+      if (entry.type === 'input') {
+        this.terminal.write(entry.data);
+        continue;
+      }
+      const segments = restoreFilter.processToSegments(entry.data);
+      for (const seg of segments) {
+        this.terminal.write(seg.content);
+      }
+    }
   }
 
   /**

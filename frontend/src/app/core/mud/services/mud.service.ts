@@ -54,6 +54,20 @@ export class MudService {
 
   public connect(initialViewPort: { columns: number; rows: number }) {
     this.lastViewport = initialViewPort;
+
+    // Idempotenter Connect: wenn schon eine Telnet-Session steht, NICHT
+    // eine zweite Sitzung daneben aufmachen — nur die Viewport-Größe
+    // updaten. Wichtig fürs Routen-Switching `/` ↔ `/ez`, wo beide
+    // Shells im ngAfterViewInit `connect` aufrufen und die jeweils zweite
+    // Shell sonst eine Parallel-Verbindung starten würde.
+    if (this.sockets.isConnectedToMud) {
+      this.sockets.updateViewportSize(
+        initialViewPort.columns,
+        initialViewPort.rows,
+      );
+      return;
+    }
+
     this.sockets.connectToMud(initialViewPort);
   }
 
