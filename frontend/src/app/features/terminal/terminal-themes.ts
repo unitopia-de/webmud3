@@ -17,6 +17,7 @@ export type TerminalThemeId =
   | 'servergenau'
   | 'standard'
   | 'dunkel'
+  | 'dunkelschwarz'
   | 'hell'
   | 'highcontrast';
 
@@ -86,6 +87,25 @@ const DUNKEL: TerminalThemeDefinition = {
   },
   minimumContrastRatio: 4.5,
   hint: 'Dunkles Theme (VS Code Dark+)',
+};
+
+/**
+ * Hybrid aus "Dunkel" und "Standard": dieselbe augenschonende Grau/Weiß-
+ * Palette wie "Dunkel" (foreground #d4d4d4 statt hartem Reinweiß), aber auf
+ * echtem schwarzem Hintergrund (#000000) wie der xterm-/Server-Default —
+ * statt des leicht aufgehellten #1e1e1e von "Dunkel". Für Nutzer, die das
+ * weiche Weiß mögen, aber den tiefschwarzen Hintergrund bevorzugen.
+ */
+const DUNKEL_SCHWARZ: TerminalThemeDefinition = {
+  id: 'dunkelschwarz',
+  label: 'Farben: Dunkel auf Schwarz',
+  theme: {
+    ...DUNKEL.theme,
+    background: '#000000',
+    cursorAccent: '#000000',
+  },
+  minimumContrastRatio: 4.5,
+  hint: 'Weiches Grau/Weiß auf schwarzem Hintergrund',
 };
 
 /**
@@ -162,6 +182,7 @@ export const TERMINAL_THEMES: Record<TerminalThemeId, TerminalThemeDefinition> =
     servergenau: SERVERGENAU,
     standard: STANDARD,
     dunkel: DUNKEL,
+    dunkelschwarz: DUNKEL_SCHWARZ,
     hell: HELL,
     highcontrast: HIGHCONTRAST,
   };
@@ -170,6 +191,7 @@ export const TERMINAL_THEME_ORDER: TerminalThemeId[] = [
   'servergenau',
   'standard',
   'dunkel',
+  'dunkelschwarz',
   'hell',
   'highcontrast',
 ];
