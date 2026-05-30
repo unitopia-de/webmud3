@@ -10,6 +10,7 @@ import {
 import { FitAddon } from '@xterm/addon-fit';
 import { Terminal } from '@xterm/xterm';
 import { Subscription } from 'rxjs';
+import { pairwise } from 'rxjs/operators';
 
 import { MudService } from '@webmud3/frontend/core/mud/services/mud.service';
 import { DebugSettingsService } from '@webmud3/frontend/features/debug/debug-settings.service';
@@ -175,6 +176,21 @@ export class EzOutputComponent implements AfterViewInit, OnDestroy {
       }),
     );
 
+    // Visible + audible notice on real disconnects only (true → false).
+    // pairwise() suppresses the initial `false` emission from the
+    // BehaviorSubject before the first connection has been established.
+    // Without this an EZ shell opened before the socket connected would
+    // immediately announce "Verbindung getrennt", which is wrong.
+    this.subscriptions.add(
+      this.mudService.connectedToMud$
+        .pipe(pairwise())
+        .subscribe(([prev, next]) => {
+          if (prev && !next) {
+            this.writeLocalNotice('[Verbindung getrennt]');
+          }
+        }),
+    );
+
     // Track the linemode edit-bit so `sendClickCommand` can decide whether
     // it has to ship its own `\r` (server in char-mode swallows the auto-
     // Enter that the backend normally appends).
@@ -237,6 +253,22 @@ export class EzOutputComponent implements AfterViewInit, OnDestroy {
     if (!this.terminal) return;
     this.terminal.write(`${line}\r\n`);
     this.screenReader?.appendToHistory(`${line}\n`);
+  }
+
+  /**
+   * Writes a local notice (e.g. "[Verbindung getrennt]") in bold cyan into
+   * the terminal AND announces it through the screen reader / history.
+   * No prompt-manager wrap is needed here — EZ has no local xterm prompt
+   * to splice around the notice.
+   */
+  private writeLocalNotice(text: string): void {
+    if (!this.terminal) return;
+    // ESC[1;36m = bold cyan, ESC[0m = reset. Same colour MudClient uses
+    // so users get the same visual cue regardless of which shell they're
+    // looking at.
+    this.terminal.write(`\x1b[1;36m${text}\x1b[0m\r\n`);
+    this.screenReader?.announce(text);
+    this.screenReader?.appendToHistory(text);
   }
 
   /**
