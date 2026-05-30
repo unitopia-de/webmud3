@@ -413,10 +413,13 @@ export class EzOutputComponent implements AfterViewInit, OnDestroy {
     );
 
     const url = `mxp:click/${id}`;
-    // OSC 8 hyperlinks: open + content (with ANSI underline) + close.
-    // ST = `ESC \` (string terminator).
+    // OSC 8 hyperlinks: open + content + close. ST = `ESC \` (string
+    // terminator). The content is rendered in bright blue (`94`) with an
+    // underline (`4`) so clickable exits / room objects stand out from
+    // plain output — `24;39` then turns the underline off and resets the
+    // foreground to the theme default so following text is unaffected.
     this.terminal.write(
-      `\x1b]8;;${url}\x1b\\\x1b[4m${seg.content}\x1b[24m\x1b]8;;\x1b\\`,
+      `\x1b]8;;${url}\x1b\\\x1b[94;4m${seg.content}\x1b[24;39m\x1b]8;;\x1b\\`,
     );
   }
 

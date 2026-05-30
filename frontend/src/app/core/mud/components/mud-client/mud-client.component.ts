@@ -1109,11 +1109,15 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
     );
 
     const url = `mxp:click/${id}`;
-    // OSC 8 hyperlinks: open + content (with ANSI underline) + close.
-    // ST = `ESC \` (string terminator). xterm.js parses both BEL and ST,
-    // we use ST because it's the form the OSC 8 spec recommends.
+    // OSC 8 hyperlinks: open + content + close. ST = `ESC \` (string
+    // terminator); xterm.js parses both BEL and ST, we use ST because
+    // it's the form the OSC 8 spec recommends. The content is rendered
+    // in bright blue (`94`) with an underline (`4`) so clickable exits /
+    // room objects stand out from plain output — `24;39` then turns the
+    // underline off and resets the foreground to the theme default so
+    // following text is unaffected.
     this.terminal.write(
-      `\x1b]8;;${url}\x1b\\\x1b[4m${seg.content}\x1b[24m\x1b]8;;\x1b\\`,
+      `\x1b]8;;${url}\x1b\\\x1b[94;4m${seg.content}\x1b[24;39m\x1b]8;;\x1b\\`,
     );
   }
 
