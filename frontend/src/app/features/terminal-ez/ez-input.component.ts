@@ -17,21 +17,27 @@ import { Subscription } from 'rxjs';
 
 import { MudService } from '@webmud3/frontend/core/mud/services/mud.service';
 
+export type EzInputMode = 'default' | 'password' | 'editor';
+
 /**
  * What gets emitted when the user submits a line.
  *
- * `isPassword` is the only signal the wiring layer needs to decide
- * between `mudService.sendMessage(string)` and the SecureString variant.
- * We keep the discriminator on the submission itself rather than splitting
- * into two events because the consuming shell tracks one `(commit)`
- * handler and branches once — fewer wires, harder to miswire.
+ * `mode` is what the wiring layer needs to branch on:
+ *  - 'password' → must go out as a SecureString so the value never
+ *                 ends up in logs, and **must not** be locally echoed.
+ *  - 'default'  → plain `sendMessage(string)`, **with** local echo so
+ *                 the user sees what they sent.
+ *  - 'editor'   → plain `sendMessage(string)`, **without** local echo
+ *                 because the MUD echoes each line itself in this mode.
+ *
+ * We keep the discriminator on the submission itself rather than
+ * splitting into multiple events because the consuming shell tracks one
+ * `(commit)` handler and branches once — fewer wires, harder to miswire.
  */
 export interface EzInputSubmission {
   value: string;
-  isPassword: boolean;
+  mode: EzInputMode;
 }
-
-type EzInputMode = 'default' | 'password' | 'editor';
 
 const HISTORY_LIMIT = 100;
 
@@ -183,7 +189,7 @@ export class EzInputComponent implements OnInit, AfterViewInit, OnDestroy {
     const lines = raw.split(/\r?\n/).filter((line) => line.length > 0);
 
     for (const line of lines) {
-      this.commit.emit({ value: line, isPassword: false });
+      this.commit.emit({ value: line, mode: 'default' });
       this.pushHistory(line);
     }
 
@@ -221,7 +227,7 @@ export class EzInputComponent implements OnInit, AfterViewInit, OnDestroy {
     const value = field.value;
     // Submit even an empty value — the user might be acknowledging an empty
     // password prompt. Lower-level layers can decide whether to reject it.
-    this.commit.emit({ value, isPassword: true });
+    this.commit.emit({ value, mode: 'password' });
 
     field.value = '';
     this.focusActiveField();
@@ -260,7 +266,7 @@ export class EzInputComponent implements OnInit, AfterViewInit, OnDestroy {
     const lines = raw.split(/\r?\n/);
 
     for (const line of lines) {
-      this.commit.emit({ value: line, isPassword: false });
+      this.commit.emit({ value: line, mode: 'editor' });
     }
 
     field.value = '';

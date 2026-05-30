@@ -14,6 +14,16 @@ export class MudService {
   /** Observable, das den Verbindungsstatus zum MUD anzeigt */
   public readonly connectedToMud$ = this.sockets.connectedToMud$;
 
+  /**
+   * Synchroner Snapshot des aktuellen Verbindungsstatus. Eine Shell, die
+   * beim Mount entscheiden muss, ob sie `connect()` aufruft, kann das
+   * nicht über `connectedToMud$` tun — eine kurze Subscribe-Schleife
+   * würde ein Race-Window öffnen, in dem zwei Connects parallel feuern.
+   */
+  public get isConnected(): boolean {
+    return this.sockets.isConnectedToMud;
+  }
+
   /** Zeigt an, ob der Echo-Modus aktiviert ist */
   public readonly showEcho$ = this.sockets.onSetEchoMode.asObservable();
 

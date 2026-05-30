@@ -123,4 +123,34 @@ export class EzOutputComponent implements AfterViewInit, OnDestroy {
     this.screenReader?.dispose();
     this.terminal?.dispose();
   }
+
+  /**
+   * Writes a locally-echoed user line into the terminal so the user sees
+   * what they just sent. Mirrors `MudClientComponent.onMobileInputCommit`:
+   * append CRLF so the next server output starts on a fresh line, and feed
+   * the line into the screen-reader history so AT keeps the verbatim
+   * transcript.
+   *
+   * The shell calls this only for `mode === 'default'` submissions —
+   * passwords and editor lines are not echoed (passwords for obvious
+   * reasons; editor lines because the server echoes them itself).
+   */
+  public writeLocalEcho(line: string): void {
+    if (!this.terminal) return;
+    this.terminal.write(`${line}\r\n`);
+    this.screenReader?.appendToHistory(`${line}\n`);
+  }
+
+  /**
+   * Current terminal viewport size in cells. The shell uses this to
+   * report initial dimensions to the MUD via `mudService.connect`, so the
+   * MUD wraps lines for the actual visible width instead of falling back
+   * to the 80×24 default.
+   */
+  public getDimensions(): { columns: number; rows: number } {
+    if (!this.terminal) {
+      return { columns: 80, rows: 24 };
+    }
+    return { columns: this.terminal.cols, rows: this.terminal.rows };
+  }
 }

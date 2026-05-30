@@ -57,6 +57,16 @@ export class SocketsService {
   public readonly connectedToServer$ = this.connectedToServer.asObservable();
   public readonly connectedToMud$ = this.connectedToMud.asObservable();
 
+  /**
+   * Synchronous snapshot of the current MUD-connection state.
+   * Needed by callers that have to decide at mount-time whether to
+   * initiate a new telnet session — subscribing for one tick would
+   * introduce a race window during which a duplicate connect could fire.
+   */
+  public get isConnectedToMud(): boolean {
+    return this.connectedToMud.value;
+  }
+
   public constructor(serverConfigService: ServerConfigService) {
     const socketUrl = serverConfigService.getBackendUrl();
     const socketNamespace = serverConfigService.getSocketNamespace();

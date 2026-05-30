@@ -1,17 +1,28 @@
-import { ChangeDetectionStrategy, Component } from '@angular/core';
+import {
+  AfterViewInit,
+  ChangeDetectionStrategy,
+  Component,
+  ViewChild,
+  inject,
+} from '@angular/core';
 import { RouterLink } from '@angular/router';
 
+import { MudService } from '@webmud3/frontend/core/mud/services/mud.service';
 import { EzInputComponent, EzInputSubmission } from '@webmud3/frontend/features/terminal-ez/ez-input.component';
 import { EzOutputComponent } from '@webmud3/frontend/features/terminal-ez/ez-output.component';
 
 /**
  * Splitscreen-Variante des MUD-Clients unter `/ez`.
  *
- * Phase 3: Output-Bereich + native Eingabezeile (Default/Passwort/Editor).
- * Das Wiring an `MudService.sendMessage` kommt in Phase 4 — bis dahin
- * wird der commit nur ins Debug-Log geschrieben, damit man sehen kann,
- * dass die Eingabe-Pipeline feuert. **Passwort-Werte werden bewusst NICHT
- * geloggt**, nur die Tatsache, dass ein Passwort gesendet wurde.
+ * Phase 4: Output-Bereich + native Eingabezeile + echtes Wiring an
+ * `MudService.sendMessage`. Lokales Echo nur im Default-Modus.
+ *
+ * Connection-Lifecycle:
+ *  - Beim Mount: nur connecten, wenn `mudService` noch keine
+ *    aktive Telnet-Session hält (Singleton überlebt Routenwechsel).
+ *  - Beim Destroy: **kein** `disconnect()` — der Wechsel zurück nach `/`
+ *    soll die Session behalten. Expliziter Disconnect bleibt dem User
+ *    über das Footer-Menü vorbehalten (Phase 5/8).
  *
  * Diese Datei darf nichts vom bestehenden xterm-Eingabe-Pfad
  * (`MudInputController`, Helper-Textarea, `MobileInputComponent`)
@@ -25,17 +36,43 @@ import { EzOutputComponent } from '@webmud3/frontend/features/terminal-ez/ez-out
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class EzShellComponent {
-  protected onCommit(submission: EzInputSubmission): void {
-    if (submission.isPassword) {
-      // Never log the password itself — only that one was submitted.
-      // Phase 4 will hand this off to `mudService.sendMessage` as a
-      // SecureString.
-      // eslint-disable-next-line no-console
-      console.debug('[EZ] password submission (value redacted)');
-      return;
+export class EzShellComponent implements AfterViewInit {
+  private readonly mudService = inject(MudService);
+
+  @ViewChild(EzOutputComponent, { static: true })
+  private readonly ezOutput!: EzOutputComponent;
+
+  ngAfterViewInit(): void {
+    // Idempotent connect — if the user opened `/ez` directly (no Classic
+    // shell ever mounted) we have to open the telnet session ourselves.
+    // If a session is already running (e.g. user navigated from `/`), the
+    // singleton stays as-is and we simply piggy-back on it.
+    if (!this.mudService.isConnected) {
+      const { columns, rows } = this.ezOutput.getDimensions();
+      this.mudService.connect({ columns, rows });
     }
-    // eslint-disable-next-line no-console
-    console.debug('[EZ] command submission:', submission.value);
+  }
+
+  protected onCommit(submission: EzInputSubmission): void {
+    switch (submission.mode) {
+      case 'password':
+        // SecureString path: `sendMessage` does not log the value, and we
+        // never echo passwords locally.
+        this.mudService.sendMessage({ value: submission.value });
+        return;
+
+      case 'default':
+        this.mudService.sendMessage(submission.value);
+        // Local echo so the user sees what they sent — server in this mode
+        // does not echo back (showEcho=true means "client echoes locally").
+        this.ezOutput.writeLocalEcho(submission.value);
+        return;
+
+      case 'editor':
+        // Server echoes every line itself when LINEMODE-edit is off, so
+        // we deliberately skip the local echo to avoid duplication.
+        this.mudService.sendMessage(submission.value);
+        return;
+    }
   }
 }
