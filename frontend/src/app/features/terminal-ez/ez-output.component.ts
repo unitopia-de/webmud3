@@ -226,6 +226,13 @@ export class EzOutputComponent implements AfterViewInit, OnDestroy {
       this.liveRegionRef.nativeElement,
       this.historyRegionRef.nativeElement,
       () => this.debugSettings.screenReaderLogging,
+      // No separate input region in EZ — the native <textarea>/<input> is
+      // read by the OS screen reader directly.
+      undefined,
+      // iOS VoiceOver-friendly: replace textContent instead of appending,
+      // so the pre-login banner (the first announcement after mount) is
+      // actually spoken. Classic stays on 'append' for NVDA/JAWS.
+      'replace',
     );
 
     // Live theme updates: the initial theme above is only a snapshot. When
