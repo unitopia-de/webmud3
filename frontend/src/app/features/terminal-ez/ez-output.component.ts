@@ -100,6 +100,9 @@ export class EzOutputComponent implements AfterViewInit, OnDestroy {
   @ViewChild('historyRegionRef', { static: true })
   private readonly historyRegionRef!: ElementRef<HTMLElement>;
 
+  @ViewChild('startupRegionRef', { static: true })
+  private readonly startupRegionRef!: ElementRef<HTMLDivElement>;
+
   private terminal!: Terminal;
   private readonly fitAddon = new FitAddon();
   private screenReader?: MudScreenReaderAnnouncer;
@@ -123,17 +126,19 @@ export class EzOutputComponent implements AfterViewInit, OnDestroy {
   private resizeListener?: () => void;
   private keydownListener?: (event: KeyboardEvent) => void;
 
-  // Screen-reader announcement coalescing. The live region is assertive, so
-  // a new announcement interrupts the previous one — when the MUD sends the
-  // welcome banner as several chunks in quick succession, only the last would
-  // be read. We batch chunks that arrive within SR_COALESCE_MS into a single
-  // announcement. The timer is throttle-style (started by the first chunk,
-  // not reset by later ones), so latency is bounded to SR_COALESCE_MS and a
-  // continuous stream can't starve the announcement. The history region is
-  // filled per-chunk, immediately, independent of this.
-  private srAnnounceBuffer = '';
-  private srAnnounceTimer?: number;
-  private readonly SR_COALESCE_MS = 250;
+  // One-time startup announcement. iOS VoiceOver reads the FIRST polite
+  // update at page load unreliably (region not yet registered as "live",
+  // and/or VO is busy reading the auto-focused input's label). A fixed
+  // short delay turned out to be pure luck (~1 in 5). So instead of the
+  // polite region, we collect the whole startup burst for a longer window
+  // and then force it through ONCE via the assertive startup region
+  // (`#startupRegionRef`) — the exact mechanism (assertive + role=status +
+  // replace) that announces reliably for the EzInput mode-announcer.
+  // After this single flush everything is immediate + polite (classic).
+  private srPrimed = false;
+  private srPrimeBuffer = '';
+  private srPrimeTimer?: number;
+  private readonly SR_PRIME_MS = 1200;
 
   // --- Touch range-selection (two-tap-then-drag) -----------------------------
   // Ported 1:1 from MudClientComponent so `/ez` has the same tablet-friendly
@@ -234,18 +239,27 @@ export class EzOutputComponent implements AfterViewInit, OnDestroy {
       ),
     );
 
+    // Identical configuration to the classic shell — append strategy, no
+    // separate input region (the native <textarea>/<input> is read by the OS
+    // screen reader directly). No EZ-specific divergence.
     this.screenReader = new MudScreenReaderAnnouncer(
       this.liveRegionRef.nativeElement,
       this.historyRegionRef.nativeElement,
       () => this.debugSettings.screenReaderLogging,
-      // No separate input region in EZ — the native <textarea>/<input> is
-      // read by the OS screen reader directly.
-      undefined,
-      // iOS VoiceOver-friendly: replace textContent instead of appending,
-      // so the pre-login banner (the first announcement after mount) is
-      // actually spoken. Classic stays on 'append' for NVDA/JAWS.
-      'replace',
     );
+
+    // Start the one-time startup window (see field comment). When it
+    // elapses, force the buffered startup text through the assertive startup
+    // region, then switch to immediate polite announcements (classic).
+    this.srPrimeTimer = window.setTimeout(() => {
+      this.srPrimeTimer = undefined;
+      this.srPrimed = true;
+      const buffered = this.srPrimeBuffer;
+      this.srPrimeBuffer = '';
+      if (buffered) {
+        this.announceStartup(buffered);
+      }
+    }, this.SR_PRIME_MS);
 
     // Live theme updates: the initial theme above is only a snapshot. When
     // the user picks a different colour scheme via the footer menu, the
@@ -380,7 +394,9 @@ export class EzOutputComponent implements AfterViewInit, OnDestroy {
     for (const d of this.terminalDisposables) {
       d.dispose();
     }
-    this.cancelPendingAnnouncement();
+    if (this.srPrimeTimer !== undefined) {
+      window.clearTimeout(this.srPrimeTimer);
+    }
     this.screenReader?.dispose();
     this.terminal?.dispose();
   }
@@ -502,42 +518,17 @@ export class EzOutputComponent implements AfterViewInit, OnDestroy {
     }
 
     if (announcement.length > 0) {
-      // History is filled per-chunk immediately (line-by-line H-navigation);
-      // the live announcement is coalesced so a multi-chunk welcome banner is
-      // read as one block instead of each chunk interrupting the previous.
-      this.queueAnnouncement(announcement);
+      // Live announcement: immediate once primed (classic behaviour), or
+      // buffered during the startup-priming window so iOS VoiceOver doesn't
+      // swallow the very first announcement (the pre-login banner).
+      if (this.srPrimed) {
+        this.screenReader?.announce(announcement);
+      } else {
+        this.srPrimeBuffer += announcement;
+      }
+      // History is always filled per-chunk (line-by-line H-navigation).
       this.screenReader?.appendToHistory(announcement);
     }
-  }
-
-  /**
-   * Buffers an announcement and flushes the batch after SR_COALESCE_MS.
-   * Throttle-style: the first chunk arms the timer, later chunks within the
-   * window just accumulate, so a burst (e.g. the 3-block welcome banner)
-   * becomes a single assertive announcement.
-   */
-  private queueAnnouncement(text: string): void {
-    this.srAnnounceBuffer += text;
-    if (this.srAnnounceTimer !== undefined) {
-      return;
-    }
-    this.srAnnounceTimer = window.setTimeout(() => {
-      this.srAnnounceTimer = undefined;
-      const buffered = this.srAnnounceBuffer;
-      this.srAnnounceBuffer = '';
-      if (buffered) {
-        this.screenReader?.announce(buffered);
-      }
-    }, this.SR_COALESCE_MS);
-  }
-
-  /** Drops any pending coalesced announcement (e.g. on output-jump). */
-  private cancelPendingAnnouncement(): void {
-    if (this.srAnnounceTimer !== undefined) {
-      window.clearTimeout(this.srAnnounceTimer);
-      this.srAnnounceTimer = undefined;
-    }
-    this.srAnnounceBuffer = '';
   }
 
   /**
@@ -773,10 +764,26 @@ export class EzOutputComponent implements AfterViewInit, OnDestroy {
 
   private jumpToCurrentOutput(): void {
     this.terminal?.scrollToBottom();
-    // Drop any batch still waiting to be announced — the user explicitly
-    // asked to skip ahead to the latest output.
-    this.cancelPendingAnnouncement();
     this.screenReader?.stopAnnouncements();
+  }
+
+  /**
+   * Forces the one-time startup text through the assertive startup region
+   * (`#startupRegionRef`). Uses the same clear → microtask → set two-step as
+   * the EzInput mode-announcer, which the tester confirmed VoiceOver reads
+   * reliably. ANSI is stripped via the announcer's normalizer. Assertive is
+   * intentional here: it overrides VoiceOver still reading the input label
+   * and pushes the welcome banner through. This is ONLY the startup flush;
+   * normal output stays on the polite region.
+   */
+  private announceStartup(raw: string): void {
+    const text = this.screenReader?.normalizeForComparison(raw) ?? raw;
+    if (!text) return;
+    const region = this.startupRegionRef.nativeElement;
+    region.textContent = '';
+    queueMicrotask(() => {
+      region.textContent = text;
+    });
   }
 
   /**

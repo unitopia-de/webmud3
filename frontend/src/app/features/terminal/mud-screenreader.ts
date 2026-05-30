@@ -16,25 +16,11 @@ export class MudScreenReaderAnnouncer {
   private sessionStartedAt: number;
   private lastAnnouncedBuffer = '';
 
-  /**
-   * @param liveRegionStrategy How new announcements are written into the
-   *   live region:
-   *     - `'append'` (default): append a text node, never clear. Required
-   *       for NVDA/JAWS on Windows, which go silent if the region is
-   *       cleared too soon after a change. This is what the classic shell
-   *       uses.
-   *     - `'replace'`: overwrite `textContent`. Required for iOS VoiceOver,
-   *       which reliably announces a replaced `textContent` but tends to
-   *       swallow appended text nodes (notably the first one after mount —
-   *       e.g. the pre-login banner). The `/ez` shell, whose primary
-   *       audience is iPad/VoiceOver users, uses this.
-   */
   constructor(
     private readonly liveRegion: HTMLElement,
     private readonly historyRegion?: HTMLElement,
     private readonly isLoggingEnabled: () => boolean = () => false,
     private readonly inputRegion?: HTMLElement,
-    private readonly liveRegionStrategy: 'append' | 'replace' = 'append',
   ) {
     this.sessionStartedAt = Date.now();
   }
@@ -326,21 +312,6 @@ export class MudScreenReaderAnnouncer {
    * delta, not the accumulated history.
    */
   private appendToLiveRegion(normalized: string): void {
-    if (this.liveRegionStrategy === 'replace') {
-      // iOS VoiceOver announces aria-live updates reliably only when it sees
-      // a discrete empty→content transition. A direct `textContent = x` (or
-      // an appended text node) is frequently swallowed, especially the first
-      // one after mount (the pre-login banner). The two-step clear → microtask
-      // → set mirrors the EzInput mode-announcer, which the tester confirmed
-      // VoiceOver reads. The region holds only the latest chunk; the full
-      // transcript stays in the history region for H-key navigation.
-      const region = this.liveRegion;
-      region.textContent = '';
-      queueMicrotask(() => {
-        region.textContent = normalized;
-      });
-      return;
-    }
     const doc = this.liveRegion.ownerDocument;
     this.liveRegion.appendChild(doc.createTextNode(`${normalized}\n`));
   }
