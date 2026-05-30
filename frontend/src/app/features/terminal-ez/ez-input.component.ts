@@ -171,9 +171,55 @@ export class EzInputComponent implements OnInit, AfterViewInit, OnDestroy {
     if (event.key === 'Enter' && !event.shiftKey && !event.ctrlKey && !event.altKey && !event.metaKey) {
       event.preventDefault();
       this.submitDefault();
+      return;
     }
     // Shift+Enter: fall through — the browser inserts \n into the textarea
     // exactly as the user expects.
+
+    // Command-history navigation, matching the classic shell:
+    //   - ArrowUp / ArrowDown        → full history (no prefix filter)
+    //   - Alt+ArrowUp / Alt+ArrowDown → prefix-filtered by the originally
+    //                                   typed text
+    // Because the EZ input is a multi-line textarea, a *plain* arrow only
+    // navigates history when the caret sits on the first line (Up) resp.
+    // the last line (Down) — otherwise it moves the caret between lines as
+    // usual. Alt+arrow always navigates history (Alt+Up/Down has no
+    // multi-line-editing default worth preserving). Ctrl/Meta/Shift are
+    // left untouched.
+    if (
+      (event.key === 'ArrowUp' || event.key === 'ArrowDown') &&
+      !event.ctrlKey &&
+      !event.metaKey &&
+      !event.shiftKey
+    ) {
+      const field = this.defaultField?.nativeElement;
+      if (!field) return;
+      const withPrefix = event.altKey;
+
+      if (event.key === 'ArrowUp') {
+        if (withPrefix || this.cursorOnFirstLine(field)) {
+          event.preventDefault();
+          this.navigateHistoryBack(withPrefix);
+        }
+      } else {
+        if (withPrefix || this.cursorOnLastLine(field)) {
+          event.preventDefault();
+          this.navigateHistoryForward(withPrefix);
+        }
+      }
+    }
+  }
+
+  /** True when the caret is on the textarea's first visual line. */
+  private cursorOnFirstLine(field: HTMLTextAreaElement): boolean {
+    const pos = field.selectionStart ?? 0;
+    return field.value.lastIndexOf('\n', pos - 1) === -1;
+  }
+
+  /** True when the caret is on the textarea's last visual line. */
+  private cursorOnLastLine(field: HTMLTextAreaElement): boolean {
+    const pos = field.selectionEnd ?? field.value.length;
+    return field.value.indexOf('\n', pos) === -1;
   }
 
   protected onDefaultSubmit(event: Event): void {
@@ -206,6 +252,20 @@ export class EzInputComponent implements OnInit, AfterViewInit, OnDestroy {
     this.historyCursor = -1;
     this.historyDraft = null;
     this.focusActiveField();
+  }
+
+  /**
+   * (input) handler for the default textarea. Real user typing exits any
+   * active history browse (so the next ArrowUp starts fresh from the edited
+   * buffer, like the classic shell) and then re-fits the height.
+   *
+   * Note: history navigation sets `field.value` programmatically, which does
+   * NOT fire `input`, so this never clobbers an in-progress browse.
+   */
+  protected onDefaultInput(): void {
+    this.historyCursor = -1;
+    this.historyDraft = null;
+    this.autoResizeDefault();
   }
 
   protected autoResizeDefault(): void {
@@ -288,45 +348,83 @@ export class EzInputComponent implements OnInit, AfterViewInit, OnDestroy {
   // History (default mode only)
   // ---------------------------------------------------------------------------
 
+  /** ▲ button — plain history back (no prefix filter). */
   protected onHistoryBack(): void {
+    this.navigateHistoryBack(false);
+  }
+
+  /** ▼ button — plain history forward (no prefix filter). */
+  protected onHistoryForward(): void {
+    this.navigateHistoryForward(false);
+  }
+
+  /**
+   * Walks one step back through the command history. With `withPrefix`,
+   * only entries that start with the originally-typed text are considered
+   * (Alt+ArrowUp), mirroring `MudInputController.historyBack`. The first
+   * step stashes the current buffer as the draft/anchor so a later forward
+   * past the newest entry can restore it.
+   */
+  private navigateHistoryBack(withPrefix: boolean): void {
     if (this.history.length === 0) return;
     const field = this.defaultField?.nativeElement;
     if (!field) return;
 
-    // Stash the unsent draft on first entry into history so ▼ past the
-    // newest entry restores what the user was typing.
     if (this.historyCursor === -1) {
       this.historyDraft = field.value;
-      this.historyCursor = this.history.length - 1;
-    } else if (this.historyCursor > 0) {
-      this.historyCursor -= 1;
+      this.historyCursor = this.history.length;
     }
 
-    field.value = this.history[this.historyCursor]!;
-    this.autoResizeDefault();
-    this.focusActiveField();
+    const prefix = withPrefix ? (this.historyDraft ?? '') : null;
+    for (let i = this.historyCursor - 1; i >= 0; i -= 1) {
+      const entry = this.history[i]!;
+      if (prefix === null || entry.startsWith(prefix)) {
+        this.historyCursor = i;
+        this.setFieldValue(field, entry);
+        return;
+      }
+    }
+    // No match found; stay where we are so the next forward resumes right.
   }
 
-  protected onHistoryForward(): void {
+  /**
+   * Walks one step forward through the command history. Stepping past the
+   * newest matching entry restores the stashed draft and leaves browse mode.
+   */
+  private navigateHistoryForward(withPrefix: boolean): void {
     const field = this.defaultField?.nativeElement;
     if (!field) return;
-
     if (this.historyCursor === -1) {
-      // Already at the draft; nothing newer to walk to.
       return;
     }
 
-    if (this.historyCursor < this.history.length - 1) {
-      this.historyCursor += 1;
-      field.value = this.history[this.historyCursor]!;
-    } else {
-      // Walked past the newest entry → restore draft (or empty).
-      this.historyCursor = -1;
-      field.value = this.historyDraft ?? '';
-      this.historyDraft = null;
+    const prefix = withPrefix ? (this.historyDraft ?? '') : null;
+    for (let i = this.historyCursor + 1; i < this.history.length; i += 1) {
+      const entry = this.history[i]!;
+      if (prefix === null || entry.startsWith(prefix)) {
+        this.historyCursor = i;
+        this.setFieldValue(field, entry);
+        return;
+      }
     }
 
+    // Past the newest match → restore the draft and exit browse mode.
+    this.historyCursor = -1;
+    const draft = this.historyDraft ?? '';
+    this.historyDraft = null;
+    this.setFieldValue(field, draft);
+  }
+
+  /**
+   * Replaces the textarea value during history navigation, fits the height
+   * and parks the caret at the end. Setting `.value` programmatically does
+   * NOT fire `input`, so it won't trigger `onDefaultInput` / exit browse.
+   */
+  private setFieldValue(field: HTMLTextAreaElement, value: string): void {
+    field.value = value;
     this.autoResizeDefault();
+    const end = value.length;
+    field.setSelectionRange(end, end);
     this.focusActiveField();
   }
 
