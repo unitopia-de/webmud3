@@ -188,9 +188,17 @@ export class EzInputComponent implements OnInit, AfterViewInit, OnDestroy {
     const raw = field.value;
     const lines = raw.split(/\r?\n/).filter((line) => line.length > 0);
 
-    for (const line of lines) {
-      this.commit.emit({ value: line, mode: 'default' });
-      this.pushHistory(line);
+    if (lines.length === 0) {
+      // Empty input: the user pressed Enter on a blank line. Send a single
+      // empty line to the MUD — needed for "Weiter mit Enter"-Prompts,
+      // Pager-Fortsetzung etc. Without this the keystroke was swallowed.
+      // Not pushed to history (an empty line is no recallable command).
+      this.commit.emit({ value: '', mode: 'default' });
+    } else {
+      for (const line of lines) {
+        this.commit.emit({ value: line, mode: 'default' });
+        this.pushHistory(line);
+      }
     }
 
     field.value = '';

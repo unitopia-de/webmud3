@@ -444,8 +444,50 @@ export class SocketsService {
       );
     }
 
-    window.location.reload();
+    // Backend changed → almost always a redeploy, i.e. new frontend code
+    // too. Do the closest thing to a cold refresh that JS allows before
+    // reloading (see coldReload).
+    void this.coldReload();
   };
+
+  /**
+   * Approximates a "cold" / hard refresh (Ctrl+Shift+R) before reloading.
+   *
+   * A literal cache-bypassing reload is NOT scriptable — browsers don't
+   * expose it (`location.reload(true)` is deprecated and ignored). The
+   * effective equivalent is to purge everything that could hand back a
+   * stale app shell, then reload normally:
+   *   - Cache Storage (the CacheStorage API) — emptied.
+   *   - Registered service workers — unregistered.
+   *
+   * index.html is already served `no-store` and the JS/CSS bundles are
+   * content-hashed, so a plain reload usually suffices. This extra purge
+   * hardens against iOS Safari clinging to an old bundle after a redeploy
+   * and against a future PWA service worker (see PWA_TODO.md) serving a
+   * cached shell. Every step is best-effort and never blocks the reload.
+   */
+  private async coldReload(): Promise<void> {
+    try {
+      if ('caches' in window) {
+        const keys = await caches.keys();
+        await Promise.allSettled(keys.map((key) => caches.delete(key)));
+      }
+    } catch (error) {
+      console.error('[Sockets] coldReload: clearing CacheStorage failed', error);
+    }
+
+    try {
+      if ('serviceWorker' in navigator) {
+        const registrations =
+          await navigator.serviceWorker.getRegistrations();
+        await Promise.allSettled(registrations.map((reg) => reg.unregister()));
+      }
+    } catch (error) {
+      console.error('[Sockets] coldReload: unregistering SW failed', error);
+    }
+
+    window.location.reload();
+  }
 
   private saveKnownServerId(serverId: string): void {
     try {
