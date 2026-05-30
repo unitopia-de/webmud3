@@ -168,14 +168,24 @@ export class EzOutputComponent implements AfterViewInit, OnDestroy {
       }),
     );
 
-    // Reset the announcement session AND the MXP filter on (re)connect so
-    // a stale partial tag from a previous session doesn't linger across
-    // a reconnect and confuse the next chunk. Mirrors what MudClient does
-    // for the Classic shell.
+    // Reset the MXP filter on (re)connect so a stale partial tag from a
+    // previous session doesn't linger across a reconnect and confuse the
+    // next chunk.
+    //
+    // We deliberately do NOT call `screenReader.markSessionStart()` here.
+    // markSessionStart drains the announcement queue (stopAnnouncements)
+    // and wipes the history region — and the MUD's pre-login welcome
+    // banner arrives interleaved with the `mudConnect$` event, so calling
+    // it would cut off / clear the banner announcement before VoiceOver
+    // reads it (observed on iPad). MudClient never calls markSessionStart
+    // either and announces the banner fine. The session-gating it provides
+    // is moot here anyway: `announce()` is always invoked with the default
+    // `Date.now()` timestamp, and the restored backlog goes through
+    // `terminal.write` without `announce` (see loadHistoryIfAvailable), so
+    // old output is never spoken regardless.
     this.subscriptions.add(
       this.mudService.mudConnect$.subscribe(() => {
         this.mxpFilter.reset();
-        this.screenReader?.markSessionStart(Date.now());
       }),
     );
 
