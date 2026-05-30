@@ -5,17 +5,20 @@
   flex: 1 1 0;
   position: relative;
 
-  // The h2 is visible (not sr-only) so sighted users see the section label
-  // too — accessible heading hierarchy at the same time. Kept compact to
-  // avoid eating vertical space the terminal needs.
-  .ez-output-heading {
-    margin: 0;
-    padding: 4px 8px;
-    font-size: 13px;
-    font-weight: 600;
-    color: #ddd;
-    background: #1e1e1e;
-    flex: 0 0 auto;
+  // Screenreader-only heading + utility. The "Spielausgabe" h2 is hidden
+  // visually (no header bar — the terminal gets the full height) but kept
+  // in the DOM so AT heading navigation and the output region's
+  // aria-labelledby still work.
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: pre-wrap;
+    border: 0;
   }
 
   .ez-mud-output {

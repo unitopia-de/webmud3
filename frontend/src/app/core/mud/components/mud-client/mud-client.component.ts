@@ -8,6 +8,7 @@
   signal,
   ViewChild,
 } from '@angular/core';
+import { Router } from '@angular/router';
 import { AttachAddon } from '@xterm/addon-attach';
 import { ClipboardAddon } from '@xterm/addon-clipboard';
 import { FitAddon } from '@xterm/addon-fit';
@@ -187,8 +188,11 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
   // Exposed publicly so the template can read state + marker positions
   // for the touch-friendly two-tap-then-drag selection UX.
   public readonly selectionMode = inject(SelectionModeService);
+  private readonly router = inject(Router);
 
   private readonly MOBILE_INPUT_MENU_ID = 'mobile-input';
+  /** Switches to the fixed-input splitscreen variant under `/ez`. */
+  private readonly SHELL_SWITCH_EZ_MENU_ID = 'shell-switch-ez';
   private readonly RECENTER_MENU_ID = 'windows-recenter';
   private readonly SOUND_MENU_ID = 'sound-enabled';
   /** Parent entry that hosts the five theme radio items as a flyout submenu. */
@@ -586,6 +590,7 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
    * Cleans up subscriptions and disposes terminal resources.
    */
   ngOnDestroy() {
+    this.footerMenu.unregister(this.SHELL_SWITCH_EZ_MENU_ID);
     this.footerMenu.unregister(this.MOBILE_INPUT_MENU_ID);
     this.footerMenu.unregister(this.RECENTER_MENU_ID);
     this.footerMenu.unregister(this.SOUND_MENU_ID);
@@ -1958,6 +1963,18 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
    * unwieldy.
    */
   private registerDebugMenuItems(): void {
+    // "Eingabezeile (fest)": switch to the fixed-input splitscreen variant
+    // under `/ez`. Registered BEFORE the mobile entry so it lands directly
+    // above it (ties on the default order keep their registration order —
+    // see FooterMenuService.register). The telnet session is preserved
+    // across the route switch (MudService singleton + idempotent connect).
+    this.footerMenu.register({
+      id: this.SHELL_SWITCH_EZ_MENU_ID,
+      label: 'Eingabezeile (fest)',
+      checked: false,
+      action: () => void this.router.navigate(['/ez']),
+    });
+
     this.footerMenu.register({
       id: this.MOBILE_INPUT_MENU_ID,
       label: 'Eingabezeile (Mobile)',

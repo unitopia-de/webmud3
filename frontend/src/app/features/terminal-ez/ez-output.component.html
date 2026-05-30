@@ -9,7 +9,13 @@
   <input type="password">, das der Screenreader vom Betriebssystem aus
   ohnehin schon vorliest.
 -->
-<h2 id="ez-output-heading" class="ez-output-heading">Spielausgabe</h2>
+<!--
+  "Spielausgabe"-Überschrift ist bewusst sr-only: visuell entfernt (kein
+  Header-Balken mehr, mehr Platz fürs Terminal), aber als h2 erhalten,
+  damit die Heading-Navigation für Screenreader funktioniert und die
+  Output-Region weiter per aria-labelledby beschriftet ist.
+-->
+<h2 id="ez-output-heading" class="sr-only">Spielausgabe</h2>
 
 <div
   class="sr-announcer"
