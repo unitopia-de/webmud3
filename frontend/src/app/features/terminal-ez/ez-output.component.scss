@@ -27,8 +27,40 @@
     min-height: 0;
     overflow: hidden;
     padding-left: 8px;
+    // Anchor for the absolutely positioned selection markers; without it
+    // they'd jump to the page origin.
     position: relative;
     z-index: 1;
+  }
+
+  // Selection markers (two-tap-then-drag range selection on touch).
+  // Centered on their buffer cell via the transform. `touch-action: none`
+  // is required so pointer events fire continuously during a drag instead
+  // of the browser hijacking them for scroll. Copied from the classic
+  // shell so both variants look + behave identically.
+  .selection-marker {
+    position: absolute;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: 2px solid #4ec9b0;
+    background: rgba(78, 201, 176, 0.4);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
+    transform: translate(-50%, -50%);
+    cursor: grab;
+    touch-action: none;
+    z-index: 10;
+    padding: 0;
+
+    &:active {
+      cursor: grabbing;
+      background: rgba(78, 201, 176, 0.7);
+    }
+  }
+
+  .selection-marker-start {
+    // Stronger border distinguishes "start" from "end" when they overlap.
+    border-width: 3px;
   }
 
   // Screenreader-only live region — visually hidden but readable by AT.
