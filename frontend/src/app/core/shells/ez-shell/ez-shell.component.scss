@@ -1,0 +1,25 @@
+// Same flex behaviour as the classic shell so the AppComponent's column
+// layout assigns the remaining viewport space to this stub.
+:host {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 0;
+  min-height: 0;
+}
+
+.ez-stub {
+  padding: 24px;
+  font-family: sans-serif;
+  color: #ddd;
+  background: #1e1e1e;
+  flex: 1 1 0;
+  overflow: auto;
+
+  h1 {
+    margin-top: 0;
+  }
+
+  a {
+    color: #4ec9b0;
+  }
+}

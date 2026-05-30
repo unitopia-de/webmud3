@@ -1,8 +1,5 @@
 :host {
   display: flex;
   flex-direction: column;
-}
-
-app-mud-client {
-  flex: 1 1 0;
+  height: 100%;
 }

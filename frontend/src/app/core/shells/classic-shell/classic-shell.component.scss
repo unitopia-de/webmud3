@@ -1,0 +1,13 @@
+// Fills the available viewport height. `flex: 1 1 0` so this shell stretches
+// inside the AppComponent's flex container — the surrounding column layout
+// then assigns the remaining space to <app-mud-client>.
+:host {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 0;
+  min-height: 0;
+}
+
+app-mud-client {
+  flex: 1 1 0;
+}
