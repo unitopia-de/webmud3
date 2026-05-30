@@ -17,12 +17,21 @@
 -->
 <h2 id="ez-output-heading" class="sr-only">Spielausgabe</h2>
 
+<!--
+  Live-Ansage-Region. Bewusst auf die EXAKT gleiche Konfiguration wie der
+  funktionierende Modus-Wechsel-Announcer in EzInput gesetzt
+  (role=status, aria-live=assertive, aria-atomic=true) — iOS VoiceOver liest
+  diese Kombination zuverlässig vor, role="log"+polite dagegen nicht.
+  Geschrieben wird im 'replace'-Modus (clear → microtask → set) durch
+  MudScreenReaderAnnouncer. Assertive bedeutet: neue Ausgabe unterbricht die
+  vorherige Ansage — für blinde Spieler gewollt (sie hören stets das Neueste);
+  der vollständige Mitschnitt bleibt über die sr-history (H-Navigation).
+-->
 <div
   class="sr-announcer"
-  role="log"
-  aria-live="polite"
-  aria-relevant="additions text"
-  aria-atomic="false"
+  role="status"
+  aria-live="assertive"
+  aria-atomic="true"
   #liveRegionRef
 ></div>
 

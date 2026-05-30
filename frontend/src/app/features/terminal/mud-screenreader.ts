@@ -327,12 +327,18 @@ export class MudScreenReaderAnnouncer {
    */
   private appendToLiveRegion(normalized: string): void {
     if (this.liveRegionStrategy === 'replace') {
-      // iOS VoiceOver announces aria-live updates reliably when the
-      // region's textContent is replaced, but commonly swallows appended
-      // text nodes. Replacing keeps the region holding only the latest
-      // chunk; the accumulated transcript still lives in the history
-      // region for H-key navigation.
-      this.liveRegion.textContent = normalized;
+      // iOS VoiceOver announces aria-live updates reliably only when it sees
+      // a discrete empty→content transition. A direct `textContent = x` (or
+      // an appended text node) is frequently swallowed, especially the first
+      // one after mount (the pre-login banner). The two-step clear → microtask
+      // → set mirrors the EzInput mode-announcer, which the tester confirmed
+      // VoiceOver reads. The region holds only the latest chunk; the full
+      // transcript stays in the history region for H-key navigation.
+      const region = this.liveRegion;
+      region.textContent = '';
+      queueMicrotask(() => {
+        region.textContent = normalized;
+      });
       return;
     }
     const doc = this.liveRegion.ownerDocument;
