@@ -14,9 +14,14 @@ import { Subscription } from 'rxjs';
 import { MudService } from '@webmud3/frontend/core/mud/services/mud.service';
 import { DebugSettingsService } from '@webmud3/frontend/features/debug/debug-settings.service';
 import {
+  ClickAction,
   MudScreenReaderAnnouncer,
+  MxpChoiceMenuService,
+  MxpClickableService,
+  MxpElementService,
   MxpStreamFilter,
   MxpTagRouter,
+  StreamSegment,
   TerminalThemeService,
 } from '@webmud3/frontend/features/terminal';
 import { OutputJumpService } from '@webmud3/frontend/features/terminal/output-jump.service';
@@ -33,7 +38,7 @@ import {
  * `disableStdin: true` and never register an `onData` handler — the terminal
  * becomes a pure display surface. Input is handled by `EzInputComponent`.
  *
- * Output pipeline (Phase 6 — feature parity with the classic shell):
+ * Output pipeline (feature parity with the classic shell):
  *   1. Server chunk arrives via `MudService.mudOutput$`.
  *   2. `MxpStreamFilter` splits the chunk into text / clickable segments
  *      and routes MXP tags to `MxpTagRouter` (entity / stat / element
@@ -41,10 +46,12 @@ import {
  *   3. For each text segment, `TriggerEngineService.processChunk` produces
  *      the ANSI-highlighted output text plus any sounds the user's triggers
  *      asked for; sounds go through `triggerSoundPlayer.play(...)`.
- *   4. Both text and clickable-segment content land in xterm via
- *      `terminal.write`. Clickable segments are written as plain text —
- *      no OSC 8 hyperlink wrapping, because the EZ audience interacts via
- *      keyboard / AT, not mouse clicks on MXP regions.
+ *   4. Clickable segments (room exits, ircontent, send-href etc.) are
+ *      written as OSC 8 hyperlinks; xterm's `linkHandler` dispatches
+ *      clicks back to `handleMxpHyperlinkClick`, which resolves the id
+ *      via `MxpClickableService`, optionally opens the choice menu when
+ *      multiple commands are bound to the same href, and finally sends
+ *      the selected command via `mudService.sendMessage`.
  *   5. The MXP-cleaned aggregate is announced via the screen reader and
  *      appended to the SR history region (H-key navigation).
  *
@@ -66,6 +73,9 @@ export class EzOutputComponent implements AfterViewInit, OnDestroy {
   private readonly terminalThemes = inject(TerminalThemeService);
   private readonly debugSettings = inject(DebugSettingsService);
   private readonly mxpRouter = inject(MxpTagRouter);
+  private readonly mxpClickables = inject(MxpClickableService);
+  private readonly mxpElements = inject(MxpElementService);
+  private readonly mxpChoiceMenu = inject(MxpChoiceMenuService);
   private readonly triggerEngine = inject(TriggerEngineService);
   private readonly triggerSoundPlayer = inject(TriggerSoundPlayerService);
   private readonly outputJump = inject(OutputJumpService);
@@ -93,6 +103,11 @@ export class EzOutputComponent implements AfterViewInit, OnDestroy {
     this.mxpRouter.handle(raw),
   );
 
+  // Snapshot of the current LINEMODE-edit bit. Updated from `linemode$`
+  // below; used by `sendClickCommand` to decide whether a trailing `\r`
+  // is required when the server has switched the session to char-mode.
+  private isEditMode = true;
+
   private subscriptions = new Subscription();
   private resizeListener?: () => void;
   private keydownListener?: (event: KeyboardEvent) => void;
@@ -106,6 +121,15 @@ export class EzOutputComponent implements AfterViewInit, OnDestroy {
       screenReaderMode: false,
       theme: initialTheme.theme,
       minimumContrastRatio: initialTheme.minimumContrastRatio,
+      // OSC 8 hyperlink click routing. `allowNonHttpProtocols: true` is
+      // required because our scheme is `mxp:` — without it xterm silently
+      // blocks the click for security.
+      linkHandler: {
+        allowNonHttpProtocols: true,
+        activate: (event, text) => {
+          this.handleMxpHyperlinkClick(text, event);
+        },
+      },
     });
 
     this.terminal.open(this.terminalRef.nativeElement);
@@ -148,6 +172,15 @@ export class EzOutputComponent implements AfterViewInit, OnDestroy {
         if (!connected) {
           this.mxpFilter.reset();
         }
+      }),
+    );
+
+    // Track the linemode edit-bit so `sendClickCommand` can decide whether
+    // it has to ship its own `\r` (server in char-mode swallows the auto-
+    // Enter that the backend normally appends).
+    this.subscriptions.add(
+      this.mudService.linemode$.subscribe((state) => {
+        this.isEditMode = state.edit;
       }),
     );
 
@@ -221,9 +254,9 @@ export class EzOutputComponent implements AfterViewInit, OnDestroy {
 
   /**
    * Full output pipeline for one chunk: MXP-filter → triggers → terminal
-   * write → screen-reader announce + history append. Mirrors
-   * `MudClientComponent.transformMudOutput` minus the prompt-manager step
-   * (we have no local xterm prompt to splice).
+   * write (text + clickable OSC 8) → screen-reader announce + history
+   * append. Mirrors `MudClientComponent.transformMudOutput` minus the
+   * prompt-manager step (we have no local xterm prompt to splice).
    */
   private transformAndWrite(data: string): void {
     const segments = this.mxpFilter.processToSegments(data);
@@ -238,8 +271,10 @@ export class EzOutputComponent implements AfterViewInit, OnDestroy {
           this.triggerSoundPlayer.play(s.soundId, s.volume);
         }
       } else {
-        // Clickable segments are written as plain text — see class doc.
-        this.terminal.write(seg.content);
+        this.writeClickableSegment(seg);
+        // The clickable text itself (without the MXP wrapper) belongs in
+        // the audible stream so the screen reader keeps the verbatim
+        // transcript.
         announcement += seg.content;
       }
     }
@@ -248,6 +283,186 @@ export class EzOutputComponent implements AfterViewInit, OnDestroy {
       this.screenReader?.announce(announcement);
       this.screenReader?.appendToHistory(announcement);
     }
+  }
+
+  /**
+   * Writes a clickable segment as an OSC 8 hyperlink wrapped in ANSI
+   * underline codes. xterm tracks the link position natively as the
+   * buffer scrolls; clicks land in `handleMxpHyperlinkClick` via the
+   * `linkHandler` configured in `ngAfterViewInit`.
+   *
+   * If the segment cannot be resolved to an action (no <!ELEMENT>
+   * definition, missing `href` on a `<send>`, …) we still write the
+   * content as plain text so nothing gets dropped from the visible
+   * stream.
+   */
+  private writeClickableSegment(
+    seg: Extract<StreamSegment, { type: 'clickable' }>,
+  ): void {
+    if (seg.content.length === 0) {
+      return;
+    }
+
+    const action = this.deriveClickAction(seg);
+    if (action === null) {
+      this.terminal.write(seg.content);
+      return;
+    }
+
+    const id = this.mxpClickables.register(
+      action.action,
+      action.label,
+      action.expireDomain,
+    );
+
+    const url = `mxp:click/${id}`;
+    // OSC 8 hyperlinks: open + content (with ANSI underline) + close.
+    // ST = `ESC \` (string terminator).
+    this.terminal.write(
+      `\x1b]8;;${url}\x1b\\\x1b[4m${seg.content}\x1b[24m\x1b]8;;\x1b\\`,
+    );
+  }
+
+  /**
+   * Called by the terminal's `linkHandler` when the user clicks an OSC 8
+   * hyperlink in the buffer. Resolves the id via `MxpClickableService`;
+   * silently swallows clicks on regions that have been expired by a
+   * domain switch (e.g. an old room's exit after a successful move).
+   */
+  private handleMxpHyperlinkClick(url: string, event: MouseEvent): void {
+    const prefix = 'mxp:click/';
+    if (!url.startsWith(prefix)) {
+      return;
+    }
+    const id = Number(url.slice(prefix.length));
+    if (!Number.isFinite(id)) {
+      return;
+    }
+    const region = this.mxpClickables.lookup(id);
+    if (region === null) {
+      return;
+    }
+    this.activateClickRegion(region.action, event);
+  }
+
+  /**
+   * Computes what should happen when the user clicks the given clickable
+   * segment. Returns `null` for segments we cannot resolve (e.g. an
+   * `ircontent` whose `<!ELEMENT>` definition the server never sent).
+   *
+   * Logic mirrors `MudClientComponent.deriveClickAction` — keep them in
+   * sync if you touch one.
+   */
+  private deriveClickAction(
+    seg: Extract<StreamSegment, { type: 'clickable' }>,
+  ): {
+    action: ClickAction;
+    label: string;
+    expireDomain?: string;
+  } | null {
+    if (seg.tag === 'rexit') {
+      const command = seg.content.trim();
+      if (command.length === 0) return null;
+      return {
+        action: { kind: 'simple', command },
+        label: command,
+        expireDomain: 'room',
+      };
+    }
+
+    if (seg.tag === 'enzyfun') {
+      const target = seg.content.trim();
+      if (target.length === 0) return null;
+      return {
+        action: { kind: 'simple', command: `? ${target}` },
+        label: target,
+      };
+    }
+
+    if (seg.tag === 'enzybsp') {
+      const target = seg.content.trim();
+      if (target.length === 0) return null;
+      return {
+        action: { kind: 'simple', command: `bsp? ${target}` },
+        label: target,
+      };
+    }
+
+    if (seg.tag === 'send') {
+      const href = seg.attrs.get('href');
+      if (href === undefined) return null;
+      return this.actionFromHref(href, seg.attrs.get('expire'));
+    }
+
+    // ircontent / lrcontent / iinventory — resolve via the ELEMENT table.
+    const resolved = this.mxpElements.resolve(seg.tag, seg.attrs);
+    if (resolved === null) return null;
+    return this.actionFromHref(resolved.href, resolved.expire);
+  }
+
+  private actionFromHref(
+    href: string,
+    expire: string | undefined,
+  ): {
+    action: ClickAction;
+    label: string;
+    expireDomain?: string;
+  } {
+    const commands = href
+      .split('|')
+      .map((c) => c.trim())
+      .filter((c) => c.length > 0);
+
+    if (commands.length === 0) {
+      return {
+        action: { kind: 'simple', command: '' },
+        label: '',
+        expireDomain: expire,
+      };
+    }
+    if (commands.length === 1) {
+      return {
+        action: { kind: 'simple', command: commands[0] },
+        label: commands[0],
+        expireDomain: expire,
+      };
+    }
+    return {
+      action: { kind: 'choice', commands },
+      label: commands.join(' | '),
+      expireDomain: expire,
+    };
+  }
+
+  private activateClickRegion(action: ClickAction, event: MouseEvent): void {
+    if (action.kind === 'simple') {
+      if (!action.command) return;
+      this.sendClickCommand(action.command);
+      return;
+    }
+
+    if (action.commands.length === 0) {
+      return;
+    }
+
+    this.mxpChoiceMenu.open({
+      commands: action.commands,
+      x: event.clientX,
+      y: event.clientY,
+      onPick: (command) => this.sendClickCommand(command),
+    });
+  }
+
+  /**
+   * Sends a full command line generated by a click. In normal line-edit
+   * mode the backend appends `\r` itself; in char-mode (e.g. UNItopia's
+   * `vt100client`) the auto-Enter is suppressed and the click has to
+   * ship its own terminator, otherwise the command sits in the input
+   * buffer waiting for an Enter that will never come.
+   */
+  private sendClickCommand(command: string): void {
+    const payload = this.isEditMode ? command : `${command}\r`;
+    this.mudService.sendMessage(payload);
   }
 
   private handleGlobalKeydown(event: KeyboardEvent): void {

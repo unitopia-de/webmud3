@@ -25,6 +25,7 @@ import { SoundService } from '@webmud3/frontend/features/sound/sound.service';
 import { EzInputComponent, EzInputSubmission } from '@webmud3/frontend/features/terminal-ez/ez-input.component';
 import { EzOutputComponent } from '@webmud3/frontend/features/terminal-ez/ez-output.component';
 import {
+  MxpChoiceMenuComponent,
   TerminalThemeService,
   TERMINAL_THEME_ORDER,
   TERMINAL_THEMES,
@@ -70,6 +71,7 @@ import { WindowService } from '@webmud3/frontend/features/windows/window.service
     EzInputComponent,
     CharFooterComponent,
     WindowContainerComponent,
+    MxpChoiceMenuComponent,
   ],
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
