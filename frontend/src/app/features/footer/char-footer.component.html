@@ -1,3 +1,13 @@
+<button
+  type="button"
+  class="menu-button jump-button"
+  (click)="onJumpToCurrentOutput()"
+  aria-label="Sprung zum Ende"
+  title="Sprung zum Ende (Strg+Ende)"
+>
+  Sprung zum Ende
+</button>
+
 <div class="char-info">
   @if (charName()) {
     <span class="char-name">{{ charName() }}</span>

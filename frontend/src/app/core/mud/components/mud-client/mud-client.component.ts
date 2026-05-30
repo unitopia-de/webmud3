@@ -36,6 +36,7 @@ import { CharGmcpModule } from '@webmud3/frontend/features/gmcp/modules/char-gmc
 import { InventoryWindowService } from '@webmud3/frontend/features/inventory/inventory-window.service';
 import { ConnectionMenuService } from '@webmud3/frontend/features/connection/connection-menu.service';
 import { WakeLockService } from '@webmud3/frontend/features/connection/wake-lock.service';
+import { OutputJumpService } from '@webmud3/frontend/features/terminal/output-jump.service';
 import { NumpadWindowService } from '@webmud3/frontend/features/numpad/numpad-window.service';
 import { PlayermapWindowService } from '@webmud3/frontend/features/playermap/playermap-window.service';
 import { SettingsWindowService } from '@webmud3/frontend/features/settings/settings-window.service';
@@ -139,6 +140,10 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
   // Keeps the screen awake while a MUD session is open so mobile browsers
   // (mainly iOS Safari) don't suspend the tab and drop the connection.
   private readonly wakeLock = inject(WakeLockService);
+  // Triggers a jump to the most recent output. Fired by the footer button
+  // and by Ctrl+End / Cmd+End; the handler in ngAfterViewInit scrolls
+  // xterm to the bottom and drains the screen-reader live region.
+  private readonly outputJump = inject(OutputJumpService);
   // Bootstraps the "Numpad-Konfiguration" entry in the footer menu and
   // loads numpad bindings from localStorage.
   private readonly _numpadWindow = inject(NumpadWindowService);
@@ -232,6 +237,7 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
 
   private showEchoSubscription?: Subscription;
   private linemodeSubscription?: Subscription;
+  private outputJumpSubscription?: Subscription;
   private completionSubscriptions: Subscription[] = [];
   private noticeSubscription?: Subscription;
   private themeSubscription?: Subscription;
@@ -551,6 +557,29 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
     // Hold a screen wake lock so iOS Safari / Android Chrome don't suspend
     // the tab and drop the socket. Silently no-ops on unsupported browsers.
     void this.wakeLock.acquire();
+
+    // Wire the "jump to current output" trigger (footer button + Ctrl+End
+    // shortcut) to xterm scrolling and screen-reader queue draining. The
+    // history region is intentionally left untouched so the user can still
+    // navigate back through old output with the H key.
+    this.outputJumpSubscription = this.outputJump.jump$.subscribe(() =>
+      this.jumpToCurrentOutput(),
+    );
+  }
+
+  /**
+   * Scrolls xterm to the latest line and aborts any in-flight screen reader
+   * announcement. Called from the OutputJumpService trigger (footer button,
+   * Ctrl+End / Cmd+End) — see `installCopyShortcutHandler` for the key
+   * binding and `CharFooterComponent` for the button.
+   *
+   * The screen-reader history region (`#historyRegionRef`) is deliberately
+   * NOT cleared: jumping ahead should skip the current queue, not erase
+   * the user's ability to navigate back through old output.
+   */
+  private jumpToCurrentOutput(): void {
+    this.terminal.scrollToBottom();
+    this.screenReader?.stopAnnouncements();
   }
 
   /**
@@ -612,6 +641,7 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
     this.terminalDisposables.forEach((disposable) => disposable.dispose());
     this.showEchoSubscription?.unsubscribe();
     this.linemodeSubscription?.unsubscribe();
+    this.outputJumpSubscription?.unsubscribe();
     this.noticeSubscription?.unsubscribe();
     this.themeSubscription?.unsubscribe();
     this.mxpResetSubscription?.unsubscribe();
@@ -1504,6 +1534,22 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
     this.terminal.attachCustomKeyEventHandler((event) => {
       if (event.type !== 'keydown') {
         return true;
+      }
+
+      // Ctrl+End (Windows/Linux) / Cmd+End (macOS) — jump to current output
+      // and drain the screen-reader queue. Works in every mode, including
+      // line-edit, because the user asked for an unconditional "skip ahead
+      // to the latest" shortcut (see PR notes from blind tester session).
+      const isJumpShortcut =
+        (event.ctrlKey || event.metaKey) &&
+        !event.shiftKey &&
+        !event.altKey &&
+        event.key === 'End';
+
+      if (isJumpShortcut) {
+        this.outputJump.requestJump();
+        event.preventDefault();
+        return false;
       }
 
       // History navigation: Up/Down (with optional Alt for prefix filter) only

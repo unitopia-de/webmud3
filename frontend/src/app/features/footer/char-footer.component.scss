@@ -111,6 +111,15 @@
   }
 }
 
+// "Sprung zum Ende" — sits at the very left of the footer so screen-reader
+// users hit it first when tabbing along, and so the visible text makes the
+// purpose unambiguous (no glyph guessing). Text-sized to match the rest
+// of the footer (13 px) instead of the icon-button default 16 px.
+.jump-button {
+  font-size: 13px;
+  margin-right: 8px;
+}
+
 .select-button {
   margin-right: 4px;
 

@@ -20,6 +20,7 @@ import {
   MxpStatService,
   SelectionModeService,
 } from '@webmud3/frontend/features/terminal';
+import { OutputJumpService } from '@webmud3/frontend/features/terminal/output-jump.service';
 import { FooterMenuService } from './footer-menu.service';
 
 /**
@@ -46,6 +47,16 @@ export class CharFooterComponent implements OnInit, OnDestroy {
   private readonly mxpStats = inject(MxpStatService);
   private readonly mxpEntities = inject(MxpEntityService);
   private readonly selectionMode = inject(SelectionModeService);
+  private readonly outputJump = inject(OutputJumpService);
+
+  /**
+   * Click handler for the "Zum aktuellen Output springen" footer button.
+   * Delegates to OutputJumpService; the actual scroll + screen-reader drain
+   * happens in MudClientComponent.jumpToCurrentOutput.
+   */
+  public onJumpToCurrentOutput(): void {
+    this.outputJump.requestJump();
+  }
 
   /** True when the user has armed the two-tap range selection mode. */
   public readonly selectionActive = computed(

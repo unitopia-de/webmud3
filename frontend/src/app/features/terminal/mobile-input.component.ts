@@ -6,7 +6,6 @@ import {
   Output,
   ViewChild,
 } from '@angular/core';
-import { FormsModule } from '@angular/forms';
 
 /**
  * Bridge interface so the mobile input does not need to import the full
@@ -41,7 +40,7 @@ export interface MobileInputHistoryProvider {
 @Component({
   selector: 'app-mobile-input',
   standalone: true,
-  imports: [FormsModule],
+  imports: [],
   templateUrl: './mobile-input.component.html',
   styleUrls: ['./mobile-input.component.scss'],
 })
@@ -69,6 +68,52 @@ export class MobileInputComponent {
   /** Buffer the user had typed before browse started; restored on Down past end. */
   private historyAnchor = '';
 
+  /**
+   * True while a (Mac/IME) composition is in progress. We deliberately skip
+   * value updates during composition so the partial dead-key state isn't
+   * sent prematurely; the final character lands via `compositionend`.
+   */
+  private composing = false;
+
+  /**
+   * Mirrors the native input value back into our component state. Replaces
+   * the previous `[(ngModel)]` two-way binding, which exhibited a Safari
+   * bug where rapid keystrokes occasionally landed in the DOM but not in
+   * the bound property — leaving the user "stuck" with no apparent typing.
+   * Reading directly from `event.target.value` sidesteps the ngModel
+   * round-trip entirely.
+   */
+  public onInput(event: Event): void {
+    if (this.composing) {
+      // Composition in progress — wait for compositionend before mirroring.
+      return;
+    }
+
+    const target = event.target as HTMLInputElement | null;
+    if (target) {
+      this.value = target.value;
+    }
+
+    this.exitBrowse();
+  }
+
+  public onCompositionStart(): void {
+    this.composing = true;
+  }
+
+  public onCompositionEnd(event: CompositionEvent): void {
+    this.composing = false;
+    // The final composed value is in the input by now — pick it up so we
+    // don't miss a character when the next input event doesn't fire (some
+    // browsers swallow it after composition).
+    const target = event.target as HTMLInputElement | null;
+    if (target) {
+      this.value = target.value;
+    }
+
+    this.exitBrowse();
+  }
+
   public onSubmit(event?: Event): void {
     event?.preventDefault();
 
@@ -80,12 +125,6 @@ export class MobileInputComponent {
 
     // Refocus the field so the soft keyboard stays open for the next command.
     queueMicrotask(() => this.fieldRef.nativeElement.focus());
-  }
-
-  public onInputChange(): void {
-    // Called whenever ngModel updates `value`; we just need to reset history
-    // browse mode so further Up/Down clicks start from the freshly typed text.
-    this.exitBrowse();
   }
 
   public onKeydown(event: KeyboardEvent): void {

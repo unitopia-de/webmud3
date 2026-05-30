@@ -25,14 +25,15 @@
     #field
     class="mobile-input-field"
     [type]="echoVisible ? 'text' : 'password'"
-    [(ngModel)]="value"
+    [value]="value"
     [attr.autocomplete]="echoVisible ? 'off' : 'current-password'"
     autocapitalize="off"
     spellcheck="false"
     aria-label="MUD-Eingabe"
-    enterkeyhint="send"
-    (ngModelChange)="onInputChange()"
+    (input)="onInput($event)"
     (keydown)="onKeydown($event)"
+    (compositionstart)="onCompositionStart()"
+    (compositionend)="onCompositionEnd($event)"
   />
 
   <button
