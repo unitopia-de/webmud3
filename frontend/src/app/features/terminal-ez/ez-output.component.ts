@@ -24,6 +24,7 @@ import {
   MxpStreamFilter,
   MxpTagRouter,
   StreamSegment,
+  TerminalThemeDefinition,
   TerminalThemeService,
 } from '@webmud3/frontend/features/terminal';
 import { OutputJumpService } from '@webmud3/frontend/features/terminal/output-jump.service';
@@ -148,6 +149,17 @@ export class EzOutputComponent implements AfterViewInit, OnDestroy {
       this.liveRegionRef.nativeElement,
       this.historyRegionRef.nativeElement,
       () => this.debugSettings.screenReaderLogging,
+    );
+
+    // Live theme updates: the initial theme above is only a snapshot. When
+    // the user picks a different colour scheme via the footer menu, the
+    // TerminalThemeService emits on theme$ — we apply both `theme` and
+    // `minimumContrastRatio` to the live xterm options. Without this the
+    // EZ terminal kept whatever theme was active at mount time, and a
+    // half-applied switch (background updated, foreground not) happened
+    // because only one of the two options was ever set.
+    this.subscriptions.add(
+      this.terminalThemes.theme$.subscribe((def) => this.applyTheme(def)),
     );
 
     this.subscriptions.add(
@@ -570,5 +582,17 @@ export class EzOutputComponent implements AfterViewInit, OnDestroy {
   private jumpToCurrentOutput(): void {
     this.terminal?.scrollToBottom();
     this.screenReader?.stopAnnouncements();
+  }
+
+  /**
+   * Applies a theme definition to the live xterm instance. Both `theme`
+   * and `minimumContrastRatio` are part of `Terminal.options`, so the
+   * change takes effect immediately without re-creating the terminal.
+   * Mirrors `MudClientComponent.applyTerminalTheme` — keep them in sync.
+   */
+  private applyTheme(def: TerminalThemeDefinition): void {
+    if (!this.terminal) return;
+    this.terminal.options.theme = def.theme;
+    this.terminal.options.minimumContrastRatio = def.minimumContrastRatio;
   }
 }
