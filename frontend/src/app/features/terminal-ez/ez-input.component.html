@@ -1,0 +1,99 @@
+<section class="ez-input" role="region" aria-label="MUD-Eingabe">
+  <h2 class="sr-only">{{ headingText() }}</h2>
+
+  <!--
+    Mode-change announcer. Visually hidden, written to whenever the
+    underlying MUD state flips between default/password/editor.
+    role="status" + aria-live="assertive" so AT picks it up even when
+    the user is interacting with the field below.
+  -->
+  <div
+    class="sr-only"
+    role="status"
+    aria-live="assertive"
+    aria-atomic="true"
+    #modeAnnouncer
+  ></div>
+
+  @switch (mode()) {
+    @case ('password') {
+      <form class="ez-input-form" (submit)="onPasswordSubmit($event)">
+        <label for="ez-pw-field" class="sr-only">Passwort eingeben</label>
+        <input
+          #passwordField
+          id="ez-pw-field"
+          type="password"
+          autocomplete="current-password"
+          autocapitalize="off"
+          autocorrect="off"
+          spellcheck="false"
+          aria-label="Passwort"
+        />
+        <button type="submit" class="primary" aria-label="Passwort senden">
+          Senden
+        </button>
+      </form>
+    }
+    @case ('editor') {
+      <p class="mode-hint" aria-hidden="true">
+        Editor-Modus: jede Zeile wird beim Enter sofort gesendet.
+      </p>
+      <form class="ez-input-form editor" (submit)="onEditorSubmit($event)">
+        <label for="ez-editor-field" class="sr-only">
+          Editor-Zeile eingeben. Enter sendet die aktuelle Zeile sofort.
+        </label>
+        <textarea
+          #editorField
+          id="ez-editor-field"
+          rows="3"
+          autocomplete="off"
+          autocapitalize="off"
+          autocorrect="off"
+          spellcheck="false"
+          aria-label="Editor-Zeile"
+          (keydown)="onEditorKeydown($event)"
+        ></textarea>
+        <button type="submit" class="primary" aria-label="Zeile senden">
+          Zeile senden
+        </button>
+      </form>
+    }
+    @default {
+      <form class="ez-input-form" (submit)="onDefaultSubmit($event)">
+        <label for="ez-input-field" class="sr-only">
+          Befehl eingeben — Enter zum Senden, Umschalt+Enter für neue Zeile.
+        </label>
+        <textarea
+          #defaultField
+          id="ez-input-field"
+          rows="1"
+          autocomplete="off"
+          autocapitalize="off"
+          autocorrect="off"
+          spellcheck="false"
+          aria-label="MUD-Eingabe"
+          aria-multiline="true"
+          (keydown)="onDefaultKeydown($event)"
+          (input)="autoResizeDefault()"
+        ></textarea>
+        <button
+          type="button"
+          class="history"
+          (click)="onHistoryBack()"
+          aria-label="Vorheriger Befehl"
+          title="Vorheriger Befehl"
+        >&#9650;</button>
+        <button
+          type="button"
+          class="history"
+          (click)="onHistoryForward()"
+          aria-label="Nächster Befehl"
+          title="Nächster Befehl"
+        >&#9660;</button>
+        <button type="submit" class="primary" aria-label="Befehl senden">
+          Senden
+        </button>
+      </form>
+    }
+  }
+</section>

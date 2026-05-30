@@ -1,10 +1,12 @@
 <!--
-  EZ-Shell (Phase 2): aktuell nur der Output-Bereich.
-  Eingabezeile (Phase 3), Footer + Window-Container (Phase 5) und der
-  Rest der Feature-Parität (Phase 6–8) werden in den nächsten Schritten
-  ergänzt; siehe SPLITSCREEN_TODO.md.
+  EZ-Shell (Phase 3): Output-Bereich + native Eingabezeile.
+  Footer + Window-Container (Phase 5) und der Rest der Feature-Parität
+  (Phase 6–8) werden in den nächsten Schritten ergänzt;
+  siehe SPLITSCREEN_TODO.md.
 -->
 <app-ez-output></app-ez-output>
+
+<app-ez-input (commit)="onCommit($event)"></app-ez-input>
 
 <nav class="ez-nav">
   <a routerLink="/">Zurück zur klassischen Ansicht</a>
