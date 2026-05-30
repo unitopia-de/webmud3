@@ -11,4 +11,5 @@ export interface IEnvironment {
   readonly telnetKeepAliveDelay: number;
   readonly environment: 'production' | 'development';
   readonly corsAllowList: string[];
+  readonly baseHref: string;
 }

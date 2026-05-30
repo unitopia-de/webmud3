@@ -6,6 +6,33 @@ import path from 'path';
 import { logger } from '../../shared/utils/logger.js';
 import { Environment } from '../environment/environment.js';
 
+/**
+ * Caches the patched index.html so the catch-all handler doesn't have to
+ * touch the filesystem on every request. Loaded lazily on the first hit
+ * — Environment must be initialised before this runs.
+ */
+let cachedIndexHtml: string | null = null;
+
+function loadAndPatchIndexHtml(): string {
+  const env = Environment.getInstance();
+  const indexPath = path.join(env.projectRoot, 'wwwroot/index.html');
+
+  const raw = fs.readFileSync(indexPath, 'utf-8');
+
+  // Replace the build-time `<base href="./" />` with the deployment's
+  // configured base path so the Angular router and document.baseURI
+  // both reflect where the SPA actually lives (e.g. `/webmud3/` when
+  // hosted behind a reverse proxy under that prefix).
+  const patched = raw.replace(
+    /<base\s+href="[^"]*"\s*\/?>/,
+    `<base href="${env.baseHref}" />`,
+  );
+
+  logger.info(`[Routes] index.html patched with baseHref=${env.baseHref}`);
+
+  return patched;
+}
+
 export const useRoutes = (app: Express) => {
   // app.use('/api/auth', authRoutes);
 
@@ -51,18 +78,22 @@ export const useRoutes = (app: Express) => {
   app.get('/*path', (req: Request, res: Response) => {
     logger.info(`[Routes] requested * - delivering index.html`);
 
-    res.sendFile(
-      path.join(Environment.getInstance().projectRoot, 'wwwroot/index.html'),
-      (err) => {
-        if (err) {
-          logger.error('[Routes] Failed to send index.html', {
-            error: err.message,
-            path: req.path,
-          });
+    try {
+      if (cachedIndexHtml === null) {
+        cachedIndexHtml = loadAndPatchIndexHtml();
+      }
 
-          res.sendStatus(500);
-        }
-      },
-    );
+      // The SPA shell must never sit in the HTTP cache — otherwise installed
+      // browsers see stale `<base href>` / asset hashes after a redeploy.
+      res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.type('html').send(cachedIndexHtml);
+    } catch (err) {
+      logger.error('[Routes] Failed to send index.html', {
+        error: err instanceof Error ? err.message : String(err),
+        path: req.path,
+      });
+
+      res.sendStatus(500);
+    }
   });
 };

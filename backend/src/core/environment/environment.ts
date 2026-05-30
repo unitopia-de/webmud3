@@ -26,6 +26,7 @@ export class Environment implements IEnvironment {
   public readonly environment: 'production' | 'development';
   public readonly name: string;
   public readonly corsAllowList: string[];
+  public readonly baseHref: string;
   public readonly logLevel: string;
 
   /**
@@ -93,6 +94,16 @@ export class Environment implements IEnvironment {
             .split(',')
             .map((origin) => origin.trim())
             .filter((origin) => origin.length > 0);
+
+    // Subpath under which the frontend is hosted. Patched into the
+    // <base href> of the served index.html so the Angular router, asset
+    // URLs and document.baseURI all line up. Always ends with a slash
+    // — a stray missing slash makes browsers resolve URLs relative to
+    // the parent directory.
+    const rawBaseHref = String(
+      getEnvironmentVariable('BASE_HREF', false, '/'),
+    );
+    this.baseHref = rawBaseHref.endsWith('/') ? rawBaseHref : `${rawBaseHref}/`;
 
     this.logLevel = String(getEnvironmentVariable('LOG_LEVEL', false, 'debug'));
 
