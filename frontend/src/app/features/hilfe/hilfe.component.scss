@@ -1,0 +1,167 @@
+:host {
+  display: block;
+  min-height: 100vh;
+  overflow-y: auto;
+  background: #1a1a1a;
+  color: #d4d4d4;
+  font-family: system-ui, sans-serif;
+  line-height: 1.5;
+}
+
+.hilfe {
+  max-width: 60rem;
+  margin: 0 auto;
+  padding: 2rem 1.25rem 3rem;
+}
+
+.hilfe-header {
+  h1 {
+    margin: 0 0 0.5rem;
+    font-size: 1.9rem;
+    color: #fff;
+  }
+
+  .lead {
+    margin: 0 0 1.5rem;
+    font-size: 1.05rem;
+    color: #c0c0c0;
+  }
+}
+
+/* Die beiden großen Modus-Weiterleitungen */
+.modes {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+  gap: 1rem;
+  margin-bottom: 2.5rem;
+}
+
+.mode-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding: 1.1rem 1.25rem;
+  text-decoration: none;
+  color: inherit;
+  background: #262626;
+  border: 1px solid #3a3a3a;
+  border-radius: 0.6rem;
+  transition:
+    border-color 0.15s,
+    background 0.15s,
+    transform 0.1s;
+
+  &:hover,
+  &:focus-visible {
+    border-color: #5aa9ff;
+    background: #2d2d2d;
+  }
+
+  &:active {
+    transform: translateY(1px);
+  }
+
+  .mode-title {
+    font-size: 1.15rem;
+    font-weight: 600;
+    color: #fff;
+  }
+
+  .mode-path {
+    font-family: monospace;
+    font-size: 0.9rem;
+    color: #5aa9ff;
+  }
+
+  .mode-desc {
+    font-size: 0.95rem;
+    color: #b8b8b8;
+  }
+}
+
+.funktionen {
+  h2 {
+    font-size: 1.4rem;
+    color: #fff;
+    border-bottom: 1px solid #3a3a3a;
+    padding-bottom: 0.4rem;
+    margin: 0 0 1rem;
+  }
+
+  h3 {
+    font-size: 1.1rem;
+    color: #5aa9ff;
+    margin: 1.5rem 0 0.5rem;
+  }
+
+  ul {
+    margin: 0;
+    padding-left: 1.25rem;
+  }
+
+  li {
+    margin-bottom: 0.5rem;
+  }
+
+  strong {
+    color: #e8e8e8;
+  }
+
+  code {
+    font-family: monospace;
+    background: #333;
+    padding: 0.05rem 0.3rem;
+    border-radius: 0.25rem;
+  }
+}
+
+.shortcuts kbd {
+  display: inline-block;
+  font-family: monospace;
+  font-size: 0.85rem;
+  background: #333;
+  border: 1px solid #4a4a4a;
+  border-bottom-width: 2px;
+  border-radius: 0.3rem;
+  padding: 0.05rem 0.4rem;
+  color: #fff;
+}
+
+.hilfe-footer {
+  margin-top: 2.5rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid #3a3a3a;
+
+  p {
+    margin: 0 0 0.5rem;
+    color: #c0c0c0;
+  }
+
+  nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+}
+
+.back-link {
+  display: inline-block;
+  padding: 0.5rem 1rem;
+  text-decoration: none;
+  color: #fff;
+  background: #2d2d2d;
+  border: 1px solid #3a3a3a;
+  border-radius: 0.4rem;
+
+  &:hover,
+  &:focus-visible {
+    border-color: #5aa9ff;
+    background: #343434;
+  }
+}
+
+/* Sichtbarer Fokus für Tastatur-/Screenreader-Navigation */
+a:focus-visible {
+  outline: 2px solid #5aa9ff;
+  outline-offset: 2px;
+}

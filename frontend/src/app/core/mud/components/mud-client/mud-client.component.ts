@@ -193,6 +193,8 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
   private readonly MOBILE_INPUT_MENU_ID = 'mobile-input';
   /** Switches to the fixed-input splitscreen variant under `/ez`. */
   private readonly SHELL_SWITCH_EZ_MENU_ID = 'shell-switch-ez';
+  /** Opens the static help page (`/hilfe`). */
+  private readonly HILFE_MENU_ID = 'hilfe';
   private readonly RECENTER_MENU_ID = 'windows-recenter';
   private readonly SOUND_MENU_ID = 'sound-enabled';
   /** Parent entry that hosts the five theme radio items as a flyout submenu. */
@@ -591,6 +593,7 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
    */
   ngOnDestroy() {
     this.footerMenu.unregister(this.SHELL_SWITCH_EZ_MENU_ID);
+    this.footerMenu.unregister(this.HILFE_MENU_ID);
     this.footerMenu.unregister(this.MOBILE_INPUT_MENU_ID);
     this.footerMenu.unregister(this.RECENTER_MENU_ID);
     this.footerMenu.unregister(this.SOUND_MENU_ID);
@@ -1984,6 +1987,15 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
       label: 'Eingabezeile (Mobile)',
       checked: this.state.useMobileInput,
       action: () => this.setUseMobileInput(!this.state.useMobileInput),
+    });
+
+    // Help page. Pinned to the bottom of the menu (high order value).
+    this.footerMenu.register({
+      id: this.HILFE_MENU_ID,
+      label: 'Hilfe',
+      order: 900,
+      checked: false,
+      action: () => void this.router.navigate(['/hilfe']),
     });
 
     // Action entry (no checkbox state) — used as a panic button when a

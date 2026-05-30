@@ -1,0 +1,148 @@
+<main class="hilfe">
+  <header class="hilfe-header">
+    <h1>Hilfe – WebMUD3</h1>
+    <p class="lead">
+      WebMUD3 ist ein Web-Client für textbasierte MUDs. Es gibt zwei
+      gleichwertige Eingabe-Modi – wähle den, der für dein Gerät am besten
+      passt.
+    </p>
+  </header>
+
+  <!-- Weiterleitungen zu den beiden Shells -->
+  <nav class="modes" aria-label="Modus wählen">
+    <a class="mode-card" routerLink="/">
+      <span class="mode-title">Klassischer Modus</span>
+      <span class="mode-path">/</span>
+      <span class="mode-desc">
+        Eingabe direkt im Ausgabefenster (xterm). Der bewährte Standard für
+        Desktop und Tastatur.
+      </span>
+    </a>
+
+    <a class="mode-card" routerLink="/ez">
+      <span class="mode-title">EZ-Modus (feste Eingabezeile)</span>
+      <span class="mode-path">/ez</span>
+      <span class="mode-desc">
+        Getrennte, feste Eingabezeile unter der Ausgabe (Splitscreen). Besser
+        für Tablets, Touch und Screenreader – und umgeht den Eingabe-Bug von
+        Mac-Safari/iPad.
+      </span>
+    </a>
+  </nav>
+
+  <!-- Funktionsübersicht -->
+  <section class="funktionen" aria-labelledby="funktionen-heading">
+    <h2 id="funktionen-heading">Funktionen</h2>
+
+    <section aria-labelledby="f-eingabe">
+      <h3 id="f-eingabe">Eingabe &amp; Befehle</h3>
+      <ul>
+        <li>
+          <strong>Befehl senden:</strong> Enter. Im EZ-Modus erzeugt
+          Umschalt+Enter eine neue Zeile.
+        </li>
+        <li>
+          <strong>Befehlshistorie (EZ-Modus):</strong> Pfeil hoch/runter
+          blättert durch zuletzt gesendete Befehle; Alt+Pfeil hoch/runter
+          filtert die Historie nach dem bereits getippten Anfang.
+        </li>
+        <li>
+          <strong>Drei Eingabe-Modi (EZ):</strong> normaler Befehl, Passwort
+          (wird nie angezeigt, geloggt oder gespeichert) und Editor-Zeile –
+          automatisch je nach Spielzustand.
+        </li>
+        <li>
+          <strong>Anklickbare Ausgänge &amp; Objekte:</strong> per MXP
+          markierte Ausgänge und Rauminhalte sind blau unterstrichen und
+          lassen sich direkt anklicken.
+        </li>
+      </ul>
+    </section>
+
+    <section aria-labelledby="f-ausgabe">
+      <h3 id="f-ausgabe">Ausgabe &amp; Darstellung</h3>
+      <ul>
+        <li>
+          <strong>Farbschemata:</strong> Servergenau, Standard, Dunkel, Dunkel
+          auf Schwarz, Hell und High&nbsp;Contrast (über „Farben" im
+          Footer-Menü).
+        </li>
+        <li>
+          <strong>Sprung zum aktuellen Output:</strong> Footer-Button oder
+          Strg/Cmd+Ende springt ans Ende der Ausgabe.
+        </li>
+        <li>
+          <strong>Bereich markieren &amp; kopieren:</strong> „Bereich
+          markieren" (zwei Taps, touch-freundlich) – markierten Text mit
+          Strg/Cmd+C kopieren.
+        </li>
+        <li>
+          <strong>Screenreader-Unterstützung:</strong> Begrüßung, Login-Infos
+          und laufende Ausgabe werden vorgelesen (besonders im EZ-Modus
+          optimiert).
+        </li>
+        <li>
+          <strong>Sound:</strong> Trigger-gesteuerte Klänge an/aus über das
+          Footer-Menü.
+        </li>
+      </ul>
+    </section>
+
+    <section aria-labelledby="f-fenster">
+      <h3 id="f-fenster">Fenster &amp; Werkzeuge</h3>
+      <ul>
+        <li><strong>Karte:</strong> grafische Raumkarte der Umgebung.</li>
+        <li><strong>Inventar:</strong> Anzeige des mitgeführten Besitzes.</li>
+        <li>
+          <strong>Einstellungen:</strong> weitere Optionen (u.&nbsp;a. Sprache
+          /&nbsp;Debug).
+        </li>
+        <li>
+          <strong>Numpad-Konfiguration:</strong> Ziffernblock mit eigenen
+          Befehlen belegen.
+        </li>
+        <li>
+          <strong>Trigger &amp; Sounds:</strong> automatische Reaktionen auf
+          Ausgabetexte einrichten und Klänge verwalten.
+        </li>
+        <li>
+          <strong>Editor &amp; Verzeichnis:</strong> integrierter Texteditor
+          (z.&nbsp;B. für <code>ed</code>) und Dateiliste.
+        </li>
+        <li>
+          <strong>Fenster ins Bild:</strong> holt verschobene Fenster zurück in
+          den sichtbaren Bereich.
+        </li>
+      </ul>
+    </section>
+
+    <section aria-labelledby="f-tasten">
+      <h3 id="f-tasten">Tastenkürzel</h3>
+      <ul class="shortcuts">
+        <li><kbd>Enter</kbd> – Befehl senden</li>
+        <li><kbd>Umschalt</kbd>+<kbd>Enter</kbd> – neue Zeile (EZ-Modus)</li>
+        <li><kbd>↑</kbd> / <kbd>↓</kbd> – Befehlshistorie (EZ-Modus)</li>
+        <li>
+          <kbd>Alt</kbd>+<kbd>↑</kbd> / <kbd>↓</kbd> – Historie nach Anfang
+          gefiltert (EZ-Modus)
+        </li>
+        <li>
+          <kbd>Strg</kbd>/<kbd>Cmd</kbd>+<kbd>Ende</kbd> – Sprung zum aktuellen
+          Output
+        </li>
+        <li>
+          <kbd>Strg</kbd>/<kbd>Cmd</kbd>+<kbd>C</kbd> – markierten Bereich
+          kopieren
+        </li>
+      </ul>
+    </section>
+  </section>
+
+  <footer class="hilfe-footer">
+    <p>Zurück zum Spiel:</p>
+    <nav aria-label="Zurück zum Spiel">
+      <a class="back-link" routerLink="/">Klassischer Modus (/)</a>
+      <a class="back-link" routerLink="/ez">EZ-Modus (/ez)</a>
+    </nav>
+  </footer>
+</main>

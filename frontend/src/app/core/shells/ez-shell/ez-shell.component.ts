@@ -120,6 +120,9 @@ export class EzShellComponent implements OnInit, AfterViewInit, OnDestroy {
   // EZ-specific: replaces MudClient's "Eingabezeile (Mobile)" entry —
   // mobile input has no purpose here because `/ez` IS the native input.
   private readonly SHELL_SWITCH_MENU_ID = 'shell-switch-classic';
+  // Opens the static help page (`/hilfe`). Same id in both shells; only one
+  // shell is mounted at a time, so there is no duplicate registration.
+  private readonly HILFE_MENU_ID = 'hilfe';
 
   private readonly subscriptions = new Subscription();
 
@@ -150,6 +153,7 @@ export class EzShellComponent implements OnInit, AfterViewInit, OnDestroy {
     this.footerMenu.unregister(this.SOUND_MENU_ID);
     this.footerMenu.unregister(this.THEME_PARENT_MENU_ID);
     this.footerMenu.unregister(this.SHELL_SWITCH_MENU_ID);
+    this.footerMenu.unregister(this.HILFE_MENU_ID);
     // No mudService.disconnect — the user expects the telnet session to
     // survive a route switch to `/`. Explicit disconnect lives in the
     // ConnectionMenuService (footer menu).
@@ -202,6 +206,15 @@ export class EzShellComponent implements OnInit, AfterViewInit, OnDestroy {
       label: 'Eingabe-Modus: klassisch',
       checked: false,
       action: () => void this.router.navigate(['/']),
+    });
+
+    // Help page. Pinned to the bottom of the menu (high order value).
+    this.footerMenu.register({
+      id: this.HILFE_MENU_ID,
+      label: 'Hilfe',
+      order: 900,
+      checked: false,
+      action: () => void this.router.navigate(['/hilfe']),
     });
 
     this.footerMenu.register({
