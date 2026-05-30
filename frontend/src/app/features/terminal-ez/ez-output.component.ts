@@ -123,6 +123,18 @@ export class EzOutputComponent implements AfterViewInit, OnDestroy {
   private resizeListener?: () => void;
   private keydownListener?: (event: KeyboardEvent) => void;
 
+  // Screen-reader announcement coalescing. The live region is assertive, so
+  // a new announcement interrupts the previous one — when the MUD sends the
+  // welcome banner as several chunks in quick succession, only the last would
+  // be read. We batch chunks that arrive within SR_COALESCE_MS into a single
+  // announcement. The timer is throttle-style (started by the first chunk,
+  // not reset by later ones), so latency is bounded to SR_COALESCE_MS and a
+  // continuous stream can't starve the announcement. The history region is
+  // filled per-chunk, immediately, independent of this.
+  private srAnnounceBuffer = '';
+  private srAnnounceTimer?: number;
+  private readonly SR_COALESCE_MS = 250;
+
   // --- Touch range-selection (two-tap-then-drag) -----------------------------
   // Ported 1:1 from MudClientComponent so `/ez` has the same tablet-friendly
   // selection UX. Classic stays untouched, so the logic is duplicated here on
@@ -368,6 +380,7 @@ export class EzOutputComponent implements AfterViewInit, OnDestroy {
     for (const d of this.terminalDisposables) {
       d.dispose();
     }
+    this.cancelPendingAnnouncement();
     this.screenReader?.dispose();
     this.terminal?.dispose();
   }
@@ -489,9 +502,42 @@ export class EzOutputComponent implements AfterViewInit, OnDestroy {
     }
 
     if (announcement.length > 0) {
-      this.screenReader?.announce(announcement);
+      // History is filled per-chunk immediately (line-by-line H-navigation);
+      // the live announcement is coalesced so a multi-chunk welcome banner is
+      // read as one block instead of each chunk interrupting the previous.
+      this.queueAnnouncement(announcement);
       this.screenReader?.appendToHistory(announcement);
     }
+  }
+
+  /**
+   * Buffers an announcement and flushes the batch after SR_COALESCE_MS.
+   * Throttle-style: the first chunk arms the timer, later chunks within the
+   * window just accumulate, so a burst (e.g. the 3-block welcome banner)
+   * becomes a single assertive announcement.
+   */
+  private queueAnnouncement(text: string): void {
+    this.srAnnounceBuffer += text;
+    if (this.srAnnounceTimer !== undefined) {
+      return;
+    }
+    this.srAnnounceTimer = window.setTimeout(() => {
+      this.srAnnounceTimer = undefined;
+      const buffered = this.srAnnounceBuffer;
+      this.srAnnounceBuffer = '';
+      if (buffered) {
+        this.screenReader?.announce(buffered);
+      }
+    }, this.SR_COALESCE_MS);
+  }
+
+  /** Drops any pending coalesced announcement (e.g. on output-jump). */
+  private cancelPendingAnnouncement(): void {
+    if (this.srAnnounceTimer !== undefined) {
+      window.clearTimeout(this.srAnnounceTimer);
+      this.srAnnounceTimer = undefined;
+    }
+    this.srAnnounceBuffer = '';
   }
 
   /**
@@ -727,6 +773,9 @@ export class EzOutputComponent implements AfterViewInit, OnDestroy {
 
   private jumpToCurrentOutput(): void {
     this.terminal?.scrollToBottom();
+    // Drop any batch still waiting to be announced — the user explicitly
+    // asked to skip ahead to the latest output.
+    this.cancelPendingAnnouncement();
     this.screenReader?.stopAnnouncements();
   }
 

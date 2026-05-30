@@ -18,19 +18,22 @@
 <h2 id="ez-output-heading" class="sr-only">Spielausgabe</h2>
 
 <!--
-  Live-Ansage-Region. Bewusst auf die EXAKT gleiche Konfiguration wie der
-  funktionierende Modus-Wechsel-Announcer in EzInput gesetzt
-  (role=status, aria-live=assertive, aria-atomic=true) — iOS VoiceOver liest
-  diese Kombination zuverlässig vor, role="log"+polite dagegen nicht.
-  Geschrieben wird im 'replace'-Modus (clear → microtask → set) durch
-  MudScreenReaderAnnouncer. Assertive bedeutet: neue Ausgabe unterbricht die
-  vorherige Ansage — für blinde Spieler gewollt (sie hören stets das Neueste);
-  der vollständige Mitschnitt bleibt über die sr-history (H-Navigation).
+  Live-Ansage-Region. role="status" + replace-Schreibmuster (clear →
+  microtask → set, via MudScreenReaderAnnouncer) — diese Basis liest iOS
+  VoiceOver zuverlässig vor (role="log"+append wurde verschluckt).
+
+  aria-live BEWUSST "polite", nicht "assertive": polite UNTERBRICHT eine
+  laufende Ansage NICHT, sondern wartet, bis der Screenreader idle ist.
+  Mit assertive wurde jede neue Aktion (jemand redet, Eule tanzt, AP/ZP)
+  über das gelegt, was der blinde Tester gerade las — inkl. seines eigenen
+  "puffer rede". Polite + das ~250ms-Coalescing in EzOutput bündelt Bursts
+  und lässt den Nutzer ausreden. Vollständiger Mitschnitt: sr-history
+  (H-Navigation) + "Sprung zum Ende".
 -->
 <div
   class="sr-announcer"
   role="status"
-  aria-live="assertive"
+  aria-live="polite"
   aria-atomic="true"
   #liveRegionRef
 ></div>
