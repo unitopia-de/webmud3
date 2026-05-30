@@ -129,16 +129,33 @@ export class EzOutputComponent implements AfterViewInit, OnDestroy {
   // One-time startup announcement. iOS VoiceOver reads the FIRST polite
   // update at page load unreliably (region not yet registered as "live",
   // and/or VO is busy reading the auto-focused input's label). A fixed
-  // short delay turned out to be pure luck (~1 in 5). So instead of the
-  // polite region, we collect the whole startup burst for a longer window
-  // and then force it through ONCE via the assertive startup region
-  // (`#startupRegionRef`) — the exact mechanism (assertive + role=status +
-  // replace) that announces reliably for the EzInput mode-announcer.
-  // After this single flush everything is immediate + polite (classic).
+  // short delay turned out to be pure luck and also clipped the burst: the
+  // post-login "du warst zuletzt …" block + the initial room description
+  // arrive over several chunks and ran past a fixed window. So instead we
+  // BUFFER the whole burst and flush it ONCE — when the output goes quiet
+  // (debounce = the server finished the block incl. prompt and is waiting
+  // for input), or at the latest after a hard cap. The flush goes through
+  // the assertive startup region (`#startupRegionRef`) — the exact mechanism
+  // (assertive + role=status + replace) that announces reliably for the
+  // EzInput mode-announcer. After the flush everything is immediate + polite
+  // (classic). Re-armed on the login transition (see showEcho$).
   private srPrimed = false;
   private srPrimeBuffer = '';
-  private srPrimeTimer?: number;
-  private readonly SR_PRIME_MS = 1200;
+  // Fires once output has been quiet for this long → the burst is complete,
+  // flush it. Reset on every buffered chunk so a multi-chunk burst keeps
+  // accumulating until the server actually pauses (prompt shown).
+  private srSettleTimer?: number;
+  private readonly SR_SETTLE_MS = 600;
+  // Hard cap: if the server never pauses (continuous stream), flush anyway
+  // and fall back to the polite path so we don't buffer forever.
+  private srMaxTimer?: number;
+  private readonly SR_MAX_MS = 6000;
+
+  // Last TELNET ECHO state seen on `showEcho$`. Used to detect the login
+  // transition (echo off → on) and re-arm the startup buffering so the
+  // post-login "du warst zuletzt eingeloggt von …" block + initial room are
+  // forced through the assertive startup region (see the showEcho$ sub).
+  private lastEcho?: boolean;
 
   // --- Touch range-selection (two-tap-then-drag) -----------------------------
   // Ported 1:1 from MudClientComponent so `/ez` has the same tablet-friendly
@@ -250,16 +267,9 @@ export class EzOutputComponent implements AfterViewInit, OnDestroy {
 
     // Start the one-time startup window (see field comment). When it
     // elapses, force the buffered startup text through the assertive startup
-    // region, then switch to immediate polite announcements (classic).
-    this.srPrimeTimer = window.setTimeout(() => {
-      this.srPrimeTimer = undefined;
-      this.srPrimed = true;
-      const buffered = this.srPrimeBuffer;
-      this.srPrimeBuffer = '';
-      if (buffered) {
-        this.announceStartup(buffered);
-      }
-    }, this.SR_PRIME_MS);
+    // region, then switch to immediate polite announcements (classic). The
+    // same window is re-armed on the login transition (see showEcho$ below).
+    this.rearmStartupPriming();
 
     // Live theme updates: the initial theme above is only a snapshot. When
     // the user picks a different colour scheme via the footer menu, the
@@ -334,6 +344,25 @@ export class EzOutputComponent implements AfterViewInit, OnDestroy {
       }),
     );
 
+    // Re-prime the assertive startup window on the login transition. The
+    // server turns TELNET ECHO off for the password prompt and back on once
+    // the credentials are accepted — so an echo edge `false → true` means the
+    // player just logged in, and the MUD immediately sends the "du warst
+    // zuletzt eingeloggt von …" block. On iOS VoiceOver that post-login burst
+    // is swallowed by the polite region for the SAME reason the pre-login
+    // banner is at page load: it lands on a focus/render transition (the
+    // password <form> was just submitted, the input @switch re-rendered, VO
+    // is busy). So we reuse the exact one-time assertive flush
+    // (#startupRegionRef) that already fixed the page-load banner.
+    this.subscriptions.add(
+      this.mudService.showEcho$.subscribe((echoOn) => {
+        if (this.lastEcho === false && echoOn === true) {
+          this.rearmStartupPriming();
+        }
+        this.lastEcho = echoOn;
+      }),
+    );
+
     // Wire the "jump to current output" trigger (footer button +
     // Ctrl+End / Cmd+End shortcut) to xterm scrolling and SR queue
     // draining. The SR history region is left untouched on purpose so
@@ -394,9 +423,7 @@ export class EzOutputComponent implements AfterViewInit, OnDestroy {
     for (const d of this.terminalDisposables) {
       d.dispose();
     }
-    if (this.srPrimeTimer !== undefined) {
-      window.clearTimeout(this.srPrimeTimer);
-    }
+    this.clearStartupTimers();
     this.screenReader?.dispose();
     this.terminal?.dispose();
   }
@@ -519,12 +546,15 @@ export class EzOutputComponent implements AfterViewInit, OnDestroy {
 
     if (announcement.length > 0) {
       // Live announcement: immediate once primed (classic behaviour), or
-      // buffered during the startup-priming window so iOS VoiceOver doesn't
-      // swallow the very first announcement (the pre-login banner).
+      // buffered during the startup window so iOS VoiceOver doesn't swallow
+      // the first burst (pre-login banner, and the post-login block + room).
+      // Each buffered chunk pushes back the settle timer so the whole burst
+      // is collected until the server pauses (prompt shown).
       if (this.srPrimed) {
         this.screenReader?.announce(announcement);
       } else {
         this.srPrimeBuffer += announcement;
+        this.scheduleStartupSettle();
       }
       // History is always filled per-chunk (line-by-line H-navigation).
       this.screenReader?.appendToHistory(announcement);
@@ -776,6 +806,72 @@ export class EzOutputComponent implements AfterViewInit, OnDestroy {
    * and pushes the welcome banner through. This is ONLY the startup flush;
    * normal output stays on the polite region.
    */
+  /**
+   * (Re-)opens the assertive startup buffering phase. Sets `srPrimed = false`,
+   * drops any buffered text and arms the hard-cap timer. From here every
+   * announcement is collected into `srPrimeBuffer` (see transformAndWrite);
+   * the burst is flushed when output goes quiet (`scheduleStartupSettle`) or
+   * at the latest after `SR_MAX_MS`. The flush forces the whole text through
+   * the assertive `#startupRegionRef` once, then `srPrimed = true` returns to
+   * the immediate polite (classic) path.
+   *
+   * Called twice: once at mount (page-load pre-login banner) and again on the
+   * login transition (echo off → on, post-login block + initial room). Both
+   * are focus/render transitions where iOS VoiceOver swallows a polite update,
+   * so both need the forced assertive flush.
+   */
+  private rearmStartupPriming(): void {
+    this.clearStartupTimers();
+    this.srPrimed = false;
+    this.srPrimeBuffer = '';
+    this.srMaxTimer = window.setTimeout(
+      () => this.flushStartupBuffer(),
+      this.SR_MAX_MS,
+    );
+  }
+
+  /**
+   * (Re)schedules the settle timer. Called on every buffered chunk: as long as
+   * output keeps arriving the flush is pushed back, so the entire burst is
+   * collected. When the server pauses (prompt shown, waiting for input) the
+   * timer finally fires and the buffer is flushed.
+   */
+  private scheduleStartupSettle(): void {
+    if (this.srSettleTimer !== undefined) {
+      window.clearTimeout(this.srSettleTimer);
+    }
+    this.srSettleTimer = window.setTimeout(
+      () => this.flushStartupBuffer(),
+      this.SR_SETTLE_MS,
+    );
+  }
+
+  /**
+   * Flushes the buffered startup burst through the assertive region once and
+   * switches back to the immediate polite path. Idempotent: clears both timers
+   * so a settle/cap race only flushes once.
+   */
+  private flushStartupBuffer(): void {
+    this.clearStartupTimers();
+    this.srPrimed = true;
+    const buffered = this.srPrimeBuffer;
+    this.srPrimeBuffer = '';
+    if (buffered) {
+      this.announceStartup(buffered);
+    }
+  }
+
+  private clearStartupTimers(): void {
+    if (this.srSettleTimer !== undefined) {
+      window.clearTimeout(this.srSettleTimer);
+      this.srSettleTimer = undefined;
+    }
+    if (this.srMaxTimer !== undefined) {
+      window.clearTimeout(this.srMaxTimer);
+      this.srMaxTimer = undefined;
+    }
+  }
+
   private announceStartup(raw: string): void {
     const text = this.screenReader?.normalizeForComparison(raw) ?? raw;
     if (!text) return;
