@@ -141,21 +141,44 @@ export class EzOutputComponent implements AfterViewInit, OnDestroy {
   // (classic). Re-armed on the login transition (see showEcho$).
   private srPrimed = false;
   private srPrimeBuffer = '';
-  // Fires once output has been quiet for this long → the burst is complete,
+  // Fires once output has been quiet for long enough → the burst is complete,
   // flush it. Reset on every buffered chunk so a multi-chunk burst keeps
-  // accumulating until the server actually pauses (prompt shown).
+  // accumulating until the server actually pauses. The delay depends on the
+  // phase (see scheduleStartupSettle):
+  //  - Page-load (mount): prompt-aware. The welcome banner ends with the name
+  //    prompt and the server then waits for the user to type their name, so a
+  //    prompt = "done" → flush quickly (SR_SETTLE_PROMPT_MS); a complete line
+  //    means more may follow → wait a bit (SR_SETTLE_LINE_MS).
+  //  - Login: a UNIFORM, generous quiet window that ignores prompts. Here the
+  //    server sends the block in several parts separated by intermediate
+  //    prompts WITHOUT waiting for input ("du warst zuletzt …" → room →
+  //    prompt → "erwartete Spieler …" → prompt), so a prompt is NOT a "done"
+  //    marker. We only flush once it is genuinely quiet, so the entire login
+  //    block lands in one announcement and nothing arrives afterwards to
+  //    overtake VoiceOver mid-read (observed: the "klatsche" line overtook a
+  //    too-early flush).
   private srSettleTimer?: number;
-  private readonly SR_SETTLE_MS = 600;
+  private readonly SR_SETTLE_PROMPT_MS = 500;
+  private readonly SR_SETTLE_LINE_MS = 1800;
+  private readonly SR_SETTLE_LOGIN_MS = 2500;
   // Hard cap: if the server never pauses (continuous stream), flush anyway
   // and fall back to the polite path so we don't buffer forever.
   private srMaxTimer?: number;
-  private readonly SR_MAX_MS = 6000;
-
-  // Last TELNET ECHO state seen on `showEcho$`. Used to detect the login
-  // transition (echo off → on) and re-arm the startup buffering so the
-  // post-login "du warst zuletzt eingeloggt von …" block + initial room are
-  // forced through the assertive startup region (see the showEcho$ sub).
-  private lastEcho?: boolean;
+  private readonly SR_MAX_MS = 10000;
+  // Which region the buffered burst is flushed through.
+  //  - Page-load (pre-login banner): assertive `#startupRegionRef`. At mount
+  //    there is no competing focus change, and the polite region is swallowed
+  //    by VoiceOver before it is registered as live — assertive wins.
+  //  - Login transition: POLITE (classic append). Right after the password is
+  //    submitted the input `@switch` swaps the password <input> for the
+  //    default <textarea>; focus moves and VoiceOver reads the new field's
+  //    label, which preempts an assertive announcement (observed: the
+  //    post-login "du warst zuletzt …" block + room were lost, while the
+  //    later polite "erwartete Spieler …" line was heard). Buffering until the
+  //    burst settles already defers the flush past that focus change, so a
+  //    polite append is heard reliably — same channel that works in normal
+  //    play.
+  private srFlushAssertive = true;
 
   // --- Touch range-selection (two-tap-then-drag) -----------------------------
   // Ported 1:1 from MudClientComponent so `/ez` has the same tablet-friendly
@@ -269,7 +292,7 @@ export class EzOutputComponent implements AfterViewInit, OnDestroy {
     // elapses, force the buffered startup text through the assertive startup
     // region, then switch to immediate polite announcements (classic). The
     // same window is re-armed on the login transition (see showEcho$ below).
-    this.rearmStartupPriming();
+    this.rearmStartupPriming(true);
 
     // Live theme updates: the initial theme above is only a snapshot. When
     // the user picks a different colour scheme via the footer menu, the
@@ -344,24 +367,13 @@ export class EzOutputComponent implements AfterViewInit, OnDestroy {
       }),
     );
 
-    // Re-prime the assertive startup window on the login transition. The
-    // server turns TELNET ECHO off for the password prompt and back on once
-    // the credentials are accepted — so an echo edge `false → true` means the
-    // player just logged in, and the MUD immediately sends the "du warst
-    // zuletzt eingeloggt von …" block. On iOS VoiceOver that post-login burst
-    // is swallowed by the polite region for the SAME reason the pre-login
-    // banner is at page load: it lands on a focus/render transition (the
-    // password <form> was just submitted, the input @switch re-rendered, VO
-    // is busy). So we reuse the exact one-time assertive flush
-    // (#startupRegionRef) that already fixed the page-load banner.
-    this.subscriptions.add(
-      this.mudService.showEcho$.subscribe((echoOn) => {
-        if (this.lastEcho === false && echoOn === true) {
-          this.rearmStartupPriming();
-        }
-        this.lastEcho = echoOn;
-      }),
-    );
+    // Note: the post-login block is buffered via primeForLogin(), which the
+    // shell calls on password submit — NOT via a TELNET ECHO edge. On at least
+    // one MUD the server sends the whole "du warst zuletzt eingeloggt …" block
+    // + room BEFORE re-enabling echo, so an echo-edge trigger fires too late
+    // and misses it; an unguarded one could also re-arm during normal play and
+    // make VoiceOver interrupt gameplay. The user's password submit is the
+    // reliable early signal.
 
     // Wire the "jump to current output" trigger (footer button +
     // Ctrl+End / Cmd+End shortcut) to xterm scrolling and SR queue
@@ -439,6 +451,21 @@ export class EzOutputComponent implements AfterViewInit, OnDestroy {
    * passwords and editor lines are not echoed (passwords for obvious
    * reasons; editor lines because the server echoes them itself).
    */
+  /**
+   * Starts the assertive-startup buffering for the post-login block. Called by
+   * the shell the moment the user submits their password — i.e. BEFORE the
+   * server's response arrives. This is deliberately not driven by the TELNET
+   * ECHO edge: on at least one MUD the server sends the whole "du warst zuletzt
+   * eingeloggt …" block + room description FIRST and only re-enables echo
+   * afterwards, so an echo-edge trigger fires too late and misses the block.
+   * Triggering on the user's own password submit captures everything from the
+   * login attempt onward. Flushes polite (see srFlushAssertive) once the burst
+   * settles, so the whole login output lands in one uninterrupted announcement.
+   */
+  public primeForLogin(): void {
+    this.rearmStartupPriming(false);
+  }
+
   public writeLocalEcho(line: string): void {
     if (!this.terminal) return;
     this.terminal.write(`${line}\r\n`);
@@ -820,10 +847,11 @@ export class EzOutputComponent implements AfterViewInit, OnDestroy {
    * are focus/render transitions where iOS VoiceOver swallows a polite update,
    * so both need the forced assertive flush.
    */
-  private rearmStartupPriming(): void {
+  private rearmStartupPriming(assertive: boolean): void {
     this.clearStartupTimers();
     this.srPrimed = false;
     this.srPrimeBuffer = '';
+    this.srFlushAssertive = assertive;
     this.srMaxTimer = window.setTimeout(
       () => this.flushStartupBuffer(),
       this.SR_MAX_MS,
@@ -840,9 +868,24 @@ export class EzOutputComponent implements AfterViewInit, OnDestroy {
     if (this.srSettleTimer !== undefined) {
       window.clearTimeout(this.srSettleTimer);
     }
+    let delay: number;
+    if (this.srFlushAssertive) {
+      // Page-load (welcome banner). Prompt-aware: a trailing prompt means the
+      // server is waiting for the user's name → flush quickly; a complete line
+      // means more may follow → wait a bit.
+      const endsOnCompleteLine = /\n[^\S\r\n]*$/.test(this.srPrimeBuffer);
+      delay = endsOnCompleteLine
+        ? this.SR_SETTLE_LINE_MS
+        : this.SR_SETTLE_PROMPT_MS;
+    } else {
+      // Login block. Intermediate prompts are NOT "done" markers here, so we
+      // ignore them and wait for a genuine pause — the whole block (incl. the
+      // "klatsche" tail after an intermediate prompt) must land in one flush.
+      delay = this.SR_SETTLE_LOGIN_MS;
+    }
     this.srSettleTimer = window.setTimeout(
       () => this.flushStartupBuffer(),
-      this.SR_SETTLE_MS,
+      delay,
     );
   }
 
@@ -856,8 +899,17 @@ export class EzOutputComponent implements AfterViewInit, OnDestroy {
     this.srPrimed = true;
     const buffered = this.srPrimeBuffer;
     this.srPrimeBuffer = '';
-    if (buffered) {
+    if (!buffered) {
+      return;
+    }
+    if (this.srFlushAssertive) {
+      // Page-load banner: force through the assertive startup region.
       this.announceStartup(buffered);
+    } else {
+      // Login block: polite append (classic). The settle delay has already
+      // carried us past the input @switch focus change, so VoiceOver reads
+      // this just like normal play output.
+      this.screenReader?.announce(buffered);
     }
   }
 

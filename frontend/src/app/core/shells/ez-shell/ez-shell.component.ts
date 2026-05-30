@@ -162,6 +162,13 @@ export class EzShellComponent implements OnInit, AfterViewInit, OnDestroy {
         // SecureString path: never echo, never log, never persist.
         // Passwords have no business in the localStorage backlog.
         this.mudService.sendMessage({ value: submission.value });
+        // Start buffering the post-login block NOW, before the server
+        // responds. The server sends "du warst zuletzt eingeloggt …" + room
+        // before re-enabling echo, so an echo-edge trigger inside EzOutput
+        // would fire too late and miss it. The submit is the reliable early
+        // signal. EzOutput collects the whole burst and announces it once it
+        // settles, so VoiceOver reads it uninterrupted.
+        this.ezOutput.primeForLogin();
         return;
 
       case 'default':
