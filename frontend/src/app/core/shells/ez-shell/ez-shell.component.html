@@ -1,13 +1,16 @@
 <!--
-  EZ-Shell (Phase 3): Output-Bereich + native Eingabezeile.
-  Footer + Window-Container (Phase 5) und der Rest der Feature-Parität
-  (Phase 6–8) werden in den nächsten Schritten ergänzt;
-  siehe SPLITSCREEN_TODO.md.
+  EZ-Shell (Phase 5): Output + native Eingabezeile + Footer + Windows.
+  Der Wechsel zurück zu `/` läuft jetzt über das Footer-Menü
+  ("Eingabe-Modus: klassisch"); der frühere ez-nav-Link entfällt damit.
+  MXP/Trigger/Sound-Pipeline und Output-Backlog-Re-Injection folgen
+  in Phase 6 bzw. 8.
 -->
 <app-ez-output></app-ez-output>
 
 <app-ez-input (commit)="onCommit($event)"></app-ez-input>
 
-<nav class="ez-nav">
-  <a routerLink="/">Zurück zur klassischen Ansicht</a>
-</nav>
+<app-char-footer></app-char-footer>
+
+<!-- Windows are an overlay; the container positions them absolutely so
+     they float above the rest of the shell. -->
+<app-window-container></app-window-container>

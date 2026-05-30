@@ -1,6 +1,9 @@
-// Column layout: output fills the remaining viewport, nav docks at the bottom.
-// Mirrors the classic shell's vertical flex so the AppComponent's outlet
-// assignment works out without further styling.
+// Column layout: output fills the remaining viewport, input docks above
+// the footer, footer docks at the bottom. Mirrors the classic shell so
+// the AppComponent's outlet assignment works out without further styling.
+//
+// Window-container is positioned absolutely by its own component; no
+// flex slot here.
 :host {
   display: flex;
   flex-direction: column;
@@ -22,19 +25,6 @@ app-ez-input {
   flex: 0 0 auto;
 }
 
-.ez-nav {
+app-char-footer {
   flex: 0 0 auto;
-  padding: 8px 16px;
-  border-top: 1px solid #333;
-  background: #181818;
-
-  a {
-    color: #4ec9b0;
-    text-decoration: none;
-
-    &:hover,
-    &:focus-visible {
-      text-decoration: underline;
-    }
-  }
 }
