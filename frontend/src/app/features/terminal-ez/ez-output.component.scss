@@ -1,0 +1,60 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1 1 0;
+  position: relative;
+
+  // The h2 is visible (not sr-only) so sighted users see the section label
+  // too — accessible heading hierarchy at the same time. Kept compact to
+  // avoid eating vertical space the terminal needs.
+  .ez-output-heading {
+    margin: 0;
+    padding: 4px 8px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #ddd;
+    background: #1e1e1e;
+    flex: 0 0 auto;
+  }
+
+  .ez-mud-output {
+    flex: 1 1 0;
+    background-color: black;
+    min-height: 0;
+    overflow: hidden;
+    padding-left: 8px;
+    position: relative;
+    z-index: 1;
+  }
+
+  // Screenreader-only live region — visually hidden but readable by AT.
+  // Same clip-path technique as MudClientComponent so the two shells
+  // behave identically for assistive tech.
+  .sr-announcer {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: pre-wrap;
+    border: 0;
+  }
+
+  // History region — sits behind the terminal, transparent text, but
+  // structured so screen readers can walk it with the H key.
+  .sr-history {
+    min-height: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 0;
+    color: transparent;
+    background: transparent;
+  }
+}

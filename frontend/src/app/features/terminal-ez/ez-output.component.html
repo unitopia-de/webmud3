@@ -1,0 +1,35 @@
+<!--
+  Screenreader-Pipeline (drei Regionen, analog zu MudClientComponent):
+   - sr-announcer    : aktive Live-Ansagen (aria-live=polite)
+   - sr-history      : statische Verlauf-Region für H-Tasten-Navigation
+   - Terminal-Anzeige selbst ist visuell, für sehende Benutzer.
+
+  Eine Eingabe-Region (sr-input) wird hier bewusst NICHT eingebaut — die
+  Eingabe in der EZ-Shell ist ab Phase 3 ein natives <textarea> /
+  <input type="password">, das der Screenreader vom Betriebssystem aus
+  ohnehin schon vorliest.
+-->
+<h2 id="ez-output-heading" class="ez-output-heading">Spielausgabe</h2>
+
+<div
+  class="sr-announcer"
+  role="log"
+  aria-live="polite"
+  aria-relevant="additions text"
+  aria-atomic="false"
+  #liveRegionRef
+></div>
+
+<div
+  class="sr-history"
+  aria-label="Ausgabe"
+  role="log"
+  aria-live="off"
+  #historyRegionRef
+></div>
+
+<div
+  class="ez-mud-output"
+  aria-labelledby="ez-output-heading"
+  #terminalRef
+></div>

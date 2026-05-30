@@ -1,25 +1,36 @@
-// Same flex behaviour as the classic shell so the AppComponent's column
-// layout assigns the remaining viewport space to this stub.
+// Column layout: output fills the remaining viewport, nav docks at the bottom.
+// Mirrors the classic shell's vertical flex so the AppComponent's outlet
+// assignment works out without further styling.
 :host {
   display: flex;
   flex-direction: column;
   flex: 1 1 0;
   min-height: 0;
+  background: #1e1e1e;
+  color: #ddd;
+  font-family: sans-serif;
 }
 
-.ez-stub {
-  padding: 24px;
-  font-family: sans-serif;
-  color: #ddd;
-  background: #1e1e1e;
+app-ez-output {
   flex: 1 1 0;
-  overflow: auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
 
-  h1 {
-    margin-top: 0;
-  }
+.ez-nav {
+  flex: 0 0 auto;
+  padding: 8px 16px;
+  border-top: 1px solid #333;
+  background: #181818;
 
   a {
     color: #4ec9b0;
+    text-decoration: none;
+
+    &:hover,
+    &:focus-visible {
+      text-decoration: underline;
+    }
   }
 }
