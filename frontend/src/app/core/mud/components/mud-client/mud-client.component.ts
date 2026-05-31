@@ -20,6 +20,7 @@ import { MudService } from '../../services/mud.service';
 import { MudNoticeService } from '../../services/mud-notice.service';
 import { SecureString } from '@webmud3/frontend/shared/types/secure-string';
 import { OutputHistoryService } from '@webmud3/frontend/shared/services/output-history.service';
+import { namespacedStorage } from '@webmud3/frontend/shared/utils/storage-namespace';
 import { DebugSettingsService } from '@webmud3/frontend/features/debug/debug-settings.service';
 import { hexDump } from '@webmud3/frontend/features/debug/hex-dump';
 import { FooterMenuService } from '@webmud3/frontend/features/footer/footer-menu.service';
@@ -78,6 +79,32 @@ import {
  * so the font size is sized down on narrow viewports until 80 columns fit.
  */
 const TARGET_COLUMNS = 80;
+
+/**
+ * localStorage suffix for the "Eingabezeile (Mobile)" footer toggle, so the
+ * choice survives reloads / app restarts like the sound + theme preferences.
+ */
+const MOBILE_INPUT_STORAGE_SUFFIX = 'webmud3-mobile-input';
+
+/**
+ * Resolves the initial mobile-input setting: a persisted choice wins; without
+ * one, touch devices default to the native single-line input (so Android / iOS
+ * soft keyboards behave correctly) while desktop starts on the xterm input.
+ */
+function resolveInitialMobileInput(): boolean {
+  const stored = namespacedStorage.get(MOBILE_INPUT_STORAGE_SUFFIX);
+  if (stored === '1' || stored === 'true') {
+    return true;
+  }
+  if (stored === '0' || stored === 'false') {
+    return false;
+  }
+  return (
+    typeof window !== 'undefined' &&
+    typeof window.matchMedia === 'function' &&
+    window.matchMedia('(pointer: coarse)').matches
+  );
+}
 
 /**
  * Approximate ratio of a monospaced glyph's advance width to the font size.
@@ -309,13 +336,10 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
     showEcho: true,
     localEchoEnabled: true,
     terminalReady: false,
-    // Touch devices get the native single-line input by default so Android /
-    // iOS soft keyboards behave correctly. Desktop users can opt in via the
-    // footer menu.
-    useMobileInput:
-      typeof window !== 'undefined' &&
-      typeof window.matchMedia === 'function' &&
-      window.matchMedia('(pointer: coarse)').matches,
+    // Persisted choice wins; otherwise touch devices get the native
+    // single-line input by default (soft-keyboard friendliness), desktop the
+    // xterm input. See resolveInitialMobileInput.
+    useMobileInput: resolveInitialMobileInput(),
   };
   private lastViewportSize?: { columns: number; rows: number };
 
@@ -820,6 +844,11 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
    * footer-menu entry so desktop users can opt in.
    */
   private setUseMobileInput(enabled: boolean): void {
+    // Persist the choice either way so it survives reloads / app restarts,
+    // even if the in-memory state already matches (e.g. first explicit toggle
+    // that confirms the touch default).
+    namespacedStorage.set(MOBILE_INPUT_STORAGE_SUFFIX, enabled ? '1' : '0');
+
     if (this.state.useMobileInput === enabled) {
       this.footerMenu.setChecked(this.MOBILE_INPUT_MENU_ID, enabled);
       return;
