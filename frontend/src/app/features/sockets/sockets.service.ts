@@ -89,6 +89,9 @@ export class SocketsService {
       transports: ['websocket', 'polling'],
       reconnectionAttempts: Infinity,
       reconnection: true,
+      // Shorter first retry (default is 1000ms) so a reconnect after a tab
+      // resume / brief network blip feels near-instant in PWA mode.
+      reconnectionDelay: 500,
     });
 
     this.manager.on('error', (error: Error) => {
@@ -218,6 +221,22 @@ export class SocketsService {
   public disconnectFromMud() {
     console.log(`[Sockets] Sockets-Service: 'disconnect'`);
     this.socket.emit('mudDisconnect');
+  }
+
+  /**
+   * Forces an immediate reconnect attempt when the socket is down, instead of
+   * waiting for socket.io's backoff timer. Used after the tab/PWA becomes
+   * visible again or the network comes back (iOS freezes background JS, so the
+   * auto-reconnect loop may be stalled). No-op when already connected. The MUD
+   * session itself resumes via the sessionToken auth on the new handshake.
+   */
+  public ensureConnected(): void {
+    if (this.socket && !this.socket.connected) {
+      console.info(
+        '[Sockets] Sockets-Service: ensureConnected → socket down, forcing reconnect',
+      );
+      this.socket.connect();
+    }
   }
 
   public sendMessage(message: string | SecureString) {

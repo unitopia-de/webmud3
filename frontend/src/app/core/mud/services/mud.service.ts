@@ -80,6 +80,14 @@ export class MudService {
     this.sockets.connectToMud(this.lastViewport);
   }
 
+  /**
+   * Nudges the underlying socket to reconnect immediately if it is currently
+   * down (e.g. after a tab resume / network blip). No-op when connected.
+   */
+  public ensureConnected() {
+    this.sockets.ensureConnected();
+  }
+
   public sendMessage(msg: string | SecureString) {
     this.sockets.sendMessage(msg);
   }

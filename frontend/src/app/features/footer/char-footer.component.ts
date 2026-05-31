@@ -14,6 +14,7 @@ import {
 import { combineLatest, Subscription } from 'rxjs';
 import { map } from 'rxjs/operators';
 
+import { NetworkStatusService } from '@webmud3/frontend/features/connection/network-status.service';
 import { MudSignalService } from '@webmud3/frontend/features/gmcp/signals/mud-signal.service';
 import {
   MxpEntityService,
@@ -48,6 +49,10 @@ export class CharFooterComponent implements OnInit, OnDestroy {
   private readonly mxpEntities = inject(MxpEntityService);
   private readonly selectionMode = inject(SelectionModeService);
   private readonly outputJump = inject(OutputJumpService);
+  private readonly networkStatus = inject(NetworkStatusService);
+
+  /** True while the browser reports a network connection (footer indicator). */
+  public readonly online = this.networkStatus.online;
 
   /**
    * Click handler for the "Zum aktuellen Output springen" footer button.

@@ -17,6 +17,23 @@
   gap: 8px;
 }
 
+// Shown only while the browser reports no network. The socket auto-reconnects
+// once connectivity returns, so this is purely informational.
+.offline-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 8px;
+  padding: 1px 8px;
+  background: #5a1d1d;
+  color: #ffb3b3;
+  border: 1px solid #803030;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: bold;
+  white-space: nowrap;
+}
+
 .char-name {
   font-weight: bold;
 }

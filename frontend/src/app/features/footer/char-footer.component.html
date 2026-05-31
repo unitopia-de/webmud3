@@ -8,6 +8,17 @@
   Sprung zum Ende
 </button>
 
+@if (!online()) {
+  <span
+    class="offline-indicator"
+    role="status"
+    aria-live="polite"
+    title="Keine Netzwerkverbindung – es wird automatisch neu verbunden, sobald die Verbindung zurück ist."
+  >
+    <span aria-hidden="true">⚠</span> Offline
+  </span>
+}
+
 <div class="char-info">
   @if (charName()) {
     <span class="char-name">{{ charName() }}</span>

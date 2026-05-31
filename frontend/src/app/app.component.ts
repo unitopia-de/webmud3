@@ -1,6 +1,7 @@
 import { Component, inject } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 
+import { NetworkStatusService } from '@webmud3/frontend/features/connection/network-status.service';
 import { PwaInstallService } from '@webmud3/frontend/features/connection/pwa-install.service';
 import { PwaUpdateService } from '@webmud3/frontend/features/connection/pwa-update.service';
 
@@ -28,4 +29,5 @@ export class AppComponent {
   // them as intentionally-unused injections.
   private readonly _pwaInstall = inject(PwaInstallService);
   private readonly _pwaUpdate = inject(PwaUpdateService);
+  private readonly _networkStatus = inject(NetworkStatusService);
 }
