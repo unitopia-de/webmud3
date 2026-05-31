@@ -29,6 +29,10 @@ export const useStaticFiles = (app: Express, folder: string) => {
 
   app.use(
     express.static(assetPath, {
+      // `/` and `/index.html` are served by useIndexHtml (patched shell) — do
+      // not let express.static auto-serve the raw index.html for directory
+      // requests.
+      index: false,
       setHeaders: (res, filePath) => {
         const name = path.basename(filePath);
 

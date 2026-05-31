@@ -6,6 +6,7 @@ import { Environment } from './core/environment/environment.js';
 import { useBodyParser } from './core/middleware/use-body-parser.js';
 import { useConfigEndpoint } from './core/middleware/use-config-endpoint.js';
 import { useCors } from './core/middleware/use-cors.js';
+import { useIndexHtml } from './core/middleware/use-index-html.js';
 import { useInfoEndpoint } from './core/middleware/use-info-endpoint.js';
 import { useManifestEndpoint } from './core/middleware/use-manifest-endpoint.js';
 import { useSockets } from './core/middleware/use-sockets.js';
@@ -34,6 +35,11 @@ useBodyParser(app);
 // Distribution-aware PWA manifest. MUST come before useStaticFiles so it
 // wins over the static handler for /manifest.webmanifest.
 useManifestEndpoint(app);
+
+// Patched SPA shell for / and /index.html (base href, title, iOS metas).
+// MUST come before useStaticFiles so the raw build file isn't served for
+// these paths (the Service Worker caches /index.html — see useIndexHtml).
+useIndexHtml(app);
 
 useStaticFiles(app, 'wwwroot');
 
