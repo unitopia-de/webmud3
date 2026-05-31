@@ -25,6 +25,7 @@ import { SettingsWindowService } from '@webmud3/frontend/features/settings/setti
 import { SoundService } from '@webmud3/frontend/features/sound/sound.service';
 import { EzInputComponent, EzInputSubmission } from '@webmud3/frontend/features/terminal-ez/ez-input.component';
 import { EzOutputComponent } from '@webmud3/frontend/features/terminal-ez/ez-output.component';
+import { StickyInputService } from '@webmud3/frontend/features/terminal-ez/sticky-input.service';
 import {
   MxpChoiceMenuComponent,
   TerminalThemeService,
@@ -85,6 +86,7 @@ export class EzShellComponent implements OnInit, AfterViewInit, OnDestroy {
   private readonly soundService = inject(SoundService);
   private readonly terminalThemes = inject(TerminalThemeService);
   private readonly wakeLock = inject(WakeLockService);
+  private readonly stickyInput = inject(StickyInputService);
   private readonly router = inject(Router);
 
   // ---------------------------------------------------------------------------
@@ -123,6 +125,9 @@ export class EzShellComponent implements OnInit, AfterViewInit, OnDestroy {
   // Opens the static help page (`/hilfe`). Same id in both shells; only one
   // shell is mounted at a time, so there is no duplicate registration.
   private readonly HILFE_MENU_ID = 'hilfe';
+  // EZ-only toggle: keep the just-sent command in the input line, selected,
+  // so bare Enter repeats it (Idee 1). The classic shell never registers this.
+  private readonly STICKY_INPUT_MENU_ID = 'ez-sticky-input';
 
   private readonly subscriptions = new Subscription();
 
@@ -154,6 +159,7 @@ export class EzShellComponent implements OnInit, AfterViewInit, OnDestroy {
     this.footerMenu.unregister(this.THEME_PARENT_MENU_ID);
     this.footerMenu.unregister(this.SHELL_SWITCH_MENU_ID);
     this.footerMenu.unregister(this.HILFE_MENU_ID);
+    this.footerMenu.unregister(this.STICKY_INPUT_MENU_ID);
     // No mudService.disconnect — the user expects the telnet session to
     // survive a route switch to `/`. Explicit disconnect lives in the
     // ConnectionMenuService (footer menu).
@@ -217,6 +223,15 @@ export class EzShellComponent implements OnInit, AfterViewInit, OnDestroy {
       action: () => void this.router.navigate(['/hilfe']),
     });
 
+    // Sticky input line (Idee 1) — EZ-only. Keeps the just-sent command in
+    // the line, fully selected, so bare Enter repeats it.
+    this.footerMenu.register({
+      id: this.STICKY_INPUT_MENU_ID,
+      label: 'Eingabezeile stehen lassen',
+      checked: this.stickyInput.enabled,
+      action: () => this.stickyInput.toggle(),
+    });
+
     this.footerMenu.register({
       id: this.RECENTER_MENU_ID,
       label: 'Fenster ins Bild',
@@ -254,6 +269,13 @@ export class EzShellComponent implements OnInit, AfterViewInit, OnDestroy {
     this.subscriptions.add(
       this.soundService.enabled$.subscribe((enabled) => {
         this.footerMenu.setChecked(this.SOUND_MENU_ID, enabled);
+      }),
+    );
+
+    // Keep the sticky-input menu check in sync if toggled elsewhere.
+    this.subscriptions.add(
+      this.stickyInput.enabled$.subscribe((enabled) => {
+        this.footerMenu.setChecked(this.STICKY_INPUT_MENU_ID, enabled);
       }),
     );
 

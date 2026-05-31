@@ -17,6 +17,7 @@ import { Subscription } from 'rxjs';
 
 import { MudService } from '@webmud3/frontend/core/mud/services/mud.service';
 import { NumpadService } from '@webmud3/frontend/features/numpad/numpad.service';
+import { StickyInputService } from '@webmud3/frontend/features/terminal-ez/sticky-input.service';
 
 export type EzInputMode = 'default' | 'password' | 'editor';
 
@@ -70,6 +71,7 @@ const HISTORY_LIMIT = 100;
 export class EzInputComponent implements OnInit, AfterViewInit, OnDestroy {
   private readonly mudService = inject(MudService);
   private readonly numpad = inject(NumpadService);
+  private readonly sticky = inject(StickyInputService);
 
   @Output() readonly commit = new EventEmitter<EzInputSubmission>();
 
@@ -260,11 +262,26 @@ export class EzInputComponent implements OnInit, AfterViewInit, OnDestroy {
       }
     }
 
-    field.value = '';
-    this.resetDefaultHeight();
     this.historyCursor = -1;
     this.historyDraft = null;
-    this.focusActiveField();
+
+    if (this.sticky.enabled && lines.length > 0) {
+      // Sticky input (Idee 1): keep the just-sent command in the line and
+      // select it instead of clearing. Bare Enter then re-submits the same
+      // text ("n, Enter, Enter, Enter" = 3× north — the re-send needs no
+      // special handling, submitDefault simply runs again on the kept value),
+      // while the first keystroke overwrites the whole selection.
+      // Only in default mode; password/editor have their own submit paths and
+      // are never made sticky.
+      field.value = raw;
+      this.autoResizeDefault();
+      this.focusActiveField();
+      field.select();
+    } else {
+      field.value = '';
+      this.resetDefaultHeight();
+      this.focusActiveField();
+    }
   }
 
   /**
