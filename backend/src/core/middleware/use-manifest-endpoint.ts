@@ -40,9 +40,10 @@ function loadManifest(): string {
     const candidatePath = path.join(wwwroot, name);
     if (fs.existsSync(candidatePath)) {
       logger.info(
-        `[Manifest] Serving ${name} for distribution "${env.distributionType}"`,
+        `[Manifest] Serving ${name} for distribution "${env.distributionType}" (name="${env.appTitle}")`,
       );
-      return fs.readFileSync(candidatePath, 'utf-8');
+      const raw = fs.readFileSync(candidatePath, 'utf-8');
+      return applyAppTitle(raw, env.appTitle);
     }
   }
 
@@ -50,6 +51,30 @@ function loadManifest(): string {
     `[Manifest] No manifest file found in ${wwwroot} (tried: ${candidates.join(', ')})`,
   );
   return '';
+}
+
+/**
+ * Overrides the manifest's `name` and `short_name` with the deployment's
+ * APP_TITLE so two installs of the SAME distribution but different deployments
+ * (e.g. `/webmud3/` vs `/webmud3test/`) get distinguishable PWA names without
+ * needing separate manifest files. The icon set still comes from the
+ * distribution-specific file.
+ */
+function applyAppTitle(rawJson: string, appTitle: string): string {
+  if (!appTitle) {
+    return rawJson;
+  }
+  try {
+    const manifest = JSON.parse(rawJson) as Record<string, unknown>;
+    manifest['name'] = appTitle;
+    manifest['short_name'] = appTitle;
+    return JSON.stringify(manifest, null, 2);
+  } catch (err) {
+    logger.error('[Manifest] Failed to parse manifest JSON, serving raw', {
+      error: err instanceof Error ? err.message : String(err),
+    });
+    return rawJson;
+  }
 }
 
 export const useManifestEndpoint = (app: Express) => {
