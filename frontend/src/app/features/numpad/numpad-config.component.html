@@ -69,6 +69,28 @@
     <button type="button" (click)="onResetClick()">Defaults</button>
   </div>
 
+  <!--
+    Capture line: while focused, the real numpad keys fire the bound commands
+    (layer = held modifiers OR the checkboxes above). Read-only so it never
+    accumulates text — it is purely a focus target for the numpad.
+  -->
+  <div class="numpad-capture">
+    <input
+      type="text"
+      class="numpad-capture-input"
+      readonly
+      placeholder="Hier fokussieren, dann Numpad-Tasten drücken"
+      [value]="lastSent()"
+      (keydown)="onCaptureKeydown($event)"
+      aria-label="Numpad-Eingabe – bei Fokus lösen die Numpad-Tasten die hinterlegten Befehle aus"
+      aria-describedby="numpad-capture-hint"
+    />
+    <span id="numpad-capture-hint" class="numpad-capture-hint">
+      Bei Fokus lösen die echten Numpad-Tasten (inkl. Modifier bzw. Checkboxen)
+      die hinterlegten Befehle aus und senden sie ans MUD.
+    </span>
+  </div>
+
   @if (editingKey(); as key) {
     <div class="numpad-edit-overlay">
       <p>

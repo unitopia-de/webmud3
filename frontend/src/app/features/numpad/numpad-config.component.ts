@@ -14,6 +14,7 @@ import {
   NumpadKey,
   NumpadModifiers,
   NumpadService,
+  isNumpadCode,
   numpadLayerId,
 } from './numpad.service';
 
@@ -71,6 +72,9 @@ export class NumpadConfigComponent {
   public readonly layout = LAYOUT;
   public readonly editingKey = signal<NumpadKey | null>(null);
   public readonly editingValue = signal<string>('');
+
+  /** Last command sent from the capture input (feedback line). */
+  public readonly lastSent = signal<string>('');
 
   /** Currently selected modifier layer (toggled via the checkboxes). */
   public readonly mods = signal<NumpadModifiers>({
@@ -138,5 +142,21 @@ export class NumpadConfigComponent {
 
   public onResetClick(): void {
     this.numpad.resetToDefaults();
+  }
+
+  /**
+   * Capture-input keydown: while the line is focused, real numpad keys fire
+   * the bound command instead of typing. The layer is resolved from the held
+   * modifier keys OR-ed with the active checkboxes (unified resolution). All
+   * numpad keys are swallowed so the read-only line stays clean; other keys
+   * (Tab etc.) pass through so the user can leave the field.
+   */
+  public onCaptureKeydown(event: KeyboardEvent): void {
+    if (!isNumpadCode(event.code)) {
+      return;
+    }
+    event.preventDefault();
+    const sent = this.numpad.triggerFromEvent(event, this.mods());
+    this.lastSent.set(sent ?? '(unbelegt)');
   }
 }

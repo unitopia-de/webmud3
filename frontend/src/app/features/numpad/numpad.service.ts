@@ -181,33 +181,45 @@ export class NumpadService {
 
   /**
    * Evaluates a physical key press: if it is a numpad key, resolves the bound
-   * command for the held modifiers and sends it. Returns `true` when a command
-   * was actually sent, so the caller can `preventDefault()`. Ctrl+Alt alone is
-   * ignored (AltGr), matching the u1 behaviour.
+   * command for the effective layer and sends it. Returns the sent command (so
+   * the caller can show feedback and `preventDefault()`), or `null` when the
+   * key is not a numpad key or nothing is bound.
+   *
+   * `extraMods` are OR-ed with the event's physical modifiers — this is how the
+   * numpad window's layer checkboxes and the held modifier keys resolve to the
+   * SAME layer. Physical Ctrl+Alt alone is ignored (AltGr), matching u1.
    */
-  public triggerFromEvent(event: KeyboardEvent): boolean {
+  public triggerFromEvent(
+    event: KeyboardEvent,
+    extraMods?: Partial<NumpadModifiers>,
+  ): string | null {
     if (!isNumpadCode(event.code)) {
-      return false;
+      return null;
+    }
+
+    // AltGr surfaces as physical Ctrl+Alt; ignore so it doesn't hijack typing.
+    if (
+      event.ctrlKey &&
+      event.altKey &&
+      !event.shiftKey &&
+      !event.metaKey
+    ) {
+      return null;
     }
 
     const mods: NumpadModifiers = {
-      shift: event.shiftKey,
-      ctrl: event.ctrlKey,
-      alt: event.altKey,
-      meta: event.metaKey,
+      shift: event.shiftKey || extraMods?.shift === true,
+      ctrl: event.ctrlKey || extraMods?.ctrl === true,
+      alt: event.altKey || extraMods?.alt === true,
+      meta: event.metaKey || extraMods?.meta === true,
     };
-
-    // AltGr surfaces as Ctrl+Alt; ignore so it doesn't hijack typing.
-    if (mods.ctrl && mods.alt && !mods.shift && !mods.meta) {
-      return false;
-    }
 
     const command = this.getCommand(event.code, mods);
     if (command !== undefined && command.length > 0) {
       this.mudService.sendMessage(command);
-      return true;
+      return command;
     }
-    return false;
+    return null;
   }
 
   // ---------------------------------------------------------------------------
