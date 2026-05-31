@@ -16,6 +16,7 @@ import {
 import { Subscription } from 'rxjs';
 
 import { MudService } from '@webmud3/frontend/core/mud/services/mud.service';
+import { NumpadService } from '@webmud3/frontend/features/numpad/numpad.service';
 
 export type EzInputMode = 'default' | 'password' | 'editor';
 
@@ -68,6 +69,7 @@ const HISTORY_LIMIT = 100;
 })
 export class EzInputComponent implements OnInit, AfterViewInit, OnDestroy {
   private readonly mudService = inject(MudService);
+  private readonly numpad = inject(NumpadService);
 
   @Output() readonly commit = new EventEmitter<EzInputSubmission>();
 
@@ -168,6 +170,17 @@ export class EzInputComponent implements OnInit, AfterViewInit, OnDestroy {
   // ---------------------------------------------------------------------------
 
   protected onDefaultKeydown(event: KeyboardEvent): void {
+    // A *bound* numpad key fires its MUD command instead of typing/submitting.
+    // Must run first: NumpadEnter also reports key === 'Enter', so the Enter
+    // handler below would otherwise submit before we get a chance. Unbound
+    // numpad keys return null and fall through to normal behaviour (so they
+    // still type their digit). Physical modifiers select the layer; the /ez
+    // line has no checkboxes, so no extraMods.
+    if (this.numpad.triggerFromEvent(event) !== null) {
+      event.preventDefault();
+      return;
+    }
+
     if (event.key === 'Enter' && !event.shiftKey && !event.ctrlKey && !event.altKey && !event.metaKey) {
       event.preventDefault();
       this.submitDefault();
