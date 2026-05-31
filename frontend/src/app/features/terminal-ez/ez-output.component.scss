@@ -44,6 +44,76 @@
     z-index: 1;
   }
 
+  // Full-text search bar (Idee 3). Overlaid at the top of the output area.
+  .ez-search-bar {
+    position: absolute;
+    top: 4px;
+    right: 12px;
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 6px;
+    background: #2d2d30;
+    border: 1px solid #555;
+    border-radius: 4px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+    font-family: sans-serif;
+    font-size: 12px;
+    color: #ddd;
+
+    .ez-search-input {
+      width: 180px;
+      box-sizing: border-box;
+      padding: 4px 6px;
+      background: #1e1e1e;
+      color: #ddd;
+      border: 1px solid #555;
+      border-radius: 3px;
+      font-size: 12px;
+
+      &:focus {
+        outline: none;
+        border-color: #4ec9b0;
+        box-shadow: 0 0 0 1px #4ec9b0;
+      }
+    }
+
+    .ez-search-count {
+      min-width: 36px;
+      text-align: center;
+      color: #aaa;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .ez-search-btn {
+      background: transparent;
+      border: 1px solid #555;
+      color: #ddd;
+      border-radius: 3px;
+      cursor: pointer;
+      padding: 2px 6px;
+      font-size: 12px;
+      line-height: 1;
+
+      &:hover {
+        background: #3e3e42;
+      }
+    }
+
+    .ez-search-opt {
+      display: inline-flex;
+      align-items: center;
+      gap: 2px;
+      cursor: pointer;
+      user-select: none;
+
+      input {
+        margin: 0;
+      }
+    }
+  }
+
   // Draggable splitter between the history and the live tail. Doubles as the
   // visual divider. `touch-action: none` keeps pointer events flowing during
   // a drag instead of the browser hijacking them for scroll.

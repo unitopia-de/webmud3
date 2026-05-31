@@ -70,6 +70,75 @@
   (or "Sprung zum Ende") hides it again — see updateTailVisibility().
 -->
 <div class="ez-output-split" #splitRef>
+  <!--
+    Full-text search bar (Idee 3). Opened with Strg/Cmd+F, overlaid at the
+    top of the output. Searches the main terminal's scrollback via the xterm
+    SearchAddon; jumping to a match scrolls the main pane up to it (the
+    live-tail then keeps the newest output visible below). Esc closes it.
+  -->
+  @if (searchOpen()) {
+    <div class="ez-search-bar" role="search">
+      <input
+        #searchInputRef
+        type="text"
+        class="ez-search-input"
+        placeholder="Suchen…"
+        aria-label="In der Ausgabe suchen"
+        (input)="onSearchInput()"
+        (keydown)="onSearchKeydown($event)"
+      />
+      <span class="ez-search-count" aria-hidden="true">{{
+        searchCountLabel()
+      }}</span>
+      <button
+        type="button"
+        class="ez-search-btn"
+        (click)="findPrevious()"
+        title="Vorheriger Treffer (Umschalt+Enter)"
+        aria-label="Vorheriger Treffer"
+      >
+        ▲
+      </button>
+      <button
+        type="button"
+        class="ez-search-btn"
+        (click)="findNext()"
+        title="Nächster Treffer (Enter)"
+        aria-label="Nächster Treffer"
+      >
+        ▼
+      </button>
+      <label class="ez-search-opt" title="Groß-/Kleinschreibung beachten">
+        <input
+          type="checkbox"
+          [checked]="searchCaseSensitive()"
+          (change)="toggleSearchCase()"
+        />
+        Aa
+      </label>
+      <label class="ez-search-opt" title="Regulärer Ausdruck">
+        <input
+          type="checkbox"
+          [checked]="searchRegex()"
+          (change)="toggleSearchRegex()"
+        />
+        .*
+      </label>
+      <button
+        type="button"
+        class="ez-search-btn"
+        (click)="closeSearch()"
+        title="Suche schließen (Esc)"
+        aria-label="Suche schließen"
+      >
+        ✕
+      </button>
+      <span class="sr-only" role="status" aria-live="polite">{{
+        searchSrLabel()
+      }}</span>
+    </div>
+  }
+
   <div
     class="ez-mud-output"
     role="region"

@@ -10,6 +10,7 @@ import {
   signal,
 } from '@angular/core';
 import { FitAddon } from '@xterm/addon-fit';
+import { ISearchOptions, SearchAddon } from '@xterm/addon-search';
 import { IDisposable, Terminal } from '@xterm/xterm';
 import { Subscription } from 'rxjs';
 import { pairwise } from 'rxjs/operators';
@@ -101,6 +102,9 @@ export class EzOutputComponent implements AfterViewInit, OnDestroy {
   @ViewChild('splitRef', { static: true })
   private readonly splitRef!: ElementRef<HTMLDivElement>;
 
+  @ViewChild('searchInputRef')
+  private readonly searchInputRef?: ElementRef<HTMLInputElement>;
+
   @ViewChild('liveRegionRef', { static: true })
   private readonly liveRegionRef!: ElementRef<HTMLDivElement>;
 
@@ -113,6 +117,34 @@ export class EzOutputComponent implements AfterViewInit, OnDestroy {
   private terminal!: Terminal;
   private readonly fitAddon = new FitAddon();
   private screenReader?: MudScreenReaderAnnouncer;
+
+  // --- Full-text search (Idee 3, /ez only) -----------------------------------
+  // Searches the MAIN terminal's scrollback buffer via the xterm SearchAddon.
+  // Jumping to a match scrolls the main terminal up to it; thanks to the
+  // live-tail (Idee 2) the newest output then stays visible in the bottom pane
+  // while the match is shown above. Search is display-only and never touches
+  // the MUD or the screen-reader transcript (only the result count is spoken).
+  private readonly searchAddon = new SearchAddon();
+  protected readonly searchOpen = signal(false);
+  protected readonly searchCaseSensitive = signal(false);
+  protected readonly searchRegex = signal(false);
+  // resultIndex is 0-based (-1 = no active match); resultCount is the total.
+  protected readonly searchResult = signal<{ index: number; count: number }>({
+    index: -1,
+    count: 0,
+  });
+  /** Visible "3/12" style counter. */
+  protected readonly searchCountLabel = computed(() => {
+    const { index, count } = this.searchResult();
+    if (count <= 0) return '0/0';
+    return `${index + 1}/${count}`;
+  });
+  /** Verbose label for the screen reader (announced via aria-live). */
+  protected readonly searchSrLabel = computed(() => {
+    const { index, count } = this.searchResult();
+    if (count <= 0) return 'Keine Treffer';
+    return `Treffer ${index + 1} von ${count}`;
+  });
 
   // --- Live-tail (Idee 2) ----------------------------------------------------
   // A second, display-only xterm stacked below the main one. It mirrors the
@@ -257,6 +289,14 @@ export class EzOutputComponent implements AfterViewInit, OnDestroy {
       fontFamily: 'JetBrainsMono, monospace',
       disableStdin: true,
       screenReaderMode: false,
+      // Required for the SearchAddon's match highlighting: it uses
+      // terminal.registerDecoration(), which is gated behind allowProposedApi.
+      // Without this the decoration call throws and the search silently does
+      // nothing.
+      allowProposedApi: true,
+      // Larger scrollback so the full-text search (Idee 3) has more history
+      // to work with — the SearchAddon can only find what's still in buffer.
+      scrollback: 5000,
       theme: initialTheme.theme,
       minimumContrastRatio: initialTheme.minimumContrastRatio,
       // OSC 8 hyperlink click routing. `allowNonHttpProtocols: true` is
@@ -272,6 +312,13 @@ export class EzOutputComponent implements AfterViewInit, OnDestroy {
 
     this.terminal.open(this.terminalRef.nativeElement);
     this.terminal.loadAddon(this.fitAddon);
+    this.terminal.loadAddon(this.searchAddon);
+    // Keep the visible match counter / SR label in sync with the addon.
+    this.terminalDisposables.push(
+      this.searchAddon.onDidChangeResults(({ resultIndex, resultCount }) => {
+        this.searchResult.set({ index: resultIndex, count: resultCount });
+      }),
+    );
 
     try {
       this.fitAddon.fit();
@@ -487,6 +534,7 @@ export class EzOutputComponent implements AfterViewInit, OnDestroy {
       d.dispose();
     }
     this.clearStartupTimers();
+    this.searchAddon.dispose();
     this.screenReader?.dispose();
     this.terminal?.dispose();
     this.tailTerminal?.dispose();
@@ -848,6 +896,21 @@ export class EzOutputComponent implements AfterViewInit, OnDestroy {
       return;
     }
 
+    // Ctrl+F / Cmd+F: open (and focus) the in-terminal full-text search,
+    // overriding the browser's own find bar. Esc closes it (handled in the
+    // search input's keydown).
+    const isSearchShortcut =
+      (event.ctrlKey || event.metaKey) &&
+      !event.shiftKey &&
+      !event.altKey &&
+      (event.key === 'f' || event.key === 'F');
+
+    if (isSearchShortcut) {
+      event.preventDefault();
+      this.openSearch();
+      return;
+    }
+
     // Ctrl+C / Cmd+C: copy the current xterm range selection (placed via the
     // two-tap-then-drag flow). xterm in EZ has disableStdin + no focus, so
     // its own copy path never runs — we read the selection and write it to
@@ -988,6 +1051,123 @@ export class EzOutputComponent implements AfterViewInit, OnDestroy {
       this.TAIL_FRACTION_STORAGE,
       String(this.tailFraction()),
     );
+  }
+
+  // ---------------------------------------------------------------------------
+  // Full-text search (Idee 3)
+  // ---------------------------------------------------------------------------
+
+  /** Builds the SearchAddon options from the current toggle signals. */
+  private searchOptions(incremental: boolean): ISearchOptions {
+    return {
+      regex: this.searchRegex(),
+      caseSensitive: this.searchCaseSensitive(),
+      incremental,
+      decorations: {
+        matchBackground: '#766c00',
+        matchBorder: '#aa9b00',
+        matchOverviewRuler: '#766c00',
+        activeMatchBackground: '#d18616',
+        activeMatchBorder: '#ffae57',
+        activeMatchColorOverviewRuler: '#d18616',
+      },
+    };
+  }
+
+  /** Current search term from the input field (empty when closed). */
+  private get searchTerm(): string {
+    return this.searchInputRef?.nativeElement.value ?? '';
+  }
+
+  /** Opens the search bar and moves focus into its input. */
+  public openSearch(): void {
+    this.searchOpen.set(true);
+    // setTimeout (macrotask) so Angular's change detection renders the @if
+    // input before we focus it — a microtask could run before the DOM update.
+    setTimeout(() => {
+      const input = this.searchInputRef?.nativeElement;
+      if (!input) return;
+      input.focus();
+      input.select();
+      if (input.value) {
+        this.runSearch(true);
+      }
+    });
+  }
+
+  /** Closes the search bar and clears all match highlighting. */
+  public closeSearch(): void {
+    this.searchOpen.set(false);
+    this.searchAddon.clearDecorations();
+    this.searchResult.set({ index: -1, count: 0 });
+  }
+
+  /** (input) handler: incremental search as the user types. */
+  protected onSearchInput(): void {
+    this.runSearch(true);
+  }
+
+  protected onSearchKeydown(event: KeyboardEvent): void {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      if (event.shiftKey) {
+        this.findPrevious();
+      } else {
+        this.findNext();
+      }
+      return;
+    }
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      this.closeSearch();
+    }
+  }
+
+  public findNext(): void {
+    const term = this.searchTerm;
+    if (!term) {
+      this.closeSearchHighlights();
+      return;
+    }
+    this.searchAddon.findNext(term, this.searchOptions(false));
+  }
+
+  public findPrevious(): void {
+    const term = this.searchTerm;
+    if (!term) {
+      this.closeSearchHighlights();
+      return;
+    }
+    this.searchAddon.findPrevious(term, this.searchOptions(false));
+  }
+
+  protected toggleSearchCase(): void {
+    this.searchCaseSensitive.update((v) => !v);
+    this.runSearch(true);
+  }
+
+  protected toggleSearchRegex(): void {
+    this.searchRegex.update((v) => !v);
+    this.runSearch(true);
+  }
+
+  /**
+   * Runs an (incremental) search for the current term, or clears the
+   * highlighting when the term is empty.
+   */
+  private runSearch(incremental: boolean): void {
+    const term = this.searchTerm;
+    if (!term) {
+      this.closeSearchHighlights();
+      return;
+    }
+    this.searchAddon.findNext(term, this.searchOptions(incremental));
+  }
+
+  /** Clears decorations + counter without closing the bar. */
+  private closeSearchHighlights(): void {
+    this.searchAddon.clearDecorations();
+    this.searchResult.set({ index: -1, count: 0 });
   }
 
   /**
