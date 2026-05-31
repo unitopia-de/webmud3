@@ -44,7 +44,10 @@
             "assets": [
               "src/favicon.ico",
               "src/assets",
-              "src/manifest.webmanifest"
+              "src/manifest.webmanifest",
+              "src/manifest.unitopia.webmanifest",
+              "src/manifest.seifenblase.webmanifest",
+              "src/manifest.default.webmanifest"
             ],
             "styles": [
               "src/styles.scss"
@@ -59,6 +62,7 @@
                   "with": "src/environments/environment.prod.ts"
                 }
               ],
+              "serviceWorker": "ngsw-config.json",
               "optimization": true,
               "outputHashing": "all",
               "sourceMap": false,

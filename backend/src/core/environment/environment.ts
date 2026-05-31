@@ -1,7 +1,7 @@
 import { config as configureEnvironment } from 'dotenv';
 
 import { logger, setLogLevel } from '../../shared/utils/logger.js';
-import { IEnvironment } from './types/environment.js';
+import { DistributionType, IEnvironment } from './types/environment.js';
 import { getEnvironmentVariable } from './utils/get-environment-variable.js';
 import { resolveModulePath } from './utils/resolve-modulepath.js';
 
@@ -28,6 +28,7 @@ export class Environment implements IEnvironment {
   public readonly corsAllowList: string[];
   public readonly baseHref: string;
   public readonly appTitle: string;
+  public readonly distributionType: DistributionType;
   public readonly logLevel: string;
 
   /**
@@ -106,9 +107,43 @@ export class Environment implements IEnvironment {
     );
     this.baseHref = rawBaseHref.endsWith('/') ? rawBaseHref : `${rawBaseHref}/`;
 
+    // Branding variant for this deployment. Selects the PWA manifest, icon
+    // set and the default application title. Unknown values fall back to
+    // 'unitopia' with a warning rather than crashing the server.
+    const rawDistribution = String(
+      getEnvironmentVariable('WEBMUD3_DISTRIBUTION_TYPE', false, 'unitopia'),
+    ).toLocaleLowerCase();
+
+    const allowedDistributions: DistributionType[] = [
+      'unitopia',
+      'seifenblase',
+      'default',
+    ];
+
+    if (allowedDistributions.includes(rawDistribution as DistributionType)) {
+      this.distributionType = rawDistribution as DistributionType;
+    } else {
+      logger.warn(
+        `[Environment] Unknown WEBMUD3_DISTRIBUTION_TYPE "${rawDistribution}", falling back to "unitopia". Allowed: ${allowedDistributions.join(', ')}`,
+      );
+      this.distributionType = 'unitopia';
+    }
+
     // Title shown in the browser tab (patched into index.html's <title>) and
     // exposed via /api/config so the frontend / PWA can use the same value.
-    this.appTitle = String(getEnvironmentVariable('APP_TITLE', false, 'Webmud3'));
+    // Defaults to the distribution's display name; APP_TITLE overrides it.
+    const defaultTitleByDistribution: Record<DistributionType, string> = {
+      unitopia: 'UNItopia',
+      seifenblase: 'Seifenblase',
+      default: 'WebMUD3',
+    };
+    this.appTitle = String(
+      getEnvironmentVariable(
+        'APP_TITLE',
+        false,
+        defaultTitleByDistribution[this.distributionType],
+      ),
+    );
 
     this.logLevel = String(getEnvironmentVariable('LOG_LEVEL', false, 'debug'));
 

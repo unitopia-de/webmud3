@@ -97,7 +97,8 @@ SOCKET_TIMEOUT=900000                       # Optional | defaults to 900000 (15 
 SOCKET_ROOT=/socket.io                      # Required | URL for the socket connection. e.g. 'https://mud.example.com/socket.io'
 ENVIRONMENT='development'                   # Optional | accepts values 'development' or 'production' | defaults to 'production' | Enables Debug REST Endpoint /api/info and allows for permissive CORS if set to 'development'
 CORS_ALLOWED_ORIGINS='8.8.8.8,12.12.12.12' # Optional | comma separated list of origins that are allowed when ENVIRONMENT=production
-APP_TITLE='Webmud3'                          # Optional | defaults to 'Webmud3'         | application title shown in the browser tab (and later the PWA)
+WEBMUD3_DISTRIBUTION_TYPE='unitopia'        # Optional | 'unitopia'|'seifenblase'|'default' | defaults to 'unitopia' | selects PWA branding (manifest + icons + default title)
+APP_TITLE='UNItopia'                         # Optional | defaults per distribution      | application title shown in the browser tab (and the PWA); overrides the distribution default
 LOG_LEVEL='debug'                           # Optional | accepts values 'error'|'warn'|'info'|'http'|'verbose'|'debug'|'silly' | defaults to 'debug' | sets the logging level
 ```
 

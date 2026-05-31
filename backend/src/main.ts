@@ -7,6 +7,7 @@ import { useBodyParser } from './core/middleware/use-body-parser.js';
 import { useConfigEndpoint } from './core/middleware/use-config-endpoint.js';
 import { useCors } from './core/middleware/use-cors.js';
 import { useInfoEndpoint } from './core/middleware/use-info-endpoint.js';
+import { useManifestEndpoint } from './core/middleware/use-manifest-endpoint.js';
 import { useSockets } from './core/middleware/use-sockets.js';
 import { useStaticFiles } from './core/middleware/use-static-files.js';
 import { useRoutes } from './core/routes/routes.js';
@@ -29,6 +30,10 @@ useBodyParser(app);
 
 // Todo[myst]: What does this bring to the table?
 // useCookieSession(app, secretConfig.mySessionKey);
+
+// Distribution-aware PWA manifest. MUST come before useStaticFiles so it
+// wins over the static handler for /manifest.webmanifest.
+useManifestEndpoint(app);
 
 useStaticFiles(app, 'wwwroot');
 

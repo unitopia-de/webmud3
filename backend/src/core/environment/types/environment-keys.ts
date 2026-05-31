@@ -13,5 +13,6 @@ export type EnvironmentKeys =
   | 'ENVIRONMENT' // Optional | accepts values 'development' or 'production' | defaults to 'production' | Enables Debug REST Endpoint /api/info and allows for permissive CORS if set to 'development'
   | 'CORS_ALLOWED_ORIGINS' // Optional | comma separated list of origins that are allowed when ENVIRONMENT=production
   | 'BASE_HREF' // Optional | defaults to '/' | base path the frontend is served under (e.g. '/webmud3/'). Patched into index.html's <base href> so the SPA, the router and document.baseURI all agree
-  | 'APP_TITLE' // Optional | defaults to 'Webmud3' | application title shown in the browser tab (patched into index.html's <title>) and exposed via /api/config for the frontend / PWA
+  | 'APP_TITLE' // Optional | defaults per distribution (UNItopia / Seifenblase / WebMUD3) | application title shown in the browser tab (patched into index.html's <title>) and exposed via /api/config for the frontend / PWA
+  | 'WEBMUD3_DISTRIBUTION_TYPE' // Optional | 'unitopia' | 'seifenblase' | 'default' | defaults to 'unitopia' | selects the PWA branding (manifest + icons + title) served per deployment
   | 'LOG_LEVEL'; // Optional | winston level: error|warn|info|http|verbose|debug|silly | defaults to 'debug'

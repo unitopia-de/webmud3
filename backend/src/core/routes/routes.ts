@@ -55,25 +55,10 @@ function loadAndPatchIndexHtml(): string {
 export const useRoutes = (app: Express) => {
   // app.use('/api/auth', authRoutes);
 
-  app.get('/manifest.webmanifest', function (req: Request, res: Response) {
-    logger.info(`[Routes] requested manifest.webmanifest`);
-
-    fs.readFile(
-      path.join(__dirname, 'dist', 'manifest.webmanifest'),
-      function (err, data) {
-        if (err) {
-          logger.error('[Routes] Failed to read manifest.webmanifest', {
-            error: err.message,
-            path: path.join(__dirname, 'dist', 'manifest.webmanifest'),
-          });
-
-          res.sendStatus(404);
-        } else {
-          res.send(data);
-        }
-      },
-    );
-  });
+  // Note: /manifest.webmanifest is handled by useManifestEndpoint (registered
+  // before express.static in main.ts) so it can serve the distribution-specific
+  // manifest. The old route here read from a non-existent path and was dead
+  // (shadowed by express.static); it has been removed.
 
   // app.get('/ace/*', (req: Request, res: Response) => {
   //   const ip =

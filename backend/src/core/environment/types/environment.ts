@@ -1,3 +1,9 @@
+/**
+ * Branding variant served per deployment. Drives the PWA manifest, icon set
+ * and default application title.
+ */
+export type DistributionType = 'unitopia' | 'seifenblase' | 'default';
+
 export interface IEnvironment {
   readonly telnetHost: string;
   readonly telnetPort: number;
@@ -13,4 +19,5 @@ export interface IEnvironment {
   readonly corsAllowList: string[];
   readonly baseHref: string;
   readonly appTitle: string;
+  readonly distributionType: DistributionType;
 }
