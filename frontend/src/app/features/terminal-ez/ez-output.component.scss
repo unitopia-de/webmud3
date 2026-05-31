@@ -44,8 +44,38 @@
     z-index: 1;
   }
 
-  // Live-tail terminal. Fixed share of the split height (Phase 2 makes it
-  // draggable); collapses to nothing when the user is at the bottom.
+  // Draggable splitter between the history and the live tail. Doubles as the
+  // visual divider. `touch-action: none` keeps pointer events flowing during
+  // a drag instead of the browser hijacking them for scroll.
+  .ez-tail-splitter {
+    flex: 0 0 auto;
+    height: 8px;
+    background: #2d2d30;
+    cursor: row-resize;
+    touch-action: none;
+    position: relative;
+    z-index: 2;
+
+    &:hover {
+      background: #3e3e42;
+    }
+
+    // Grip indicator in the centre.
+    &::after {
+      content: '';
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 40px;
+      height: 2px;
+      transform: translate(-50%, -50%);
+      background: #4ec9b0;
+      border-radius: 1px;
+    }
+  }
+
+  // Live-tail terminal. Drag-adjustable share of the split height; collapses
+  // to nothing when the user is at the bottom.
   .ez-tail-output {
     flex: 0 0 auto;
     min-height: 0;
@@ -53,14 +83,10 @@
     background-color: black;
     padding-left: 8px;
     position: relative;
-    // Clear visual divider between the scrolled-back history above and the
-    // live newest output below.
-    border-top: 2px solid #4ec9b0;
 
     &.hidden {
       flex-basis: 0 !important;
       height: 0;
-      border-top-width: 0;
     }
   }
 

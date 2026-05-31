@@ -69,7 +69,7 @@
   visible while reading back through history. Scrolling back to the bottom
   (or "Sprung zum Ende") hides it again — see updateTailVisibility().
 -->
-<div class="ez-output-split">
+<div class="ez-output-split" #splitRef>
   <div
     class="ez-mud-output"
     role="region"
@@ -107,6 +107,23 @@
       }
     }
   </div>
+
+  <!--
+    Draggable splitter between the history (top) and the live tail (bottom).
+    Only rendered while the tail is visible. Dragging it up/down adjusts the
+    tail's height share; the chosen fraction is persisted (see
+    onSplitterPointerDown / persistTailFraction).
+  -->
+  @if (tailVisible()) {
+    <div
+      class="ez-tail-splitter"
+      role="separator"
+      aria-orientation="horizontal"
+      aria-label="Größe des Live-Tail-Bereichs anpassen"
+      title="Trenner ziehen, um die Höhe anzupassen"
+      (pointerdown)="onSplitterPointerDown($event)"
+    ></div>
+  }
 
   <!--
     Live-tail pane. Always present in the DOM so the second xterm can be

@@ -31,6 +31,7 @@ import {
   TerminalThemeService,
 } from '@webmud3/frontend/features/terminal';
 import { OutputJumpService } from '@webmud3/frontend/features/terminal/output-jump.service';
+import { namespacedStorage } from '@webmud3/frontend/shared/utils/storage-namespace';
 import {
   SoundPlayerService as TriggerSoundPlayerService,
   TriggerEngineService,
@@ -97,6 +98,9 @@ export class EzOutputComponent implements AfterViewInit, OnDestroy {
   @ViewChild('tailTerminalRef', { static: true })
   private readonly tailTerminalRef!: ElementRef<HTMLDivElement>;
 
+  @ViewChild('splitRef', { static: true })
+  private readonly splitRef!: ElementRef<HTMLDivElement>;
+
   @ViewChild('liveRegionRef', { static: true })
   private readonly liveRegionRef!: ElementRef<HTMLDivElement>;
 
@@ -121,8 +125,14 @@ export class EzOutputComponent implements AfterViewInit, OnDestroy {
   private readonly tailFitAddon = new FitAddon();
   /** True while the main terminal is scrolled up off the bottom. */
   protected readonly tailVisible = signal(false);
-  /** Height share of the tail pane (0..1). Drag-adjustable in Phase 2. */
+  /** Height share of the tail pane (0..1), drag-adjustable and persisted. */
   protected readonly tailFraction = signal(0.34);
+  private readonly TAIL_FRACTION_STORAGE = 'webmud3-ez-tail-fraction';
+  private readonly TAIL_MIN = 0.15;
+  private readonly TAIL_MAX = 0.6;
+  // Coalesces multiple refit requests (rapid scroll / splitter drag) into one
+  // fit per animation frame.
+  private pendingRefit = false;
 
   // Per-shell filter instance: the EZ shell and the Classic shell each
   // need their own state because xterm chunk boundaries (and therefore
@@ -284,6 +294,15 @@ export class EzOutputComponent implements AfterViewInit, OnDestroy {
     });
     this.tailTerminal.open(this.tailTerminalRef.nativeElement);
     this.tailTerminal.loadAddon(this.tailFitAddon);
+
+    // Restore the persisted tail height share, if any.
+    const savedFraction = namespacedStorage.get(this.TAIL_FRACTION_STORAGE);
+    if (savedFraction !== null) {
+      const f = Number(savedFraction);
+      if (Number.isFinite(f)) {
+        this.tailFraction.set(this.clampFraction(f));
+      }
+    }
 
     // Touch range-selection: capture-phase tap handler + invalidate the
     // marker overlay positions whenever the buffer scrolls / resizes.
@@ -906,7 +925,10 @@ export class EzOutputComponent implements AfterViewInit, OnDestroy {
    * is purely visual and safe.
    */
   private refitPanes(): void {
+    if (this.pendingRefit) return;
+    this.pendingRefit = true;
     requestAnimationFrame(() => {
+      this.pendingRefit = false;
       try {
         this.fitAddon.fit();
       } catch {
@@ -922,6 +944,50 @@ export class EzOutputComponent implements AfterViewInit, OnDestroy {
       }
       this.markerInvalidator.update((n) => n + 1);
     });
+  }
+
+  /**
+   * Splitter drag: adjusts the tail's height share. Captures the pointer to
+   * the handle so the drag survives the finger/cursor sliding off, mirrors
+   * every move into `tailFraction` (clamped) and re-fits the panes. The chosen
+   * fraction is persisted on release.
+   */
+  public onSplitterPointerDown(event: PointerEvent): void {
+    event.preventDefault();
+    const handle = event.currentTarget as HTMLElement;
+    handle.setPointerCapture(event.pointerId);
+
+    const onMove = (e: PointerEvent) => {
+      const rect = this.splitRef.nativeElement.getBoundingClientRect();
+      if (rect.height === 0) return;
+      // The tail fills the area below the pointer, so its share is the
+      // distance from the pointer to the bottom of the split container.
+      const fromBottom = rect.bottom - e.clientY;
+      this.tailFraction.set(this.clampFraction(fromBottom / rect.height));
+      this.refitPanes();
+    };
+    const onUp = (e: PointerEvent) => {
+      handle.releasePointerCapture(e.pointerId);
+      handle.removeEventListener('pointermove', onMove);
+      handle.removeEventListener('pointerup', onUp);
+      handle.removeEventListener('pointercancel', onUp);
+      this.persistTailFraction();
+    };
+
+    handle.addEventListener('pointermove', onMove);
+    handle.addEventListener('pointerup', onUp);
+    handle.addEventListener('pointercancel', onUp);
+  }
+
+  private clampFraction(f: number): number {
+    return Math.min(this.TAIL_MAX, Math.max(this.TAIL_MIN, f));
+  }
+
+  private persistTailFraction(): void {
+    namespacedStorage.set(
+      this.TAIL_FRACTION_STORAGE,
+      String(this.tailFraction()),
+    );
   }
 
   /**
