@@ -16,11 +16,26 @@ body {
   // desktop but blow up on tablets and phones at 100% zoom.
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
+  // Dark backdrop so the safe-area regions of an installed PWA (the area
+  // behind the iOS status bar / home indicator) blend in with the app chrome
+  // instead of flashing white.
+  background: #1e1e1e;
 }
 
 body {
   display: flex;
   flex-direction: column;
+  // Include the safe-area padding in the 100dvh height so the layout doesn't
+  // overflow and scroll.
+  box-sizing: border-box;
+  // Keep the UI clear of the iOS status bar (top), home indicator (bottom) and
+  // landscape notch (sides) when running as an installed PWA (standalone) with
+  // viewport-fit=cover. In a normal browser tab these insets resolve to 0, so
+  // the classic layout is completely unchanged.
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  padding-left: env(safe-area-inset-left, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
 }
 
 app-root {
