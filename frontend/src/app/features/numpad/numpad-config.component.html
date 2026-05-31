@@ -1,55 +1,91 @@
-@if (bindings$ | async; as bindings) {
-  <div class="numpad-host">
-    <div class="numpad-grid">
-      @for (cell of layout; track cell) {
-        @if (cell.key) {
-          <button
-            type="button"
-            class="numpad-key"
-            [class.span-2]="cell.span === 2"
-            [title]="commandFor(bindings, cell.key) || '(unbelegt)'"
-            (click)="onKeyClick(cell.key)"
+<div class="numpad-host">
+  <!--
+    Layer selection. The checkboxes pick which modifier layer is shown and
+    edited; the same layers are resolved from the physical modifier keys when
+    a numpad key is pressed in an input line (see NumpadService).
+  -->
+  <div class="numpad-layers">
+    <span class="numpad-layers-title">Ebene: {{ layerLabel() }}</span>
+    <label
+      ><input
+        type="checkbox"
+        [checked]="mods().shift"
+        (change)="toggleMod('shift')"
+      />
+      Shift</label
+    >
+    <label
+      ><input
+        type="checkbox"
+        [checked]="mods().ctrl"
+        (change)="toggleMod('ctrl')"
+      />
+      Strg</label
+    >
+    <label
+      ><input
+        type="checkbox"
+        [checked]="mods().alt"
+        (change)="toggleMod('alt')"
+      />
+      Alt</label
+    >
+    <label
+      ><input
+        type="checkbox"
+        [checked]="mods().meta"
+        (change)="toggleMod('meta')"
+      />
+      Cmd</label
+    >
+  </div>
+
+  <div class="numpad-grid">
+    @for (cell of layout; track cell) {
+      @if (cell.key) {
+        <button
+          type="button"
+          class="numpad-key"
+          [class.span-2]="cell.span === 2"
+          [title]="commandFor(cell.key) || '(unbelegt)'"
+          (click)="onKeyClick(cell.key)"
+        >
+          <span class="numpad-label">{{ cell.label }}</span>
+          <span class="numpad-cmd">{{ commandFor(cell.key) || "—" }}</span>
+          <span
+            class="numpad-edit"
+            (click)="startEdit(cell.key, commandFor(cell.key), $event)"
+            title="Bearbeiten"
+            >✎</span
           >
-            <span class="numpad-label">{{ cell.label }}</span>
-            <span class="numpad-cmd">{{
-              commandFor(bindings, cell.key) || "—"
-            }}</span>
-            <span
-              class="numpad-edit"
-              (click)="
-                startEdit(cell.key, commandFor(bindings, cell.key), $event)
-              "
-              title="Bearbeiten"
-              >✎</span
-            >
-          </button>
-        } @else {
-          <span class="numpad-gap"></span>
-        }
+        </button>
+      } @else {
+        <span class="numpad-gap"></span>
       }
-    </div>
-    <div class="numpad-actions">
-      <button type="button" (click)="onResetClick()">Defaults</button>
-    </div>
-    @if (editingKey(); as key) {
-      <div class="numpad-edit-overlay">
-        <p>
-          Befehl für <strong>{{ key }}</strong
-          >:
-        </p>
-        <input
-          type="text"
-          [ngModel]="editingValue()"
-          (ngModelChange)="editingValue.set($event)"
-          (keyup.enter)="saveEdit()"
-          (keyup.escape)="cancelEdit()"
-          autofocus
-        />
-        <div class="numpad-edit-buttons">
-          <button type="button" (click)="saveEdit()">Speichern</button>
-          <button type="button" (click)="cancelEdit()">Abbrechen</button>
-        </div>
-      </div>
     }
   </div>
-}
+
+  <div class="numpad-actions">
+    <button type="button" (click)="onResetClick()">Defaults</button>
+  </div>
+
+  @if (editingKey(); as key) {
+    <div class="numpad-edit-overlay">
+      <p>
+        Befehl für <strong>{{ key }}</strong> (Ebene {{ layerLabel() }}):
+      </p>
+      <input
+        type="text"
+        [ngModel]="editingValue()"
+        (ngModelChange)="editingValue.set($event)"
+        (keyup.enter)="saveEdit()"
+        (keyup.escape)="cancelEdit()"
+        autofocus
+      />
+      <div class="numpad-edit-buttons">
+        <button type="button" (click)="saveEdit()">Speichern</button>
+        <button type="button" (click)="cancelEdit()">Abbrechen</button>
+      </div>
+    </div>
+  }
+</div>
