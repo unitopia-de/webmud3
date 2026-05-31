@@ -1,5 +1,8 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
+
+import { PwaInstallService } from '@webmud3/frontend/features/connection/pwa-install.service';
+import { PwaUpdateService } from '@webmud3/frontend/features/connection/pwa-update.service';
 
 /**
  * Top-level application shell — now just a router outlet.
@@ -18,4 +21,11 @@ import { RouterOutlet } from '@angular/router';
   imports: [RouterOutlet],
   standalone: true,
 })
-export class AppComponent {}
+export class AppComponent {
+  // PWA helpers, instantiated for their side effects so they are alive in both
+  // shells (`/` and `/ez`). They listen globally (install prompt / SW version
+  // updates) and register their own footer-menu entries. The `_` prefix marks
+  // them as intentionally-unused injections.
+  private readonly _pwaInstall = inject(PwaInstallService);
+  private readonly _pwaUpdate = inject(PwaUpdateService);
+}
