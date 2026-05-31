@@ -61,40 +61,64 @@
   #historyRegionRef
 ></div>
 
-<div
-  class="ez-mud-output"
-  role="region"
-  aria-labelledby="ez-output-heading"
-  #terminalRef
->
+<!--
+  Vertical split: the main terminal on top (freely scrollable) and a
+  live-tail terminal below that only appears while the user has scrolled
+  the main buffer UP off the bottom. The tail mirrors the same output
+  stream and always stays scrolled to the end, so the newest output stays
+  visible while reading back through history. Scrolling back to the bottom
+  (or "Sprung zum Ende") hides it again — see updateTailVisibility().
+-->
+<div class="ez-output-split">
+  <div
+    class="ez-mud-output"
+    role="region"
+    aria-labelledby="ez-output-heading"
+    #terminalRef
+  >
+    <!--
+      Two draggable handles for the touch-friendly two-tap-then-drag range
+      selection. Positioned absolutely over the xterm canvas; the component
+      computes xtermStartMarkerPos / xtermEndMarkerPos from the anchor/end
+      buffer coordinates and re-evaluates them whenever the terminal scrolls
+      or resizes. The capture-phase pointer listener in setupSelectionTapHandler
+      checks `closest('.selection-marker')` so it doesn't swallow the drag.
+    -->
+    @if (selectionMode.isActive()) {
+      @if (xtermStartMarkerPos(); as p) {
+        <button
+          type="button"
+          class="selection-marker selection-marker-start"
+          [style.left.px]="p.x"
+          [style.top.px]="p.y"
+          (pointerdown)="onXtermMarkerPointerDown($event, 'start')"
+          aria-label="Markierungs-Start verschieben"
+        ></button>
+      }
+      @if (xtermEndMarkerPos(); as p) {
+        <button
+          type="button"
+          class="selection-marker selection-marker-end"
+          [style.left.px]="p.x"
+          [style.top.px]="p.y"
+          (pointerdown)="onXtermMarkerPointerDown($event, 'end')"
+          aria-label="Markierungs-Ende verschieben"
+        ></button>
+      }
+    }
+  </div>
+
   <!--
-    Two draggable handles for the touch-friendly two-tap-then-drag range
-    selection. Positioned absolutely over the xterm canvas; the component
-    computes xtermStartMarkerPos / xtermEndMarkerPos from the anchor/end
-    buffer coordinates and re-evaluates them whenever the terminal scrolls
-    or resizes. The capture-phase pointer listener in setupSelectionTapHandler
-    checks `closest('.selection-marker')` so it doesn't swallow the drag.
+    Live-tail pane. Always present in the DOM so the second xterm can be
+    opened once at mount; collapsed to zero height (`.hidden`) until the
+    user scrolls up. `aria-hidden` keeps assistive tech from reading the
+    duplicated output — the tail is a purely visual mirror.
   -->
-  @if (selectionMode.isActive()) {
-    @if (xtermStartMarkerPos(); as p) {
-      <button
-        type="button"
-        class="selection-marker selection-marker-start"
-        [style.left.px]="p.x"
-        [style.top.px]="p.y"
-        (pointerdown)="onXtermMarkerPointerDown($event, 'start')"
-        aria-label="Markierungs-Start verschieben"
-      ></button>
-    }
-    @if (xtermEndMarkerPos(); as p) {
-      <button
-        type="button"
-        class="selection-marker selection-marker-end"
-        [style.left.px]="p.x"
-        [style.top.px]="p.y"
-        (pointerdown)="onXtermMarkerPointerDown($event, 'end')"
-        aria-label="Markierungs-Ende verschieben"
-      ></button>
-    }
-  }
+  <div
+    class="ez-tail-output"
+    [class.hidden]="!tailVisible()"
+    [style.flex-basis.%]="tailVisible() ? tailFraction() * 100 : 0"
+    aria-hidden="true"
+    #tailTerminalRef
+  ></div>
 </div>

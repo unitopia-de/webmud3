@@ -94,6 +94,9 @@ export class EzOutputComponent implements AfterViewInit, OnDestroy {
   @ViewChild('terminalRef', { static: true })
   private readonly terminalRef!: ElementRef<HTMLDivElement>;
 
+  @ViewChild('tailTerminalRef', { static: true })
+  private readonly tailTerminalRef!: ElementRef<HTMLDivElement>;
+
   @ViewChild('liveRegionRef', { static: true })
   private readonly liveRegionRef!: ElementRef<HTMLDivElement>;
 
@@ -106,6 +109,20 @@ export class EzOutputComponent implements AfterViewInit, OnDestroy {
   private terminal!: Terminal;
   private readonly fitAddon = new FitAddon();
   private screenReader?: MudScreenReaderAnnouncer;
+
+  // --- Live-tail (Idee 2) ----------------------------------------------------
+  // A second, display-only xterm stacked below the main one. It mirrors the
+  // same output stream and always stays scrolled to the bottom, so the newest
+  // output remains visible while the user scrolls the MAIN terminal back
+  // through history. It owns no input, sends no NAWS (only the main terminal
+  // reports dimensions) and is never announced to screen readers — it's a pure
+  // visual mirror.
+  private tailTerminal!: Terminal;
+  private readonly tailFitAddon = new FitAddon();
+  /** True while the main terminal is scrolled up off the bottom. */
+  protected readonly tailVisible = signal(false);
+  /** Height share of the tail pane (0..1). Drag-adjustable in Phase 2. */
+  protected readonly tailFraction = signal(0.34);
 
   // Per-shell filter instance: the EZ shell and the Classic shell each
   // need their own state because xterm chunk boundaries (and therefore
@@ -252,6 +269,22 @@ export class EzOutputComponent implements AfterViewInit, OnDestroy {
       // Initial fit can throw if the host is hidden — re-fits happen on resize.
     }
 
+    // Live-tail terminal (Idee 2). Same look as the main terminal but with no
+    // input, no link handler (clickable exits are written as plain text here so
+    // OSC 8 IDs aren't registered twice) and a bounded scrollback — it only
+    // ever needs to show the newest lines. Opened into a zero-height container;
+    // it's fitted the moment it becomes visible (see refitPanes).
+    this.tailTerminal = new Terminal({
+      fontFamily: 'JetBrainsMono, monospace',
+      disableStdin: true,
+      screenReaderMode: false,
+      scrollback: 500,
+      theme: initialTheme.theme,
+      minimumContrastRatio: initialTheme.minimumContrastRatio,
+    });
+    this.tailTerminal.open(this.tailTerminalRef.nativeElement);
+    this.tailTerminal.loadAddon(this.tailFitAddon);
+
     // Touch range-selection: capture-phase tap handler + invalidate the
     // marker overlay positions whenever the buffer scrolls / resizes.
     this.setupSelectionTapHandler(this.terminalRef.nativeElement);
@@ -261,8 +294,10 @@ export class EzOutputComponent implements AfterViewInit, OnDestroy {
         '.xterm-viewport',
       ) ?? undefined;
     if (this.viewportScrollElement) {
-      this.viewportScrollHandler = () =>
+      this.viewportScrollHandler = () => {
         this.markerInvalidator.update((n) => n + 1);
+        this.updateTailVisibility();
+      };
       this.viewportScrollElement.addEventListener(
         'scroll',
         this.viewportScrollHandler,
@@ -271,9 +306,10 @@ export class EzOutputComponent implements AfterViewInit, OnDestroy {
     }
 
     this.terminalDisposables.push(
-      this.terminal.onScroll(() =>
-        this.markerInvalidator.update((n) => n + 1),
-      ),
+      this.terminal.onScroll(() => {
+        this.markerInvalidator.update((n) => n + 1);
+        this.updateTailVisibility();
+      }),
       this.terminal.onResize(() =>
         this.markerInvalidator.update((n) => n + 1),
       ),
@@ -392,13 +428,9 @@ export class EzOutputComponent implements AfterViewInit, OnDestroy {
     window.addEventListener('keydown', this.keydownListener);
 
     this.resizeListener = () => {
-      try {
-        this.fitAddon.fit();
-      } catch {
-        // ignore — see comment above
-      }
-      // A resize moves every cell, so the marker overlays have to recompute.
-      this.markerInvalidator.update((n) => n + 1);
+      // Re-fit both panes (tail only when visible) and recompute the marker
+      // overlays — a resize moves every cell.
+      this.refitPanes();
     };
     window.addEventListener('resize', this.resizeListener);
 
@@ -438,6 +470,7 @@ export class EzOutputComponent implements AfterViewInit, OnDestroy {
     this.clearStartupTimers();
     this.screenReader?.dispose();
     this.terminal?.dispose();
+    this.tailTerminal?.dispose();
   }
 
   /**
@@ -469,6 +502,7 @@ export class EzOutputComponent implements AfterViewInit, OnDestroy {
   public writeLocalEcho(line: string): void {
     if (!this.terminal) return;
     this.terminal.write(`${line}\r\n`);
+    this.writeTail(`${line}\r\n`);
     this.screenReader?.appendToHistory(`${line}\n`);
   }
 
@@ -506,11 +540,13 @@ export class EzOutputComponent implements AfterViewInit, OnDestroy {
     for (const entry of entries) {
       if (entry.type === 'input') {
         this.terminal.write(entry.data);
+        this.writeTail(entry.data);
         continue;
       }
       const segments = restoreFilter.processToSegments(entry.data);
       for (const seg of segments) {
         this.terminal.write(seg.content);
+        this.writeTail(seg.content);
       }
     }
   }
@@ -527,6 +563,7 @@ export class EzOutputComponent implements AfterViewInit, OnDestroy {
     // so users get the same visual cue regardless of which shell they're
     // looking at.
     this.terminal.write(`\x1b[1;36m${text}\x1b[0m\r\n`);
+    this.writeTail(`\x1b[1;36m${text}\x1b[0m\r\n`);
     this.screenReader?.announce(text);
     this.screenReader?.appendToHistory(text);
   }
@@ -558,12 +595,16 @@ export class EzOutputComponent implements AfterViewInit, OnDestroy {
       if (seg.type === 'text') {
         const result = this.triggerEngine.processChunk(seg.content);
         this.terminal.write(result.text);
+        this.writeTail(result.text);
         announcement += result.text;
         for (const s of result.sounds) {
           this.triggerSoundPlayer.play(s.soundId, s.volume);
         }
       } else {
         this.writeClickableSegment(seg);
+        // Tail mirror gets the bare text (no OSC 8 wrapping): the tail is a
+        // display-only mirror, clicks happen in the main terminal.
+        this.writeTail(seg.content);
         // The clickable text itself (without the MXP wrapper) belongs in
         // the audible stream so the screen reader keeps the verbatim
         // transcript.
@@ -824,6 +865,65 @@ export class EzOutputComponent implements AfterViewInit, OnDestroy {
     this.screenReader?.stopAnnouncements();
   }
 
+  // ---------------------------------------------------------------------------
+  // Live-tail (Idee 2)
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Mirrors a chunk into the live-tail terminal and keeps it pinned to the
+   * bottom. No-op until the tail terminal exists. The tail always shows the
+   * newest output regardless of where the main terminal is scrolled.
+   */
+  private writeTail(text: string): void {
+    if (!this.tailTerminal) return;
+    this.tailTerminal.write(text);
+    this.tailTerminal.scrollToBottom();
+  }
+
+  /**
+   * Shows the tail pane while the main terminal is scrolled UP off the
+   * bottom and hides it once the user is back at the latest output. Driven
+   * by the main terminal's scroll events. When visibility flips, both panes
+   * are re-fitted because the main terminal's height changed.
+   */
+  private updateTailVisibility(): void {
+    if (!this.terminal) return;
+    const buf = this.terminal.buffer.active;
+    // viewportY === baseY means the viewport top is at the bottom-most
+    // scroll position, i.e. the newest output is on screen.
+    const atBottom = buf.viewportY >= buf.baseY;
+    const next = !atBottom;
+    if (this.tailVisible() === next) return;
+    this.tailVisible.set(next);
+    this.refitPanes();
+  }
+
+  /**
+   * Re-fits both terminals on the next frame. The DOM height changes when the
+   * tail pane appears/disappears (or is resized in Phase 2); xterm needs an
+   * explicit fit to match. Only the MAIN terminal would report dimensions to
+   * the MUD — and `/ez` never sends NAWS on a local fit — so re-fitting here
+   * is purely visual and safe.
+   */
+  private refitPanes(): void {
+    requestAnimationFrame(() => {
+      try {
+        this.fitAddon.fit();
+      } catch {
+        // Host hidden / zero-size — ignore, a later resize re-fits.
+      }
+      if (this.tailVisible()) {
+        try {
+          this.tailFitAddon.fit();
+        } catch {
+          // ignore — see above
+        }
+        this.tailTerminal?.scrollToBottom();
+      }
+      this.markerInvalidator.update((n) => n + 1);
+    });
+  }
+
   /**
    * Forces the one-time startup text through the assertive startup region
    * (`#startupRegionRef`). Uses the same clear → microtask → set two-step as
@@ -944,6 +1044,11 @@ export class EzOutputComponent implements AfterViewInit, OnDestroy {
     if (!this.terminal) return;
     this.terminal.options.theme = def.theme;
     this.terminal.options.minimumContrastRatio = def.minimumContrastRatio;
+    if (this.tailTerminal) {
+      this.tailTerminal.options.theme = def.theme;
+      this.tailTerminal.options.minimumContrastRatio =
+        def.minimumContrastRatio;
+    }
   }
 
   // ---------------------------------------------------------------------------

@@ -21,6 +21,17 @@
     border: 0;
   }
 
+  // Vertical split container holding the main terminal, the (Phase 2)
+  // splitter and the live-tail terminal stacked top-to-bottom.
+  .ez-output-split {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 0;
+    min-height: 0;
+    position: relative;
+    z-index: 1;
+  }
+
   .ez-mud-output {
     flex: 1 1 0;
     background-color: black;
@@ -31,6 +42,26 @@
     // they'd jump to the page origin.
     position: relative;
     z-index: 1;
+  }
+
+  // Live-tail terminal. Fixed share of the split height (Phase 2 makes it
+  // draggable); collapses to nothing when the user is at the bottom.
+  .ez-tail-output {
+    flex: 0 0 auto;
+    min-height: 0;
+    overflow: hidden;
+    background-color: black;
+    padding-left: 8px;
+    position: relative;
+    // Clear visual divider between the scrolled-back history above and the
+    // live newest output below.
+    border-top: 2px solid #4ec9b0;
+
+    &.hidden {
+      flex-basis: 0 !important;
+      height: 0;
+      border-top-width: 0;
+    }
   }
 
   // Selection markers (two-tap-then-drag range selection on touch).
