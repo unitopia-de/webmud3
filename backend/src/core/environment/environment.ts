@@ -27,6 +27,7 @@ export class Environment implements IEnvironment {
   public readonly name: string;
   public readonly corsAllowList: string[];
   public readonly baseHref: string;
+  public readonly appTitle: string;
   public readonly logLevel: string;
 
   /**
@@ -104,6 +105,10 @@ export class Environment implements IEnvironment {
       getEnvironmentVariable('BASE_HREF', false, '/'),
     );
     this.baseHref = rawBaseHref.endsWith('/') ? rawBaseHref : `${rawBaseHref}/`;
+
+    // Title shown in the browser tab (patched into index.html's <title>) and
+    // exposed via /api/config so the frontend / PWA can use the same value.
+    this.appTitle = String(getEnvironmentVariable('APP_TITLE', false, 'Webmud3'));
 
     this.logLevel = String(getEnvironmentVariable('LOG_LEVEL', false, 'debug'));
 

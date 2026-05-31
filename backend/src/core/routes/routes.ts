@@ -13,6 +13,14 @@ import { Environment } from '../environment/environment.js';
  */
 let cachedIndexHtml: string | null = null;
 
+/** Minimal HTML-escaping for text injected into the index.html markup. */
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
 function loadAndPatchIndexHtml(): string {
   const env = Environment.getInstance();
   const indexPath = path.join(env.projectRoot, 'wwwroot/index.html');
@@ -23,12 +31,23 @@ function loadAndPatchIndexHtml(): string {
   // configured base path so the Angular router and document.baseURI
   // both reflect where the SPA actually lives (e.g. `/webmud3/` when
   // hosted behind a reverse proxy under that prefix).
-  const patched = raw.replace(
+  const withBaseHref = raw.replace(
     /<base\s+href="[^"]*"\s*\/?>/,
     `<base href="${env.baseHref}" />`,
   );
 
-  logger.info(`[Routes] index.html patched with baseHref=${env.baseHref}`);
+  // Replace the build-time `<title>` with the deployment's configured title
+  // so the browser tab shows it. The frontend reads the same value from
+  // /api/config (e.g. for the PWA manifest later). escapeHtml guards against
+  // a `<`/`&` in the title breaking the markup.
+  const patched = withBaseHref.replace(
+    /<title>[^<]*<\/title>/,
+    `<title>${escapeHtml(env.appTitle)}</title>`,
+  );
+
+  logger.info(
+    `[Routes] index.html patched with baseHref=${env.baseHref}, appTitle=${env.appTitle}`,
+  );
 
   return patched;
 }

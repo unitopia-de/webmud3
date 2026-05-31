@@ -11,6 +11,7 @@ export const useConfigEndpoint = (app: Express) => {
 
     res.json({
       socketNamespace: environment.socketRoot,
+      appTitle: environment.appTitle,
     });
   });
 };

@@ -12,4 +12,5 @@ export interface IEnvironment {
   readonly environment: 'production' | 'development';
   readonly corsAllowList: string[];
   readonly baseHref: string;
+  readonly appTitle: string;
 }
