@@ -97,7 +97,7 @@
         "test": {
           "builder": "@angular-builders/jest:run",
           "options": {
-            "polyfills": ["zone.js"],
+            "zoneless": false,
             "tsConfig": "tsconfig.spec.json"
           }
         },
