@@ -68,6 +68,18 @@ describe('MudScreenReaderAnnouncer', () => {
       jest.useRealTimers();
     }
   });
+
+  it('caps the live region at 500 nodes and keeps the most recent', () => {
+    const MAX = 500;
+    for (let i = 1; i <= MAX + 80; i++) {
+      announcer.announce(`Msg ${i}`);
+    }
+
+    expect(liveRegion.childNodes.length).toBe(MAX);
+    // Oldest 80 dropped; newest stays so the SR never loses pending text.
+    expect(liveRegion.firstChild?.textContent).toBe('Msg 81\n');
+    expect(liveRegion.lastChild?.textContent).toBe(`Msg ${MAX + 80}\n`);
+  });
 });
 
 describe('MudScreenReaderAnnouncer - appendToHistory', () => {

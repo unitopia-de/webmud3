@@ -11,6 +11,17 @@ const CONTROL_CHAR_PATTERN = /[\x00-\x08\x0B-\x1F\x7F]/g;
  * navigate, and the bound matches the spirit of a finite scrollback.
  */
 const MAX_HISTORY_ITEMS = 2000;
+/**
+ * Upper bound on the number of text nodes kept in the live (announce) region.
+ * Like the history region this grows by one node per output chunk and is
+ * never cleared mid-session (clearing breaks NVDA/JAWS — see
+ * {@link MudScreenReaderAnnouncer.appendToLiveRegion}). Unlike the history
+ * region it is only a short read-ahead buffer for the screen reader, not a
+ * navigable transcript, so a much smaller bound suffices. Trimming the OLDEST
+ * nodes is safe: with `aria-relevant="additions text"` removals are not
+ * announced, and nodes this far back were spoken long ago.
+ */
+const MAX_LIVE_ITEMS = 500;
 
 /**
  * Minimal screenreader announcer tailored for xterm output.
@@ -340,6 +351,20 @@ export class MudScreenReaderAnnouncer {
   private appendToLiveRegion(normalized: string): void {
     const doc = this.liveRegion.ownerDocument;
     this.liveRegion.appendChild(doc.createTextNode(`${normalized}\n`));
+    this.trimLiveRegion();
+  }
+
+  /**
+   * Drops the oldest text nodes once the live region exceeds
+   * {@link MAX_LIVE_ITEMS}, keeping its DOM (and the cost the browser pays to
+   * track this aria-live region) bounded over a long session. Only nodes far
+   * behind the read head are removed, so the screen reader never loses text
+   * it is about to speak.
+   */
+  private trimLiveRegion(): void {
+    while (this.liveRegion.childNodes.length > MAX_LIVE_ITEMS) {
+      this.liveRegion.removeChild(this.liveRegion.firstChild!);
+    }
   }
 
   public normalizeForComparison(raw: string): string {
