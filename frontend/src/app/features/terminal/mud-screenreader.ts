@@ -1,6 +1,16 @@
 const INPUT_CLEAR_DELAY_MS = 700;
 const ANSI_ESCAPE_PATTERN = /\x1B\[[0-9;?]*[ -\/]*[@-~]/g;
 const CONTROL_CHAR_PATTERN = /[\x00-\x08\x0B-\x1F\x7F]/g;
+/**
+ * Upper bound on the number of <p> line nodes kept in the history region.
+ * The region is appended to on every output chunk and is a fully laid-out
+ * (transparent, position:absolute, full-size) element, so an unbounded node
+ * count made the whole app stall once the output reached ~100 pages
+ * (thousands of nodes re-flowed on every style/layout pass). When the cap is
+ * exceeded the oldest lines are dropped — recent history is what AT users
+ * navigate, and the bound matches the spirit of a finite scrollback.
+ */
+const MAX_HISTORY_ITEMS = 2000;
 
 /**
  * Minimal screenreader announcer tailored for xterm output.
@@ -125,6 +135,22 @@ export class MudScreenReaderAnnouncer {
       item.setAttribute('role', 'text');
 
       this.historyRegion.appendChild(item);
+    }
+
+    this.trimHistory();
+  }
+
+  /**
+   * Drops the oldest line nodes once the history region exceeds
+   * {@link MAX_HISTORY_ITEMS}, keeping the DOM (and its layout cost) bounded
+   * no matter how much output a session produces.
+   */
+  private trimHistory(): void {
+    if (!this.historyRegion) {
+      return;
+    }
+    while (this.historyRegion.childElementCount > MAX_HISTORY_ITEMS) {
+      this.historyRegion.removeChild(this.historyRegion.firstElementChild!);
     }
   }
 

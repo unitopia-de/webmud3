@@ -40,6 +40,33 @@ describe('MxpClickableService', () => {
     expect(svc.lookup(id)?.label).toBe('inv');
   });
 
+  it('evicts stale room regions from the store so the Map stays bounded', () => {
+    // Simulate many rooms, each registering exits, then moving on.
+    for (let room = 0; room < 50; room++) {
+      svc.register(simple('nord'), 'nord', 'room');
+      svc.register(simple('sued'), 'sued', 'room');
+      svc.expireDomain('room'); // player leaves the room
+    }
+    // After 50 room transitions only the just-expired room's (now stale)
+    // entries must not accumulate: the store should be empty, not holding
+    // 100 dead regions.
+    expect(svc._all().length).toBe(0);
+
+    // A fresh room's links are retained until the next bump.
+    svc.register(simple('ost'), 'ost', 'room');
+    expect(svc._all().length).toBe(1);
+  });
+
+  it('keeps non-room regions while evicting stale room regions on a bump', () => {
+    const keep = svc.register(simple('inv'), 'inv'); // no domain, immortal
+    svc.register(simple('nord'), 'nord', 'room');
+    svc.expireDomain('room');
+
+    const remaining = svc._all();
+    expect(remaining).toHaveLength(1);
+    expect(remaining[0].id).toBe(keep);
+  });
+
   it('expireDomain for a non-room domain drops matching regions outright', () => {
     const a = svc.register(simple('a'), 'a', 'custom');
     const b = svc.register(simple('b'), 'b'); // no domain

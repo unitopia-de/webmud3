@@ -79,6 +79,15 @@ export class MxpClickableService {
   public expireDomain(name: string): void {
     if (name === 'room') {
       this.roomEpoch += 1;
+      // Bumping the epoch already makes stale room links fail the `lookup`
+      // check, but the entries linger in the Map and would otherwise grow
+      // unbounded over a long session (each room registers ~20-50 exits).
+      // Drop them now that they can never resolve again.
+      for (const [id, r] of this.regions) {
+        if (r.expireDomain === 'room' && r.epoch !== this.roomEpoch) {
+          this.regions.delete(id);
+        }
+      }
       return;
     }
     // Generic case: drop matching regions outright.

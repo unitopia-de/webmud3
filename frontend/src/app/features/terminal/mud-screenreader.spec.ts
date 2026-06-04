@@ -169,6 +169,31 @@ describe('MudScreenReaderAnnouncer - appendToHistory', () => {
     expect(items[0].textContent).toBe('Line 1');
     expect(items[1].textContent).toBe('Line 5');
   });
+
+  it('caps the history at 2000 items and keeps the most recent lines', () => {
+    const MAX = 2000;
+    // Feed more lines than the cap, in several chunks like real output.
+    for (let i = 1; i <= MAX + 150; i++) {
+      announcer.appendToHistory(`Line ${i}\n`);
+    }
+
+    const items = historyRegion.querySelectorAll('p.sr-log-item');
+    expect(items.length).toBe(MAX);
+    // Oldest 150 were evicted; the window is the most recent MAX lines.
+    expect(items[0].textContent).toBe('Line 151');
+    expect(items[items.length - 1].textContent).toBe(`Line ${MAX + 150}`);
+  });
+
+  it('also enforces the cap when a single chunk overflows it', () => {
+    const MAX = 2000;
+    const lines = Array.from({ length: MAX + 50 }, (_, i) => `L${i + 1}`);
+    announcer.appendToHistory(lines.join('\n'));
+
+    const items = historyRegion.querySelectorAll('p.sr-log-item');
+    expect(items.length).toBe(MAX);
+    expect(items[0].textContent).toBe('L51');
+    expect(items[items.length - 1].textContent).toBe(`L${MAX + 50}`);
+  });
 });
 
 describe('MudScreenReaderAnnouncer - announceInput', () => {
