@@ -229,6 +229,36 @@ describe('TriggerConfigComponent', () => {
     expect(triggerService.triggers[1].id).toBe(b.id);
   });
 
+  it('renders each trigger name as a numbered, jumpable heading', () => {
+    const { fixture, triggerService } = setup();
+    triggerService.create({
+      name: 'Alpha', pattern: 'a', flags: '', enabled: true,
+      action: { kind: 'highlight', foreground: '#fff' },
+    });
+    triggerService.create({
+      name: 'Beta', pattern: 'b', flags: '', enabled: true,
+      action: { kind: 'highlight', foreground: '#fff' },
+    });
+    fixture.detectChanges();
+
+    const el: HTMLElement = fixture.nativeElement;
+    const names = el.querySelectorAll('.tc-name');
+    expect(names).toHaveLength(2);
+
+    // Each name is a level-3 heading so screen readers can jump between
+    // triggers, and its accessible name carries the position number so the
+    // jump announces "1. Alpha" without reading the visible number twice.
+    expect(names[0].getAttribute('role')).toBe('heading');
+    expect(names[0].getAttribute('aria-level')).toBe('3');
+    expect(names[0].getAttribute('aria-label')).toBe('1. Alpha');
+    expect(names[1].getAttribute('aria-label')).toBe('2. Beta');
+
+    // The visible number stays decorative (not announced separately).
+    const indices = el.querySelectorAll('.tc-index');
+    expect(indices[0].textContent?.trim()).toBe('1.');
+    expect(indices[0].getAttribute('aria-hidden')).toBe('true');
+  });
+
   it('imports a valid JSON array and surfaces partial errors', async () => {
     const { component, triggerService } = setup();
 

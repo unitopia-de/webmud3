@@ -72,7 +72,13 @@
           <span class="tc-kind" [title]="t.action.kind">
             {{ t.action.kind === "highlight" ? "🎨" : "🔊" }}
           </span>
-          <span class="tc-name">{{ t.name }}</span>
+          <span
+            class="tc-name"
+            role="heading"
+            aria-level="3"
+            [attr.aria-label]="i + 1 + '. ' + t.name"
+            >{{ t.name }}</span
+          >
           <code class="tc-pattern">/{{ t.pattern }}/{{ t.flags }}</code>
           <span class="tc-summary">{{ actionSummary(t.action) }}</span>
           <button
