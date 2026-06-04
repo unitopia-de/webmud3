@@ -39,7 +39,7 @@
 
 .tc-row {
   display: grid;
-  grid-template-columns: auto auto 1fr 2fr 1.5fr auto auto auto auto;
+  grid-template-columns: auto auto auto 1fr 2fr 1.5fr auto auto auto auto;
   align-items: center;
   gap: 6px;
   padding: 4px 6px;
@@ -64,6 +64,13 @@
   padding: 4px 6px;
   background: #3a1e1e;
   border-radius: 2px;
+}
+
+.tc-index {
+  min-width: 1.5em;
+  text-align: right;
+  color: #888;
+  font-variant-numeric: tabular-nums;
 }
 
 .tc-kind {

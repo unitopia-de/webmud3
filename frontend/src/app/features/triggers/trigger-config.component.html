@@ -61,6 +61,7 @@
     <ul class="tc-list">
       @for (t of triggerList(); track t; let i = $index; let last = $last) {
         <li class="tc-row" [class.disabled]="!t.enabled">
+          <span class="tc-index" aria-hidden="true">{{ i + 1 }}.</span>
           <input
             type="checkbox"
             class="tc-enabled"
