@@ -4,6 +4,12 @@
     { "id": "alert",  "label": "Alert",  "file": "alert.wav" },
     { "id": "bell",   "label": "Bell",   "file": "bell.wav" },
     { "id": "ding",   "label": "Ding",   "file": "ding.wav" },
-    { "id": "notify", "label": "Notify", "file": "notify.wav" }
+    { "id": "notify", "label": "Notify", "file": "notify.wav" },
+    { "id": "01_damdamdam", "label": "01_damdamdam", "file": "01_damdamdam.ogg" },
+    { "id": "02_dueduedue", "label": "02_dueduedue", "file": "02_dueduedue.ogg" },
+    { "id": "03_dangding", "label": "03_dangding", "file": "03_dangding.ogg" },
+    { "id": "04_duedeltuet", "label": "04_duedeltuet", "file": "04_duedeltuet.ogg" },
+    { "id": "05_klingklang", "label": "05_klingklang", "file": "05_klingklang.ogg" },
+    { "id": "06_dueduedong", "label": "06_dueduedong", "file": "06_dueduedong.ogg" }
   ]
 }
