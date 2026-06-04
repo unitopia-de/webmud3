@@ -11,6 +11,7 @@ import {
 } from '@angular/core';
 import { FitAddon } from '@xterm/addon-fit';
 import { ISearchOptions, SearchAddon } from '@xterm/addon-search';
+import { WebglAddon } from '@xterm/addon-webgl';
 import { IDisposable, Terminal } from '@xterm/xterm';
 import { Subscription } from 'rxjs';
 import { pairwise } from 'rxjs/operators';
@@ -311,6 +312,7 @@ export class EzOutputComponent implements AfterViewInit, OnDestroy {
     });
 
     this.terminal.open(this.terminalRef.nativeElement);
+    this.tryLoadWebgl(this.terminal);
     this.terminal.loadAddon(this.fitAddon);
     this.terminal.loadAddon(this.searchAddon);
     // Keep the visible match counter / SR label in sync with the addon.
@@ -340,6 +342,7 @@ export class EzOutputComponent implements AfterViewInit, OnDestroy {
       minimumContrastRatio: initialTheme.minimumContrastRatio,
     });
     this.tailTerminal.open(this.tailTerminalRef.nativeElement);
+    this.tryLoadWebgl(this.tailTerminal);
     this.tailTerminal.loadAddon(this.tailFitAddon);
 
     // Restore the persisted tail height share, if any.
@@ -655,6 +658,7 @@ export class EzOutputComponent implements AfterViewInit, OnDestroy {
    * prompt-manager step (we have no local xterm prompt to splice).
    */
   private transformAndWrite(data: string): void {
+    const perfStart = performance.now();
     const segments = this.mxpFilter.processToSegments(data);
     let announcement = '';
 
@@ -694,6 +698,28 @@ export class EzOutputComponent implements AfterViewInit, OnDestroy {
       // History is always filled per-chunk (line-by-line H-navigation).
       this.screenReader?.appendToHistory(announcement);
     }
+
+    this.logSlowChunk(performance.now() - perfStart, data.length);
+  }
+
+  /**
+   * Diagnostics: warns when a single output chunk takes longer than one frame
+   * (~16 ms) to process, so a tester can open the console and see WHICH chunks
+   * stall and how the contributing structures are sized at that moment. Cheap
+   * — one `performance.now()` pair per chunk, and the log only fires when
+   * something is actually slow.
+   */
+  private logSlowChunk(durationMs: number, chunkLen: number): void {
+    if (durationMs < 16) {
+      return;
+    }
+    const mainLines = this.terminal?.buffer.active.length ?? 0;
+    const srNodes = this.historyRegionRef?.nativeElement.childElementCount ?? 0;
+    console.warn(
+      `[EZ perf] slow chunk: ${durationMs.toFixed(1)}ms | ` +
+        `chunk=${chunkLen} chars | mainBuffer=${mainLines} lines | ` +
+        `srHistory=${srNodes} nodes | tailVisible=${this.tailVisible()}`,
+    );
   }
 
   /**
@@ -945,6 +971,27 @@ export class EzOutputComponent implements AfterViewInit, OnDestroy {
   private jumpToCurrentOutput(): void {
     this.terminal?.scrollToBottom();
     this.screenReader?.stopAnnouncements();
+  }
+
+  /**
+   * Switches a terminal from xterm's slow DOM renderer to the GPU-accelerated
+   * WebGL renderer. This is the dominant cost during heavy output (the EZ
+   * shell renders TWO terminals — main + live-tail — at once), so the speedup
+   * is large. Must be called AFTER `terminal.open()`.
+   *
+   * Degrades gracefully: if WebGL is unavailable (old device, blocked context,
+   * software rendering) construction throws or the context is lost later — in
+   * both cases we drop the addon and xterm falls back to the DOM renderer, so
+   * output is never broken, only slower.
+   */
+  private tryLoadWebgl(term: Terminal): void {
+    try {
+      const addon = new WebglAddon();
+      addon.onContextLoss(() => addon.dispose());
+      term.loadAddon(addon);
+    } catch {
+      // No WebGL — keep the DOM renderer. Output still works, just slower.
+    }
   }
 
   // ---------------------------------------------------------------------------
