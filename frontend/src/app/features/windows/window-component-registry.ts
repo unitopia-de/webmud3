@@ -1,5 +1,6 @@
 import type { Type } from '@angular/core';
 
+import { CommlogComponent } from '@webmud3/frontend/features/commlog/commlog.component';
 import { DirlistComponent } from '@webmud3/frontend/features/editor/dirlist.component';
 import { EditorComponent } from '@webmud3/frontend/features/editor/editor.component';
 import { InventoryComponent } from '@webmud3/frontend/features/inventory/inventory.component';
@@ -25,4 +26,5 @@ export const WINDOW_COMPONENTS: Record<string, Type<unknown>> = {
   settings: SettingsComponent,
   'trigger-config': TriggerConfigComponent,
   'sound-library': SoundLibraryComponent,
+  commlog: CommlogComponent,
 };

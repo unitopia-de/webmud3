@@ -384,3 +384,77 @@ describe('MudScreenReaderAnnouncer - announceInputCommitted', () => {
     expect(() => announcer.announceInput('hal')).not.toThrow();
   });
 });
+
+describe('MudScreenReaderAnnouncer - quiet mode', () => {
+  let liveRegion: HTMLElement;
+  let historyRegion: HTMLElement;
+  let quiet: boolean;
+  let announcer: MudScreenReaderAnnouncer;
+
+  beforeEach(() => {
+    jest.useFakeTimers();
+    liveRegion = document.createElement('div');
+    historyRegion = document.createElement('div');
+    quiet = true;
+    announcer = new MudScreenReaderAnnouncer(
+      liveRegion,
+      historyRegion,
+      () => false,
+      undefined,
+      () => quiet,
+    );
+  });
+
+  afterEach(() => {
+    announcer.dispose();
+    jest.clearAllTimers();
+    jest.useRealTimers();
+  });
+
+  it('coalesces several announcements into ONE live-region node per window', () => {
+    announcer.announce('First');
+    announcer.announce('Second');
+    announcer.announce('Third');
+
+    // Nothing flushed yet — still inside the coalesce window.
+    expect(liveRegion.childNodes.length).toBe(0);
+
+    jest.advanceTimersByTime(200);
+
+    // One combined node instead of three.
+    expect(liveRegion.childNodes.length).toBe(1);
+    expect(liveRegion.textContent).toBe('First\nSecond\nThird\n');
+  });
+
+  it('replaces the live region each flush so it never accumulates (no re-read)', () => {
+    for (let i = 1; i <= 80; i++) {
+      announcer.announce(`Msg ${i}`);
+      jest.advanceTimersByTime(200);
+    }
+    // Replace pattern: exactly one node, holding only the latest block — this
+    // is what prevents iOS VoiceOver from re-reading earlier output.
+    expect(liveRegion.childNodes.length).toBe(1);
+    expect(liveRegion.textContent).toBe('Msg 80\n');
+  });
+
+  it('uses the smaller quiet history cap (400)', () => {
+    for (let i = 1; i <= 450; i++) {
+      announcer.appendToHistory(`Line ${i}\n`);
+    }
+    const items = historyRegion.querySelectorAll('p.sr-log-item');
+    expect(items.length).toBe(400);
+    expect(items[items.length - 1].textContent).toBe('Line 450');
+  });
+
+  it('drops pending coalesced text on clear / session start', () => {
+    announcer.announce('Buffered');
+    expect(liveRegion.childNodes.length).toBe(0);
+
+    announcer.markSessionStart();
+    jest.advanceTimersByTime(200);
+
+    // The buffered text belonged to the old session and must not surface.
+    expect(liveRegion.childNodes.length).toBe(0);
+    expect(liveRegion.textContent).toBe('');
+  });
+});

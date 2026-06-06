@@ -18,6 +18,8 @@ import { pairwise } from 'rxjs/operators';
 
 import { MudService } from '@webmud3/frontend/core/mud/services/mud.service';
 import { DebugSettingsService } from '@webmud3/frontend/features/debug/debug-settings.service';
+import { PerfHudService } from '@webmud3/frontend/features/terminal-ez/perf-hud.service';
+import { QuietOutputService } from '@webmud3/frontend/features/terminal-ez/quiet-output.service';
 import { OutputHistoryService } from '@webmud3/frontend/shared/services/output-history.service';
 import {
   ClickAction,
@@ -82,6 +84,8 @@ export class EzOutputComponent implements AfterViewInit, OnDestroy {
   private readonly terminalThemes = inject(TerminalThemeService);
   private readonly debugSettings = inject(DebugSettingsService);
   private readonly outputHistory = inject(OutputHistoryService);
+  protected readonly perfHud = inject(PerfHudService);
+  private readonly quietOutput = inject(QuietOutputService);
   private readonly mxpRouter = inject(MxpTagRouter);
   private readonly mxpClickables = inject(MxpClickableService);
   private readonly mxpElements = inject(MxpElementService);
@@ -158,6 +162,50 @@ export class EzOutputComponent implements AfterViewInit, OnDestroy {
   private readonly tailFitAddon = new FitAddon();
   /** True while the main terminal is scrolled up off the bottom. */
   protected readonly tailVisible = signal(false);
+
+  // --- On-screen performance HUD ---------------------------------------------
+  // The console is unreachable on iPad, so slow-chunk diagnostics are mirrored
+  // into a small on-screen overlay. Enabled via `?perf=1` or the shell's
+  // "Performance-Anzeige" menu toggle; the flag lives in PerfHudService
+  // (injected above as `perfHud`).
+  /** Which renderer each terminal actually ended up with (webgl vs DOM). */
+  protected readonly perfRendererMain = signal<'webgl' | 'dom'>('dom');
+  protected readonly perfRendererTail = signal<'webgl' | 'dom'>('dom');
+  /** Duration of the most recent (sampled) chunk and the worst seen (ms). */
+  protected readonly perfLastMs = signal(0);
+  protected readonly perfMaxMs = signal(0);
+  /** Throttles the HUD live refresh to ~2x/sec (see recordChunkPerf). */
+  private lastHudRefreshAt = 0;
+  /** Stage attribution of the worst chunk so far (which step ate the time). */
+  protected readonly perfMaxBreakdown = signal('');
+  /**
+   * Worst observed xterm flush latency (ms): the time from queuing a chunk's
+   * writes to xterm's write-callback firing. This captures the ASYNC render
+   * cost that our synchronous stage timers miss — if this spikes while the
+   * stage breakdown stays ~0, the stall is xterm's rendering, not our code.
+   */
+  protected readonly perfFlushMs = signal(0);
+  /** Sizes of the growing structures captured at the last slow chunk. */
+  protected readonly perfMainLines = signal(0);
+  protected readonly perfSrNodes = signal(0);
+  /**
+   * Human-readable diagnostic sentence. Used both as the visible HUD text and
+   * as the screen-reader label, and copied to the clipboard so a blind tester
+   * can paste the numbers back to us instead of transcribing them by ear.
+   */
+  protected readonly perfReport = computed(
+    () =>
+      `Renderer ${this.perfRendererMain()}/${this.perfRendererTail()}, ` +
+      `letzter Chunk ${this.perfLastMs()} ms, ` +
+      `Maximum ${this.perfMaxMs()} ms, ` +
+      `xterm-Flush max ${this.perfFlushMs()} ms, ` +
+      `Puffer ${this.perfMainLines()} Zeilen, ` +
+      `Screenreader-Region ${this.perfSrNodes()} Knoten, ` +
+      `Live-Tail ${this.tailVisible() ? 'an' : 'aus'}` +
+      (this.perfMaxBreakdown()
+        ? `. Schlimmster Chunk: ${this.perfMaxBreakdown()}`
+        : ''),
+  );
   /** Height share of the tail pane (0..1), drag-adjustable and persisted. */
   protected readonly tailFraction = signal(0.34);
   private readonly TAIL_FRACTION_STORAGE = 'webmud3-ez-tail-fraction';
@@ -312,7 +360,11 @@ export class EzOutputComponent implements AfterViewInit, OnDestroy {
     });
 
     this.terminal.open(this.terminalRef.nativeElement);
-    this.tryLoadWebgl(this.terminal);
+    this.perfRendererMain.set(
+      this.tryLoadWebgl(this.terminal, () => this.perfRendererMain.set('dom'))
+        ? 'webgl'
+        : 'dom',
+    );
     this.terminal.loadAddon(this.fitAddon);
     this.terminal.loadAddon(this.searchAddon);
     // Keep the visible match counter / SR label in sync with the addon.
@@ -342,7 +394,13 @@ export class EzOutputComponent implements AfterViewInit, OnDestroy {
       minimumContrastRatio: initialTheme.minimumContrastRatio,
     });
     this.tailTerminal.open(this.tailTerminalRef.nativeElement);
-    this.tryLoadWebgl(this.tailTerminal);
+    this.perfRendererTail.set(
+      this.tryLoadWebgl(this.tailTerminal, () =>
+        this.perfRendererTail.set('dom'),
+      )
+        ? 'webgl'
+        : 'dom',
+    );
     this.tailTerminal.loadAddon(this.tailFitAddon);
 
     // Restore the persisted tail height share, if any.
@@ -391,6 +449,8 @@ export class EzOutputComponent implements AfterViewInit, OnDestroy {
       this.liveRegionRef.nativeElement,
       this.historyRegionRef.nativeElement,
       () => this.debugSettings.screenReaderLogging,
+      undefined, // EZ has no separate input region (native textarea is read)
+      () => this.quietOutput.enabled(),
     );
 
     // Start the one-time startup window (see field comment). When it
@@ -660,22 +720,33 @@ export class EzOutputComponent implements AfterViewInit, OnDestroy {
   private transformAndWrite(data: string): void {
     const perfStart = performance.now();
     const segments = this.mxpFilter.processToSegments(data);
+    const afterMxp = performance.now();
     let announcement = '';
+    // Per-stage timing so a slow chunk can be attributed (MXP filter vs
+    // trigger regexes vs xterm writes vs screen reader).
+    let triggerMs = 0;
+    let writeMs = 0;
 
     for (const seg of segments) {
       if (seg.type === 'text') {
+        const t0 = performance.now();
         const result = this.triggerEngine.processChunk(seg.content);
+        const t1 = performance.now();
+        triggerMs += t1 - t0;
         this.terminal.write(result.text);
         this.writeTail(result.text);
+        writeMs += performance.now() - t1;
         announcement += result.text;
         for (const s of result.sounds) {
           this.triggerSoundPlayer.play(s.soundId, s.volume);
         }
       } else {
+        const t0 = performance.now();
         this.writeClickableSegment(seg);
         // Tail mirror gets the bare text (no OSC 8 wrapping): the tail is a
         // display-only mirror, clicks happen in the main terminal.
         this.writeTail(seg.content);
+        writeMs += performance.now() - t0;
         // The clickable text itself (without the MXP wrapper) belongs in
         // the audible stream so the screen reader keeps the verbatim
         // transcript.
@@ -683,6 +754,7 @@ export class EzOutputComponent implements AfterViewInit, OnDestroy {
       }
     }
 
+    const beforeSr = performance.now();
     if (announcement.length > 0) {
       // Live announcement: immediate once primed (classic behaviour), or
       // buffered during the startup window so iOS VoiceOver doesn't swallow
@@ -699,27 +771,104 @@ export class EzOutputComponent implements AfterViewInit, OnDestroy {
       this.screenReader?.appendToHistory(announcement);
     }
 
-    this.logSlowChunk(performance.now() - perfStart, data.length);
+    this.recordChunkPerf(performance.now() - perfStart, data.length, {
+      mxpMs: afterMxp - perfStart,
+      triggerMs,
+      writeMs,
+      srMs: performance.now() - beforeSr,
+    });
+
+    // Measure xterm's ASYNC flush latency: an empty trailing write whose
+    // callback fires once the queued data has actually been parsed/rendered.
+    // This is the cost our synchronous stage timers cannot see.
+    if (this.perfHud.enabled() && this.terminal) {
+      const flushStart = performance.now();
+      this.terminal.write('', () => {
+        const lat = Math.round(performance.now() - flushStart);
+        if (lat > this.perfFlushMs()) {
+          this.perfFlushMs.set(lat);
+        }
+      });
+    }
   }
 
   /**
-   * Diagnostics: warns when a single output chunk takes longer than one frame
-   * (~16 ms) to process, so a tester can open the console and see WHICH chunks
-   * stall and how the contributing structures are sized at that moment. Cheap
-   * — one `performance.now()` pair per chunk, and the log only fires when
-   * something is actually slow.
+   * Per-chunk diagnostics. Two outputs:
+   *  - console.warn for any chunk over one frame (~16 ms), with the sizes of
+   *    the structures that grow with output — useful where DevTools exist.
+   *  - the on-screen HUD (iPad), which shows the LIVE values even when nothing
+   *    crosses 16 ms, so we still learn the renderer, buffer/sr sizes and the
+   *    real peak chunk time instead of a misleading "0 ms".
+   *
+   * The HUD readout is refreshed at most ~2x/second so the instrumentation
+   * itself never adds change-detection load during a burst; the peak (`max`)
+   * is tracked on every chunk because that comparison is essentially free.
    */
-  private logSlowChunk(durationMs: number, chunkLen: number): void {
-    if (durationMs < 16) {
+  private recordChunkPerf(
+    durationMs: number,
+    chunkLen: number,
+    stages: { mxpMs: number; triggerMs: number; writeMs: number; srMs: number },
+  ): void {
+    if (durationMs >= 16) {
+      const mainLines = this.terminal?.buffer.active.length ?? 0;
+      const srNodes =
+        this.historyRegionRef?.nativeElement.childElementCount ?? 0;
+      console.warn(
+        `[EZ perf] slow chunk: ${durationMs.toFixed(1)}ms | ` +
+          `chunk=${chunkLen} chars | mainBuffer=${mainLines} lines | ` +
+          `srHistory=${srNodes} nodes | tailVisible=${this.tailVisible()} | ` +
+          `mxp=${stages.mxpMs.toFixed(0)} trig=${stages.triggerMs.toFixed(0)} ` +
+          `write=${stages.writeMs.toFixed(0)} sr=${stages.srMs.toFixed(0)}`,
+      );
+    }
+
+    if (!this.perfHud.enabled()) {
       return;
     }
-    const mainLines = this.terminal?.buffer.active.length ?? 0;
-    const srNodes = this.historyRegionRef?.nativeElement.childElementCount ?? 0;
-    console.warn(
-      `[EZ perf] slow chunk: ${durationMs.toFixed(1)}ms | ` +
-        `chunk=${chunkLen} chars | mainBuffer=${mainLines} lines | ` +
-        `srHistory=${srNodes} nodes | tailVisible=${this.tailVisible()}`,
+
+    const rounded = Math.round(durationMs);
+    if (rounded > this.perfMaxMs()) {
+      this.perfMaxMs.set(rounded);
+      // Capture what made THIS (the new worst) chunk slow, so the HUD report
+      // attributes the peak instead of just naming it.
+      this.perfMaxBreakdown.set(
+        `Chunk ${chunkLen} Z., MXP ${stages.mxpMs.toFixed(0)}, ` +
+          `Trigger ${stages.triggerMs.toFixed(0)}, ` +
+          `Write ${stages.writeMs.toFixed(0)}, ` +
+          `SR ${stages.srMs.toFixed(0)} ms`,
+      );
+    }
+
+    const now = performance.now();
+    if (now - this.lastHudRefreshAt < 500) {
+      return;
+    }
+    this.lastHudRefreshAt = now;
+    this.perfLastMs.set(rounded);
+    this.perfMainLines.set(this.terminal?.buffer.active.length ?? 0);
+    this.perfSrNodes.set(
+      this.historyRegionRef?.nativeElement.childElementCount ?? 0,
     );
+  }
+
+  /**
+   * Copies the full diagnostic report (plus the user-agent so we can tell it's
+   * the iPad) to the clipboard and confirms via the screen-reader live region.
+   * Triggered by the HUD's "Kopieren" button — a focusable control VoiceOver
+   * can reach, so a blind tester can capture the numbers reliably.
+   */
+  protected async copyPerfDiagnostics(): Promise<void> {
+    const report = `webmud3 /ez perf: ${this.perfReport()} | UA: ${navigator.userAgent}`;
+    try {
+      await navigator.clipboard.writeText(report);
+      this.screenReader?.announce(
+        'Performance-Diagnose in die Zwischenablage kopiert.',
+      );
+    } catch {
+      this.screenReader?.announce(
+        'Kopieren fehlgeschlagen — Zwischenablage nicht verfügbar.',
+      );
+    }
   }
 
   /**
@@ -984,13 +1133,18 @@ export class EzOutputComponent implements AfterViewInit, OnDestroy {
    * both cases we drop the addon and xterm falls back to the DOM renderer, so
    * output is never broken, only slower.
    */
-  private tryLoadWebgl(term: Terminal): void {
+  private tryLoadWebgl(term: Terminal, onLost: () => void): boolean {
     try {
       const addon = new WebglAddon();
-      addon.onContextLoss(() => addon.dispose());
+      addon.onContextLoss(() => {
+        addon.dispose();
+        onLost();
+      });
       term.loadAddon(addon);
+      return true;
     } catch {
       // No WebGL — keep the DOM renderer. Output still works, just slower.
+      return false;
     }
   }
 

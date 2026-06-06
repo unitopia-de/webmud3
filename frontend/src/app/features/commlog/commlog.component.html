@@ -1,0 +1,25 @@
+<div class="commlog">
+  <div class="commlog-toolbar">
+    <button type="button" (click)="download()" [disabled]="entries().length === 0">
+      Herunterladen
+    </button>
+    <button type="button" (click)="clear()" [disabled]="entries().length === 0">
+      Löschen
+    </button>
+  </div>
+
+  @if (entries().length > 0) {
+    <ul class="commlog-list">
+      @for (entry of entries(); track $index) {
+        <li class="commlog-line" [class]="'channel-' + entry.channel.toLowerCase()">
+          <span class="commlog-time">{{ entry.timestamp | date: 'HH:mm:ss' }}</span>
+          <span class="commlog-channel">{{ entry.channel }}</span>
+          <span class="commlog-player">{{ entry.player }}</span>
+          <span class="commlog-text">{{ entry.text }}</span>
+        </li>
+      }
+    </ul>
+  } @else {
+    <div class="commlog-empty">Noch keine Nachrichten gesammelt.</div>
+  }
+</div>

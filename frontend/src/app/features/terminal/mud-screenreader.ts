@@ -22,6 +22,14 @@ const MAX_HISTORY_ITEMS = 2000;
  * announced, and nodes this far back were spoken long ago.
  */
 const MAX_LIVE_ITEMS = 500;
+/**
+ * "Quiet output" caps and coalescing window, used when the EZ-Shell's quiet
+ * mode is on. iOS VoiceOver chokes on the default high mutation rate + large
+ * DOM, so we drop the caps hard and coalesce announcements into one node per
+ * window instead of one per chunk/line. See {@link QuietOutputService}.
+ */
+const QUIET_MAX_HISTORY_ITEMS = 400;
+const QUIET_COALESCE_MS = 200;
 
 /**
  * Minimal screenreader announcer tailored for xterm output.
@@ -36,12 +44,19 @@ export class MudScreenReaderAnnouncer {
   private inputClearTimer: number | undefined;
   private sessionStartedAt: number;
   private lastAnnouncedBuffer = '';
+  // Quiet-mode coalescing buffer for the live region (see appendToLiveRegion).
+  private liveCoalesceBuffer = '';
+  private liveCoalesceTimer: number | undefined;
 
   constructor(
     private readonly liveRegion: HTMLElement,
     private readonly historyRegion?: HTMLElement,
     private readonly isLoggingEnabled: () => boolean = () => false,
     private readonly inputRegion?: HTMLElement,
+    // When this returns true, announcements are coalesced and the DOM caps are
+    // dropped hard — tuned for iOS VoiceOver. Default off keeps the validated
+    // NVDA/JAWS behaviour.
+    private readonly isQuietMode: () => boolean = () => false,
   ) {
     this.sessionStartedAt = Date.now();
   }
@@ -98,6 +113,7 @@ export class MudScreenReaderAnnouncer {
    * Clears the live region and any pending timers.
    */
   public clear(): void {
+    this.cancelLiveCoalesce();
     this.liveRegion.textContent = '';
   }
 
@@ -160,7 +176,10 @@ export class MudScreenReaderAnnouncer {
     if (!this.historyRegion) {
       return;
     }
-    while (this.historyRegion.childElementCount > MAX_HISTORY_ITEMS) {
+    const cap = this.isQuietMode()
+      ? QUIET_MAX_HISTORY_ITEMS
+      : MAX_HISTORY_ITEMS;
+    while (this.historyRegion.childElementCount > cap) {
       this.historyRegion.removeChild(this.historyRegion.firstElementChild!);
     }
   }
@@ -349,17 +368,60 @@ export class MudScreenReaderAnnouncer {
    * delta, not the accumulated history.
    */
   private appendToLiveRegion(normalized: string): void {
-    const doc = this.liveRegion.ownerDocument;
-    this.liveRegion.appendChild(doc.createTextNode(`${normalized}\n`));
-    this.trimLiveRegion();
+    if (!this.isQuietMode()) {
+      // Default (NVDA/JAWS): append immediately, one node per chunk.
+      const doc = this.liveRegion.ownerDocument;
+      this.liveRegion.appendChild(doc.createTextNode(`${normalized}\n`));
+      this.trimLiveRegion();
+      return;
+    }
+
+    // Quiet mode (iOS VoiceOver): coalesce rapid output into ONE node per
+    // window so VoiceOver isn't flooded with a mutation per chunk/line.
+    this.liveCoalesceBuffer += `${normalized}\n`;
+    if (this.liveCoalesceTimer === undefined) {
+      this.liveCoalesceTimer = window.setTimeout(
+        () => this.flushLiveCoalesce(),
+        QUIET_COALESCE_MS,
+      );
+    }
   }
 
   /**
-   * Drops the oldest text nodes once the live region exceeds
-   * {@link MAX_LIVE_ITEMS}, keeping its DOM (and the cost the browser pays to
-   * track this aria-live region) bounded over a long session. Only nodes far
-   * behind the read head are removed, so the screen reader never loses text
-   * it is about to speak.
+   * Flushes the coalesced quiet-mode buffer by REPLACING the live region with
+   * the new block (a single text node), rather than appending + trimming.
+   *
+   * iOS VoiceOver re-reads a live region whenever its existing nodes are
+   * mutated — so trimming the oldest node on each flush made VoiceOver
+   * re-announce remaining content (the "repeated output" the tester heard).
+   * A clean replace announces the new block exactly once and keeps the region
+   * at a single node, which is the canonical VoiceOver live-region pattern.
+   */
+  private flushLiveCoalesce(): void {
+    this.liveCoalesceTimer = undefined;
+    const text = this.liveCoalesceBuffer;
+    this.liveCoalesceBuffer = '';
+    if (!text) {
+      return;
+    }
+    this.liveRegion.textContent = text;
+  }
+
+  /** Cancels a pending coalesce flush and drops its buffered text. */
+  private cancelLiveCoalesce(): void {
+    if (this.liveCoalesceTimer !== undefined) {
+      window.clearTimeout(this.liveCoalesceTimer);
+      this.liveCoalesceTimer = undefined;
+    }
+    this.liveCoalesceBuffer = '';
+  }
+
+  /**
+   * Drops the oldest text nodes once the live region exceeds {@link
+   * MAX_LIVE_ITEMS}. Only used by the default (append) path — quiet mode
+   * replaces the region instead (see flushLiveCoalesce). Only nodes far behind
+   * the read head are removed, so the screen reader never loses text it is
+   * about to speak.
    */
   private trimLiveRegion(): void {
     while (this.liveRegion.childNodes.length > MAX_LIVE_ITEMS) {

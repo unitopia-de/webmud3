@@ -41,6 +41,7 @@ import { WakeLockService } from '@webmud3/frontend/features/connection/wake-lock
 import { OutputJumpService } from '@webmud3/frontend/features/terminal/output-jump.service';
 import { NumpadWindowService } from '@webmud3/frontend/features/numpad/numpad-window.service';
 import { PlayermapWindowService } from '@webmud3/frontend/features/playermap/playermap-window.service';
+import { CommlogWindowService } from '@webmud3/frontend/features/commlog/commlog-window.service';
 import { SettingsWindowService } from '@webmud3/frontend/features/settings/settings-window.service';
 import { WindowService } from '@webmud3/frontend/features/windows/window.service';
 import type { LinemodeState } from '@webmud3/shared';
@@ -188,6 +189,10 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
   // Bootstraps the playermap feature: registers the Playermap GMCP module and
   // adds the "Karte" toggle to the footer menu.
   private readonly _playermapWindow = inject(PlayermapWindowService);
+  // Bootstraps the experimental CommLog feature. Only does anything when the
+  // `?commlog=1` query parameter is present: then it registers the "CommLog"
+  // footer-menu entry and the "Comm" GMCP module that collects say/soul/tell.
+  private readonly _commlogWindow = inject(CommlogWindowService);
   // Bootstraps the settings dialog: registers the "Einstellungen…" footer
   // menu entry that opens a tabbed settings window.
   private readonly _settingsWindow = inject(SettingsWindowService);

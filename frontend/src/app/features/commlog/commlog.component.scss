@@ -1,0 +1,97 @@
+:host {
+  display: block;
+  height: 100%;
+  font-family: sans-serif;
+  font-size: 13px;
+  color: #ddd;
+}
+
+.commlog {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.commlog-toolbar {
+  flex: 0 0 auto;
+  display: flex;
+  gap: 6px;
+  padding: 4px 6px;
+  border-bottom: 1px solid #3a3d3e;
+
+  button {
+    padding: 3px 10px;
+    font-size: 12px;
+    color: #ddd;
+    background: #2a2d2e;
+    border: 1px solid #4a4d4e;
+    border-radius: 3px;
+    cursor: pointer;
+
+    &:hover:not(:disabled) {
+      background: #37393a;
+    }
+
+    &:disabled {
+      opacity: 0.4;
+      cursor: default;
+    }
+  }
+}
+
+.commlog-list {
+  flex: 1 1 auto;
+  list-style: none;
+  margin: 0;
+  padding: 4px 6px;
+  overflow-y: auto;
+}
+
+.commlog-line {
+  padding: 1px 0;
+  line-height: 1.4;
+  word-break: break-word;
+}
+
+.commlog-time {
+  color: #777;
+  margin-right: 6px;
+}
+
+.commlog-channel {
+  display: inline-block;
+  min-width: 38px;
+  margin-right: 6px;
+  font-size: 11px;
+  font-weight: bold;
+  text-transform: uppercase;
+}
+
+.commlog-player {
+  font-weight: bold;
+  margin-right: 4px;
+
+  &::after {
+    content: ':';
+  }
+}
+
+// Channel-specific accent colours, matching common UNItopia conventions.
+.channel-say .commlog-channel {
+  color: #4ec9b0;
+}
+
+.channel-tell .commlog-channel {
+  color: #c586c0;
+}
+
+.channel-soul .commlog-channel {
+  color: #dcdcaa;
+}
+
+.commlog-empty {
+  padding: 12px;
+  color: #777;
+  font-style: italic;
+  text-align: center;
+}

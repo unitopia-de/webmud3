@@ -71,6 +71,27 @@
 -->
 <div class="ez-output-split" #splitRef>
   <!--
+    On-screen performance HUD (enable with ?perf=1). Mirrors the slow-chunk
+    diagnostics onto the screen for devices without a reachable console (iPad).
+    NOT aria-hidden: blind testers must be able to read AND copy the numbers,
+    so the text is exposed to AT and the "Kopieren" button puts the full
+    report on the clipboard.
+  -->
+  @if (perfHud.enabled()) {
+    <div class="ez-perf-hud" role="group" aria-label="Performance-Diagnose">
+      <span class="ez-perf-text">{{ perfReport() }}</span>
+      <button
+        type="button"
+        class="ez-perf-copy"
+        (click)="copyPerfDiagnostics()"
+        aria-label="Performance-Diagnose in die Zwischenablage kopieren"
+      >
+        Kopieren
+      </button>
+    </div>
+  }
+
+  <!--
     Full-text search bar (Idee 3). Opened with Strg/Cmd+F, overlaid at the
     top of the output. Searches the main terminal's scrollback via the xterm
     SearchAddon; jumping to a match scrolls the main pane up to it (the

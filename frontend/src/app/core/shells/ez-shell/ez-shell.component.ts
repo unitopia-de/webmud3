@@ -26,6 +26,8 @@ import { SoundService } from '@webmud3/frontend/features/sound/sound.service';
 import { EzInputComponent, EzInputSubmission } from '@webmud3/frontend/features/terminal-ez/ez-input.component';
 import { EzOutputComponent } from '@webmud3/frontend/features/terminal-ez/ez-output.component';
 import { StickyInputService } from '@webmud3/frontend/features/terminal-ez/sticky-input.service';
+import { PerfHudService } from '@webmud3/frontend/features/terminal-ez/perf-hud.service';
+import { QuietOutputService } from '@webmud3/frontend/features/terminal-ez/quiet-output.service';
 import {
   MxpChoiceMenuComponent,
   TerminalThemeService,
@@ -87,6 +89,8 @@ export class EzShellComponent implements OnInit, AfterViewInit, OnDestroy {
   private readonly terminalThemes = inject(TerminalThemeService);
   private readonly wakeLock = inject(WakeLockService);
   private readonly stickyInput = inject(StickyInputService);
+  private readonly perfHud = inject(PerfHudService);
+  private readonly quietOutput = inject(QuietOutputService);
   private readonly router = inject(Router);
 
   // ---------------------------------------------------------------------------
@@ -128,6 +132,14 @@ export class EzShellComponent implements OnInit, AfterViewInit, OnDestroy {
   // EZ-only toggle: keep the just-sent command in the input line, selected,
   // so bare Enter repeats it (Idee 1). The classic shell never registers this.
   private readonly STICKY_INPUT_MENU_ID = 'ez-sticky-input';
+  // EZ-only diagnostics toggle: shows the on-screen performance HUD. The only
+  // way to enable it once installed as a PWA (no address bar for `?perf=1`),
+  // and reachable by VoiceOver so a blind tester can switch it on too.
+  private readonly PERF_HUD_MENU_ID = 'ez-perf-hud';
+  // EZ-only toggle: "quiet output" mode — coalesces announcements and shrinks
+  // the screen-reader DOM so iOS VoiceOver doesn't stall on heavy output. Off
+  // by default (keeps the validated NVDA/JAWS behaviour).
+  private readonly QUIET_OUTPUT_MENU_ID = 'ez-quiet-output';
 
   private readonly subscriptions = new Subscription();
 
@@ -160,6 +172,8 @@ export class EzShellComponent implements OnInit, AfterViewInit, OnDestroy {
     this.footerMenu.unregister(this.SHELL_SWITCH_MENU_ID);
     this.footerMenu.unregister(this.HILFE_MENU_ID);
     this.footerMenu.unregister(this.STICKY_INPUT_MENU_ID);
+    this.footerMenu.unregister(this.PERF_HUD_MENU_ID);
+    this.footerMenu.unregister(this.QUIET_OUTPUT_MENU_ID);
     // No mudService.disconnect — the user expects the telnet session to
     // survive a route switch to `/`. Explicit disconnect lives in the
     // ConnectionMenuService (footer menu).
@@ -230,6 +244,30 @@ export class EzShellComponent implements OnInit, AfterViewInit, OnDestroy {
       label: 'Eingabezeile stehen lassen',
       checked: this.stickyInput.enabled,
       action: () => this.stickyInput.toggle(),
+    });
+
+    // Quiet output mode (VoiceOver). Off by default; toggling coalesces
+    // announcements and shrinks the screen-reader DOM in EzOutput.
+    this.footerMenu.register({
+      id: this.QUIET_OUTPUT_MENU_ID,
+      label: 'Ruhige Ausgabe (VoiceOver)',
+      checked: this.quietOutput.enabled(),
+      action: () => {
+        const on = this.quietOutput.toggle();
+        this.footerMenu.setChecked(this.QUIET_OUTPUT_MENU_ID, on);
+      },
+    });
+
+    // Performance-HUD (Diagnose). Off by default; toggling shows/hides the
+    // on-screen diagnostics overlay in EzOutput.
+    this.footerMenu.register({
+      id: this.PERF_HUD_MENU_ID,
+      label: 'Performance-Anzeige',
+      checked: this.perfHud.enabled(),
+      action: () => {
+        const on = this.perfHud.toggle();
+        this.footerMenu.setChecked(this.PERF_HUD_MENU_ID, on);
+      },
     });
 
     this.footerMenu.register({
