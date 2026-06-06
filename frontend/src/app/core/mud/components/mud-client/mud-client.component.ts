@@ -189,9 +189,8 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
   // Bootstraps the playermap feature: registers the Playermap GMCP module and
   // adds the "Karte" toggle to the footer menu.
   private readonly _playermapWindow = inject(PlayermapWindowService);
-  // Bootstraps the experimental CommLog feature. Only does anything when the
-  // `?commlog=1` query parameter is present: then it registers the "CommLog"
-  // footer-menu entry and the "Comm" GMCP module that collects say/soul/tell.
+  // Bootstraps the CommLog feature: registers the "Comm" GMCP module (so the
+  // MUD pushes say/soul/tell) and adds the "CommLog" toggle to the footer menu.
   private readonly _commlogWindow = inject(CommlogWindowService);
   // Bootstraps the settings dialog: registers the "Einstellungen…" footer
   // menu entry that opens a tabbed settings window.

@@ -5,7 +5,7 @@ import {
   inject,
 } from '@angular/core';
 
-import { CommlogService } from './commlog.service';
+import { channelLabel, CommlogService } from './commlog.service';
 
 /**
  * Window content for the experimental CommLog feature.
@@ -26,6 +26,9 @@ export class CommlogComponent {
   private readonly commlog = inject(CommlogService);
 
   public readonly entries = this.commlog.entries;
+
+  /** German display label for a channel ("Say" → "sage", …). */
+  public readonly channelLabel = channelLabel;
 
   public clear(): void {
     this.commlog.clear();

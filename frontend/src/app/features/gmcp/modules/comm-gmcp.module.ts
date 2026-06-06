@@ -11,9 +11,8 @@ import { GmcpService, GmcpMessage } from '../gmcp.service';
  * `lib/i/player/gmcp.c` start forwarding say / soul / tell messages as
  * `Comm.Say`, `Comm.Soul` and `Comm.Tell`.
  *
- * This module is only instantiated when the experimental CommLog feature is
- * switched on via `?commlog=1` (see CommlogWindowService), so the MUD does not
- * push communication events unless the user opted in.
+ * It is bootstrapped by CommlogWindowService so the CommLog window can collect
+ * the communication events the MUD then pushes.
  *
  * Routing of the incoming Comm.* messages is handled by MudSignalService
  * (they become typed `Comm.Message` signals), so handleMessage is a no-op.

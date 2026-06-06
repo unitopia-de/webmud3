@@ -21,13 +21,23 @@ export interface CommlogEntry {
 const MAX_ENTRIES = 5000;
 
 /**
+ * Maps the GMCP channel name (as sent by `gmcp.c`) to the German label shown
+ * in the output and the download. Unknown channels fall back to the raw name.
+ */
+const CHANNEL_LABELS: Record<string, string> = {
+  Say: 'sage',
+  Soul: 'seele',
+  Tell: 'rede',
+};
+
+/** Returns the German display label for a channel, or the raw name. */
+export function channelLabel(channel: string): string {
+  return CHANNEL_LABELS[channel] ?? channel;
+}
+
+/**
  * Collects all `Comm.Say` / `Comm.Soul` / `Comm.Tell` messages into an
- * in-memory buffer for the experimental CommLog window.
- *
- * The feature as a whole is gated behind the `?commlog=1` query parameter:
- * `enabled` reflects that flag. When the feature is off the MUD never sends
- * Comm.* (the "Comm" GMCP module is not registered), so the subscription
- * simply stays empty — there is no harm in always listening.
+ * in-memory buffer for the CommLog window.
  */
 @Injectable({ providedIn: 'root' })
 export class CommlogService implements OnDestroy {
@@ -35,13 +45,6 @@ export class CommlogService implements OnDestroy {
 
   /** Reactive buffer of collected messages (oldest first). */
   public readonly entries = signal<CommlogEntry[]>([]);
-
-  /**
-   * Whether the CommLog feature was switched on via `?commlog=1`.
-   * Read once at construction; dependency-free (no router) so it works
-   * regardless of which shell route is active — mirrors PerfHudService.
-   */
-  public readonly enabled = this.readEnabledFlag();
 
   private readonly subscription: Subscription;
 
@@ -68,7 +71,7 @@ export class CommlogService implements OnDestroy {
     return this.entries()
       .map((e) => {
         const time = new Date(e.timestamp).toLocaleTimeString('de-DE');
-        return `[${time}] (${e.channel}) ${e.player}: ${e.text}`;
+        return `[${time}] (${channelLabel(e.channel)}) ${e.player}: ${e.text}`;
       })
       .join('\n');
   }
@@ -88,13 +91,5 @@ export class CommlogService implements OnDestroy {
       // Keep only the most recent MAX_ENTRIES so memory stays bounded.
       return next.length > MAX_ENTRIES ? next.slice(-MAX_ENTRIES) : next;
     });
-  }
-
-  private readEnabledFlag(): boolean {
-    try {
-      return new URLSearchParams(window.location.search).get('commlog') === '1';
-    } catch {
-      return false;
-    }
   }
 }

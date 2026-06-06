@@ -1,4 +1,4 @@
-import { inject, Injectable, Injector } from '@angular/core';
+import { inject, Injectable } from '@angular/core';
 import { Subscription } from 'rxjs';
 
 import { FooterMenuService } from '@webmud3/frontend/features/footer/footer-menu.service';
@@ -17,42 +17,31 @@ const DEFAULT_WIDTH = 420;
 const DEFAULT_HEIGHT = 360;
 
 /**
- * Wires the experimental CommLog feature into the application — but only when
- * it was switched on via the `?commlog=1` query parameter:
+ * Wires the CommLog feature into the application:
  *  - registers the "CommLog" toggle in the footer menu
  *  - bootstraps CommGmcpModule so the MUD announces "Comm 1" and starts
  *    pushing Comm.Say / Comm.Soul / Comm.Tell
  *  - opens / closes the CommLog window and keeps the menu's checked state in
  *    sync if the user closes it via the X button
  *  - persists position + size between sessions via WindowGeometryService
- *
- * When the flag is absent the constructor returns early: no menu entry, no
- * GMCP "Comm" registration, so the MUD never sends communication events.
  */
 @Injectable({ providedIn: 'root' })
 export class CommlogWindowService {
   private readonly windowService = inject(WindowService);
   private readonly footerMenu = inject(FooterMenuService);
   private readonly geometry = inject(WindowGeometryService);
-  private readonly injector = inject(Injector);
+  // Bootstraps the GMCP "Comm" registration as a side-effect of inject, so
+  // "Comm 1" ends up in Core.Supports.Set and the MUD starts pushing Comm.*.
+  private readonly _module = inject(CommGmcpModule);
   // Eager-instantiate the state service so it captures Comm.* signals even
-  // before the window is opened. It also exposes the `enabled` flag.
-  private readonly commlog = inject(CommlogService);
+  // before the window is opened for the first time.
+  private readonly _state = inject(CommlogService);
 
   private windowId: string | undefined;
   private windowSubscription: Subscription | undefined;
   private cachedConfig: WindowConfig | undefined;
 
   constructor() {
-    if (!this.commlog.enabled) {
-      return;
-    }
-
-    // Lazily resolving the module triggers its self-registration with the
-    // GmcpService — so "Comm 1" only ends up in Core.Supports.Set when the
-    // feature is enabled.
-    this.injector.get(CommGmcpModule);
-
     this.footerMenu.register({
       id: MENU_ID,
       label: 'CommLog',

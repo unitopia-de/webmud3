@@ -18,6 +18,7 @@ import { DirlistWindowService } from '@webmud3/frontend/features/editor/dirlist-
 import { EditorWindowService } from '@webmud3/frontend/features/editor/editor-window.service';
 import { CharFooterComponent } from '@webmud3/frontend/features/footer/char-footer.component';
 import { FooterMenuService } from '@webmud3/frontend/features/footer/footer-menu.service';
+import { CommlogWindowService } from '@webmud3/frontend/features/commlog/commlog-window.service';
 import { InventoryWindowService } from '@webmud3/frontend/features/inventory/inventory-window.service';
 import { NumpadWindowService } from '@webmud3/frontend/features/numpad/numpad-window.service';
 import { PlayermapWindowService } from '@webmud3/frontend/features/playermap/playermap-window.service';
@@ -109,6 +110,9 @@ export class EzShellComponent implements OnInit, AfterViewInit, OnDestroy {
   private readonly _inventoryWindow = inject(InventoryWindowService);
   private readonly _numpadWindow = inject(NumpadWindowService);
   private readonly _playermapWindow = inject(PlayermapWindowService);
+  // CommLog feature — registers the "CommLog" menu entry + GMCP "Comm"
+  // module that collects say/soul/tell (see CommlogWindowService).
+  private readonly _commlogWindow = inject(CommlogWindowService);
   private readonly _triggerConfigWindow = inject(TriggerConfigWindowService);
   private readonly _soundLibraryWindow = inject(SoundLibraryWindowService);
   private readonly _connectionMenu = inject(ConnectionMenuService);

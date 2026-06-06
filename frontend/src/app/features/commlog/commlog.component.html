@@ -13,7 +13,7 @@
       @for (entry of entries(); track $index) {
         <li class="commlog-line" [class]="'channel-' + entry.channel.toLowerCase()">
           <span class="commlog-time">{{ entry.timestamp | date: 'HH:mm:ss' }}</span>
-          <span class="commlog-channel">{{ entry.channel }}</span>
+          <span class="commlog-channel">{{ channelLabel(entry.channel) }}</span>
           <span class="commlog-player">{{ entry.player }}</span>
           <span class="commlog-text">{{ entry.text }}</span>
         </li>
