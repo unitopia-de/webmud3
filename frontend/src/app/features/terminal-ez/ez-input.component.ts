@@ -18,6 +18,7 @@ import { Subscription } from 'rxjs';
 import { MudService } from '@webmud3/frontend/core/mud/services/mud.service';
 import { NumpadService } from '@webmud3/frontend/features/numpad/numpad.service';
 import { StickyInputService } from '@webmud3/frontend/features/terminal-ez/sticky-input.service';
+import { QuietOutputService } from '@webmud3/frontend/features/terminal-ez/quiet-output.service';
 
 export type EzInputMode = 'default' | 'password' | 'editor';
 
@@ -72,6 +73,7 @@ export class EzInputComponent implements OnInit, AfterViewInit, OnDestroy {
   private readonly mudService = inject(MudService);
   private readonly numpad = inject(NumpadService);
   private readonly sticky = inject(StickyInputService);
+  private readonly quietOutput = inject(QuietOutputService);
 
   @Output() readonly commit = new EventEmitter<EzInputSubmission>();
 
@@ -380,12 +382,12 @@ export class EzInputComponent implements OnInit, AfterViewInit, OnDestroy {
 
   /** ▲ button — plain history back (no prefix filter). */
   protected onHistoryBack(): void {
-    this.navigateHistoryBack(false);
+    this.navigateHistoryBack(false, true);
   }
 
   /** ▼ button — plain history forward (no prefix filter). */
   protected onHistoryForward(): void {
-    this.navigateHistoryForward(false);
+    this.navigateHistoryForward(false, true);
   }
 
   /**
@@ -395,7 +397,7 @@ export class EzInputComponent implements OnInit, AfterViewInit, OnDestroy {
    * step stashes the current buffer as the draft/anchor so a later forward
    * past the newest entry can restore it.
    */
-  private navigateHistoryBack(withPrefix: boolean): void {
+  private navigateHistoryBack(withPrefix: boolean, viaButton = false): void {
     if (this.history.length === 0) return;
     const field = this.defaultField?.nativeElement;
     if (!field) return;
@@ -410,7 +412,7 @@ export class EzInputComponent implements OnInit, AfterViewInit, OnDestroy {
       const entry = this.history[i]!;
       if (prefix === null || entry.startsWith(prefix)) {
         this.historyCursor = i;
-        this.setFieldValue(field, entry);
+        this.setFieldValue(field, entry, viaButton);
         return;
       }
     }
@@ -421,7 +423,7 @@ export class EzInputComponent implements OnInit, AfterViewInit, OnDestroy {
    * Walks one step forward through the command history. Stepping past the
    * newest matching entry restores the stashed draft and leaves browse mode.
    */
-  private navigateHistoryForward(withPrefix: boolean): void {
+  private navigateHistoryForward(withPrefix: boolean, viaButton = false): void {
     const field = this.defaultField?.nativeElement;
     if (!field) return;
     if (this.historyCursor === -1) {
@@ -433,7 +435,7 @@ export class EzInputComponent implements OnInit, AfterViewInit, OnDestroy {
       const entry = this.history[i]!;
       if (prefix === null || entry.startsWith(prefix)) {
         this.historyCursor = i;
-        this.setFieldValue(field, entry);
+        this.setFieldValue(field, entry, viaButton);
         return;
       }
     }
@@ -442,7 +444,7 @@ export class EzInputComponent implements OnInit, AfterViewInit, OnDestroy {
     this.historyCursor = -1;
     const draft = this.historyDraft ?? '';
     this.historyDraft = null;
-    this.setFieldValue(field, draft);
+    this.setFieldValue(field, draft, viaButton);
   }
 
   /**
@@ -450,12 +452,43 @@ export class EzInputComponent implements OnInit, AfterViewInit, OnDestroy {
    * and parks the caret at the end. Setting `.value` programmatically does
    * NOT fire `input`, so it won't trigger `onDefaultInput` / exit browse.
    */
-  private setFieldValue(field: HTMLTextAreaElement, value: string): void {
+  private setFieldValue(
+    field: HTMLTextAreaElement,
+    value: string,
+    viaButton = false,
+  ): void {
     field.value = value;
     this.autoResizeDefault();
     const end = value.length;
     field.setSelectionRange(end, end);
+
+    // Quiet mode (VoiceOver) + the on-screen ▲/▼ buttons: do NOT pull focus
+    // into the textarea. Yanking focus button→textarea makes iOS VoiceOver
+    // re-scan and stall for many seconds. Instead announce the recalled
+    // command and leave focus on the button, so the user hears it and can tap
+    // ▲ again. Keyboard arrows (focus already in the textarea) and the default
+    // mode keep the original behaviour.
+    if (viaButton && this.quietOutput.enabled()) {
+      this.announceRecalledCommand(value);
+      return;
+    }
     this.focusActiveField();
+  }
+
+  /**
+   * Speaks the recalled command via the assertive mode-announcer region.
+   * Two-step clear → microtask → set so AT reliably re-reads even when the
+   * same command is recalled twice in a row.
+   */
+  private announceRecalledCommand(value: string): void {
+    const region = this.modeAnnouncer.nativeElement;
+    region.textContent = '';
+    if (!value) {
+      return;
+    }
+    queueMicrotask(() => {
+      region.textContent = value;
+    });
   }
 
   private pushHistory(line: string): void {
