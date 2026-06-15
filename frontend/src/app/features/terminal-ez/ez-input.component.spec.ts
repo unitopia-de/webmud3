@@ -138,4 +138,35 @@ describe('EzInputComponent', () => {
       expect(field(cmp).value).toBe('nord');
     });
   });
+
+  // F1/F6 from Analyse_WCAG_ez_u3.md: each field must have exactly ONE
+  // accessible name (a short <label>, NOT a competing aria-label that would
+  // swallow the instruction), the instruction lives in an aria-describedby
+  // target, and the region name must differ from the field name.
+  describe('accessibility labels (WCAG F1/F6)', () => {
+    it('names the default field via <label> and not a competing aria-label', () => {
+      const { fixture } = setup();
+      const el = fixture.nativeElement.querySelector('#ez-input-field');
+      expect(el.getAttribute('aria-label')).toBeNull();
+      const label = fixture.nativeElement.querySelector(
+        'label[for="ez-input-field"]',
+      );
+      expect(label?.textContent?.trim()).toBe('MUD-Eingabe');
+    });
+
+    it('exposes the typing instruction via aria-describedby, not the name', () => {
+      const { fixture } = setup();
+      const el = fixture.nativeElement.querySelector('#ez-input-field');
+      const id = el.getAttribute('aria-describedby');
+      expect(id).toBe('ez-input-hint');
+      const hint = fixture.nativeElement.querySelector(`#${id}`);
+      expect(hint?.textContent).toContain('Enter zum Senden');
+    });
+
+    it('gives the input region a name distinct from the field', () => {
+      const { fixture } = setup();
+      const section = fixture.nativeElement.querySelector('section.ez-input');
+      expect(section.getAttribute('aria-label')).toBe('Eingabebereich');
+    });
+  });
 });

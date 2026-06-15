@@ -1,4 +1,4 @@
-<section class="ez-input" role="region" aria-label="MUD-Eingabe">
+<section class="ez-input" role="region" aria-label="Eingabebereich">
   <h2 class="sr-only">{{ headingText() }}</h2>
 
   <!--
@@ -18,7 +18,7 @@
   @switch (mode()) {
     @case ('password') {
       <form class="ez-input-form" (submit)="onPasswordSubmit($event)">
-        <label for="ez-pw-field" class="sr-only">Passwort eingeben</label>
+        <label for="ez-pw-field" class="sr-only">Passwort</label>
         <input
           #passwordField
           id="ez-pw-field"
@@ -27,7 +27,6 @@
           autocapitalize="off"
           autocorrect="off"
           spellcheck="false"
-          aria-label="Passwort"
         />
         <button type="submit" class="primary" aria-label="Passwort senden">
           Senden
@@ -39,9 +38,10 @@
         Editor-Modus: jede Zeile wird beim Enter sofort gesendet.
       </p>
       <form class="ez-input-form editor" (submit)="onEditorSubmit($event)">
-        <label for="ez-editor-field" class="sr-only">
-          Editor-Zeile eingeben. Enter sendet die aktuelle Zeile sofort.
-        </label>
+        <label for="ez-editor-field" class="sr-only">Editor-Zeile</label>
+        <span id="ez-editor-hint" class="sr-only">
+          Enter sendet die aktuelle Zeile sofort.
+        </span>
         <textarea
           #editorField
           id="ez-editor-field"
@@ -50,7 +50,7 @@
           autocapitalize="off"
           autocorrect="off"
           spellcheck="false"
-          aria-label="Editor-Zeile"
+          aria-describedby="ez-editor-hint"
           (keydown)="onEditorKeydown($event)"
         ></textarea>
         <button type="submit" class="primary" aria-label="Zeile senden">
@@ -60,9 +60,10 @@
     }
     @default {
       <form class="ez-input-form" (submit)="onDefaultSubmit($event)">
-        <label for="ez-input-field" class="sr-only">
-          Befehl eingeben — Enter zum Senden, Umschalt+Enter für neue Zeile.
-        </label>
+        <label for="ez-input-field" class="sr-only">MUD-Eingabe</label>
+        <span id="ez-input-hint" class="sr-only">
+          Enter zum Senden, Umschalt+Enter für neue Zeile.
+        </span>
         <textarea
           #defaultField
           id="ez-input-field"
@@ -71,8 +72,8 @@
           autocapitalize="off"
           autocorrect="off"
           spellcheck="false"
-          aria-label="MUD-Eingabe"
           aria-multiline="true"
+          aria-describedby="ez-input-hint"
           (keydown)="onDefaultKeydown($event)"
           (input)="onDefaultInput()"
         ></textarea>
