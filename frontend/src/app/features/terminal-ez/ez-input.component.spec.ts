@@ -4,7 +4,7 @@ import { BehaviorSubject } from 'rxjs';
 import { MudService } from '@webmud3/frontend/core/mud/services/mud.service';
 import { NumpadService } from '@webmud3/frontend/features/numpad/numpad.service';
 import { EzInputComponent } from './ez-input.component';
-import { QuietOutputService } from './quiet-output.service';
+import { OutputVerbosityService } from './output-verbosity.service';
 import { StickyInputService } from './sticky-input.service';
 
 /** Minimal MudService stub: the component only reads these two streams. */
@@ -102,10 +102,10 @@ describe('EzInputComponent', () => {
     });
   });
 
-  describe('quiet-mode recall (VoiceOver)', () => {
+  describe('quiet-level recall (VoiceOver)', () => {
     it('announces the recalled command instead of leaving the announcer empty', async () => {
       const { cmp } = setup();
-      TestBed.inject(QuietOutputService).setEnabled(true);
+      TestBed.inject(OutputVerbosityService).setLevel('quiet');
       submit(cmp, 'nord');
 
       cmp['onHistoryBack']();

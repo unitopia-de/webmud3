@@ -23,13 +23,61 @@ const MAX_HISTORY_ITEMS = 2000;
  */
 const MAX_LIVE_ITEMS = 500;
 /**
- * "Quiet output" caps and coalescing window, used when the EZ-Shell's quiet
- * mode is on. iOS VoiceOver chokes on the default high mutation rate + large
- * DOM, so we drop the caps hard and coalesce announcements into one node per
- * window instead of one per chunk/line. See {@link QuietOutputService}.
+ * "Quiet output" caps and coalescing window for the 'quiet' verbosity level.
+ * iOS VoiceOver chokes on the default high mutation rate + large DOM, so we
+ * drop the caps hard and coalesce announcements into one node per window
+ * instead of one per chunk/line. See `OutputVerbosityService` and
+ * {@link VERBOSITY_CONFIG}.
  */
 const QUIET_MAX_HISTORY_ITEMS = 400;
 const QUIET_COALESCE_MS = 200;
+
+/**
+ * Vorlese-Ausführlichkeit der Live-/Verlauf-Region. Vom Nutzer wählbar
+ * (Footer-Menü „Vorlese-Ausführlichkeit"), weil verschiedene Screenreader
+ * gegensätzliche Bedürfnisse haben — Windows-JAWS will zuverlässig anhängen,
+ * iOS-VoiceOver bricht bei vielen Mutationen ein. Siehe `OutputVerbosityService`.
+ *
+ *  - 'chatty' (Gesprächig): jeder Chunk sofort angehängt — bisheriges,
+ *    erprobtes NVDA/JAWS-Verhalten. Default.
+ *  - 'normal': angehängt, aber über ein kurzes Fenster gebündelt — deutlich
+ *    weniger Mutationen, behält aber die Additions-Semantik (gut für JAWS).
+ *  - 'quiet' (Ruhig): ersetzt + bündelt — die Region hält genau einen Knoten,
+ *    der genau einmal vorgelesen wird (für iOS VoiceOver).
+ */
+export type OutputVerbosity = 'chatty' | 'normal' | 'quiet';
+
+interface VerbosityConfig {
+  /** Bündelungsfenster in ms; `null` = sofort anhängen (kein Sammeln). */
+  readonly coalesceMs: number | null;
+  /** `true` = Live-Region ersetzen (ein Knoten); `false` = anhängen. */
+  readonly replace: boolean;
+  /** Obergrenze der Knoten in der Verlauf-Region. */
+  readonly historyCap: number;
+  /** Obergrenze der Knoten in der Live-Region (nur im Append-Pfad relevant). */
+  readonly liveCap: number;
+}
+
+const VERBOSITY_CONFIG: Record<OutputVerbosity, VerbosityConfig> = {
+  chatty: {
+    coalesceMs: null,
+    replace: false,
+    historyCap: MAX_HISTORY_ITEMS,
+    liveCap: MAX_LIVE_ITEMS,
+  },
+  normal: {
+    coalesceMs: 120,
+    replace: false,
+    historyCap: 1200,
+    liveCap: MAX_LIVE_ITEMS,
+  },
+  quiet: {
+    coalesceMs: QUIET_COALESCE_MS,
+    replace: true,
+    historyCap: QUIET_MAX_HISTORY_ITEMS,
+    liveCap: 1,
+  },
+};
 
 /**
  * Minimal screenreader announcer tailored for xterm output.
@@ -53,10 +101,11 @@ export class MudScreenReaderAnnouncer {
     private readonly historyRegion?: HTMLElement,
     private readonly isLoggingEnabled: () => boolean = () => false,
     private readonly inputRegion?: HTMLElement,
-    // When this returns true, announcements are coalesced and the DOM caps are
-    // dropped hard — tuned for iOS VoiceOver. Default off keeps the validated
-    // NVDA/JAWS behaviour.
-    private readonly isQuietMode: () => boolean = () => false,
+    // Liefert die gewählte Vorlese-Ausführlichkeit (siehe OutputVerbosity).
+    // Steuert Bündelung, Append-vs-Replace und die DOM-Obergrenzen. Default
+    // 'chatty' = bisheriges, erprobtes NVDA/JAWS-Verhalten (z. B. Classic-Shell,
+    // die diesen Parameter nicht übergibt).
+    private readonly verbosity: () => OutputVerbosity = () => 'chatty',
   ) {
     this.sessionStartedAt = Date.now();
   }
@@ -176,9 +225,7 @@ export class MudScreenReaderAnnouncer {
     if (!this.historyRegion) {
       return;
     }
-    const cap = this.isQuietMode()
-      ? QUIET_MAX_HISTORY_ITEMS
-      : MAX_HISTORY_ITEMS;
+    const cap = VERBOSITY_CONFIG[this.verbosity()].historyCap;
     while (this.historyRegion.childElementCount > cap) {
       this.historyRegion.removeChild(this.historyRegion.firstElementChild!);
     }
@@ -368,34 +415,39 @@ export class MudScreenReaderAnnouncer {
    * delta, not the accumulated history.
    */
   private appendToLiveRegion(normalized: string): void {
-    if (!this.isQuietMode()) {
-      // Default (NVDA/JAWS): append immediately, one node per chunk.
+    const cfg = VERBOSITY_CONFIG[this.verbosity()];
+
+    if (cfg.coalesceMs === null) {
+      // 'chatty' (NVDA/JAWS): sofort anhängen, ein Knoten pro Chunk.
       const doc = this.liveRegion.ownerDocument;
       this.liveRegion.appendChild(doc.createTextNode(`${normalized}\n`));
-      this.trimLiveRegion();
+      this.trimLiveRegion(cfg.liveCap);
       return;
     }
 
-    // Quiet mode (iOS VoiceOver): coalesce rapid output into ONE node per
-    // window so VoiceOver isn't flooded with a mutation per chunk/line.
+    // 'normal'/'quiet': schnelle Ausgabe über ein Fenster sammeln, dann in
+    // einem Rutsch anhängen ('normal') bzw. ersetzen ('quiet'). So bekommt der
+    // Screenreader eine Mutation pro Fenster statt eine pro Chunk/Zeile.
     this.liveCoalesceBuffer += `${normalized}\n`;
     if (this.liveCoalesceTimer === undefined) {
       this.liveCoalesceTimer = window.setTimeout(
         () => this.flushLiveCoalesce(),
-        QUIET_COALESCE_MS,
+        cfg.coalesceMs,
       );
     }
   }
 
   /**
-   * Flushes the coalesced quiet-mode buffer by REPLACING the live region with
-   * the new block (a single text node), rather than appending + trimming.
+   * Leert den gesammelten Bündel-Puffer der Live-Region:
    *
-   * iOS VoiceOver re-reads a live region whenever its existing nodes are
-   * mutated — so trimming the oldest node on each flush made VoiceOver
-   * re-announce remaining content (the "repeated output" the tester heard).
-   * A clean replace announces the new block exactly once and keeps the region
-   * at a single node, which is the canonical VoiceOver live-region pattern.
+   *  - 'quiet': ERSETZT die Region durch den Block (ein Textknoten). iOS
+   *    VoiceOver liest eine Live-Region neu, sobald deren Knoten MUTIERT
+   *    werden — Trimmen ließ VoiceOver Inhalt erneut vorlesen (das vom Tester
+   *    gehörte „Wiederholen"). Ein sauberes Ersetzen sagt den Block genau
+   *    einmal an und ist das kanonische VoiceOver-Live-Region-Muster.
+   *  - 'normal': HÄNGT den gebündelten Block als EINEN neuen Knoten an. Damit
+   *    bleibt die Additions-Semantik erhalten (gut für JAWS), aber es gibt
+   *    eine Mutation pro Fenster statt pro Chunk.
    */
   private flushLiveCoalesce(): void {
     this.liveCoalesceTimer = undefined;
@@ -404,7 +456,14 @@ export class MudScreenReaderAnnouncer {
     if (!text) {
       return;
     }
-    this.liveRegion.textContent = text;
+    const cfg = VERBOSITY_CONFIG[this.verbosity()];
+    if (cfg.replace) {
+      this.liveRegion.textContent = text;
+      return;
+    }
+    const doc = this.liveRegion.ownerDocument;
+    this.liveRegion.appendChild(doc.createTextNode(text));
+    this.trimLiveRegion(cfg.liveCap);
   }
 
   /** Cancels a pending coalesce flush and drops its buffered text. */
@@ -417,14 +476,13 @@ export class MudScreenReaderAnnouncer {
   }
 
   /**
-   * Drops the oldest text nodes once the live region exceeds {@link
-   * MAX_LIVE_ITEMS}. Only used by the default (append) path — quiet mode
-   * replaces the region instead (see flushLiveCoalesce). Only nodes far behind
-   * the read head are removed, so the screen reader never loses text it is
-   * about to speak.
+   * Drops the oldest text nodes once the live region exceeds `cap`. Only used
+   * by the append paths ('chatty'/'normal') — 'quiet' replaces the region
+   * instead (see flushLiveCoalesce). Only nodes far behind the read head are
+   * removed, so the screen reader never loses text it is about to speak.
    */
-  private trimLiveRegion(): void {
-    while (this.liveRegion.childNodes.length > MAX_LIVE_ITEMS) {
+  private trimLiveRegion(cap: number): void {
+    while (this.liveRegion.childNodes.length > cap) {
       this.liveRegion.removeChild(this.liveRegion.firstChild!);
     }
   }

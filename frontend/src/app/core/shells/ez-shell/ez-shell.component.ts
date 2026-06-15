@@ -28,9 +28,10 @@ import { EzInputComponent, EzInputSubmission } from '@webmud3/frontend/features/
 import { EzOutputComponent } from '@webmud3/frontend/features/terminal-ez/ez-output.component';
 import { StickyInputService } from '@webmud3/frontend/features/terminal-ez/sticky-input.service';
 import { PerfHudService } from '@webmud3/frontend/features/terminal-ez/perf-hud.service';
-import { QuietOutputService } from '@webmud3/frontend/features/terminal-ez/quiet-output.service';
+import { OutputVerbosityService } from '@webmud3/frontend/features/terminal-ez/output-verbosity.service';
 import {
   MxpChoiceMenuComponent,
+  OutputVerbosity,
   TerminalThemeService,
   TERMINAL_THEME_ORDER,
   TERMINAL_THEMES,
@@ -91,7 +92,7 @@ export class EzShellComponent implements OnInit, AfterViewInit, OnDestroy {
   private readonly wakeLock = inject(WakeLockService);
   private readonly stickyInput = inject(StickyInputService);
   private readonly perfHud = inject(PerfHudService);
-  private readonly quietOutput = inject(QuietOutputService);
+  private readonly verbosity = inject(OutputVerbosityService);
   private readonly router = inject(Router);
 
   // ---------------------------------------------------------------------------
@@ -140,10 +141,18 @@ export class EzShellComponent implements OnInit, AfterViewInit, OnDestroy {
   // way to enable it once installed as a PWA (no address bar for `?perf=1`),
   // and reachable by VoiceOver so a blind tester can switch it on too.
   private readonly PERF_HUD_MENU_ID = 'ez-perf-hud';
-  // EZ-only toggle: "quiet output" mode — coalesces announcements and shrinks
-  // the screen-reader DOM so iOS VoiceOver doesn't stall on heavy output. Off
-  // by default (keeps the validated NVDA/JAWS behaviour).
-  private readonly QUIET_OUTPUT_MENU_ID = 'ez-quiet-output';
+  // EZ-only submenu: screen-reader output verbosity (Gesprächig/Normal/Ruhig).
+  // Replaces the former single "Ruhige Ausgabe" checkbox — different screen
+  // readers need opposite strategies (JAWS wants append, VoiceOver wants
+  // replace), so the user picks. Default 'chatty' keeps the validated
+  // NVDA/JAWS behaviour. See OutputVerbosityService.
+  private readonly VERBOSITY_MENU_ID = 'ez-output-verbosity';
+  private readonly VERBOSITY_MENU_PREFIX = 'ez-output-verbosity:';
+  private readonly VERBOSITY_LEVELS: { id: OutputVerbosity; label: string }[] = [
+    { id: 'chatty', label: 'Gesprächig' },
+    { id: 'normal', label: 'Normal' },
+    { id: 'quiet', label: 'Ruhig (VoiceOver)' },
+  ];
 
   private readonly subscriptions = new Subscription();
 
@@ -177,7 +186,7 @@ export class EzShellComponent implements OnInit, AfterViewInit, OnDestroy {
     this.footerMenu.unregister(this.HILFE_MENU_ID);
     this.footerMenu.unregister(this.STICKY_INPUT_MENU_ID);
     this.footerMenu.unregister(this.PERF_HUD_MENU_ID);
-    this.footerMenu.unregister(this.QUIET_OUTPUT_MENU_ID);
+    this.footerMenu.unregister(this.VERBOSITY_MENU_ID);
     // No mudService.disconnect — the user expects the telnet session to
     // survive a route switch to `/`. Explicit disconnect lives in the
     // ConnectionMenuService (footer menu).
@@ -250,16 +259,18 @@ export class EzShellComponent implements OnInit, AfterViewInit, OnDestroy {
       action: () => this.stickyInput.toggle(),
     });
 
-    // Quiet output mode (VoiceOver). Off by default; toggling coalesces
-    // announcements and shrinks the screen-reader DOM in EzOutput.
+    // Vorlese-Ausführlichkeit (Screenreader). Untermenü mit drei Stufen statt
+    // eines Häkchens — radio-artig, der aktive Eintrag ist „gehakt".
+    const activeLevel = this.verbosity.level();
     this.footerMenu.register({
-      id: this.QUIET_OUTPUT_MENU_ID,
-      label: 'Ruhige Ausgabe (VoiceOver)',
-      checked: this.quietOutput.enabled(),
-      action: () => {
-        const on = this.quietOutput.toggle();
-        this.footerMenu.setChecked(this.QUIET_OUTPUT_MENU_ID, on);
-      },
+      id: this.VERBOSITY_MENU_ID,
+      label: 'Vorlese-Ausführlichkeit',
+      children: this.VERBOSITY_LEVELS.map((lvl) => ({
+        id: `${this.VERBOSITY_MENU_PREFIX}${lvl.id}`,
+        label: lvl.label,
+        checked: lvl.id === activeLevel,
+        action: () => this.selectVerbosity(lvl.id),
+      })),
     });
 
     // Performance-HUD (Diagnose). Off by default; toggling shows/hides the
@@ -331,5 +342,19 @@ export class EzShellComponent implements OnInit, AfterViewInit, OnDestroy {
         }
       }),
     );
+  }
+
+  /**
+   * Setzt die Vorlese-Ausführlichkeit und hält die Häkchen der drei
+   * Untermenü-Einträge radio-artig synchron (genau einer aktiv).
+   */
+  private selectVerbosity(level: OutputVerbosity): void {
+    this.verbosity.setLevel(level);
+    for (const lvl of this.VERBOSITY_LEVELS) {
+      this.footerMenu.setChecked(
+        `${this.VERBOSITY_MENU_PREFIX}${lvl.id}`,
+        lvl.id === level,
+      );
+    }
   }
 }

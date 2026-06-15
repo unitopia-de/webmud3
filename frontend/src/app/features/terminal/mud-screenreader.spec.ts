@@ -1,4 +1,4 @@
-import { MudScreenReaderAnnouncer } from './mud-screenreader';
+import { MudScreenReaderAnnouncer, OutputVerbosity } from './mud-screenreader';
 
 describe('MudScreenReaderAnnouncer', () => {
   let liveRegion: HTMLElement;
@@ -385,23 +385,23 @@ describe('MudScreenReaderAnnouncer - announceInputCommitted', () => {
   });
 });
 
-describe('MudScreenReaderAnnouncer - quiet mode', () => {
+describe('MudScreenReaderAnnouncer - quiet verbosity', () => {
   let liveRegion: HTMLElement;
   let historyRegion: HTMLElement;
-  let quiet: boolean;
+  let level: OutputVerbosity;
   let announcer: MudScreenReaderAnnouncer;
 
   beforeEach(() => {
     jest.useFakeTimers();
     liveRegion = document.createElement('div');
     historyRegion = document.createElement('div');
-    quiet = true;
+    level = 'quiet';
     announcer = new MudScreenReaderAnnouncer(
       liveRegion,
       historyRegion,
       () => false,
       undefined,
-      () => quiet,
+      () => level,
     );
   });
 
@@ -456,5 +456,75 @@ describe('MudScreenReaderAnnouncer - quiet mode', () => {
     // The buffered text belonged to the old session and must not surface.
     expect(liveRegion.childNodes.length).toBe(0);
     expect(liveRegion.textContent).toBe('');
+  });
+});
+
+describe('MudScreenReaderAnnouncer - normal verbosity', () => {
+  let liveRegion: HTMLElement;
+  let historyRegion: HTMLElement;
+  let announcer: MudScreenReaderAnnouncer;
+
+  beforeEach(() => {
+    jest.useFakeTimers();
+    liveRegion = document.createElement('div');
+    historyRegion = document.createElement('div');
+    announcer = new MudScreenReaderAnnouncer(
+      liveRegion,
+      historyRegion,
+      () => false,
+      undefined,
+      () => 'normal' as OutputVerbosity,
+    );
+  });
+
+  afterEach(() => {
+    announcer.dispose();
+    jest.clearAllTimers();
+    jest.useRealTimers();
+  });
+
+  it('coalesces a burst into one node but APPENDS across windows (additions kept)', () => {
+    announcer.announce('A');
+    announcer.announce('B');
+    jest.advanceTimersByTime(120);
+    // First window → one combined, APPENDED node.
+    expect(liveRegion.childNodes.length).toBe(1);
+    expect(liveRegion.textContent).toBe('A\nB\n');
+
+    announcer.announce('C');
+    jest.advanceTimersByTime(120);
+    // Second window appends a SECOND node (unlike quiet's single-node replace).
+    expect(liveRegion.childNodes.length).toBe(2);
+    expect(liveRegion.textContent).toBe('A\nB\nC\n');
+  });
+
+  it('uses the medium history cap (1200)', () => {
+    for (let i = 1; i <= 1250; i++) {
+      announcer.appendToHistory(`Line ${i}\n`);
+    }
+    const items = historyRegion.querySelectorAll('p.sr-log-item');
+    expect(items.length).toBe(1200);
+    expect(items[items.length - 1].textContent).toBe('Line 1250');
+  });
+});
+
+describe('MudScreenReaderAnnouncer - chatty verbosity (default)', () => {
+  let liveRegion: HTMLElement;
+  let announcer: MudScreenReaderAnnouncer;
+
+  beforeEach(() => {
+    liveRegion = document.createElement('div');
+    // No 5th arg → defaults to 'chatty' (today's NVDA/JAWS behaviour).
+    announcer = new MudScreenReaderAnnouncer(liveRegion);
+  });
+
+  afterEach(() => announcer.dispose());
+
+  it('appends one node per chunk immediately, without coalescing', () => {
+    announcer.announce('First');
+    announcer.announce('Second');
+    // No timer wait needed — chatty flushes synchronously, one node each.
+    expect(liveRegion.childNodes.length).toBe(2);
+    expect(liveRegion.textContent).toBe('First\nSecond\n');
   });
 });

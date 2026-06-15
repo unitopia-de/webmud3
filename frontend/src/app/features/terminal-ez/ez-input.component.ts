@@ -18,7 +18,7 @@ import { Subscription } from 'rxjs';
 import { MudService } from '@webmud3/frontend/core/mud/services/mud.service';
 import { NumpadService } from '@webmud3/frontend/features/numpad/numpad.service';
 import { StickyInputService } from '@webmud3/frontend/features/terminal-ez/sticky-input.service';
-import { QuietOutputService } from '@webmud3/frontend/features/terminal-ez/quiet-output.service';
+import { OutputVerbosityService } from '@webmud3/frontend/features/terminal-ez/output-verbosity.service';
 
 export type EzInputMode = 'default' | 'password' | 'editor';
 
@@ -73,7 +73,7 @@ export class EzInputComponent implements OnInit, AfterViewInit, OnDestroy {
   private readonly mudService = inject(MudService);
   private readonly numpad = inject(NumpadService);
   private readonly sticky = inject(StickyInputService);
-  private readonly quietOutput = inject(QuietOutputService);
+  private readonly verbosity = inject(OutputVerbosityService);
 
   @Output() readonly commit = new EventEmitter<EzInputSubmission>();
 
@@ -462,13 +462,13 @@ export class EzInputComponent implements OnInit, AfterViewInit, OnDestroy {
     const end = value.length;
     field.setSelectionRange(end, end);
 
-    // Quiet mode (VoiceOver) + the on-screen ▲/▼ buttons: do NOT pull focus
+    // Quiet level (VoiceOver) + the on-screen ▲/▼ buttons: do NOT pull focus
     // into the textarea. Yanking focus button→textarea makes iOS VoiceOver
     // re-scan and stall for many seconds. Instead announce the recalled
     // command and leave focus on the button, so the user hears it and can tap
-    // ▲ again. Keyboard arrows (focus already in the textarea) and the default
-    // mode keep the original behaviour.
-    if (viaButton && this.quietOutput.enabled()) {
+    // ▲ again. Keyboard arrows (focus already in the textarea) and the other
+    // verbosity levels keep the original behaviour.
+    if (viaButton && this.verbosity.level() === 'quiet') {
       this.announceRecalledCommand(value);
       return;
     }

@@ -19,7 +19,7 @@ import { pairwise } from 'rxjs/operators';
 import { MudService } from '@webmud3/frontend/core/mud/services/mud.service';
 import { DebugSettingsService } from '@webmud3/frontend/features/debug/debug-settings.service';
 import { PerfHudService } from '@webmud3/frontend/features/terminal-ez/perf-hud.service';
-import { QuietOutputService } from '@webmud3/frontend/features/terminal-ez/quiet-output.service';
+import { OutputVerbosityService } from '@webmud3/frontend/features/terminal-ez/output-verbosity.service';
 import { OutputHistoryService } from '@webmud3/frontend/shared/services/output-history.service';
 import {
   ClickAction,
@@ -85,7 +85,7 @@ export class EzOutputComponent implements AfterViewInit, OnDestroy {
   private readonly debugSettings = inject(DebugSettingsService);
   private readonly outputHistory = inject(OutputHistoryService);
   protected readonly perfHud = inject(PerfHudService);
-  private readonly quietOutput = inject(QuietOutputService);
+  private readonly verbosity = inject(OutputVerbosityService);
   private readonly mxpRouter = inject(MxpTagRouter);
   private readonly mxpClickables = inject(MxpClickableService);
   private readonly mxpElements = inject(MxpElementService);
@@ -450,7 +450,7 @@ export class EzOutputComponent implements AfterViewInit, OnDestroy {
       this.historyRegionRef.nativeElement,
       () => this.debugSettings.screenReaderLogging,
       undefined, // EZ has no separate input region (native textarea is read)
-      () => this.quietOutput.enabled(),
+      () => this.verbosity.level(),
     );
 
     // Start the one-time startup window (see field comment). When it
