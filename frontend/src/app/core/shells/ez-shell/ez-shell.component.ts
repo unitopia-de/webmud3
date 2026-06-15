@@ -255,6 +255,7 @@ export class EzShellComponent implements OnInit, AfterViewInit, OnDestroy {
     this.footerMenu.register({
       id: this.STICKY_INPUT_MENU_ID,
       label: 'Eingabezeile stehen lassen',
+      checkable: true,
       checked: this.stickyInput.enabled,
       action: () => this.stickyInput.toggle(),
     });
@@ -268,6 +269,7 @@ export class EzShellComponent implements OnInit, AfterViewInit, OnDestroy {
       children: this.VERBOSITY_LEVELS.map((lvl) => ({
         id: `${this.VERBOSITY_MENU_PREFIX}${lvl.id}`,
         label: lvl.label,
+        checkable: true,
         checked: lvl.id === activeLevel,
         action: () => this.selectVerbosity(lvl.id),
       })),
@@ -278,6 +280,7 @@ export class EzShellComponent implements OnInit, AfterViewInit, OnDestroy {
     this.footerMenu.register({
       id: this.PERF_HUD_MENU_ID,
       label: 'Performance-Anzeige',
+      checkable: true,
       checked: this.perfHud.enabled(),
       action: () => {
         const on = this.perfHud.toggle();
@@ -295,6 +298,7 @@ export class EzShellComponent implements OnInit, AfterViewInit, OnDestroy {
     this.footerMenu.register({
       id: this.SOUND_MENU_ID,
       label: 'MUD-Sound',
+      checkable: true,
       checked: this.soundService.enabled,
       action: () => this.soundService.toggle(),
     });
@@ -311,6 +315,7 @@ export class EzShellComponent implements OnInit, AfterViewInit, OnDestroy {
         return {
           id: `${this.THEME_MENU_PREFIX}${id}`,
           label: def.label,
+          checkable: true,
           checked: id === activeThemeId,
           action: () => this.terminalThemes.setTheme(id),
         };

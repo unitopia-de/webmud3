@@ -2018,6 +2018,7 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
     this.footerMenu.register({
       id: this.MOBILE_INPUT_MENU_ID,
       label: 'Eingabezeile (Mobile)',
+      checkable: true,
       checked: this.state.useMobileInput,
       action: () => this.setUseMobileInput(!this.state.useMobileInput),
     });
@@ -2044,6 +2045,7 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
     this.footerMenu.register({
       id: this.SOUND_MENU_ID,
       label: 'MUD-Sound',
+      checkable: true,
       checked: this.soundService.enabled,
       action: () => this.soundService.toggle(),
     });
@@ -2065,6 +2067,7 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
         return {
           id: `${this.THEME_MENU_PREFIX}${id}`,
           label: def.label,
+          checkable: true,
           checked: id === activeThemeId,
           action: () => this.terminalThemes.setTheme(id),
         };

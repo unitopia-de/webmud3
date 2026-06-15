@@ -108,7 +108,8 @@
                     <button
                       type="button"
                       class="menu-item"
-                      role="menuitem"
+                      [attr.role]="child.checkable ? 'menuitemcheckbox' : 'menuitem'"
+                      [attr.aria-checked]="child.checkable ? child.checked : null"
                       [attr.aria-label]="child.label"
                       [disabled]="child.disabled"
                       (click)="onMenuItemClick(child.action)"
@@ -131,7 +132,8 @@
             <button
               type="button"
               class="menu-item"
-              role="menuitem"
+              [attr.role]="item.checkable ? 'menuitemcheckbox' : 'menuitem'"
+              [attr.aria-checked]="item.checkable ? item.checked : null"
               [attr.aria-label]="item.label"
               [disabled]="item.disabled"
               (click)="onMenuItemClick(item.action)"

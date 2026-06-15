@@ -18,6 +18,15 @@ export type FooterMenuItem = {
   icon?: string;
   /** Whether the item is currently checked / toggled on */
   checked?: boolean;
+  /**
+   * Marks the item as a stateful toggle/option, so it is exposed to assistive
+   * tech as `role="menuitemcheckbox"` with `aria-checked` (not a plain
+   * `menuitem`). Without this, the ✓ glyph is `aria-hidden` and a screen
+   * reader cannot tell which option is selected. Set it on real toggles /
+   * radio-group entries; leave it off for plain action items (which carry a
+   * static `checked: false` that does NOT represent a togglable state).
+   */
+  checkable?: boolean;
   /** Whether the item is disabled */
   disabled?: boolean;
   /**

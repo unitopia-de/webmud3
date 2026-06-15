@@ -178,6 +178,7 @@ export class DirlistWindowService implements OnDestroy {
     this.footerMenu.register({
       id: MENU_ID,
       label: 'Verzeichnis',
+      checkable: true,
       checked: this.windowId !== undefined,
       action: () => this.toggle(),
     });
