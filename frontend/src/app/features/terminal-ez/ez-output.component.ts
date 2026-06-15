@@ -360,6 +360,7 @@ export class EzOutputComponent implements AfterViewInit, OnDestroy {
     });
 
     this.terminal.open(this.terminalRef.nativeElement);
+    this.hideHelperTextarea(this.terminalRef.nativeElement);
     this.perfRendererMain.set(
       this.tryLoadWebgl(this.terminal, () => this.perfRendererMain.set('dom'))
         ? 'webgl'
@@ -394,6 +395,7 @@ export class EzOutputComponent implements AfterViewInit, OnDestroy {
       minimumContrastRatio: initialTheme.minimumContrastRatio,
     });
     this.tailTerminal.open(this.tailTerminalRef.nativeElement);
+    this.hideHelperTextarea(this.tailTerminalRef.nativeElement);
     this.perfRendererTail.set(
       this.tryLoadWebgl(this.tailTerminal, () =>
         this.perfRendererTail.set('dom'),
@@ -1120,6 +1122,27 @@ export class EzOutputComponent implements AfterViewInit, OnDestroy {
   private jumpToCurrentOutput(): void {
     this.terminal?.scrollToBottom();
     this.screenReader?.stopAnnouncements();
+  }
+
+  /**
+   * Hides xterm's hidden helper-textarea from assistive tech and the tab order.
+   *
+   * xterm always creates a `.xterm-helper-textarea` to capture keystrokes —
+   * even with `disableStdin: true`, where it serves no purpose. Left untouched
+   * it shows up to a screen reader as a SECOND input field (the native EZ input
+   * being the first), which confused the JAWS tester ("zwei Eingabefelder").
+   * We mark it `aria-hidden` and pull it out of the tab order so only the real
+   * "MUD-Eingabe" field remains. The terminal is display-only in `/ez`, so the
+   * textarea is never needed for input. Must be called AFTER `terminal.open()`.
+   */
+  private hideHelperTextarea(container: HTMLElement): void {
+    const helper = container.querySelector<HTMLTextAreaElement>(
+      '.xterm-helper-textarea',
+    );
+    if (helper) {
+      helper.setAttribute('aria-hidden', 'true');
+      helper.setAttribute('tabindex', '-1');
+    }
   }
 
   /**
