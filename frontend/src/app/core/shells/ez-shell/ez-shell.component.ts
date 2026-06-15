@@ -294,7 +294,7 @@ export class EzShellComponent implements OnInit, AfterViewInit, OnDestroy {
 
     this.footerMenu.register({
       id: this.SOUND_MENU_ID,
-      label: 'Sound',
+      label: 'MUD-Sound',
       checked: this.soundService.enabled,
       action: () => this.soundService.toggle(),
     });

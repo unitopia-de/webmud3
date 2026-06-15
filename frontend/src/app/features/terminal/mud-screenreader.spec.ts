@@ -487,8 +487,9 @@ describe('MudScreenReaderAnnouncer - normal verbosity', () => {
     announcer.announce('A');
     announcer.announce('B');
     jest.advanceTimersByTime(120);
-    // First window → one combined, APPENDED node.
+    // First window → one combined, APPENDED element node.
     expect(liveRegion.childNodes.length).toBe(1);
+    expect(liveRegion.children[0].tagName).toBe('DIV');
     expect(liveRegion.textContent).toBe('A\nB\n');
 
     announcer.announce('C');
@@ -526,5 +527,15 @@ describe('MudScreenReaderAnnouncer - chatty verbosity (default)', () => {
     // No timer wait needed — chatty flushes synchronously, one node each.
     expect(liveRegion.childNodes.length).toBe(2);
     expect(liveRegion.textContent).toBe('First\nSecond\n');
+  });
+
+  it('wraps each addition in its own ELEMENT node (Phase 2b, for JAWS)', () => {
+    announcer.announce('First');
+    announcer.announce('Second');
+    // Discrete element children — NOT bare text nodes — so JAWS announces only
+    // the newly added block instead of re-reading the whole region.
+    expect(liveRegion.children.length).toBe(2);
+    expect(liveRegion.children[0].tagName).toBe('DIV');
+    expect(liveRegion.children[1].textContent).toBe('Second\n');
   });
 });

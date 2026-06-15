@@ -18,19 +18,22 @@
 <h2 id="ez-output-heading" class="sr-only">Spielausgabe</h2>
 
 <!--
-  Live-Ansage-Region — EXAKT identisch zur Classic-Shell
-  (MudClientComponent): role="log" + aria-live="polite" +
-  aria-relevant="additions text" + aria-atomic="false". Geschrieben wird per
-  Append (Text anhängen, nie ersetzen) durch MudScreenReaderAnnouncer.
-  "polite + additions" = neue Ausgabe wird angehängt und nacheinander
-  vorgelesen, OHNE die laufende Ansage zu unterbrechen. Kein Sonderweg mehr
-  für /ez — bewusst 1:1 wie Classic, weil das das erprobte Verhalten ist.
+  Live-Ansage-Region: role="log" + aria-live="polite" + aria-atomic="false".
+  Geschrieben wird per Append durch MudScreenReaderAnnouncer, der jeden Block
+  als eigenes <div>-Element anhängt.
+
+  aria-relevant ist hier BEWUSST nur "additions" (nicht "additions text" wie in
+  der Classic-Shell): Windows-JAWS las bei "additions text" + nackten
+  Textknoten bei jeder neuen Meldung die GANZE Region erneut vor. "additions" +
+  ein Element pro Block lässt JAWS nur den neu hinzugefügten Block ansagen.
+  Phase 2b aus Analyse_WCAG_ez_u3.md. Die Classic-Shell bleibt (NVDA-validiert)
+  bei "additions text".
 -->
 <div
   class="sr-announcer"
   role="log"
   aria-live="polite"
-  aria-relevant="additions text"
+  aria-relevant="additions"
   aria-atomic="false"
   #liveRegionRef
 ></div>

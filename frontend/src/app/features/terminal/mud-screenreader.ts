@@ -411,17 +411,16 @@ export class MudScreenReaderAnnouncer {
    * reader picks up the change but the content is gone before it reads it,
    * resulting in silence). The region is drained on `markSessionStart` /
    * `stopAnnouncements` instead; growing content within a session is fine
-   * because `aria-relevant="additions text"` makes the SR speak only the
-   * delta, not the accumulated history.
+   * because each block is appended as its own element node (see
+   * {@link appendLiveItem}) and the region is marked `aria-relevant="additions"`,
+   * so the screen reader speaks only the newly added block, not the history.
    */
   private appendToLiveRegion(normalized: string): void {
     const cfg = VERBOSITY_CONFIG[this.verbosity()];
 
     if (cfg.coalesceMs === null) {
       // 'chatty' (NVDA/JAWS): sofort anhängen, ein Knoten pro Chunk.
-      const doc = this.liveRegion.ownerDocument;
-      this.liveRegion.appendChild(doc.createTextNode(`${normalized}\n`));
-      this.trimLiveRegion(cfg.liveCap);
+      this.appendLiveItem(`${normalized}\n`, cfg.liveCap);
       return;
     }
 
@@ -461,9 +460,29 @@ export class MudScreenReaderAnnouncer {
       this.liveRegion.textContent = text;
       return;
     }
+    this.appendLiveItem(text, cfg.liveCap);
+  }
+
+  /**
+   * Hängt einen Ausgabe-Block als EIGENES Element-Kind (`<div>`) an die
+   * Live-Region an — nicht als nackten Textknoten.
+   *
+   * Warum ein Element statt `createTextNode`: Windows-JAWS braucht je Ansage
+   * einen diskreten hinzugefügten KNOTEN, um nur diesen vorzulesen. Hängt man
+   * bloß einen Textknoten an, sieht JAWS nur „der Gesamttext der Region hat
+   * sich geändert" und liest die GANZE Region erneut vor (der vom Tester
+   * gemeldete Effekt: bei jeder Meldung wird alles wiederholt). Ein Element je
+   * Block — zusammen mit `aria-relevant="additions"` an der Region — macht die
+   * Ansage zu einer sauberen Einzel-Addition. (Die Verlauf-Region verfährt mit
+   * ihren `<p>` schon so.)
+   */
+  private appendLiveItem(text: string, cap: number): void {
     const doc = this.liveRegion.ownerDocument;
-    this.liveRegion.appendChild(doc.createTextNode(text));
-    this.trimLiveRegion(cfg.liveCap);
+    const item = doc.createElement('div');
+    item.className = 'sr-live-item';
+    item.textContent = text;
+    this.liveRegion.appendChild(item);
+    this.trimLiveRegion(cap);
   }
 
   /** Cancels a pending coalesce flush and drops its buffered text. */
