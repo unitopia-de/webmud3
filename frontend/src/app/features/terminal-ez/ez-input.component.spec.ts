@@ -168,5 +168,15 @@ describe('EzInputComponent', () => {
       const section = fixture.nativeElement.querySelector('section.ez-input');
       expect(section.getAttribute('aria-label')).toBe('Eingabebereich');
     });
+
+    it('groups the ▲/▼ history buttons under one named group (WCAG F3)', () => {
+      const { fixture } = setup();
+      const group = fixture.nativeElement.querySelector('.ez-history-group');
+      expect(group.getAttribute('role')).toBe('group');
+      expect(group.getAttribute('aria-label')).toBe('Befehlsverlauf');
+      // Both arrows live inside the group, not as loose siblings.
+      const buttons = group.querySelectorAll('button.history');
+      expect(buttons.length).toBe(2);
+    });
   });
 });

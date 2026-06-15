@@ -14,11 +14,21 @@
 -->
 <h1 class="sr-only">WebMUD3 — EZ-Modus</h1>
 
-<app-ez-output></app-ez-output>
+<!--
+  <main> bündelt den interaktiven Spielbereich (Ausgabe + Eingabe) zu einer
+  Landmark, damit AT-Nutzer per Landmark-Navigation ("D" in JAWS) direkt
+  hierher springen können. Echter Flex-Container statt `display:contents`,
+  weil letzteres die Landmark-Semantik in Safari verlieren kann (siehe
+  SCSS .ez-main).
+-->
+<main class="ez-main">
+  <app-ez-output></app-ez-output>
 
-<app-ez-input (commit)="onCommit($event)"></app-ez-input>
+  <app-ez-input (commit)="onCommit($event)"></app-ez-input>
+</main>
 
-<app-char-footer></app-char-footer>
+<!-- Footer als contentinfo-Landmark (Menü, Status, "Sprung zum Ende"). -->
+<app-char-footer role="contentinfo"></app-char-footer>
 
 <!-- Windows are an overlay; the container positions them absolutely so
      they float above the rest of the shell. -->

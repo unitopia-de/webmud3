@@ -77,20 +77,27 @@
           (keydown)="onDefaultKeydown($event)"
           (input)="onDefaultInput()"
         ></textarea>
-        <button
-          type="button"
-          class="history"
-          (click)="onHistoryBack()"
-          aria-label="Vorheriger Befehl"
-          title="Vorheriger Befehl"
-        >&#9650;</button>
-        <button
-          type="button"
-          class="history"
-          (click)="onHistoryForward()"
-          aria-label="Nächster Befehl"
-          title="Nächster Befehl"
-        >&#9660;</button>
+        <!--
+          Die zwei Verlaufs-Knöpfe als benannte Gruppe, damit sie im
+          AT-Verzeichnis als zusammengehöriges "Befehlsverlauf"-Paar statt als
+          zwei lose Felder erscheinen (WCAG F3).
+        -->
+        <div class="ez-history-group" role="group" aria-label="Befehlsverlauf">
+          <button
+            type="button"
+            class="history"
+            (click)="onHistoryBack()"
+            aria-label="Vorheriger Befehl"
+            title="Vorheriger Befehl"
+          >&#9650;</button>
+          <button
+            type="button"
+            class="history"
+            (click)="onHistoryForward()"
+            aria-label="Nächster Befehl"
+            title="Nächster Befehl"
+          >&#9660;</button>
+        </div>
         <button type="submit" class="primary" aria-label="Befehl senden">
           Senden
         </button>

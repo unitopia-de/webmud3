@@ -53,9 +53,15 @@
   #startupRegionRef
 ></div>
 
+<!--
+  Statische Verlauf-Region für die H-/Pfeil-Navigation des Screenreaders.
+  Name bewusst "Ausgabe-Verlauf" (nicht "Ausgabe"), damit er sich von der
+  visuellen Terminal-Region ("Spielausgabe") eindeutig unterscheidet — sonst
+  tauchen zwei gleichnamige Regionen im AT-Verzeichnis auf (WCAG F4).
+-->
 <div
   class="sr-history"
-  aria-label="Ausgabe"
+  aria-label="Ausgabe-Verlauf"
   role="log"
   aria-live="off"
   #historyRegionRef

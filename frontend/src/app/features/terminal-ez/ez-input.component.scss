@@ -53,6 +53,15 @@
     overflow-y: auto;
   }
 
+  // The two history arrows are wrapped in a named group (role="group") for
+  // AT. The wrapper is itself a flex item; lay its buttons out in a row with
+  // the same gap they had as loose siblings so the visual layout is unchanged.
+  .ez-history-group {
+    display: flex;
+    gap: 8px;
+    flex: 0 0 auto;
+  }
+
   button {
     flex: 0 0 auto;
     background: #2a2a2a;
