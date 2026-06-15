@@ -27,7 +27,6 @@ import { SoundService } from '@webmud3/frontend/features/sound/sound.service';
 import { EzInputComponent, EzInputSubmission } from '@webmud3/frontend/features/terminal-ez/ez-input.component';
 import { EzOutputComponent } from '@webmud3/frontend/features/terminal-ez/ez-output.component';
 import { StickyInputService } from '@webmud3/frontend/features/terminal-ez/sticky-input.service';
-import { PerfHudService } from '@webmud3/frontend/features/terminal-ez/perf-hud.service';
 import { OutputVerbosityService } from '@webmud3/frontend/features/terminal-ez/output-verbosity.service';
 import {
   MxpChoiceMenuComponent,
@@ -91,7 +90,6 @@ export class EzShellComponent implements OnInit, AfterViewInit, OnDestroy {
   private readonly terminalThemes = inject(TerminalThemeService);
   private readonly wakeLock = inject(WakeLockService);
   private readonly stickyInput = inject(StickyInputService);
-  private readonly perfHud = inject(PerfHudService);
   private readonly verbosity = inject(OutputVerbosityService);
   private readonly router = inject(Router);
 
@@ -137,10 +135,6 @@ export class EzShellComponent implements OnInit, AfterViewInit, OnDestroy {
   // EZ-only toggle: keep the just-sent command in the input line, selected,
   // so bare Enter repeats it (Idee 1). The classic shell never registers this.
   private readonly STICKY_INPUT_MENU_ID = 'ez-sticky-input';
-  // EZ-only diagnostics toggle: shows the on-screen performance HUD. The only
-  // way to enable it once installed as a PWA (no address bar for `?perf=1`),
-  // and reachable by VoiceOver so a blind tester can switch it on too.
-  private readonly PERF_HUD_MENU_ID = 'ez-perf-hud';
   // EZ-only submenu: screen-reader output verbosity (Gesprächig/Normal/Ruhig).
   // Replaces the former single "Ruhige Ausgabe" checkbox — different screen
   // readers need opposite strategies (JAWS wants append, VoiceOver wants
@@ -185,7 +179,6 @@ export class EzShellComponent implements OnInit, AfterViewInit, OnDestroy {
     this.footerMenu.unregister(this.SHELL_SWITCH_MENU_ID);
     this.footerMenu.unregister(this.HILFE_MENU_ID);
     this.footerMenu.unregister(this.STICKY_INPUT_MENU_ID);
-    this.footerMenu.unregister(this.PERF_HUD_MENU_ID);
     this.footerMenu.unregister(this.VERBOSITY_MENU_ID);
     // No mudService.disconnect — the user expects the telnet session to
     // survive a route switch to `/`. Explicit disconnect lives in the
@@ -273,19 +266,6 @@ export class EzShellComponent implements OnInit, AfterViewInit, OnDestroy {
         checked: lvl.id === activeLevel,
         action: () => this.selectVerbosity(lvl.id),
       })),
-    });
-
-    // Performance-HUD (Diagnose). Off by default; toggling shows/hides the
-    // on-screen diagnostics overlay in EzOutput.
-    this.footerMenu.register({
-      id: this.PERF_HUD_MENU_ID,
-      label: 'Performance-Anzeige',
-      checkable: true,
-      checked: this.perfHud.enabled(),
-      action: () => {
-        const on = this.perfHud.toggle();
-        this.footerMenu.setChecked(this.PERF_HUD_MENU_ID, on);
-      },
     });
 
     this.footerMenu.register({

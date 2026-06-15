@@ -17,6 +17,15 @@
   >
     Diagnose
   </button>
+  <button
+    type="button"
+    role="tab"
+    [class.active]="activeTab() === 'transfer'"
+    [attr.aria-selected]="activeTab() === 'transfer'"
+    (click)="selectTab('transfer')"
+  >
+    Import/Export
+  </button>
 </nav>
 
 @if (activeTab() === "accessibility") {
@@ -79,5 +88,57 @@
         diagnostizieren.
       </span>
     </label>
+    <label class="settings-row">
+      <input
+        type="checkbox"
+        [checked]="perfHudEnabled()"
+        (change)="togglePerfHud()"
+      />
+      <span class="row-label">Performance-Anzeige (nur /ez)</span>
+      <span class="row-hint">
+        Blendet im /ez-Modus ein Diagnose-Overlay mit Render- und
+        Vorlese-Zeiten ein. In der klassischen Ansicht ohne Wirkung.
+      </span>
+    </label>
+  </section>
+}
+
+@if (activeTab() === "transfer") {
+  <section class="settings-panel" role="tabpanel">
+    <h3>Import / Export</h3>
+    <p class="settings-intro">
+      Sichert deine Einstellungen als Datei oder lädt sie zurück. Sitzungs-/
+      Verbindungsdaten, Server-Kennung und der Ausgabe-Verlauf sind NICHT
+      enthalten; Fenster-Positionen ebenfalls nicht.
+    </p>
+
+    <div class="settings-action">
+      <button type="button" class="settings-btn" (click)="exportSettings()">
+        Einstellungen exportieren
+      </button>
+      <span class="row-hint">
+        Lädt eine JSON-Datei mit deinen Einstellungen herunter.
+      </span>
+    </div>
+
+    <div class="settings-action">
+      <label class="row-label" for="settings-import-file">
+        Einstellungen importieren
+      </label>
+      <input
+        id="settings-import-file"
+        type="file"
+        accept="application/json,.json"
+        (change)="onImportFile($event)"
+      />
+      <span class="row-hint">
+        Wählt eine zuvor exportierte Datei. Nach einer Rückfrage wird die Seite
+        neu geladen, um die Einstellungen anzuwenden.
+      </span>
+    </div>
+
+    <p class="settings-status" role="status" aria-live="polite">
+      {{ transferStatus() }}
+    </p>
   </section>
 }

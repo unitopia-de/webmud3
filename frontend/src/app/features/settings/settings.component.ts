@@ -7,9 +7,11 @@ import {
 } from '@angular/core';
 
 import { DebugSettingsService } from '@webmud3/frontend/features/debug/debug-settings.service';
+import { PerfHudService } from '@webmud3/frontend/features/terminal-ez/perf-hud.service';
 import { SpeechSettingsService } from '@webmud3/frontend/features/terminal';
+import { SettingsTransferService } from './settings-transfer.service';
 
-type TabId = 'accessibility' | 'diagnostics';
+type TabId = 'accessibility' | 'diagnostics' | 'transfer';
 
 /**
  * Settings dialog hosted in a modeless window. Currently exposes two tabs:
@@ -33,6 +35,8 @@ type TabId = 'accessibility' | 'diagnostics';
 export class SettingsComponent {
   private readonly speech = inject(SpeechSettingsService);
   private readonly debug = inject(DebugSettingsService);
+  private readonly perfHud = inject(PerfHudService);
+  private readonly transfer = inject(SettingsTransferService);
 
   public readonly activeTab = signal<TabId>('accessibility');
 
@@ -43,6 +47,12 @@ export class SettingsComponent {
   public readonly screenReaderLogging$ = this.debug.screenReaderLogging$;
   public readonly pasteLogging$ = this.debug.pasteLogging$;
   public readonly outputHexLogging$ = this.debug.outputHexLogging$;
+
+  /** Perf-HUD toggle state (signal), shown in the Diagnose tab. */
+  public readonly perfHudEnabled = this.perfHud.enabled;
+
+  /** Status line for the Import/Export tab (aria-live). */
+  public readonly transferStatus = signal('');
 
   // ---- Tab handling --------------------------------------------------------
 
@@ -66,5 +76,49 @@ export class SettingsComponent {
 
   public toggleOutputHexLogging(): void {
     this.debug.toggleOutputHexLogging();
+  }
+
+  public togglePerfHud(): void {
+    this.perfHud.toggle();
+  }
+
+  // ---- Import / Export -----------------------------------------------------
+
+  public exportSettings(): void {
+    this.transfer.download();
+    this.transferStatus.set('Einstellungen wurden als Datei exportiert.');
+  }
+
+  public onImportFile(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    // Reset so picking the same file again re-fires `change`.
+    input.value = '';
+    if (!file) {
+      return;
+    }
+    void file.text().then((text) => {
+      let count: number;
+      try {
+        count = this.transfer.applyImport(text);
+      } catch {
+        this.transferStatus.set(
+          'Import fehlgeschlagen: keine gültige Einstellungsdatei.',
+        );
+        return;
+      }
+      // Settings are read by the services only at startup, so a reload is
+      // needed to apply them. Ask first (the native confirm is read by JAWS).
+      const reload = window.confirm(
+        `${count} Einstellung(en) importiert. Seite jetzt neu laden, um sie anzuwenden?`,
+      );
+      if (reload) {
+        window.location.reload();
+      } else {
+        this.transferStatus.set(
+          `${count} Einstellung(en) importiert — wirksam beim nächsten Neuladen.`,
+        );
+      }
+    });
   }
 }
