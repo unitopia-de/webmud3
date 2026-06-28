@@ -29,7 +29,7 @@ const MAX_LIVE_ITEMS = 500;
  * instead of one per chunk/line. See `OutputVerbosityService` and
  * {@link VERBOSITY_CONFIG}.
  */
-const QUIET_MAX_HISTORY_ITEMS = 400;
+const QUIET_MAX_HISTORY_ITEMS = 200;
 const QUIET_COALESCE_MS = 200;
 
 /**
@@ -56,6 +56,13 @@ interface VerbosityConfig {
   readonly historyCap: number;
   /** Obergrenze der Knoten in der Live-Region (nur im Append-Pfad relevant). */
   readonly liveCap: number;
+  /**
+   * `true` = Verlauf-Einträge über das `coalesceMs`-Fenster sammeln und in EINER
+   * DOM-Mutation einfügen statt pro Chunk/Zeile. Reduziert, wie oft VoiceOver
+   * den Verlauf-Container neu scannt (jede Mutation löst einen Re-Scan aus).
+   * Nur für 'quiet' aktiv.
+   */
+  readonly coalesceHistory: boolean;
 }
 
 const VERBOSITY_CONFIG: Record<OutputVerbosity, VerbosityConfig> = {
@@ -64,18 +71,21 @@ const VERBOSITY_CONFIG: Record<OutputVerbosity, VerbosityConfig> = {
     replace: false,
     historyCap: MAX_HISTORY_ITEMS,
     liveCap: MAX_LIVE_ITEMS,
+    coalesceHistory: false,
   },
   normal: {
     coalesceMs: 120,
     replace: false,
     historyCap: 1200,
     liveCap: MAX_LIVE_ITEMS,
+    coalesceHistory: false,
   },
   quiet: {
     coalesceMs: QUIET_COALESCE_MS,
     replace: true,
     historyCap: QUIET_MAX_HISTORY_ITEMS,
     liveCap: 1,
+    coalesceHistory: true,
   },
 };
 
@@ -95,6 +105,10 @@ export class MudScreenReaderAnnouncer {
   // Quiet-mode coalescing buffer for the live region (see appendToLiveRegion).
   private liveCoalesceBuffer = '';
   private liveCoalesceTimer: number | undefined;
+  // Quiet-mode coalescing buffer for the history region (see appendToHistory):
+  // one entry per chunk, flushed in a single DOM mutation per window.
+  private historyCoalesceChunks: string[] = [];
+  private historyCoalesceTimer: number | undefined;
 
   constructor(
     private readonly liveRegion: HTMLElement,
@@ -179,12 +193,19 @@ export class MudScreenReaderAnnouncer {
   public dispose(): void {
     this.stopAnnouncements();
     this.cancelInputClearTimer();
+    this.cancelHistoryCoalesce();
   }
 
   /**
    * Appends sanitized text to the history region so users can navigate it later.
-   * Splits text by newlines to create separate entries for each line, allowing screen readers
-   * to announce each line individually rather than reading the entire block as one.
+   * Splits text by newlines to create separate entries for each line, allowing
+   * screen readers to navigate line-by-line.
+   *
+   * In 'quiet' mode the lines are COALESCED: buffered per chunk and inserted in
+   * a single DOM mutation per window (see flushHistoryCoalesce). Every mutation
+   * of this container makes VoiceOver re-scan it, so batching cuts the re-scan
+   * frequency that otherwise stalled the main thread. Other modes insert
+   * immediately (the region is `aria-live="off"`, so this never announces).
    */
   public appendToHistory(raw: string): void {
     if (!this.historyRegion) {
@@ -196,24 +217,64 @@ export class MudScreenReaderAnnouncer {
       return;
     }
 
-    const doc = this.historyRegion.ownerDocument;
-    const lines = normalized.split('\n');
-
-    for (const line of lines) {
-      // Skip empty lines to avoid cluttering the history
-      if (!line.trim()) {
-        continue;
+    const cfg = VERBOSITY_CONFIG[this.verbosity()];
+    if (cfg.coalesceHistory && cfg.coalesceMs !== null) {
+      this.historyCoalesceChunks.push(normalized);
+      if (this.historyCoalesceTimer === undefined) {
+        this.historyCoalesceTimer = window.setTimeout(
+          () => this.flushHistoryCoalesce(),
+          cfg.coalesceMs,
+        );
       }
-
-      const item = doc.createElement('p');
-      item.className = 'sr-log-item';
-      item.textContent = line;
-      item.setAttribute('role', 'text');
-
-      this.historyRegion.appendChild(item);
+      return;
     }
 
+    this.appendHistoryLines([normalized]);
+  }
+
+  /**
+   * Inserts one `<p>` per non-empty line of the given chunks in a SINGLE DOM
+   * mutation (DocumentFragment), then trims to the cap.
+   */
+  private appendHistoryLines(chunks: string[]): void {
+    if (!this.historyRegion) {
+      return;
+    }
+    const doc = this.historyRegion.ownerDocument;
+    const frag = doc.createDocumentFragment();
+    for (const chunk of chunks) {
+      for (const line of chunk.split('\n')) {
+        if (!line.trim()) {
+          continue;
+        }
+        const item = doc.createElement('p');
+        item.className = 'sr-log-item';
+        item.textContent = line;
+        item.setAttribute('role', 'text');
+        frag.appendChild(item);
+      }
+    }
+    this.historyRegion.appendChild(frag);
     this.trimHistory();
+  }
+
+  /** Flushes the coalesced quiet-mode history buffer in one DOM mutation. */
+  private flushHistoryCoalesce(): void {
+    this.historyCoalesceTimer = undefined;
+    const chunks = this.historyCoalesceChunks;
+    this.historyCoalesceChunks = [];
+    if (chunks.length > 0) {
+      this.appendHistoryLines(chunks);
+    }
+  }
+
+  /** Cancels a pending history flush and drops its buffered chunks. */
+  private cancelHistoryCoalesce(): void {
+    if (this.historyCoalesceTimer !== undefined) {
+      window.clearTimeout(this.historyCoalesceTimer);
+      this.historyCoalesceTimer = undefined;
+    }
+    this.historyCoalesceChunks = [];
   }
 
   /**
@@ -232,9 +293,12 @@ export class MudScreenReaderAnnouncer {
   }
 
   /**
-   * Clears the history region entirely (e.g., on reconnect).
+   * Clears the history region entirely (e.g., on reconnect). Also drops any
+   * pending coalesced lines so a stale flush can't re-add the old session's
+   * output after the clear.
    */
   public clearHistory(): void {
+    this.cancelHistoryCoalesce();
     if (this.historyRegion) {
       this.historyRegion.textContent = '';
     }

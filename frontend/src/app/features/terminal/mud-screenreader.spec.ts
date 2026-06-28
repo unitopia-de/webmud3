@@ -437,13 +437,36 @@ describe('MudScreenReaderAnnouncer - quiet verbosity', () => {
     expect(liveRegion.textContent).toBe('Msg 80\n');
   });
 
-  it('uses the smaller quiet history cap (400)', () => {
-    for (let i = 1; i <= 450; i++) {
+  it('coalesces history appends into one DOM flush per window (quiet)', () => {
+    announcer.appendToHistory('Alpha\n');
+    announcer.appendToHistory('Beta\n');
+    // Nothing inserted yet — still inside the coalesce window.
+    expect(historyRegion.querySelectorAll('p.sr-log-item').length).toBe(0);
+
+    jest.advanceTimersByTime(200);
+
+    const items = historyRegion.querySelectorAll('p.sr-log-item');
+    expect(items.length).toBe(2);
+    expect(items[0].textContent).toBe('Alpha');
+    expect(items[1].textContent).toBe('Beta');
+  });
+
+  it('uses the smaller quiet history cap (200)', () => {
+    for (let i = 1; i <= 250; i++) {
       announcer.appendToHistory(`Line ${i}\n`);
     }
+    jest.advanceTimersByTime(200); // flush the coalesced buffer
     const items = historyRegion.querySelectorAll('p.sr-log-item');
-    expect(items.length).toBe(400);
-    expect(items[items.length - 1].textContent).toBe('Line 450');
+    expect(items.length).toBe(200);
+    expect(items[items.length - 1].textContent).toBe('Line 250');
+  });
+
+  it('drops pending coalesced history on session start', () => {
+    announcer.appendToHistory('Old session line\n');
+    announcer.markSessionStart();
+    jest.advanceTimersByTime(200);
+    // The buffered line belonged to the old session and must not surface.
+    expect(historyRegion.querySelectorAll('p.sr-log-item').length).toBe(0);
   });
 
   it('drops pending coalesced text on clear / session start', () => {

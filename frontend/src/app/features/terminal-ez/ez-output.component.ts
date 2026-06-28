@@ -6,6 +6,7 @@ import {
   OnDestroy,
   ViewChild,
   computed,
+  effect,
   inject,
   signal,
 } from '@angular/core';
@@ -211,6 +212,12 @@ export class EzOutputComponent implements AfterViewInit, OnDestroy {
   private readonly TAIL_FRACTION_STORAGE = 'webmud3-ez-tail-fraction';
   private readonly TAIL_MIN = 0.15;
   private readonly TAIL_MAX = 0.6;
+  // Recent output (ANSI strings) retained so the live-tail can be seeded the
+  // moment it becomes visible. We stop feeding the HIDDEN tail to spare the
+  // main thread (writing every chunk to a second xterm doubled the work and
+  // froze Safari + VoiceOver), so without this the tail would appear stale.
+  private readonly tailSeedBuffer: string[] = [];
+  private readonly TAIL_SEED_MAX = 800;
   // Coalesces multiple refit requests (rapid scroll / splitter drag) into one
   // fit per animation frame.
   private pendingRefit = false;
@@ -331,6 +338,17 @@ export class EzOutputComponent implements AfterViewInit, OnDestroy {
     );
   });
 
+  constructor() {
+    // Re-apply the visual render profile whenever the verbosity level changes
+    // (the 'quiet'/VoiceOver level lowers xterm's per-frame render cost — see
+    // applyRenderProfile). Runs once on init (terminals not built yet → no-op)
+    // and on every later toggle from the footer menu.
+    effect(() => {
+      this.verbosity.level();
+      this.applyRenderProfile();
+    });
+  }
+
   ngAfterViewInit(): void {
     const initialTheme = this.terminalThemes.theme;
 
@@ -343,9 +361,12 @@ export class EzOutputComponent implements AfterViewInit, OnDestroy {
       // Without this the decoration call throws and the search silently does
       // nothing.
       allowProposedApi: true,
-      // Larger scrollback so the full-text search (Idee 3) has more history
-      // to work with — the SearchAddon can only find what's still in buffer.
-      scrollback: 5000,
+      // Scrollback for the full-text search (Idee 3) — the SearchAddon can only
+      // find what's still in buffer. Kept moderate (not huge): a 5000-line
+      // WebGL buffer is real memory and the resulting GC pauses froze the main
+      // thread on Safari + VoiceOver. 2500 lines is plenty of search history
+      // while roughly halving the buffer's memory footprint.
+      scrollback: 2500,
       theme: initialTheme.theme,
       minimumContrastRatio: initialTheme.minimumContrastRatio,
       // OSC 8 hyperlink click routing. `allowNonHttpProtocols: true` is
@@ -404,6 +425,11 @@ export class EzOutputComponent implements AfterViewInit, OnDestroy {
         : 'dom',
     );
     this.tailTerminal.loadAddon(this.tailFitAddon);
+
+    // Apply the verbosity-dependent render profile now that both terminals
+    // exist (the constructor effect ran before they were built). This lowers
+    // visual render cost if 'quiet' is already the persisted level.
+    this.applyRenderProfile();
 
     // Restore the persisted tail height share, if any.
     const savedFraction = namespacedStorage.get(this.TAIL_FRACTION_STORAGE);
@@ -1176,13 +1202,40 @@ export class EzOutputComponent implements AfterViewInit, OnDestroy {
   // ---------------------------------------------------------------------------
 
   /**
-   * Mirrors a chunk into the live-tail terminal and keeps it pinned to the
-   * bottom. No-op until the tail terminal exists. The tail always shows the
-   * newest output regardless of where the main terminal is scrolled.
+   * Records a chunk for the live-tail and — ONLY while the tail is visible —
+   * mirrors it into the tail terminal pinned to the bottom.
+   *
+   * Feeding the hidden tail on every chunk meant every server chunk was parsed
+   * and rendered by TWO xterm terminals (the tail is only zero-height when
+   * "off", not `display:none`), which roughly doubled the per-chunk main-thread
+   * work and was a major contributor to the Safari + VoiceOver freezes. So
+   * while hidden we only keep a bounded copy of recent output (cheap array
+   * push) and seed the tail from it the moment it becomes visible — see
+   * {@link seedTail}.
    */
   private writeTail(text: string): void {
     if (!this.tailTerminal) return;
+    this.tailSeedBuffer.push(text);
+    if (this.tailSeedBuffer.length > this.TAIL_SEED_MAX) {
+      this.tailSeedBuffer.shift();
+    }
+    if (!this.tailVisible()) return;
     this.tailTerminal.write(text);
+    this.tailTerminal.scrollToBottom();
+  }
+
+  /**
+   * Fills the tail with the retained recent output. Called when the tail flips
+   * from hidden to visible (see updateTailVisibility), so it shows the newest
+   * lines immediately instead of whatever stale content it last held. xterm's
+   * own 500-line scrollback trims the replay to the most recent lines.
+   */
+  private seedTail(): void {
+    if (!this.tailTerminal) return;
+    this.tailTerminal.clear();
+    if (this.tailSeedBuffer.length > 0) {
+      this.tailTerminal.write(this.tailSeedBuffer.join(''));
+    }
     this.tailTerminal.scrollToBottom();
   }
 
@@ -1201,6 +1254,11 @@ export class EzOutputComponent implements AfterViewInit, OnDestroy {
     const next = !atBottom;
     if (this.tailVisible() === next) return;
     this.tailVisible.set(next);
+    if (next) {
+      // Tail just became visible — feed it the recent output we withheld while
+      // it was hidden, so it isn't blank/stale on appearance.
+      this.seedTail();
+    }
     this.refitPanes();
   }
 
@@ -1513,11 +1571,33 @@ export class EzOutputComponent implements AfterViewInit, OnDestroy {
   private applyTheme(def: TerminalThemeDefinition): void {
     if (!this.terminal) return;
     this.terminal.options.theme = def.theme;
-    this.terminal.options.minimumContrastRatio = def.minimumContrastRatio;
     if (this.tailTerminal) {
       this.tailTerminal.options.theme = def.theme;
-      this.tailTerminal.options.minimumContrastRatio =
-        def.minimumContrastRatio;
+    }
+    // Contrast ratio is set via applyRenderProfile so the quiet-mode override
+    // (contrast 1) survives a theme change.
+    this.applyRenderProfile();
+  }
+
+  /**
+   * Lowers xterm's per-frame render cost in the 'quiet' verbosity level (the
+   * VoiceOver mode): drops `minimumContrastRatio` to 1 (no dynamic per-glyph
+   * contrast recolouring → smaller glyph atlas) and disables `customGlyphs`
+   * (box-drawing chars use the font instead of being drawn). Both are PURELY
+   * visual and irrelevant to a screen-reader user, and they leave the
+   * text/OSC-8/MXP write path completely untouched. Other levels restore the
+   * theme's full contrast and custom glyphs.
+   *
+   * This does not change render FREQUENCY (xterm renders on rAF, driven by
+   * output — there is no option to throttle that), only the cost per frame.
+   */
+  private applyRenderProfile(): void {
+    const quiet = this.verbosity.level() === 'quiet';
+    const contrast = quiet ? 1 : this.terminalThemes.theme.minimumContrastRatio;
+    for (const term of [this.terminal, this.tailTerminal]) {
+      if (!term) continue;
+      term.options.minimumContrastRatio = contrast;
+      term.options.customGlyphs = !quiet;
     }
   }
 
