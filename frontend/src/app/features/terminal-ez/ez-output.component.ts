@@ -218,6 +218,14 @@ export class EzOutputComponent implements AfterViewInit, OnDestroy {
   // froze Safari + VoiceOver), so without this the tail would appear stale.
   private readonly tailSeedBuffer: string[] = [];
   private readonly TAIL_SEED_MAX = 800;
+  // Main-terminal scrollback. Normal use keeps a moderate buffer for the
+  // full-text search; the 'quiet' (VoiceOver) level uses a much smaller one
+  // because a screen-reader user reads via the SR regions + persistent backlog,
+  // not the visual buffer/search — and a large WebGL buffer is the memory whose
+  // GC pauses froze the main thread (~800 ms once it filled). See
+  // applyRenderProfile.
+  private readonly MAIN_SCROLLBACK = 2500;
+  private readonly QUIET_SCROLLBACK = 800;
   // Coalesces multiple refit requests (rapid scroll / splitter drag) into one
   // fit per animation frame.
   private pendingRefit = false;
@@ -362,11 +370,11 @@ export class EzOutputComponent implements AfterViewInit, OnDestroy {
       // nothing.
       allowProposedApi: true,
       // Scrollback for the full-text search (Idee 3) — the SearchAddon can only
-      // find what's still in buffer. Kept moderate (not huge): a 5000-line
-      // WebGL buffer is real memory and the resulting GC pauses froze the main
-      // thread on Safari + VoiceOver. 2500 lines is plenty of search history
-      // while roughly halving the buffer's memory footprint.
-      scrollback: 2500,
+      // find what's still in buffer. Kept moderate (not huge): a large WebGL
+      // buffer is real memory and the resulting GC pauses froze the main thread
+      // on Safari + VoiceOver. applyRenderProfile() drops this further in the
+      // quiet level, where the visual buffer isn't needed.
+      scrollback: this.MAIN_SCROLLBACK,
       theme: initialTheme.theme,
       minimumContrastRatio: initialTheme.minimumContrastRatio,
       // OSC 8 hyperlink click routing. `allowNonHttpProtocols: true` is
@@ -1598,6 +1606,28 @@ export class EzOutputComponent implements AfterViewInit, OnDestroy {
       if (!term) continue;
       term.options.minimumContrastRatio = contrast;
       term.options.customGlyphs = !quiet;
+    }
+    // Shrink the main buffer in quiet mode so it never grows large enough for
+    // GC pauses to freeze the main thread (the ~800 ms hang correlated directly
+    // with buffer fullness). Lowering scrollback trims the buffer immediately.
+    if (this.terminal) {
+      this.terminal.options.scrollback = quiet
+        ? this.QUIET_SCROLLBACK
+        : this.MAIN_SCROLLBACK;
+    }
+
+    // Quiet mode: take the whole visual terminal OUT of the accessibility tree.
+    // A VoiceOver user reads via the separate SR regions, never the xterm
+    // canvas, so leaving the terminal subtree in the a11y tree only makes
+    // VoiceOver re-scan it on every output — processing we cannot measure but
+    // which is the most likely remaining cause of the perceived hang. Purely an
+    // a11y-tree change; the terminal stays visible on screen.
+    if (this.terminalRef?.nativeElement) {
+      if (quiet) {
+        this.terminalRef.nativeElement.setAttribute('aria-hidden', 'true');
+      } else {
+        this.terminalRef.nativeElement.removeAttribute('aria-hidden');
+      }
     }
   }
 
