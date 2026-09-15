@@ -23,6 +23,8 @@ export const EXPORTABLE_SETTING_KEYS: readonly string[] = [
   'webmud3-ez-tail-fraction',
   'webmud3-ez-perf-hud',
   'webmud3-ez-sticky-input',
+  'webmud3-ez-speech-pacing', // „Ausreden lassen" ('1'/'0')
+  'webmud3-ez-speech-rate', // Lesetempo-Stufe
   'wm3cc.sounds.personal.v1',
   'wm3cc.triggers.v1',
   'wm3cc.triggers.settings.v1',

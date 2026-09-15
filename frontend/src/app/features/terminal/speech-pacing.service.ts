@@ -62,6 +62,20 @@ const MIN_SLOT_MS = 400;
 const MAX_SLOT_MS = 30_000;
 
 /**
+ * Ob die Sprech-Uhr scharf ist, d. h. ob {@link SpeechPacingService.reserve}
+ * tatsächlich Zeit belegt.
+ *
+ * **Phase 4a bewusst `false`.** Der Menü-Schalter stellt zunächst nur die
+ * DOM-Politik um (kein Ersetzen, kein Trimmen, Mindest-Bündelung) — das sind
+ * deterministische Fehlerquellen, die mit Sicherheit behoben werden. Die
+ * Wartezeit beruht dagegen auf einer Schätzung, die das echte Sprechtempo des
+ * Screenreaders nicht kennen kann. Erst wenn der Tester berichtet, ob die
+ * DOM-Änderung allein reicht, wird hier auf `true` gestellt (Phase 4b) — sonst
+ * wüssten wir nie, welcher der beiden Eingriffe gewirkt hat.
+ */
+const TIMING_ENABLED_DEFAULT = false;
+
+/**
  * „Ausreden lassen": Lesetempo-Schätzung und gemeinsame Sprech-Uhr der
  * EZ-Shell.
  *
@@ -88,6 +102,13 @@ export class SpeechPacingService {
 
   /** Reaktives Lesetempo (Untermenü „Lesetempo"). */
   public readonly rate = signal<SpeechRate>(DEFAULT_RATE);
+
+  /**
+   * Ob die Sprech-Uhr Zeit belegt. Siehe {@link TIMING_ENABLED_DEFAULT} —
+   * in Phase 4a aus, damit der Schalter isoliert die DOM-Politik zeigt.
+   * Nicht persistiert: eine Entwicklungs-Stufe, keine Nutzer-Einstellung.
+   */
+  public readonly timingEnabled = signal<boolean>(TIMING_ENABLED_DEFAULT);
 
   /**
    * Zeitpunkt (ms seit Epoche), bis zu dem die zuletzt reservierte Ansage
@@ -185,7 +206,7 @@ export class SpeechPacingService {
    * bisherige. Eine noch längere Reservierung wird dabei nicht verkürzt.
    */
   public reserve(durationMs: number): void {
-    if (!this.isEnabled() || durationMs <= 0) {
+    if (!this.timingEnabled() || !this.isEnabled() || durationMs <= 0) {
       return;
     }
     const until = Date.now() + durationMs;

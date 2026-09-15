@@ -110,6 +110,14 @@ describe('SpeechPacingService', () => {
   });
 
   describe('Sprech-Uhr', () => {
+    /** Service mit scharfer Zeitsteuerung (Phase 4b und später). */
+    const scharf = (): SpeechPacingService => {
+      const svc = new SpeechPacingService();
+      svc.setEnabled(true);
+      svc.timingEnabled.set(true);
+      return svc;
+    };
+
     beforeEach(() => {
       jest.useFakeTimers();
       // Die Uhr basiert auf Date.now() — die moderne Fake-Timer-API mockt das
@@ -122,13 +130,23 @@ describe('SpeechPacingService', () => {
       jest.useRealTimers();
     });
 
+    it('ist in Phase 4a per Default nicht scharf', () => {
+      const svc = new SpeechPacingService();
+      svc.setEnabled(true);
+
+      svc.reserve(5000);
+
+      // Schalter an, aber Zeitsteuerung aus ⇒ keine Wartezeit.
+      expect(svc.timingEnabled()).toBe(false);
+      expect(svc.remainingMs()).toBe(0);
+    });
+
     it('meldet ohne Reservierung 0', () => {
       expect(new SpeechPacingService().remainingMs()).toBe(0);
     });
 
     it('zählt eine Reservierung herunter', () => {
-      const svc = new SpeechPacingService();
-      svc.setEnabled(true);
+      const svc = scharf();
 
       svc.reserve(1000);
       expect(svc.remainingMs()).toBe(1000);
@@ -138,8 +156,7 @@ describe('SpeechPacingService', () => {
     });
 
     it('wird nie negativ', () => {
-      const svc = new SpeechPacingService();
-      svc.setEnabled(true);
+      const svc = scharf();
       svc.reserve(1000);
 
       jest.advanceTimersByTime(5000);
@@ -147,8 +164,7 @@ describe('SpeechPacingService', () => {
     });
 
     it('verkürzt eine längere laufende Reservierung nicht', () => {
-      const svc = new SpeechPacingService();
-      svc.setEnabled(true);
+      const svc = scharf();
 
       svc.reserve(5000);
       svc.reserve(500);
@@ -158,14 +174,14 @@ describe('SpeechPacingService', () => {
 
     it('reserviert nichts, solange das Feature aus ist', () => {
       const svc = new SpeechPacingService();
+      svc.timingEnabled.set(true);
       svc.reserve(5000);
 
       expect(svc.remainingMs()).toBe(0);
     });
 
     it('reset gibt die Uhr sofort frei', () => {
-      const svc = new SpeechPacingService();
-      svc.setEnabled(true);
+      const svc = scharf();
       svc.reserve(5000);
 
       svc.reset();
@@ -173,8 +189,7 @@ describe('SpeechPacingService', () => {
     });
 
     it('Abschalten löscht eine laufende Reservierung', () => {
-      const svc = new SpeechPacingService();
-      svc.setEnabled(true);
+      const svc = scharf();
       svc.reserve(5000);
 
       svc.setEnabled(false);

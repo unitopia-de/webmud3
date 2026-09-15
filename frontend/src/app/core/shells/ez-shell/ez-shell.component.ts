@@ -31,6 +31,7 @@ import { OutputVerbosityService } from '@webmud3/frontend/features/terminal-ez/o
 import {
   MxpChoiceMenuComponent,
   OutputVerbosity,
+  SpeechPacingService,
   TerminalThemeService,
   TERMINAL_THEME_ORDER,
   TERMINAL_THEMES,
@@ -91,6 +92,7 @@ export class EzShellComponent implements OnInit, AfterViewInit, OnDestroy {
   private readonly wakeLock = inject(WakeLockService);
   private readonly stickyInput = inject(StickyInputService);
   private readonly verbosity = inject(OutputVerbosityService);
+  private readonly speechPacing = inject(SpeechPacingService);
   private readonly router = inject(Router);
 
   // ---------------------------------------------------------------------------
@@ -147,6 +149,11 @@ export class EzShellComponent implements OnInit, AfterViewInit, OnDestroy {
     { id: 'normal', label: 'Normal' },
     { id: 'quiet', label: 'Ruhig (VoiceOver)' },
   ];
+  // EZ-only toggle: „Ausreden lassen". Verhindert, dass neue Ausgabe eine
+  // laufende Screenreader-Ansage abschneidet. Orthogonal zur Stufe oben —
+  // wer „Ruhig" wählt, bekommt hier zusätzlich das Anhängen statt Ersetzen
+  // (siehe SpeechPacingService / MudScreenReaderAnnouncer.cfg).
+  private readonly PACING_MENU_ID = 'ez-speech-pacing';
 
   private readonly subscriptions = new Subscription();
 
@@ -180,6 +187,7 @@ export class EzShellComponent implements OnInit, AfterViewInit, OnDestroy {
     this.footerMenu.unregister(this.HILFE_MENU_ID);
     this.footerMenu.unregister(this.STICKY_INPUT_MENU_ID);
     this.footerMenu.unregister(this.VERBOSITY_MENU_ID);
+    this.footerMenu.unregister(this.PACING_MENU_ID);
     // No mudService.disconnect — the user expects the telnet session to
     // survive a route switch to `/`. Explicit disconnect lives in the
     // ConnectionMenuService (footer menu).
@@ -268,6 +276,16 @@ export class EzShellComponent implements OnInit, AfterViewInit, OnDestroy {
       })),
     });
 
+    // „Ausreden lassen" — direkt unter der Ausführlichkeit, damit die beiden
+    // Vorlese-Einstellungen beieinanderliegen.
+    this.footerMenu.register({
+      id: this.PACING_MENU_ID,
+      label: 'Ausreden lassen',
+      checkable: true,
+      checked: this.speechPacing.isEnabled(),
+      action: () => this.togglePacing(),
+    });
+
     this.footerMenu.register({
       id: this.RECENTER_MENU_ID,
       label: 'Fenster ins Bild',
@@ -333,6 +351,18 @@ export class EzShellComponent implements OnInit, AfterViewInit, OnDestroy {
    * Setzt die Vorlese-Ausführlichkeit und hält die Häkchen der drei
    * Untermenü-Einträge radio-artig synchron (genau einer aktiv).
    */
+  /**
+   * Schaltet „Ausreden lassen" um und hält das Menü-Häkchen nach. Wie bei
+   * `selectVerbosity` genügt der direkte `setChecked`-Aufruf — der Schalter
+   * wird nirgendwo sonst umgelegt.
+   */
+  private togglePacing(): void {
+    this.footerMenu.setChecked(
+      this.PACING_MENU_ID,
+      this.speechPacing.toggle(),
+    );
+  }
+
   private selectVerbosity(level: OutputVerbosity): void {
     this.verbosity.setLevel(level);
     for (const lvl of this.VERBOSITY_LEVELS) {
