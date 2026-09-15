@@ -19,8 +19,17 @@ import { MudService } from '@webmud3/frontend/core/mud/services/mud.service';
 import { NumpadService } from '@webmud3/frontend/features/numpad/numpad.service';
 import { StickyInputService } from '@webmud3/frontend/features/terminal-ez/sticky-input.service';
 import { OutputVerbosityService } from '@webmud3/frontend/features/terminal-ez/output-verbosity.service';
+import { SpeechPacingService } from '@webmud3/frontend/features/terminal';
 
 export type EzInputMode = 'default' | 'password' | 'editor';
+
+/** Was die assertive Modus-Region bei einem Moduswechsel ansagt. */
+const MODE_ANNOUNCEMENTS: Record<EzInputMode, string> = {
+  password: 'Passwort-Eingabe aktiv.',
+  editor: 'Editor-Modus aktiv. Jede Zeile wird beim Enter sofort gesendet.',
+  default:
+    'Befehlseingabe aktiv. Enter sendet, Umschalt+Enter für Zeilenumbruch.',
+};
 
 /**
  * What gets emitted when the user submits a line.
@@ -74,6 +83,7 @@ export class EzInputComponent implements OnInit, AfterViewInit, OnDestroy {
   private readonly numpad = inject(NumpadService);
   private readonly sticky = inject(StickyInputService);
   private readonly verbosity = inject(OutputVerbosityService);
+  private readonly speechPacing = inject(SpeechPacingService);
 
   @Output() readonly commit = new EventEmitter<EzInputSubmission>();
 
@@ -489,6 +499,22 @@ export class EzInputComponent implements OnInit, AfterViewInit, OnDestroy {
     queueMicrotask(() => {
       region.textContent = value;
     });
+    this.reserveSpeech(value);
+  }
+
+  /**
+   * Meldet eine Ansage der ASSERTIVEN Modus-Region an die gemeinsame
+   * Sprech-Uhr („Ausreden lassen").
+   *
+   * Diese Region bleibt bewusst assertiv — sie unterbricht, und das ist
+   * richtig so: „Passwort-Eingabe aktiv." muss sofort kommen, und ein per
+   * Knopf zurückgeholter Befehl ist unmittelbares Feedback auf eine
+   * Nutzeraktion. Sie soll aber nicht ihrerseits sofort von der nächsten
+   * Server-Ausgabe überholt werden, deshalb die Meldung an die Uhr.
+   * No-Op, solange das Feature aus ist.
+   */
+  private reserveSpeech(text: string): void {
+    this.speechPacing.reserve(this.speechPacing.estimateMs(text));
   }
 
   private pushHistory(line: string): void {
@@ -539,20 +565,10 @@ export class EzInputComponent implements OnInit, AfterViewInit, OnDestroy {
     // (e.g. password→default→password) wouldn't be re-read by some screen
     // readers because the text content didn't actually change.
     region.textContent = '';
+    const text = MODE_ANNOUNCEMENTS[next];
     queueMicrotask(() => {
-      switch (next) {
-        case 'password':
-          region.textContent = 'Passwort-Eingabe aktiv.';
-          break;
-        case 'editor':
-          region.textContent =
-            'Editor-Modus aktiv. Jede Zeile wird beim Enter sofort gesendet.';
-          break;
-        case 'default':
-          region.textContent =
-            'Befehlseingabe aktiv. Enter sendet, Umschalt+Enter für Zeilenumbruch.';
-          break;
-      }
+      region.textContent = text;
     });
+    this.reserveSpeech(text);
   }
 }

@@ -1163,6 +1163,12 @@ export class EzOutputComponent implements AfterViewInit, OnDestroy {
   private jumpToCurrentOutput(): void {
     this.terminal?.scrollToBottom();
     this.screenReader?.stopAnnouncements();
+    // Bei „Ausreden lassen" kann hier ein ganzer Rückstau verworfen werden.
+    // Ohne Rückmeldung bliebe es nach dem Knopfdruck einfach still — für
+    // einen blinden Nutzer nicht von einem defekten Knopf zu unterscheiden.
+    if (this.speechPacing.isEnabled()) {
+      this.screenReader?.announce('Ansagen übersprungen.');
+    }
   }
 
   /**
@@ -1575,6 +1581,11 @@ export class EzOutputComponent implements AfterViewInit, OnDestroy {
     queueMicrotask(() => {
       region.textContent = text;
     });
+    // Der Start-Block läuft über die ASSERTIVE Region, also an der
+    // Warteschlange vorbei. Ohne diese Meldung an die gemeinsame Sprech-Uhr
+    // spräche die erste reguläre Ausgabe mitten hinein — genau der Effekt,
+    // der die „klatsche"-Zeile den Login-Block überholen ließ.
+    this.screenReader?.reserveSpeech(text);
   }
 
   /**
