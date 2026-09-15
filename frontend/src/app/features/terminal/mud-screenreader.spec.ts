@@ -562,3 +562,181 @@ describe('MudScreenReaderAnnouncer - chatty verbosity (default)', () => {
     expect(liveRegion.children[1].textContent).toBe('Second\n');
   });
 });
+
+describe('MudScreenReaderAnnouncer - „Ausreden lassen"', () => {
+  let liveRegion: HTMLElement;
+  let historyRegion: HTMLElement;
+  let level: OutputVerbosity;
+  let pacing: FakePacing;
+  let announcer: MudScreenReaderAnnouncer;
+
+  /**
+   * Sprech-Uhr-Doppel mit linearer Dauer (10 ms je Zeichen), damit die
+   * erwarteten Wartezeiten exakt ausrechenbar sind.
+   */
+  class FakePacing {
+    public enabled = true;
+    private busyUntil = 0;
+
+    isEnabled(): boolean {
+      return this.enabled;
+    }
+    estimateMs(text: string): number {
+      return text.length * 10;
+    }
+    remainingMs(): number {
+      const left = this.busyUntil - Date.now();
+      return left > 0 ? left : 0;
+    }
+    reserve(durationMs: number): void {
+      if (!this.enabled || durationMs <= 0) return;
+      const until = Date.now() + durationMs;
+      if (until > this.busyUntil) this.busyUntil = until;
+    }
+    reset(): void {
+      this.busyUntil = 0;
+    }
+  }
+
+  const build = (): MudScreenReaderAnnouncer =>
+    new MudScreenReaderAnnouncer(
+      liveRegion,
+      historyRegion,
+      () => false,
+      undefined,
+      () => level,
+      pacing,
+    );
+
+  beforeEach(() => {
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date('2026-01-01T12:00:00Z'));
+    liveRegion = document.createElement('div');
+    historyRegion = document.createElement('div');
+    level = 'quiet';
+    pacing = new FakePacing();
+    announcer = build();
+  });
+
+  afterEach(() => {
+    announcer.dispose();
+    jest.clearAllTimers();
+    jest.useRealTimers();
+  });
+
+  it('hängt in Stufe „Ruhig" AN, statt zu ersetzen (Hauptursache A)', () => {
+    announcer.announce('Erster Block');
+    jest.advanceTimersByTime(200);
+    expect(liveRegion.children.length).toBe(1);
+
+    announcer.announce('Zweiter Block');
+    jest.advanceTimersByTime(10_000);
+
+    // Ohne „Ausreden lassen" hielte die Region in 'quiet' genau EINEN Knoten.
+    expect(liveRegion.children.length).toBe(2);
+    expect(liveRegion.textContent).toContain('Erster Block');
+    expect(liveRegion.textContent).toContain('Zweiter Block');
+  });
+
+  it('erzwingt in Stufe „Gesprächig" ein Mindest-Bündelungsfenster', () => {
+    level = 'chatty';
+    announcer = build();
+
+    announcer.announce('A');
+    // Ohne Pacing schriebe 'chatty' synchron.
+    expect(liveRegion.children.length).toBe(0);
+
+    jest.advanceTimersByTime(120);
+    expect(liveRegion.children.length).toBe(1);
+  });
+
+  it('gibt die zweite Ansage erst nach der geschätzten Dauer der ersten frei', () => {
+    // Erster Block: 201 Zeichen inkl. \n → 2010 ms belegt.
+    announcer.announce('x'.repeat(200));
+    jest.advanceTimersByTime(200); // Bündelungsfenster → wird geschrieben
+    expect(liveRegion.children.length).toBe(1);
+
+    announcer.announce('zweite');
+    jest.advanceTimersByTime(200); // Bündelung durch, Uhr aber noch belegt
+    expect(liveRegion.textContent).not.toContain('zweite');
+
+    // Die Uhr lief erst ab dem Schreiben bei t=200, ist also bis t=2210
+    // belegt; bei t=400 verbleiben 1810 ms.
+    jest.advanceTimersByTime(1810);
+    expect(liveRegion.textContent).toContain('zweite');
+    expect(liveRegion.children.length).toBe(2);
+  });
+
+  it('trimmt die Live-Region nicht, solange etwas wartet (Ursache D)', () => {
+    // Einen langen Block absetzen, damit die Uhr lange belegt ist ...
+    announcer.announce('x'.repeat(2000));
+    jest.advanceTimersByTime(200);
+    const vorher = liveRegion.children.length;
+
+    // ... und dann viele weitere einreihen, ohne die Zeit vorzurücken.
+    for (let i = 0; i < 50; i++) {
+      announcer.announce(`Nachricht ${i}`);
+    }
+    jest.advanceTimersByTime(200);
+
+    // Nichts wurde weggetrimmt, der erste Block steht noch.
+    expect(liveRegion.children.length).toBeGreaterThanOrEqual(vorher);
+    expect(liveRegion.textContent).toContain('x'.repeat(50));
+  });
+
+  it('stopAnnouncements() verwirft Wartendes ohne Nachzügler', () => {
+    announcer.announce('x'.repeat(2000));
+    jest.advanceTimersByTime(200);
+    announcer.announce('darf nicht mehr kommen');
+
+    announcer.stopAnnouncements();
+    jest.advanceTimersByTime(60_000);
+
+    expect(liveRegion.textContent).toBe('');
+    expect(pacing.remainingMs()).toBe(0);
+  });
+
+  it('markSessionStart() verwirft Wartendes ebenfalls', () => {
+    announcer.announce('x'.repeat(2000));
+    jest.advanceTimersByTime(200);
+    announcer.announce('alte Sitzung');
+
+    announcer.markSessionStart();
+    jest.advanceTimersByTime(60_000);
+
+    expect(liveRegion.textContent).toBe('');
+  });
+
+  it('dispose() hinterlässt keinen laufenden Timer', () => {
+    announcer.announce('x'.repeat(2000));
+    jest.advanceTimersByTime(200);
+    announcer.announce('wartet');
+
+    announcer.dispose();
+    expect(jest.getTimerCount()).toBe(0);
+  });
+
+  it('reserveSpeech() verzögert die nächste Ansage', () => {
+    announcer.reserveSpeech('x'.repeat(100)); // 1000 ms belegt
+
+    announcer.announce('kommt später');
+    jest.advanceTimersByTime(200); // Bündelung durch, Uhr noch belegt
+    expect(liveRegion.textContent).toBe('');
+
+    jest.advanceTimersByTime(1000);
+    expect(liveRegion.textContent).toContain('kommt später');
+  });
+
+  it('verhält sich bei ausgeschaltetem Schalter exakt wie zuvor', () => {
+    pacing.enabled = false;
+
+    announcer.announce('Erster');
+    jest.advanceTimersByTime(200);
+    announcer.announce('Zweiter');
+    jest.advanceTimersByTime(200);
+
+    // 'quiet' ohne Pacing: ERSETZEN, also genau ein Textknoten.
+    expect(liveRegion.textContent).toBe('Zweiter\n');
+    expect(liveRegion.children.length).toBe(0);
+  });
+});

@@ -1,3 +1,5 @@
+import { AnnounceQueue, SpeechPacing } from './mud-announce-queue';
+
 const INPUT_CLEAR_DELAY_MS = 700;
 const ANSI_ESCAPE_PATTERN = /\x1B\[[0-9;?]*[ -\/]*[@-~]/g;
 const CONTROL_CHAR_PATTERN = /[\x00-\x08\x0B-\x1F\x7F]/g;
@@ -31,6 +33,23 @@ const MAX_LIVE_ITEMS = 500;
  */
 const QUIET_MAX_HISTORY_ITEMS = 200;
 const QUIET_COALESCE_MS = 200;
+
+/**
+ * Untergrenzen, die im Modus „Ausreden lassen" über die gewählte Stufe
+ * gelegt werden (siehe {@link MudScreenReaderAnnouncer.cfg}).
+ *
+ * 'chatty' hat kein Bündelungsfenster — jeder Chunk würde ein eigener
+ * Warteschlangen-Eintrag. Ein Mindestfenster (identisch zu 'normal') hält die
+ * Warteschlange kurz und senkt zugleich die Mutationsrate.
+ */
+const PACED_MIN_COALESCE_MS = 120;
+
+/**
+ * Untergrenze der Live-Region-Knoten im Modus „Ausreden lassen". Getrimmt
+ * werden darf erst, wenn nichts mehr wartet — und selbst dann soll der Puffer
+ * nicht so knapp sein, dass gerade Gesprochenes verschwindet.
+ */
+const PACED_MIN_LIVE_CAP = 200;
 
 /**
  * Vorlese-Ausführlichkeit der Live-/Verlauf-Region. Vom Nutzer wählbar
@@ -109,6 +128,11 @@ export class MudScreenReaderAnnouncer {
   // one entry per chunk, flushed in a single DOM mutation per window.
   private historyCoalesceChunks: string[] = [];
   private historyCoalesceTimer: number | undefined;
+  /**
+   * Ansage-Warteschlange für „Ausreden lassen". Existiert nur, wenn ein
+   * `pacing` übergeben wurde; sonst bleibt der Schreibpfad exakt der alte.
+   */
+  private readonly queue: AnnounceQueue | undefined;
 
   constructor(
     private readonly liveRegion: HTMLElement,
@@ -120,8 +144,44 @@ export class MudScreenReaderAnnouncer {
     // 'chatty' = bisheriges, erprobtes NVDA/JAWS-Verhalten (z. B. Classic-Shell,
     // die diesen Parameter nicht übergibt).
     private readonly verbosity: () => OutputVerbosity = () => 'chatty',
+    // Gemeinsame Sprech-Uhr für „Ausreden lassen" (SpeechPacingService).
+    // FEHLT er (Classic-Shell), gibt es keine Warteschlange und der gesamte
+    // Code-Pfad verhält sich unverändert — das ist die Regressions-Absicherung.
+    private readonly pacing?: SpeechPacing,
   ) {
     this.sessionStartedAt = Date.now();
+    if (pacing) {
+      // Die Obergrenze wird beim Schreiben frisch gelesen, damit ein
+      // Stufenwechsel im Menü sofort greift.
+      this.queue = new AnnounceQueue(
+        (text) => this.appendLiveItem(text, this.cfg().liveCap),
+        pacing,
+      );
+    }
+  }
+
+  /**
+   * Effektive Konfiguration: die gewählte Stufe, im Modus „Ausreden lassen"
+   * jedoch dort überschrieben, wo die Stufe mit einer Warteschlange
+   * unvereinbar ist.
+   *
+   * Der Modus ist bewusst ORTHOGONAL zu den Stufen (ein iOS-Nutzer kann
+   * „Ruhig" und „Ausreden lassen" zugleich brauchen), deshalb keine vierte
+   * Stufe, sondern diese Überlagerung. Praktische Folge: „Ruhig" +
+   * Ausreden verhält sich effektiv wie „Normal" + Ausreden.
+   */
+  private cfg(): VerbosityConfig {
+    const base = VERBOSITY_CONFIG[this.verbosity()];
+    if (!this.pacing?.isEnabled()) {
+      return base;
+    }
+    return {
+      ...base,
+      // Ersetzen verwirft genau die Restausgabe, die wir schützen wollen.
+      replace: false,
+      coalesceMs: base.coalesceMs ?? PACED_MIN_COALESCE_MS,
+      liveCap: Math.max(base.liveCap, PACED_MIN_LIVE_CAP),
+    };
   }
 
   /** Internal: emits debug logs only when the runtime flag is enabled. */
@@ -177,7 +237,25 @@ export class MudScreenReaderAnnouncer {
    */
   public clear(): void {
     this.cancelLiveCoalesce();
+    // Bewusster Abbruch: Wartendes verwerfen und die Sprech-Uhr freigeben,
+    // sonst spricht nach „Sprung zum Ende" noch ein Nachzügler.
+    this.queue?.reset();
     this.liveRegion.textContent = '';
+  }
+
+  /**
+   * Meldet eine Ansage an die gemeinsame Sprech-Uhr, die NICHT über diese
+   * Klasse lief — etwa der assertive Start-Block oder die Modus-Ansage der
+   * Eingabe-Komponente. Ohne diese Meldung würde die Warteschlange sofort
+   * darübersprechen.
+   *
+   * No-Op ohne Pacing oder bei ausgeschaltetem „Ausreden lassen".
+   */
+  public reserveSpeech(text: string): void {
+    if (!this.pacing || !text) {
+      return;
+    }
+    this.pacing.reserve(this.pacing.estimateMs(text));
   }
 
   /**
@@ -217,7 +295,7 @@ export class MudScreenReaderAnnouncer {
       return;
     }
 
-    const cfg = VERBOSITY_CONFIG[this.verbosity()];
+    const cfg = this.cfg();
     if (cfg.coalesceHistory && cfg.coalesceMs !== null) {
       this.historyCoalesceChunks.push(normalized);
       if (this.historyCoalesceTimer === undefined) {
@@ -286,7 +364,7 @@ export class MudScreenReaderAnnouncer {
     if (!this.historyRegion) {
       return;
     }
-    const cap = VERBOSITY_CONFIG[this.verbosity()].historyCap;
+    const cap = this.cfg().historyCap;
     while (this.historyRegion.childElementCount > cap) {
       this.historyRegion.removeChild(this.historyRegion.firstElementChild!);
     }
@@ -480,11 +558,11 @@ export class MudScreenReaderAnnouncer {
    * so the screen reader speaks only the newly added block, not the history.
    */
   private appendToLiveRegion(normalized: string): void {
-    const cfg = VERBOSITY_CONFIG[this.verbosity()];
+    const cfg = this.cfg();
 
     if (cfg.coalesceMs === null) {
       // 'chatty' (NVDA/JAWS): sofort anhängen, ein Knoten pro Chunk.
-      this.appendLiveItem(`${normalized}\n`, cfg.liveCap);
+      this.emitLive(`${normalized}\n`, cfg.liveCap);
       return;
     }
 
@@ -519,12 +597,27 @@ export class MudScreenReaderAnnouncer {
     if (!text) {
       return;
     }
-    const cfg = VERBOSITY_CONFIG[this.verbosity()];
+    const cfg = this.cfg();
     if (cfg.replace) {
       this.liveRegion.textContent = text;
       return;
     }
-    this.appendLiveItem(text, cfg.liveCap);
+    this.emitLive(text, cfg.liveCap);
+  }
+
+  /**
+   * Übergibt einen fertigen Block an die Warteschlange — oder schreibt ihn
+   * direkt, wenn es keine gibt (Classic-Shell).
+   *
+   * Ist „Ausreden lassen" aus, reicht die Warteschlange synchron durch; der
+   * Schreibzeitpunkt ist dann identisch zum bisherigen Verhalten.
+   */
+  private emitLive(text: string, cap: number): void {
+    if (this.queue) {
+      this.queue.push(text);
+      return;
+    }
+    this.appendLiveItem(text, cap);
   }
 
   /**
@@ -565,6 +658,12 @@ export class MudScreenReaderAnnouncer {
    * removed, so the screen reader never loses text it is about to speak.
    */
   private trimLiveRegion(cap: number): void {
+    // „Ausreden lassen": Solange noch etwas wartet, darf KEIN Knoten
+    // entfernt werden — jede Entfernung lässt VoiceOver die Region neu
+    // scannen und schneidet dabei die laufende Ansage ab.
+    if (this.queue?.isPending()) {
+      return;
+    }
     while (this.liveRegion.childNodes.length > cap) {
       this.liveRegion.removeChild(this.liveRegion.firstChild!);
     }

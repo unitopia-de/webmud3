@@ -31,6 +31,7 @@ import {
   MxpStreamFilter,
   MxpTagRouter,
   SelectionModeService,
+  SpeechPacingService,
   StreamSegment,
   TerminalThemeDefinition,
   TerminalThemeService,
@@ -87,6 +88,7 @@ export class EzOutputComponent implements AfterViewInit, OnDestroy {
   private readonly outputHistory = inject(OutputHistoryService);
   protected readonly perfHud = inject(PerfHudService);
   private readonly verbosity = inject(OutputVerbosityService);
+  private readonly speechPacing = inject(SpeechPacingService);
   private readonly mxpRouter = inject(MxpTagRouter);
   private readonly mxpClickables = inject(MxpClickableService);
   private readonly mxpElements = inject(MxpElementService);
@@ -478,15 +480,20 @@ export class EzOutputComponent implements AfterViewInit, OnDestroy {
       ),
     );
 
-    // Identical configuration to the classic shell — append strategy, no
-    // separate input region (the native <textarea>/<input> is read by the OS
-    // screen reader directly). No EZ-specific divergence.
+    // Wie in der Classic-Shell: Append-Strategie, keine separate
+    // Input-Region (das native <textarea>/<input> liest der Screenreader des
+    // Systems direkt). EZ-spezifisch sind nur die beiden letzten Parameter —
+    // die wählbare Vorlese-Ausführlichkeit und die Sprech-Uhr für
+    // „Ausreden lassen".
     this.screenReader = new MudScreenReaderAnnouncer(
       this.liveRegionRef.nativeElement,
       this.historyRegionRef.nativeElement,
       () => this.debugSettings.screenReaderLogging,
       undefined, // EZ has no separate input region (native textarea is read)
       () => this.verbosity.level(),
+      // „Ausreden lassen" — nur EZ. Solange der Schalter aus ist (Default),
+      // reicht die Warteschlange synchron durch und nichts ändert sich.
+      this.speechPacing,
     );
 
     // Start the one-time startup window (see field comment). When it
