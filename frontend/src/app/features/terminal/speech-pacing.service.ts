@@ -6,17 +6,24 @@ const STORAGE_SUFFIX = 'webmud3-ez-speech-pacing';
 const RATE_STORAGE_SUFFIX = 'webmud3-ez-speech-rate';
 
 /**
- * Wählbare Lesetempi in Wörtern pro Minute.
+ * Wählbares Lesetempo in Wörtern pro Minute — plus die Sonderstufe `'off'`.
  *
- * 'veryFast' ist bewusst mehr als ein Komfort-Wert: bei 450 WPM schrumpft die
- * geschätzte Sprechdauer so weit, dass praktisch keine Verzögerung mehr
- * entsteht. Damit ist die Stufe zugleich der KONTROLL-Modus — bleibt das
- * Abschneiden dort weg, lag es an der DOM-Politik (Ersetzen/Trimmen) und nicht
- * am Timing.
+ * Das Tempo des Screenreaders ist aus der Seite heraus nicht auslesbar, und
+ * blinde Power-User fahren oft 300–450 WPM. Wird zu langsam geschätzt, wartet
+ * der Client hörbar zu lange; wird zu schnell geschätzt, kehren die
+ * Unterbrechungen zurück. Deshalb entscheidet der Nutzer.
+ *
+ * `'off'` schaltet das Warten ganz ab: Dann wirkt „Ausreden lassen" nur noch
+ * über die DOM-Politik (kein Ersetzen, kein Trimmen, Mindest-Bündelung) — also
+ * genau die Eingriffe, die deterministisch sind und keine Schätzung brauchen.
+ * Das ist der ehrliche KONTROLL-Modus: Bleibt das Abschneiden auch damit weg,
+ * lag es nie am Timing, und die Schätzerei kann entfallen.
  */
-export type SpeechRate = 'slow' | 'normal' | 'fast' | 'veryFast';
+export type SpeechRate = 'off' | 'slow' | 'normal' | 'fast' | 'veryFast';
 
+/** Wörter pro Minute je Stufe; `0` = nicht warten. */
 export const SPEECH_RATE_WPM: Record<SpeechRate, number> = {
+  off: 0,
   slow: 150,
   normal: 200,
   fast: 300,
@@ -24,6 +31,7 @@ export const SPEECH_RATE_WPM: Record<SpeechRate, number> = {
 };
 
 const VALID_RATES: readonly SpeechRate[] = [
+  'off',
   'slow',
   'normal',
   'fast',
@@ -61,19 +69,6 @@ const MIN_SLOT_MS = 400;
  */
 const MAX_SLOT_MS = 30_000;
 
-/**
- * Ob die Sprech-Uhr scharf ist, d. h. ob {@link SpeechPacingService.reserve}
- * tatsächlich Zeit belegt.
- *
- * Seit Phase 4b `true`: Neue Ausgabe wartet, bis die laufende Ansage
- * voraussichtlich zu Ende gesprochen ist. Zuvor (Phase 4a) stand das auf
- * `false`, damit sich beurteilen ließ, ob schon die reine DOM-Umstellung
- * (kein Ersetzen, kein Trimmen) genügt — die ist deterministisch, die
- * Wartezeit dagegen eine Schätzung, die das echte Sprechtempo nicht kennen
- * kann. Das Flag bleibt als Diagnose-Griff erhalten: auf `false` gesetzt,
- * verhält sich der Schalter wieder wie in Phase 4a.
- */
-const TIMING_ENABLED_DEFAULT = true;
 
 /**
  * „Ausreden lassen": Lesetempo-Schätzung und gemeinsame Sprech-Uhr der
@@ -102,13 +97,6 @@ export class SpeechPacingService {
 
   /** Reaktives Lesetempo (Untermenü „Lesetempo"). */
   public readonly rate = signal<SpeechRate>(DEFAULT_RATE);
-
-  /**
-   * Ob die Sprech-Uhr Zeit belegt. Siehe {@link TIMING_ENABLED_DEFAULT}.
-   * Nicht persistiert: ein Diagnose-Griff, keine Nutzer-Einstellung — auf
-   * `false` gesetzt wirkt nur noch die DOM-Umstellung.
-   */
-  public readonly timingEnabled = signal<boolean>(TIMING_ENABLED_DEFAULT);
 
   /**
    * Zeitpunkt (ms seit Epoche), bis zu dem die zuletzt reservierte Ansage
@@ -159,6 +147,10 @@ export class SpeechPacingService {
   public setRate(rate: SpeechRate): void {
     this.rate.set(rate);
     namespacedStorage.set(RATE_STORAGE_SUFFIX, rate);
+    // Wer das Tempo umstellt, tut das meist WEIL es gerade zu träge ist.
+    // Eine nach altem Tempo laufende Reservierung würde die Umstellung sonst
+    // um bis zu eine volle Ansage verzögern — also Uhr freigeben.
+    this.reset();
   }
 
   /**
@@ -169,10 +161,11 @@ export class SpeechPacingService {
    * Seite heraus nicht auslesbar) — deshalb ist das Tempo einstellbar.
    */
   public estimateMs(text: string): number {
-    if (!text) {
+    const wpm = SPEECH_RATE_WPM[this.rate()];
+    if (!text || wpm === 0) {
       return 0;
     }
-    const charsPerSecond = (SPEECH_RATE_WPM[this.rate()] * CHARS_PER_WORD) / 60;
+    const charsPerSecond = (wpm * CHARS_PER_WORD) / 60;
     let lineBreaks = 0;
     for (const char of text) {
       if (char === '\n') {
@@ -206,7 +199,7 @@ export class SpeechPacingService {
    * bisherige. Eine noch längere Reservierung wird dabei nicht verkürzt.
    */
   public reserve(durationMs: number): void {
-    if (!this.timingEnabled() || !this.isEnabled() || durationMs <= 0) {
+    if (!this.isEnabled() || durationMs <= 0) {
       return;
     }
     const until = Date.now() + durationMs;

@@ -32,6 +32,7 @@ import {
   MxpChoiceMenuComponent,
   OutputVerbosity,
   SpeechPacingService,
+  SpeechRate,
   TerminalThemeService,
   TERMINAL_THEME_ORDER,
   TERMINAL_THEMES,
@@ -154,6 +155,18 @@ export class EzShellComponent implements OnInit, AfterViewInit, OnDestroy {
   // wer „Ruhig" wählt, bekommt hier zusätzlich das Anhängen statt Ersetzen
   // (siehe SpeechPacingService / MudScreenReaderAnnouncer.cfg).
   private readonly PACING_MENU_ID = 'ez-speech-pacing';
+  // Untermenü zum „Ausreden lassen": Wie schnell liest der Screenreader?
+  // Die Seite kann das nicht messen, also wählt der Nutzer. „Ohne Warten"
+  // ist der Kontroll-Modus — dann wirkt nur die DOM-Politik, ohne Schätzung.
+  private readonly RATE_MENU_ID = 'ez-speech-rate';
+  private readonly RATE_MENU_PREFIX = 'ez-speech-rate:';
+  private readonly RATE_LEVELS: { id: SpeechRate; label: string }[] = [
+    { id: 'slow', label: 'Langsam' },
+    { id: 'normal', label: 'Normal' },
+    { id: 'fast', label: 'Schnell' },
+    { id: 'veryFast', label: 'Sehr schnell' },
+    { id: 'off', label: 'Ohne Warten' },
+  ];
 
   private readonly subscriptions = new Subscription();
 
@@ -188,6 +201,7 @@ export class EzShellComponent implements OnInit, AfterViewInit, OnDestroy {
     this.footerMenu.unregister(this.STICKY_INPUT_MENU_ID);
     this.footerMenu.unregister(this.VERBOSITY_MENU_ID);
     this.footerMenu.unregister(this.PACING_MENU_ID);
+    this.footerMenu.unregister(this.RATE_MENU_ID);
     // No mudService.disconnect — the user expects the telnet session to
     // survive a route switch to `/`. Explicit disconnect lives in the
     // ConnectionMenuService (footer menu).
@@ -286,6 +300,21 @@ export class EzShellComponent implements OnInit, AfterViewInit, OnDestroy {
       action: () => this.togglePacing(),
     });
 
+    // Lesetempo — gehört zum Häkchen darüber und steht deshalb direkt
+    // darunter. Radio-artig wie die Ausführlichkeit.
+    const activeRate = this.speechPacing.rate();
+    this.footerMenu.register({
+      id: this.RATE_MENU_ID,
+      label: 'Lesetempo',
+      children: this.RATE_LEVELS.map((r) => ({
+        id: `${this.RATE_MENU_PREFIX}${r.id}`,
+        label: r.label,
+        checkable: true,
+        checked: r.id === activeRate,
+        action: () => this.selectRate(r.id),
+      })),
+    });
+
     this.footerMenu.register({
       id: this.RECENTER_MENU_ID,
       label: 'Fenster ins Bild',
@@ -361,6 +390,17 @@ export class EzShellComponent implements OnInit, AfterViewInit, OnDestroy {
       this.PACING_MENU_ID,
       this.speechPacing.toggle(),
     );
+  }
+
+  /** Setzt das Lesetempo und hält die Häkchen radio-artig synchron. */
+  private selectRate(rate: SpeechRate): void {
+    this.speechPacing.setRate(rate);
+    for (const r of this.RATE_LEVELS) {
+      this.footerMenu.setChecked(
+        `${this.RATE_MENU_PREFIX}${r.id}`,
+        r.id === rate,
+      );
+    }
   }
 
   private selectVerbosity(level: OutputVerbosity): void {

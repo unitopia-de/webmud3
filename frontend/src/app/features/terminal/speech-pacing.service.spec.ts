@@ -69,6 +69,13 @@ describe('SpeechPacingService', () => {
       expect(new SpeechPacingService().estimateMs('')).toBe(0);
     });
 
+    it('liefert 0 in Stufe „Ohne Warten"', () => {
+      const svc = new SpeechPacingService();
+      svc.setRate('off');
+
+      expect(svc.estimateMs('Ein beliebig langer Text. '.repeat(50))).toBe(0);
+    });
+
     it('wächst mit der Textlänge', () => {
       const svc = new SpeechPacingService();
       const kurz = svc.estimateMs('a'.repeat(200));
@@ -129,17 +136,22 @@ describe('SpeechPacingService', () => {
       jest.useRealTimers();
     });
 
-    it('ist per Default scharf', () => {
-      expect(new SpeechPacingService().timingEnabled()).toBe(true);
+    it('wartet in Stufe „Ohne Warten" nicht', () => {
+      const svc = scharf();
+      svc.setRate('off');
+
+      // Die Schätzung liefert 0, also wird nichts belegt: nur DOM-Politik.
+      svc.reserve(svc.estimateMs('Eine lange Raumbeschreibung. '.repeat(20)));
+
+      expect(svc.remainingMs()).toBe(0);
     });
 
-    it('belegt keine Zeit, wenn die Uhr als Diagnose abgeschaltet wird', () => {
+    it('gibt die Uhr beim Tempowechsel frei', () => {
       const svc = scharf();
-      svc.timingEnabled.set(false);
+      svc.reserve(20_000);
+      expect(svc.remainingMs()).toBe(20_000);
 
-      svc.reserve(5000);
-
-      // Entspricht dem Phase-4a-Verhalten: nur DOM-Politik, keine Wartezeit.
+      svc.setRate('veryFast');
       expect(svc.remainingMs()).toBe(0);
     });
 
