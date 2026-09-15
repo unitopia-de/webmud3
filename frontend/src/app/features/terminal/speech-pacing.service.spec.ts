@@ -110,11 +110,10 @@ describe('SpeechPacingService', () => {
   });
 
   describe('Sprech-Uhr', () => {
-    /** Service mit scharfer Zeitsteuerung (Phase 4b und später). */
+    /** Eingeschalteter Service mit scharfer Uhr (der Normalfall). */
     const scharf = (): SpeechPacingService => {
       const svc = new SpeechPacingService();
       svc.setEnabled(true);
-      svc.timingEnabled.set(true);
       return svc;
     };
 
@@ -130,14 +129,17 @@ describe('SpeechPacingService', () => {
       jest.useRealTimers();
     });
 
-    it('ist in Phase 4a per Default nicht scharf', () => {
-      const svc = new SpeechPacingService();
-      svc.setEnabled(true);
+    it('ist per Default scharf', () => {
+      expect(new SpeechPacingService().timingEnabled()).toBe(true);
+    });
+
+    it('belegt keine Zeit, wenn die Uhr als Diagnose abgeschaltet wird', () => {
+      const svc = scharf();
+      svc.timingEnabled.set(false);
 
       svc.reserve(5000);
 
-      // Schalter an, aber Zeitsteuerung aus ⇒ keine Wartezeit.
-      expect(svc.timingEnabled()).toBe(false);
+      // Entspricht dem Phase-4a-Verhalten: nur DOM-Politik, keine Wartezeit.
       expect(svc.remainingMs()).toBe(0);
     });
 
@@ -174,7 +176,6 @@ describe('SpeechPacingService', () => {
 
     it('reserviert nichts, solange das Feature aus ist', () => {
       const svc = new SpeechPacingService();
-      svc.timingEnabled.set(true);
       svc.reserve(5000);
 
       expect(svc.remainingMs()).toBe(0);

@@ -1,4 +1,5 @@
 import { MudScreenReaderAnnouncer, OutputVerbosity } from './mud-screenreader';
+import { SpeechPacingService } from './speech-pacing.service';
 
 describe('MudScreenReaderAnnouncer', () => {
   let liveRegion: HTMLElement;
@@ -738,5 +739,108 @@ describe('MudScreenReaderAnnouncer - „Ausreden lassen"', () => {
     // 'quiet' ohne Pacing: ERSETZEN, also genau ein Textknoten.
     expect(liveRegion.textContent).toBe('Zweiter\n');
     expect(liveRegion.children.length).toBe(0);
+  });
+});
+
+/**
+ * Zusammenspiel mit dem ECHTEN SpeechPacingService (nicht mit einem Doppel).
+ * Prüft die Kette Ansage → Bündelung → Warteschlange → Live-Region so, wie sie
+ * in `/ez` tatsächlich verdrahtet ist.
+ */
+describe('MudScreenReaderAnnouncer - Zusammenspiel mit SpeechPacingService', () => {
+  let liveRegion: HTMLElement;
+  let historyRegion: HTMLElement;
+  let pacing: SpeechPacingService;
+  let announcer: MudScreenReaderAnnouncer;
+
+  beforeEach(() => {
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date('2026-01-01T12:00:00Z'));
+    localStorage.clear();
+    liveRegion = document.createElement('div');
+    historyRegion = document.createElement('div');
+    pacing = new SpeechPacingService();
+    announcer = new MudScreenReaderAnnouncer(
+      liveRegion,
+      historyRegion,
+      () => false,
+      undefined,
+      () => 'quiet' as OutputVerbosity,
+      pacing,
+    );
+  });
+
+  afterEach(() => {
+    announcer.dispose();
+    jest.clearAllTimers();
+    jest.useRealTimers();
+  });
+
+  it('verhält sich mit ausgeschaltetem Schalter wie bisher (Ersetzen)', () => {
+    announcer.announce('Erster');
+    jest.advanceTimersByTime(200);
+    announcer.announce('Zweiter');
+    jest.advanceTimersByTime(200);
+
+    expect(liveRegion.textContent).toBe('Zweiter\n');
+  });
+
+  it('lässt eingeschaltet die erste Ansage ausreden', () => {
+    pacing.setEnabled(true);
+
+    // ~600 Zeichen Raumbeschreibung: bei 200 WPM gut 27 s Sprechzeit.
+    const raum = 'Du stehst auf einer weiten Lichtung. '.repeat(16);
+    announcer.announce(raum);
+    jest.advanceTimersByTime(200);
+    expect(liveRegion.children.length).toBe(1);
+
+    // Kurz darauf trifft neue Ausgabe ein — sie darf nicht dazwischenfunken.
+    announcer.announce('Ein Ork kommt herein.');
+    jest.advanceTimersByTime(1000);
+    expect(liveRegion.textContent).not.toContain('Ork');
+
+    // Erst wenn die Raumbeschreibung durch ist, kommt sie dran.
+    jest.advanceTimersByTime(30_000);
+    expect(liveRegion.textContent).toContain('Ork');
+  });
+
+  it('schreibt im Leerlauf ohne jede Verzögerung', () => {
+    pacing.setEnabled(true);
+
+    announcer.announce('Ok.');
+    // Nur das Bündelungsfenster, keine zusätzliche Wartezeit.
+    jest.advanceTimersByTime(200);
+
+    expect(liveRegion.textContent).toContain('Ok.');
+  });
+
+  it('meldet bei Dauer-Spam, wie viel übersprungen wurde', () => {
+    pacing.setEnabled(true);
+
+    // 200 nicht verschmelzbare Meldungen ohne Zeitfortschritt dazwischen.
+    for (let i = 0; i < 200; i++) {
+      announcer.announce(`Kampfrunde ${i}: ${'Treffer! '.repeat(20)}`);
+      jest.advanceTimersByTime(200); // je ein Bündelungsfenster
+    }
+    jest.advanceTimersByTime(600_000);
+
+    expect(liveRegion.textContent).toContain('übersprungen');
+    // Die jüngste Meldung hat den Rückstau überlebt.
+    expect(liveRegion.textContent).toContain('Kampfrunde 199');
+  });
+
+  it('verwirft bei „Sprung zum Ende" den gesamten Rückstau', () => {
+    pacing.setEnabled(true);
+
+    announcer.announce('Lange Beschreibung. '.repeat(40));
+    jest.advanceTimersByTime(200);
+    announcer.announce('wartet noch');
+    jest.advanceTimersByTime(200);
+
+    announcer.stopAnnouncements();
+    jest.advanceTimersByTime(120_000);
+
+    expect(liveRegion.textContent).toBe('');
+    expect(pacing.remainingMs()).toBe(0);
   });
 });

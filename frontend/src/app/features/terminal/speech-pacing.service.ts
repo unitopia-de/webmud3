@@ -65,15 +65,15 @@ const MAX_SLOT_MS = 30_000;
  * Ob die Sprech-Uhr scharf ist, d. h. ob {@link SpeechPacingService.reserve}
  * tatsächlich Zeit belegt.
  *
- * **Phase 4a bewusst `false`.** Der Menü-Schalter stellt zunächst nur die
- * DOM-Politik um (kein Ersetzen, kein Trimmen, Mindest-Bündelung) — das sind
- * deterministische Fehlerquellen, die mit Sicherheit behoben werden. Die
- * Wartezeit beruht dagegen auf einer Schätzung, die das echte Sprechtempo des
- * Screenreaders nicht kennen kann. Erst wenn der Tester berichtet, ob die
- * DOM-Änderung allein reicht, wird hier auf `true` gestellt (Phase 4b) — sonst
- * wüssten wir nie, welcher der beiden Eingriffe gewirkt hat.
+ * Seit Phase 4b `true`: Neue Ausgabe wartet, bis die laufende Ansage
+ * voraussichtlich zu Ende gesprochen ist. Zuvor (Phase 4a) stand das auf
+ * `false`, damit sich beurteilen ließ, ob schon die reine DOM-Umstellung
+ * (kein Ersetzen, kein Trimmen) genügt — die ist deterministisch, die
+ * Wartezeit dagegen eine Schätzung, die das echte Sprechtempo nicht kennen
+ * kann. Das Flag bleibt als Diagnose-Griff erhalten: auf `false` gesetzt,
+ * verhält sich der Schalter wieder wie in Phase 4a.
  */
-const TIMING_ENABLED_DEFAULT = false;
+const TIMING_ENABLED_DEFAULT = true;
 
 /**
  * „Ausreden lassen": Lesetempo-Schätzung und gemeinsame Sprech-Uhr der
@@ -104,9 +104,9 @@ export class SpeechPacingService {
   public readonly rate = signal<SpeechRate>(DEFAULT_RATE);
 
   /**
-   * Ob die Sprech-Uhr Zeit belegt. Siehe {@link TIMING_ENABLED_DEFAULT} —
-   * in Phase 4a aus, damit der Schalter isoliert die DOM-Politik zeigt.
-   * Nicht persistiert: eine Entwicklungs-Stufe, keine Nutzer-Einstellung.
+   * Ob die Sprech-Uhr Zeit belegt. Siehe {@link TIMING_ENABLED_DEFAULT}.
+   * Nicht persistiert: ein Diagnose-Griff, keine Nutzer-Einstellung — auf
+   * `false` gesetzt wirkt nur noch die DOM-Umstellung.
    */
   public readonly timingEnabled = signal<boolean>(TIMING_ENABLED_DEFAULT);
 
