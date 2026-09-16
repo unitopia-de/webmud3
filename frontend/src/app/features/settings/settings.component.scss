@@ -133,6 +133,20 @@
     color: #ddd;
     font-size: 12px;
   }
+
+  select {
+    align-self: flex-start;
+    padding: 4px 6px;
+    background: #2a2d2e;
+    color: #ddd;
+    border: 1px solid #444;
+    border-radius: 2px;
+    font-size: 13px;
+
+    &:disabled {
+      opacity: 0.5;
+    }
+  }
 }
 
 .settings-btn {

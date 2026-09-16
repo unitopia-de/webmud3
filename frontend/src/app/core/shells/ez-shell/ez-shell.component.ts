@@ -5,6 +5,7 @@ import {
   OnDestroy,
   OnInit,
   ViewChild,
+  effect,
   inject,
 } from '@angular/core';
 import { Router } from '@angular/router';
@@ -31,6 +32,7 @@ import { OutputVerbosityService } from '@webmud3/frontend/features/terminal-ez/o
 import {
   MxpChoiceMenuComponent,
   OutputVerbosity,
+  SPEECH_RATE_OPTIONS,
   SpeechPacingService,
   SpeechRate,
   TerminalThemeService,
@@ -160,13 +162,7 @@ export class EzShellComponent implements OnInit, AfterViewInit, OnDestroy {
   // ist der Kontroll-Modus — dann wirkt nur die DOM-Politik, ohne Schätzung.
   private readonly RATE_MENU_ID = 'ez-speech-rate';
   private readonly RATE_MENU_PREFIX = 'ez-speech-rate:';
-  private readonly RATE_LEVELS: { id: SpeechRate; label: string }[] = [
-    { id: 'slow', label: 'Langsam' },
-    { id: 'normal', label: 'Normal' },
-    { id: 'fast', label: 'Schnell' },
-    { id: 'veryFast', label: 'Sehr schnell' },
-    { id: 'off', label: 'Ohne Warten' },
-  ];
+  private readonly RATE_LEVELS = SPEECH_RATE_OPTIONS;
 
   private readonly subscriptions = new Subscription();
 
@@ -381,26 +377,27 @@ export class EzShellComponent implements OnInit, AfterViewInit, OnDestroy {
    * Untermenü-Einträge radio-artig synchron (genau einer aktiv).
    */
   /**
-   * Schaltet „Ausreden lassen" um und hält das Menü-Häkchen nach. Wie bei
-   * `selectVerbosity` genügt der direkte `setChecked`-Aufruf — der Schalter
-   * wird nirgendwo sonst umgelegt.
+   * Hält die Häkchen von „Ausreden lassen" und „Lesetempo" synchron.
+   *
+   * Beide lassen sich auch im Einstellungs-Fenster (Reiter „Barrierefreiheit")
+   * ändern, deshalb reagiert das Menü auf die Signale des Service, statt die
+   * Häkchen nur im eigenen Klick-Handler zu setzen.
    */
+  private readonly pacingMenuSync = effect(() => {
+    const enabled = this.speechPacing.enabled();
+    const rate = this.speechPacing.rate();
+    this.footerMenu.setChecked(this.PACING_MENU_ID, enabled);
+    for (const r of this.RATE_LEVELS) {
+      this.footerMenu.setChecked(`${this.RATE_MENU_PREFIX}${r.id}`, r.id === rate);
+    }
+  });
+
   private togglePacing(): void {
-    this.footerMenu.setChecked(
-      this.PACING_MENU_ID,
-      this.speechPacing.toggle(),
-    );
+    this.speechPacing.toggle();
   }
 
-  /** Setzt das Lesetempo und hält die Häkchen radio-artig synchron. */
   private selectRate(rate: SpeechRate): void {
     this.speechPacing.setRate(rate);
-    for (const r of this.RATE_LEVELS) {
-      this.footerMenu.setChecked(
-        `${this.RATE_MENU_PREFIX}${r.id}`,
-        r.id === rate,
-      );
-    }
   }
 
   private selectVerbosity(level: OutputVerbosity): void {

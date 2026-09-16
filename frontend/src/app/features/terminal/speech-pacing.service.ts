@@ -30,13 +30,20 @@ export const SPEECH_RATE_WPM: Record<SpeechRate, number> = {
   veryFast: 450,
 };
 
-const VALID_RATES: readonly SpeechRate[] = [
-  'off',
-  'slow',
-  'normal',
-  'fast',
-  'veryFast',
-];
+/**
+ * Anzeigereihenfolge und Beschriftung der Stufen — gemeinsam genutzt vom
+ * Footer-Untermenü und vom Einstellungs-Fenster, damit beide gleich heißen.
+ */
+export const SPEECH_RATE_OPTIONS: readonly { id: SpeechRate; label: string }[] =
+  [
+    { id: 'slow', label: 'Langsam' },
+    { id: 'normal', label: 'Normal' },
+    { id: 'fast', label: 'Schnell' },
+    { id: 'veryFast', label: 'Sehr schnell' },
+    { id: 'off', label: 'Ohne Warten' },
+  ];
+
+const VALID_RATES: readonly SpeechRate[] = SPEECH_RATE_OPTIONS.map((o) => o.id);
 const DEFAULT_RATE: SpeechRate = 'normal';
 
 /**

@@ -8,7 +8,12 @@ import {
 
 import { DebugSettingsService } from '@webmud3/frontend/features/debug/debug-settings.service';
 import { PerfHudService } from '@webmud3/frontend/features/terminal-ez/perf-hud.service';
-import { SpeechSettingsService } from '@webmud3/frontend/features/terminal';
+import {
+  SPEECH_RATE_OPTIONS,
+  SpeechPacingService,
+  SpeechRate,
+  SpeechSettingsService,
+} from '@webmud3/frontend/features/terminal';
 import { SettingsTransferService } from './settings-transfer.service';
 
 type TabId = 'accessibility' | 'diagnostics' | 'transfer';
@@ -16,7 +21,9 @@ type TabId = 'accessibility' | 'diagnostics' | 'transfer';
 /**
  * Settings dialog hosted in a modeless window. Currently exposes two tabs:
  *
- *   - Barrierefreiheit: polite Safari input mode.
+ *   - Barrierefreiheit: polite Safari input mode; „Ausreden lassen" und
+ *     Lesetempo (Spiegel der Footer-Menü-Einträge der EZ-Shell, hier mit
+ *     Erklärtext, für den im Menü kein Platz ist).
  *   - Diagnose: rarely-used dev / support toggles (screen reader debug log,
  *     paste debug log, raw output hex dump).
  *
@@ -34,6 +41,7 @@ type TabId = 'accessibility' | 'diagnostics' | 'transfer';
 })
 export class SettingsComponent {
   private readonly speech = inject(SpeechSettingsService);
+  private readonly pacing = inject(SpeechPacingService);
   private readonly debug = inject(DebugSettingsService);
   private readonly perfHud = inject(PerfHudService);
   private readonly transfer = inject(SettingsTransferService);
@@ -43,6 +51,11 @@ export class SettingsComponent {
   // ---- Streams consumed by the template via the async pipe -----------------
 
   public readonly politeInput$ = this.speech.politeInputMode$;
+
+  /** „Ausreden lassen" + Lesetempo (Signale; Menü und Fenster bleiben synchron). */
+  public readonly pacingEnabled = this.pacing.enabled;
+  public readonly speechRate = this.pacing.rate;
+  public readonly rateOptions = SPEECH_RATE_OPTIONS;
 
   public readonly screenReaderLogging$ = this.debug.screenReaderLogging$;
   public readonly pasteLogging$ = this.debug.pasteLogging$;
@@ -64,6 +77,17 @@ export class SettingsComponent {
 
   public togglePoliteInput(): void {
     this.speech.togglePoliteInputMode();
+  }
+
+  public togglePacing(): void {
+    this.pacing.toggle();
+  }
+
+  public onRateChange(event: Event): void {
+    const value = (event.target as HTMLSelectElement).value as SpeechRate;
+    if (this.rateOptions.some((o) => o.id === value)) {
+      this.pacing.setRate(value);
+    }
   }
 
   public toggleScreenReaderLogging(): void {

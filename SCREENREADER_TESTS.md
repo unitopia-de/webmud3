@@ -375,6 +375,51 @@ ebenfalls funktionieren, wenn aktiviert.
 
 ---
 
+## Test 14: Ausreden lassen (nur EZ-Modus `/ez`)
+
+### Vorbereitung
+
+- EZ-Modus öffnen (`/ez`) und einloggen
+- Footer-Menü → **„Ausreden lassen"** aktivieren (alternativ: Einstellungen → Reiter „Barrierefreiheit")
+- Footer-Menü → **„Lesetempo"** ungefähr passend zum eigenen Screenreader wählen
+
+### Ziel
+
+Überprüfen, dass eine laufende Ansage nicht mehr von neuer Ausgabe abgeschnitten wird.
+
+### Schritte
+
+1. Lesetempo **„Ohne Warten"** wählen
+2. `schau` eingeben (lange Raumbeschreibung) und **während** des Vorlesens einen weiteren Befehl senden, z. B. `inv`
+3. Notieren, ob die Raumbeschreibung zu Ende gelesen wird
+4. Lesetempo **„Normal"** wählen und Schritt 2 wiederholen
+5. Ist es spürbar träge, auf **„Schnell"** oder **„Sehr schnell"** wechseln und wiederholen
+6. In eine Situation mit sehr viel Ausgabe gehen (z. B. Kampf)
+7. Während einer langen Ansage **„Sprung zum Ende"** (Strg/Cmd+Ende) drücken
+
+### Erwartetes Ergebnis
+
+- Schritt 2–3: Die Raumbeschreibung wird nicht mittendrin abgebrochen
+- Schritt 4: Die Antwort auf `inv` kommt erst **nach** der Raumbeschreibung
+- Im ruhigen Spiel (ein Befehl, eine Antwort) keine spürbare Verzögerung
+- Schritt 6: Bei zu viel Ausgabe kommt „N Meldungen übersprungen." — die Meldungen stehen weiterhin im Ausgabe-Verlauf
+- Schritt 7: Sofort Ruhe, danach „Ansagen übersprungen."
+- Mit **deaktiviertem** „Ausreden lassen" verhält sich alles wie bisher
+
+### Hinweise
+
+- Wenn es schon mit „Ohne Warten" nicht mehr abschneidet, bitte ausdrücklich vermerken — dann ist die Zeitschätzung gar nicht nötig
+- Bitte notieren: verwendeter Screenreader, dessen Sprechgeschwindigkeit, gewählte Vorlese-Ausführlichkeit (Gesprächig/Normal/Ruhig) und gewähltes Lesetempo
+
+### Notizen:
+
+```
+
+
+```
+
+---
+
 ## Zusätzliche Hinweise für Tester
 
 - **Browser-Empfehlung**: Chrome oder Firefox mit aktiviertem Screenreader
