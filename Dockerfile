@@ -1,7 +1,7 @@
 # Dockerfile for webmud3
 
 # Stage 1: Build the application in a monorepo structure
-FROM node:22.22.2-alpine AS builder
+FROM node:24.22.1-alpine AS builder
 
 # Set the working directory
 WORKDIR /app
@@ -35,7 +35,7 @@ RUN mkdir -p backend/dist/node_modules/@webmud3 && \
 RUN cd backend/dist && npm install --omit=dev
 
 # Stage 2: Create the final production image
-FROM node:22.22.2-alpine
+FROM node:24.22.1-alpine
 
 WORKDIR /app
 

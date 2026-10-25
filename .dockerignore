@@ -35,10 +35,13 @@ bower_components
 # Compiled binary addons (https://nodejs.org/api/addons.html)
 build/Release
 
+# Versionsverwaltung - vom Build nicht benoetigt
+.git
+
 # Dependency directories
-node_modules/
+**/node_modules/
 jspm_packages/
-dist/
+**/dist/
 
 # TypeScript v1 declaration files
 typings/
