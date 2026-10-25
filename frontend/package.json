@@ -37,7 +37,7 @@
     "@angular/router": "~21.2.15",
     "@angular/service-worker": "~21.2.15",
     "@monaco-editor/loader": "^1.7.0",
-    "@webmud3/shared": "1.0.0-alpha",
+    "@webmud3/shared": "file:../shared",
     "@xterm/addon-attach": "~0.11.0",
     "@xterm/addon-clipboard": "~0.2.0",
     "@xterm/addon-fit": "~0.10.0",
