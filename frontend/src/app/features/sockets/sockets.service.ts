@@ -1,18 +1,17 @@
 import { EventEmitter, inject, Injectable } from '@angular/core';
+import { OutputHistoryService } from '@webmud3/frontend/shared/services/output-history.service';
+import { SecureString } from '@webmud3/frontend/shared/types/secure-string';
+import { isSecureString } from '@webmud3/frontend/shared/utils/is-secure-string';
+import { namespacedStorage } from '@webmud3/frontend/shared/utils/storage-namespace';
+import type {
+  ClientToServerEvents,
+  LinemodeState,
+  ServerToClientEvents,
+} from '@webmud3/shared';
 import { BehaviorSubject } from 'rxjs';
 import { Manager, Socket } from 'socket.io-client';
 
 import { ServerConfigService } from '../../features/serverconfig/server-config.service';
-import { SecureString } from '@webmud3/frontend/shared/types/secure-string';
-import { isSecureString } from '@webmud3/frontend/shared/utils/is-secure-string';
-import { namespacedStorage } from '@webmud3/frontend/shared/utils/storage-namespace';
-import { OutputHistoryService } from '@webmud3/frontend/shared/services/output-history.service';
-
-import type {
-  ClientToServerEvents,
-  ServerToClientEvents,
-  LinemodeState,
-} from '@webmud3/shared';
 
 type MudOutputEventArgs = {
   data: string;
@@ -177,12 +176,9 @@ export class SocketsService {
     });
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (this.socket as unknown as any).on(
-      'mudGmcpActive',
-      (active: boolean) => {
-        this.handleGmcpActive(active);
-      },
-    );
+    (this.socket as unknown as any).on('mudGmcpActive', (active: boolean) => {
+      this.handleGmcpActive(active);
+    });
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (this.socket as unknown as any).on('serverShutdown', () => {
@@ -492,13 +488,15 @@ export class SocketsService {
         await Promise.allSettled(keys.map((key) => caches.delete(key)));
       }
     } catch (error) {
-      console.error('[Sockets] coldReload: clearing CacheStorage failed', error);
+      console.error(
+        '[Sockets] coldReload: clearing CacheStorage failed',
+        error,
+      );
     }
 
     try {
       if ('serviceWorker' in navigator) {
-        const registrations =
-          await navigator.serviceWorker.getRegistrations();
+        const registrations = await navigator.serviceWorker.getRegistrations();
         await Promise.allSettled(registrations.map((reg) => reg.unregister()));
       }
     } catch (error) {

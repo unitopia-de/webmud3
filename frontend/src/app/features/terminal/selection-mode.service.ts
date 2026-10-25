@@ -1,4 +1,4 @@
-import { Injectable, computed, signal } from '@angular/core';
+import { computed, Injectable, signal } from '@angular/core';
 
 /**
  * Where the next tap is expected to land. Both xterm (output window) and
@@ -9,9 +9,9 @@ export type SelectionTarget = 'xterm' | 'editor';
 
 export type SelectionState =
   | 'inactive'
-  | 'awaiting-anchor'   // mode armed, no marker placed yet
-  | 'awaiting-extend'   // anchor placed, waiting for second tap
-  | 'adjusting';        // both markers placed, drag-to-refine
+  | 'awaiting-anchor' // mode armed, no marker placed yet
+  | 'awaiting-extend' // anchor placed, waiting for second tap
+  | 'adjusting'; // both markers placed, drag-to-refine
 
 /**
  * Opaque marker position. Hosting components store their own coordinate

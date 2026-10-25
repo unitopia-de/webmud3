@@ -1,8 +1,7 @@
 import { inject, Injectable } from '@angular/core';
-import { BehaviorSubject } from 'rxjs';
-
 import { MudService } from '@webmud3/frontend/core/mud/services/mud.service';
 import { namespacedStorage } from '@webmud3/frontend/shared/utils/storage-namespace';
+import { BehaviorSubject } from 'rxjs';
 
 /** Logical key ids matching KeyboardEvent.code on the numpad */
 export const NUMPAD_KEYS = [
@@ -122,10 +121,7 @@ export class NumpadService {
   }
 
   /** Resolves the command bound to `key` in the layer for `mods`. */
-  public getCommand(
-    key: NumpadKey,
-    mods: NumpadModifiers,
-  ): string | undefined {
+  public getCommand(key: NumpadKey, mods: NumpadModifiers): string | undefined {
     const layer = this.layersSubject.value[numpadLayerId(mods)];
     return layer?.[key];
   }
@@ -171,7 +167,12 @@ export class NumpadService {
    */
   public trigger(
     key: NumpadKey,
-    mods: NumpadModifiers = { shift: false, ctrl: false, alt: false, meta: false },
+    mods: NumpadModifiers = {
+      shift: false,
+      ctrl: false,
+      alt: false,
+      meta: false,
+    },
   ): void {
     const command = this.getCommand(key, mods);
     if (command !== undefined && command.length > 0) {
@@ -198,12 +199,7 @@ export class NumpadService {
     }
 
     // AltGr surfaces as physical Ctrl+Alt; ignore so it doesn't hijack typing.
-    if (
-      event.ctrlKey &&
-      event.altKey &&
-      !event.shiftKey &&
-      !event.metaKey
-    ) {
+    if (event.ctrlKey && event.altKey && !event.shiftKey && !event.metaKey) {
       return null;
     }
 
@@ -258,14 +254,14 @@ export class NumpadService {
     // Legacy flat layout: at least one value is a command string.
     const isFlat = entries.some(([, value]) => typeof value === 'string');
     if (isFlat) {
-      return { '': parsed as NumpadBindings };
+      return { '': parsed };
     }
 
     // Already layered: keep only object-valued layers.
     const layers: NumpadLayers = {};
     for (const [layerId, value] of entries) {
       if (value && typeof value === 'object') {
-        layers[layerId] = value as NumpadBindings;
+        layers[layerId] = value;
       }
     }
     return layers;

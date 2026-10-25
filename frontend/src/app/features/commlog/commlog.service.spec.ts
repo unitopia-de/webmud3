@@ -1,7 +1,7 @@
 import { TestBed } from '@angular/core/testing';
+import { MudSignalService } from '@webmud3/frontend/features/gmcp/signals/mud-signal.service';
 import { Subject } from 'rxjs';
 
-import { MudSignalService } from '@webmud3/frontend/features/gmcp/signals/mud-signal.service';
 import { channelLabel, CommlogService } from './commlog.service';
 
 describe('channelLabel', () => {
@@ -27,7 +27,10 @@ describe('CommlogService', () => {
     };
     TestBed.configureTestingModule({
       providers: [
-        { provide: MudSignalService, useValue: signals as unknown as MudSignalService },
+        {
+          provide: MudSignalService,
+          useValue: signals as unknown as MudSignalService,
+        },
       ],
     });
     svc = TestBed.inject(CommlogService);

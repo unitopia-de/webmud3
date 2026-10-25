@@ -46,9 +46,7 @@ export function personalSoundId(rawId: string): string {
 export type SoundKind = 'builtin' | 'personal' | 'unknown';
 
 /** Splits a namespaced id back into kind + raw id, or `unknown` for malformed input. */
-export function parseSoundId(
-  id: string,
-): { kind: SoundKind; rawId: string } {
+export function parseSoundId(id: string): { kind: SoundKind; rawId: string } {
   if (id.startsWith(BUILTIN_PREFIX)) {
     return { kind: 'builtin', rawId: id.slice(BUILTIN_PREFIX.length) };
   }

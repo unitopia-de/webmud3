@@ -497,7 +497,7 @@ describe('MudScreenReaderAnnouncer - normal verbosity', () => {
       historyRegion,
       () => false,
       undefined,
-      () => 'normal' as OutputVerbosity,
+      () => 'normal',
     );
   });
 
@@ -765,7 +765,7 @@ describe('MudScreenReaderAnnouncer - Zusammenspiel mit SpeechPacingService', () 
       historyRegion,
       () => false,
       undefined,
-      () => 'quiet' as OutputVerbosity,
+      () => 'quiet',
       pacing,
     );
   });

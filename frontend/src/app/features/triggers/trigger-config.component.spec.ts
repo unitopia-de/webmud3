@@ -1,12 +1,12 @@
+import { provideHttpClient, withXhr } from '@angular/common/http';
 import {
   HttpTestingController,
   provideHttpClientTesting,
 } from '@angular/common/http/testing';
-import { provideHttpClient, withXhr } from '@angular/common/http';
 import { TestBed } from '@angular/core/testing';
 
-import { TriggerConfigComponent } from './trigger-config.component';
 import { TriggerService } from './trigger.service';
+import { TriggerConfigComponent } from './trigger-config.component';
 
 function setup() {
   TestBed.configureTestingModule({

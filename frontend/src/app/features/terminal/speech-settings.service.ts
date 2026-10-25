@@ -1,7 +1,6 @@
 import { Injectable } from '@angular/core';
-import { BehaviorSubject } from 'rxjs';
-
 import { namespacedStorage } from '@webmud3/frontend/shared/utils/storage-namespace';
+import { BehaviorSubject } from 'rxjs';
 
 /**
  * Persisted shape of the speech settings. Defined as a separate type so we
@@ -38,8 +37,7 @@ export class SpeechSettingsService {
     DEFAULTS.politeInputMode,
   );
 
-  public readonly politeInputMode$ =
-    this.politeInputModeSubject.asObservable();
+  public readonly politeInputMode$ = this.politeInputModeSubject.asObservable();
 
   constructor() {
     this.loadFromStorage();

@@ -1,4 +1,5 @@
 import { namespacedKey } from '@webmud3/frontend/shared/utils/storage-namespace';
+
 import { OutputVerbosityService } from './output-verbosity.service';
 
 const KEY = namespacedKey('webmud3-ez-output-verbosity');

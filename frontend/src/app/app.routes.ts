@@ -1,5 +1,4 @@
 import { Routes } from '@angular/router';
-
 import { ClassicShellComponent } from '@webmud3/frontend/core/shells/classic-shell/classic-shell.component';
 import { EzShellComponent } from '@webmud3/frontend/core/shells/ez-shell/ez-shell.component';
 import { lastShellRedirectGuard } from '@webmud3/frontend/core/shells/last-shell-redirect.guard';

@@ -1,12 +1,12 @@
 import { inject, Injectable } from '@angular/core';
-import { Subscription } from 'rxjs';
-
 import { FooterMenuService } from '@webmud3/frontend/features/footer/footer-menu.service';
 import { GmcpService } from '@webmud3/frontend/features/gmcp/gmcp.service';
 import { CharItemsGmcpModule } from '@webmud3/frontend/features/gmcp/modules/char-items-gmcp.module';
-import { WindowGeometryService } from '@webmud3/frontend/features/windows/window-geometry.service';
 import { WindowService } from '@webmud3/frontend/features/windows/window.service';
 import type { WindowConfig } from '@webmud3/frontend/features/windows/window-config';
+import { WindowGeometryService } from '@webmud3/frontend/features/windows/window-geometry.service';
+import { Subscription } from 'rxjs';
+
 import { InventoryService } from './inventory.service';
 
 const MENU_ID = 'inventory-window';

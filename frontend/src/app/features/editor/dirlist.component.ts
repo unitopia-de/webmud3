@@ -5,9 +5,9 @@ import {
   inject,
   Input,
 } from '@angular/core';
-
 import { GmcpService } from '@webmud3/frontend/features/gmcp/gmcp.service';
 import type { WindowConfig } from '@webmud3/frontend/features/windows/window-config';
+
 import type { FileEntry } from '../gmcp/signals/mud-signals';
 import { FilesService } from './files.service';
 
@@ -37,14 +37,22 @@ export class DirlistComponent {
 
   public readonly listing$ = this.files.directoryList$;
 
-  public onFileClick(entry: FileEntry, currentPath: string, event?: Event): void {
+  public onFileClick(
+    entry: FileEntry,
+    currentPath: string,
+    event?: Event,
+  ): void {
     event?.preventDefault();
 
     const fullPath = this.joinPath(currentPath, entry.name);
     this.gmcp.send('Files.OpenFile', { file: fullPath });
   }
 
-  public onDirClick(entry: FileEntry, currentPath: string, event?: Event): void {
+  public onDirClick(
+    entry: FileEntry,
+    currentPath: string,
+    event?: Event,
+  ): void {
     event?.preventDefault();
 
     // ".." stays a relative reference — the MUD resolves it server-side.

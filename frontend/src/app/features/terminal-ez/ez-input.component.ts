@@ -13,13 +13,12 @@ import {
   signal,
   ViewChild,
 } from '@angular/core';
-import { Subscription } from 'rxjs';
-
 import { MudService } from '@webmud3/frontend/core/mud/services/mud.service';
 import { NumpadService } from '@webmud3/frontend/features/numpad/numpad.service';
-import { StickyInputService } from '@webmud3/frontend/features/terminal-ez/sticky-input.service';
-import { OutputVerbosityService } from '@webmud3/frontend/features/terminal-ez/output-verbosity.service';
 import { SpeechPacingService } from '@webmud3/frontend/features/terminal';
+import { OutputVerbosityService } from '@webmud3/frontend/features/terminal-ez/output-verbosity.service';
+import { StickyInputService } from '@webmud3/frontend/features/terminal-ez/sticky-input.service';
+import { Subscription } from 'rxjs';
 
 export type EzInputMode = 'default' | 'password' | 'editor';
 
@@ -195,7 +194,13 @@ export class EzInputComponent implements OnInit, AfterViewInit, OnDestroy {
       return;
     }
 
-    if (event.key === 'Enter' && !event.shiftKey && !event.ctrlKey && !event.altKey && !event.metaKey) {
+    if (
+      event.key === 'Enter' &&
+      !event.shiftKey &&
+      !event.ctrlKey &&
+      !event.altKey &&
+      !event.metaKey
+    ) {
       event.preventDefault();
       this.submitDefault();
       return;
@@ -419,7 +424,7 @@ export class EzInputComponent implements OnInit, AfterViewInit, OnDestroy {
 
     const prefix = withPrefix ? (this.historyDraft ?? '') : null;
     for (let i = this.historyCursor - 1; i >= 0; i -= 1) {
-      const entry = this.history[i]!;
+      const entry = this.history[i];
       if (prefix === null || entry.startsWith(prefix)) {
         this.historyCursor = i;
         this.setFieldValue(field, entry, viaButton);
@@ -442,7 +447,7 @@ export class EzInputComponent implements OnInit, AfterViewInit, OnDestroy {
 
     const prefix = withPrefix ? (this.historyDraft ?? '') : null;
     for (let i = this.historyCursor + 1; i < this.history.length; i += 1) {
-      const entry = this.history[i]!;
+      const entry = this.history[i];
       if (prefix === null || entry.startsWith(prefix)) {
         this.historyCursor = i;
         this.setFieldValue(field, entry, viaButton);

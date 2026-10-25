@@ -2,7 +2,7 @@ import { Terminal } from '@xterm/xterm';
 
 import { CTRL } from './models/escapes';
 import type { MudInputController } from './mud-input.controller';
-import { MudPromptManager, type MudPromptContext } from './mud-prompt.manager';
+import { type MudPromptContext, MudPromptManager } from './mud-prompt.manager';
 
 describe('MudPromptManager', () => {
   let terminal: Terminal;

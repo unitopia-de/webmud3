@@ -108,8 +108,12 @@
                     <button
                       type="button"
                       class="menu-item"
-                      [attr.role]="child.checkable ? 'menuitemcheckbox' : 'menuitem'"
-                      [attr.aria-checked]="child.checkable ? child.checked : null"
+                      [attr.role]="
+                        child.checkable ? 'menuitemcheckbox' : 'menuitem'
+                      "
+                      [attr.aria-checked]="
+                        child.checkable ? child.checked : null
+                      "
                       [attr.aria-label]="child.label"
                       [disabled]="child.disabled"
                       (click)="onMenuItemClick(child.action)"

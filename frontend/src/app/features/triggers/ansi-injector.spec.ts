@@ -1,8 +1,4 @@
-import {
-  dropOverlaps,
-  injectHighlights,
-  stripAnsi,
-} from './ansi-injector';
+import { dropOverlaps, injectHighlights, stripAnsi } from './ansi-injector';
 import type { HighlightSegment } from './models/highlight';
 
 const ESC = '\x1b';
@@ -34,9 +30,7 @@ describe('injectHighlights', () => {
 
   it('wraps a simple highlight with open/close SGR codes', () => {
     const out = injectHighlights('hello world', [fg(6, 11, '#ff0000')]);
-    expect(out).toBe(
-      `hello ${ESC}[38;2;255;0;0mworld${ESC}[0m`,
-    );
+    expect(out).toBe(`hello ${ESC}[38;2;255;0;0mworld${ESC}[0m`);
   });
 
   it('emits a foreground triple for #rgb shortform', () => {
@@ -48,9 +42,7 @@ describe('injectHighlights', () => {
     const out = injectHighlights('X', [
       { start: 0, end: 1, foreground: '#fff', background: '#000', bold: true },
     ]);
-    expect(out).toBe(
-      `${ESC}[1;38;2;255;255;255;48;2;0;0;0mX${ESC}[0m`,
-    );
+    expect(out).toBe(`${ESC}[1;38;2;255;255;255;48;2;0;0;0mX${ESC}[0m`);
   });
 
   it('skips a highlight whose colours are all undefined', () => {
@@ -69,10 +61,7 @@ describe('injectHighlights', () => {
   });
 
   it('places several non-overlapping highlights', () => {
-    const out = injectHighlights('aXbYc', [
-      fg(1, 2, '#f00'),
-      fg(3, 4, '#0f0'),
-    ]);
+    const out = injectHighlights('aXbYc', [fg(1, 2, '#f00'), fg(3, 4, '#0f0')]);
     expect(out).toBe(
       `a${ESC}[38;2;255;0;0mX${ESC}[0mb${ESC}[38;2;0;255;0mY${ESC}[0mc`,
     );

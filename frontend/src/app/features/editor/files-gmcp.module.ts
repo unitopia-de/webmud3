@@ -1,7 +1,7 @@
 import { inject, Injectable } from '@angular/core';
 
-import type { GmcpModule } from '../gmcp/gmcp-module';
 import { GmcpMessage, GmcpService } from '../gmcp/gmcp.service';
+import type { GmcpModule } from '../gmcp/gmcp-module';
 
 /**
  * GMCP module that announces support for the "Files" package to the MUD.

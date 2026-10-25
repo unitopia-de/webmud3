@@ -26,7 +26,11 @@ export class WakeLockService implements OnDestroy {
   private wanted = false;
 
   private readonly visibilityHandler = (): void => {
-    if (document.visibilityState === 'visible' && this.wanted && !this.sentinel) {
+    if (
+      document.visibilityState === 'visible' &&
+      this.wanted &&
+      !this.sentinel
+    ) {
       // Browser silently released the lock when the tab went hidden — pick
       // it back up so the next inactive period keeps the screen on too.
       void this.requestLock();

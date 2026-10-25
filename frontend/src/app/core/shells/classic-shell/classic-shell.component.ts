@@ -1,9 +1,8 @@
-import { Component, inject, ChangeDetectionStrategy } from '@angular/core';
-
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { MudClientComponent } from '@webmud3/frontend/core/mud/components/mud-client/mud-client.component';
 import { CharFooterComponent } from '@webmud3/frontend/features/footer/char-footer.component';
-import { WindowContainerComponent } from '@webmud3/frontend/features/windows/window-container.component';
 import { WindowService } from '@webmud3/frontend/features/windows/window.service';
+import { WindowContainerComponent } from '@webmud3/frontend/features/windows/window-container.component';
 
 /**
  * Classic WebMUD3 shell — xterm-driven input and output, the layout the

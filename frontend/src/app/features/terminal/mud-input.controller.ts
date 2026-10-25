@@ -1,15 +1,15 @@
 import type { Terminal } from '@xterm/xterm';
 
 import {
-  CTRL,
-  CSI_REGEX,
-  SS3,
-  SS3_LEN,
   backspaceErase,
+  CSI_REGEX,
+  CTRL,
   cursorLeft,
   cursorRight,
   eraseToEol,
   sequence,
+  SS3,
+  SS3_LEN,
 } from './models/escapes';
 
 /** Modifier code embedded in CSI sequences for Alt (xterm convention). */

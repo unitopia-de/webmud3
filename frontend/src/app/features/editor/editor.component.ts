@@ -14,11 +14,11 @@ import {
   ViewChild,
 } from '@angular/core';
 import loader from '@monaco-editor/loader';
-import type * as MonacoNs from 'monaco-editor';
-
 import { MudNoticeService } from '@webmud3/frontend/core/mud/services/mud-notice.service';
 import { SelectionModeService } from '@webmud3/frontend/features/terminal';
 import type { WindowConfig } from '@webmud3/frontend/features/windows/window-config';
+import type * as MonacoNs from 'monaco-editor';
+
 import type { FileInfo } from '../gmcp/signals/mud-signals';
 import { FilesService } from './files.service';
 

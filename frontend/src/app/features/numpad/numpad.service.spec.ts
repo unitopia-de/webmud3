@@ -1,12 +1,12 @@
 import { TestBed } from '@angular/core/testing';
-
 import { MudService } from '@webmud3/frontend/core/mud/services/mud.service';
 import { namespacedKey } from '@webmud3/frontend/shared/utils/storage-namespace';
+
 import {
   isNumpadCode,
+  numpadLayerId,
   NumpadModifiers,
   NumpadService,
-  numpadLayerId,
 } from './numpad.service';
 
 const KEY = namespacedKey('webmud3-numpad-bindings');
@@ -62,7 +62,10 @@ describe('NumpadService', () => {
     sendMessage = jest.fn();
     TestBed.configureTestingModule({
       providers: [
-        { provide: MudService, useValue: { sendMessage } as unknown as MudService },
+        {
+          provide: MudService,
+          useValue: { sendMessage } as unknown as MudService,
+        },
       ],
     });
   });
@@ -84,7 +87,9 @@ describe('NumpadService', () => {
     );
 
     svc.setBinding('Shift', 'Numpad8', '');
-    expect(svc.getCommand('Numpad8', { ...NO_MODS, shift: true })).toBeUndefined();
+    expect(
+      svc.getCommand('Numpad8', { ...NO_MODS, shift: true }),
+    ).toBeUndefined();
     // Layer became empty → removed entirely.
     expect(svc.bindingsForLayer('Shift')).toEqual({});
   });
@@ -96,12 +101,15 @@ describe('NumpadService', () => {
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
       providers: [
-        { provide: MudService, useValue: { sendMessage } as unknown as MudService },
+        {
+          provide: MudService,
+          useValue: { sendMessage } as unknown as MudService,
+        },
       ],
     });
-    expect(TestBed.inject(NumpadService).getCommand('NumpadDecimal', NO_MODS)).toBe(
-      'winke',
-    );
+    expect(
+      TestBed.inject(NumpadService).getCommand('NumpadDecimal', NO_MODS),
+    ).toBe('winke');
   });
 
   it('migrates a legacy flat layout into the no-modifier layer', () => {
@@ -149,18 +157,18 @@ describe('NumpadService', () => {
     it('resolves the layer from physical modifiers', () => {
       const svc = inject();
       svc.setBinding('Shift', 'Numpad8', 'renne norden');
-      expect(
-        svc.triggerFromEvent(keyEvent('Numpad8', { shift: true })),
-      ).toBe('renne norden');
+      expect(svc.triggerFromEvent(keyEvent('Numpad8', { shift: true }))).toBe(
+        'renne norden',
+      );
     });
 
     it('OR-s extraMods with the event modifiers (config checkboxes)', () => {
       const svc = inject();
       svc.setBinding('Shift', 'Numpad8', 'renne norden');
       // No physical shift, but the extraMods supplies it.
-      expect(
-        svc.triggerFromEvent(keyEvent('Numpad8'), { shift: true }),
-      ).toBe('renne norden');
+      expect(svc.triggerFromEvent(keyEvent('Numpad8'), { shift: true })).toBe(
+        'renne norden',
+      );
     });
   });
 });

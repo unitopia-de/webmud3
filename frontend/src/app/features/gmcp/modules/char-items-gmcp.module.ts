@@ -1,7 +1,7 @@
 import { inject, Injectable } from '@angular/core';
 
+import { GmcpMessage, GmcpService } from '../gmcp.service';
 import type { GmcpModule } from '../gmcp-module';
-import { GmcpService, GmcpMessage } from '../gmcp.service';
 
 /**
  * GMCP module that announces support for the "Char.Items" package to the MUD.

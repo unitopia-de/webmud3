@@ -1,8 +1,7 @@
 import { inject, Injectable } from '@angular/core';
 import { SwUpdate, VersionReadyEvent } from '@angular/service-worker';
-import { filter } from 'rxjs/operators';
-
 import { FooterMenuService } from '@webmud3/frontend/features/footer/footer-menu.service';
+import { filter } from 'rxjs/operators';
 
 /**
  * Notifies the user when a new app version has been downloaded by the Service
@@ -32,8 +31,7 @@ export class PwaUpdateService {
     this.swUpdate.versionUpdates
       .pipe(
         filter(
-          (event): event is VersionReadyEvent =>
-            event.type === 'VERSION_READY',
+          (event): event is VersionReadyEvent => event.type === 'VERSION_READY',
         ),
       )
       .subscribe(() => this.registerEntry());

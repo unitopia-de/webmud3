@@ -5,15 +5,15 @@ import {
   inject,
   signal,
 } from '@angular/core';
-
 import { DebugSettingsService } from '@webmud3/frontend/features/debug/debug-settings.service';
-import { PerfHudService } from '@webmud3/frontend/features/terminal-ez/perf-hud.service';
 import {
   SPEECH_RATE_OPTIONS,
   SpeechPacingService,
   SpeechRate,
   SpeechSettingsService,
 } from '@webmud3/frontend/features/terminal';
+import { PerfHudService } from '@webmud3/frontend/features/terminal-ez/perf-hud.service';
+
 import { SettingsTransferService } from './settings-transfer.service';
 
 type TabId = 'accessibility' | 'diagnostics' | 'transfer';

@@ -1,8 +1,8 @@
 import { TestBed } from '@angular/core/testing';
-import { BehaviorSubject } from 'rxjs';
-
 import { MudService } from '@webmud3/frontend/core/mud/services/mud.service';
 import { NumpadService } from '@webmud3/frontend/features/numpad/numpad.service';
+import { BehaviorSubject } from 'rxjs';
+
 import { EzInputComponent } from './ez-input.component';
 import { OutputVerbosityService } from './output-verbosity.service';
 import { StickyInputService } from './sticky-input.service';
@@ -24,7 +24,10 @@ function setup() {
     imports: [EzInputComponent],
     providers: [
       { provide: MudService, useValue: mud as unknown as MudService },
-      { provide: NumpadService, useValue: numpadStub as unknown as NumpadService },
+      {
+        provide: NumpadService,
+        useValue: numpadStub as unknown as NumpadService,
+      },
     ],
   });
   const fixture = TestBed.createComponent(EzInputComponent);

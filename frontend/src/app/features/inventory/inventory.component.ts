@@ -1,9 +1,5 @@
 import { CommonModule, KeyValuePipe } from '@angular/common';
-import {
-  ChangeDetectionStrategy,
-  Component,
-  inject,
-} from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 
 import { InventoryService } from './inventory.service';
 

@@ -55,8 +55,8 @@ export class SoundPlayerService implements OnDestroy {
       return false;
     }
 
-    const effectiveVolume = clamp01(settings.masterVolume) *
-      clamp01(perTriggerVolume ?? 1);
+    const effectiveVolume =
+      clamp01(settings.masterVolume) * clamp01(perTriggerVolume ?? 1);
 
     if (effectiveVolume === 0) {
       return false;

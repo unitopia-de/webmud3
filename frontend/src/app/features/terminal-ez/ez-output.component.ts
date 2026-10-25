@@ -2,26 +2,16 @@ import {
   AfterViewInit,
   ChangeDetectionStrategy,
   Component,
-  ElementRef,
-  OnDestroy,
-  ViewChild,
   computed,
   effect,
+  ElementRef,
   inject,
+  OnDestroy,
   signal,
+  ViewChild,
 } from '@angular/core';
-import { FitAddon } from '@xterm/addon-fit';
-import { ISearchOptions, SearchAddon } from '@xterm/addon-search';
-import { WebglAddon } from '@xterm/addon-webgl';
-import { IDisposable, Terminal } from '@xterm/xterm';
-import { Subscription } from 'rxjs';
-import { pairwise } from 'rxjs/operators';
-
 import { MudService } from '@webmud3/frontend/core/mud/services/mud.service';
 import { DebugSettingsService } from '@webmud3/frontend/features/debug/debug-settings.service';
-import { PerfHudService } from '@webmud3/frontend/features/terminal-ez/perf-hud.service';
-import { OutputVerbosityService } from '@webmud3/frontend/features/terminal-ez/output-verbosity.service';
-import { OutputHistoryService } from '@webmud3/frontend/shared/services/output-history.service';
 import {
   ClickAction,
   MudScreenReaderAnnouncer,
@@ -37,11 +27,20 @@ import {
   TerminalThemeService,
 } from '@webmud3/frontend/features/terminal';
 import { OutputJumpService } from '@webmud3/frontend/features/terminal/output-jump.service';
-import { namespacedStorage } from '@webmud3/frontend/shared/utils/storage-namespace';
+import { OutputVerbosityService } from '@webmud3/frontend/features/terminal-ez/output-verbosity.service';
+import { PerfHudService } from '@webmud3/frontend/features/terminal-ez/perf-hud.service';
 import {
   SoundPlayerService as TriggerSoundPlayerService,
   TriggerEngineService,
 } from '@webmud3/frontend/features/triggers';
+import { OutputHistoryService } from '@webmud3/frontend/shared/services/output-history.service';
+import { namespacedStorage } from '@webmud3/frontend/shared/utils/storage-namespace';
+import { FitAddon } from '@xterm/addon-fit';
+import { ISearchOptions, SearchAddon } from '@xterm/addon-search';
+import { WebglAddon } from '@xterm/addon-webgl';
+import { IDisposable, Terminal } from '@xterm/xterm';
+import { Subscription } from 'rxjs';
+import { pairwise } from 'rxjs/operators';
 
 /**
  * Read-only xterm output panel for the EZ-Shell (`/ez`).
@@ -343,9 +342,7 @@ export class EzOutputComponent implements AfterViewInit, OnDestroy {
     this.markerInvalidator();
     const end = this.selectionMode.end();
     if (end === null || end.target !== 'xterm') return null;
-    return this.xtermBufferPosToPixel(
-      end.data as { col: number; row: number },
-    );
+    return this.xtermBufferPosToPixel(end.data as { col: number; row: number });
   });
 
   constructor() {
@@ -475,9 +472,7 @@ export class EzOutputComponent implements AfterViewInit, OnDestroy {
         this.markerInvalidator.update((n) => n + 1);
         this.updateTailVisibility();
       }),
-      this.terminal.onResize(() =>
-        this.markerInvalidator.update((n) => n + 1),
-      ),
+      this.terminal.onResize(() => this.markerInvalidator.update((n) => n + 1)),
     );
 
     // Wie in der Classic-Shell: Append-Strategie, keine separate
@@ -1727,7 +1722,9 @@ export class EzOutputComponent implements AfterViewInit, OnDestroy {
       this.terminalRef.nativeElement.querySelector<HTMLElement>(
         '.xterm-screen',
       );
-    const rect = (screen ?? this.terminalRef.nativeElement).getBoundingClientRect();
+    const rect = (
+      screen ?? this.terminalRef.nativeElement
+    ).getBoundingClientRect();
     if (rect.width === 0 || rect.height === 0) {
       return null;
     }
@@ -1768,7 +1765,8 @@ export class EzOutputComponent implements AfterViewInit, OnDestroy {
     if (!screen) return null;
 
     const screenRect = screen.getBoundingClientRect();
-    const containerRect = this.terminalRef.nativeElement.getBoundingClientRect();
+    const containerRect =
+      this.terminalRef.nativeElement.getBoundingClientRect();
     if (screenRect.width === 0 || screenRect.height === 0) return null;
 
     const viewportRow = pos.row - this.terminal.buffer.active.viewportY;
@@ -1812,7 +1810,12 @@ export class EzOutputComponent implements AfterViewInit, OnDestroy {
     let endCol = b.col;
     let endRow = b.row;
     if (startRow > endRow || (startRow === endRow && startCol > endCol)) {
-      [startCol, startRow, endCol, endRow] = [endCol, endRow, startCol, startRow];
+      [startCol, startRow, endCol, endRow] = [
+        endCol,
+        endRow,
+        startCol,
+        startRow,
+      ];
     }
 
     const length =

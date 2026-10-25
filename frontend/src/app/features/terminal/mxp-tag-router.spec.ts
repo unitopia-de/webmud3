@@ -18,9 +18,7 @@ describe('MxpTagRouter', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      providers: [
-        { provide: MxpSoundService, useClass: MxpSoundServiceStub },
-      ],
+      providers: [{ provide: MxpSoundService, useClass: MxpSoundServiceStub }],
     });
     router = TestBed.inject(MxpTagRouter);
     entities = TestBed.inject(MxpEntityService);

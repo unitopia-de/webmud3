@@ -1,6 +1,10 @@
 <div class="commlog">
   <div class="commlog-toolbar">
-    <button type="button" (click)="download()" [disabled]="entries().length === 0">
+    <button
+      type="button"
+      (click)="download()"
+      [disabled]="entries().length === 0"
+    >
       Herunterladen
     </button>
     <button type="button" (click)="clear()" [disabled]="entries().length === 0">
@@ -11,8 +15,13 @@
   @if (entries().length > 0) {
     <ul class="commlog-list">
       @for (entry of entries(); track $index) {
-        <li class="commlog-line" [class]="'channel-' + entry.channel.toLowerCase()">
-          <span class="commlog-time">{{ entry.timestamp | date: 'HH:mm:ss' }}</span>
+        <li
+          class="commlog-line"
+          [class]="'channel-' + entry.channel.toLowerCase()"
+        >
+          <span class="commlog-time">{{
+            entry.timestamp | date: "HH:mm:ss"
+          }}</span>
           <span class="commlog-channel">{{ channelLabel(entry.channel) }}</span>
           <span class="commlog-player">{{ entry.player }}</span>
           <span class="commlog-text">{{ entry.text }}</span>

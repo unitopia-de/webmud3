@@ -206,14 +206,11 @@ export class MudScreenReaderAnnouncer {
    */
   public announce(raw: string, receivedAt: number = Date.now()): void {
     if (receivedAt < this.sessionStartedAt) {
-      this.log(
-        '[ScreenReader] Ignoring old output (before session start):',
-        {
-          receivedAt,
-          sessionStartedAt: this.sessionStartedAt,
-          diff: receivedAt - this.sessionStartedAt,
-        },
-      );
+      this.log('[ScreenReader] Ignoring old output (before session start):', {
+        receivedAt,
+        sessionStartedAt: this.sessionStartedAt,
+        diff: receivedAt - this.sessionStartedAt,
+      });
       return;
     }
 

@@ -1,8 +1,8 @@
 import { inject, Injectable, OnDestroy } from '@angular/core';
-import { BehaviorSubject, Observable, Subscription } from 'rxjs';
-
 import { MudSignalService } from '@webmud3/frontend/features/gmcp/signals/mud-signal.service';
 import { namespacedStorage } from '@webmud3/frontend/shared/utils/storage-namespace';
+import { BehaviorSubject, Observable, Subscription } from 'rxjs';
+
 import { SoundGmcpModule } from './sound-gmcp.module';
 
 const STORAGE_SUFFIX = 'webmud3-sound-enabled';
@@ -200,6 +200,9 @@ export class SoundService implements OnDestroy {
   }
 
   private persistEnabled(): void {
-    namespacedStorage.set(STORAGE_SUFFIX, this.enabledSubject.value ? '1' : '0');
+    namespacedStorage.set(
+      STORAGE_SUFFIX,
+      this.enabledSubject.value ? '1' : '0',
+    );
   }
 }

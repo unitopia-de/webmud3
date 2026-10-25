@@ -1,10 +1,10 @@
 import { inject, Injectable, OnDestroy } from '@angular/core';
 import {
   BehaviorSubject,
+  filter,
   Observable,
   Subject,
   Subscription,
-  filter,
 } from 'rxjs';
 
 import { SocketsService } from '../sockets/sockets.service';

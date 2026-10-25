@@ -25,9 +25,7 @@ describe('MxpStreamFilter', () => {
 
   it('strips a simple MXP open/close tag pair when in secure mode', () => {
     expect(
-      filter.process(
-        `${ESC}[1zHier: <rexit>norden</rexit> raus.${ESC}[7z`,
-      ),
+      filter.process(`${ESC}[1zHier: <rexit>norden</rexit> raus.${ESC}[7z`),
     ).toBe('Hier: norden raus.');
   });
 
@@ -37,9 +35,7 @@ describe('MxpStreamFilter', () => {
     // MXP tag regardless of mode. UNItopia wraps real MXP with
     // `ESC[4z…ESC[7z`, so plain content stays in locked mode and `<`
     // must be literal there.
-    expect(filter.process('#include <stdio.h>\n')).toBe(
-      '#include <stdio.h>\n',
-    );
+    expect(filter.process('#include <stdio.h>\n')).toBe('#include <stdio.h>\n');
     expect(filter.process('#include <sys/stat.h>\n')).toBe(
       '#include <sys/stat.h>\n',
     );
@@ -67,9 +63,9 @@ describe('MxpStreamFilter', () => {
     );
     // < followed by a letter is treated as a tag start, but only when
     // we're in MXP secure mode.
-    expect(
-      filter.process(`${ESC}[1zTest <abc>X</abc> done${ESC}[7z`),
-    ).toBe('Test X done');
+    expect(filter.process(`${ESC}[1zTest <abc>X</abc> done${ESC}[7z`)).toBe(
+      'Test X done',
+    );
   });
 
   it('preserves & and entity references untouched', () => {
@@ -128,8 +124,7 @@ describe('MxpStreamFilter', () => {
   });
 
   it('strips inline tags mixed with normal text and ANSI', () => {
-    const input =
-      `${ESC}[33mDu siehst hier:${ESC}[0m ${ESC}[4z<ircontent id="schwert">ein Schwert</ircontent>${ESC}[7z.`;
+    const input = `${ESC}[33mDu siehst hier:${ESC}[0m ${ESC}[4z<ircontent id="schwert">ein Schwert</ircontent>${ESC}[7z.`;
     expect(filter.process(input)).toBe(
       `${ESC}[33mDu siehst hier:${ESC}[0m ein Schwert.`,
     );

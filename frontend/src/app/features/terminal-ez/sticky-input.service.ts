@@ -1,7 +1,6 @@
 import { Injectable } from '@angular/core';
-import { BehaviorSubject, Observable } from 'rxjs';
-
 import { namespacedStorage } from '@webmud3/frontend/shared/utils/storage-namespace';
+import { BehaviorSubject, Observable } from 'rxjs';
 
 const STORAGE_SUFFIX = 'webmud3-ez-sticky-input';
 

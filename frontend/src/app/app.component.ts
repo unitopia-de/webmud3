@@ -1,6 +1,5 @@
-import { Component, inject, ChangeDetectionStrategy } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
-
 import { ShellPreferenceService } from '@webmud3/frontend/core/shells/shell-preference.service';
 import { NetworkStatusService } from '@webmud3/frontend/features/connection/network-status.service';
 import { PwaInstallService } from '@webmud3/frontend/features/connection/pwa-install.service';

@@ -1,8 +1,7 @@
 import { inject, Injectable, OnDestroy } from '@angular/core';
-import { Subscription } from 'rxjs';
-
 import { MudService } from '@webmud3/frontend/core/mud/services/mud.service';
 import { FooterMenuService } from '@webmud3/frontend/features/footer/footer-menu.service';
+import { Subscription } from 'rxjs';
 
 const MENU_ID = 'connection';
 
@@ -28,8 +27,8 @@ export class ConnectionMenuService implements OnDestroy {
     // will overwrite immediately).
     this.updateItem(false);
 
-    this.subscription = this.mudService.connectedToMud$.subscribe(
-      (connected) => this.updateItem(connected),
+    this.subscription = this.mudService.connectedToMud$.subscribe((connected) =>
+      this.updateItem(connected),
     );
   }
 

@@ -1,10 +1,9 @@
 import { inject, Injectable } from '@angular/core';
-import { Subscription } from 'rxjs';
-
 import { FooterMenuService } from '@webmud3/frontend/features/footer/footer-menu.service';
-import { WindowGeometryService } from '@webmud3/frontend/features/windows/window-geometry.service';
 import { WindowService } from '@webmud3/frontend/features/windows/window.service';
 import type { WindowConfig } from '@webmud3/frontend/features/windows/window-config';
+import { WindowGeometryService } from '@webmud3/frontend/features/windows/window-geometry.service';
+import { Subscription } from 'rxjs';
 
 const MENU_ID = 'sound-library-window';
 const GEOMETRY_KEY = 'sound-library-window';

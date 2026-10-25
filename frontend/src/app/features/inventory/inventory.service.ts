@@ -1,8 +1,7 @@
 import { inject, Injectable, OnDestroy } from '@angular/core';
-import { BehaviorSubject, Subscription } from 'rxjs';
-
 import { MudSignalService } from '@webmud3/frontend/features/gmcp/signals/mud-signal.service';
 import type { InventoryEntry } from '@webmud3/frontend/features/gmcp/signals/mud-signals';
+import { BehaviorSubject, Subscription } from 'rxjs';
 
 /**
  * Inventory grouped by category, e.g.:
@@ -110,10 +109,7 @@ export class InventoryService implements OnDestroy {
     this.itemsSubject.next(next);
   }
 
-  private appendInto(
-    target: InventoryByCategory,
-    entry: InventoryEntry,
-  ): void {
+  private appendInto(target: InventoryByCategory, entry: InventoryEntry): void {
     if (!entry?.category || !entry?.name) {
       return;
     }

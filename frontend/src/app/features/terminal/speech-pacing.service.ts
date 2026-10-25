@@ -1,5 +1,4 @@
 import { Injectable, signal } from '@angular/core';
-
 import { namespacedStorage } from '@webmud3/frontend/shared/utils/storage-namespace';
 
 const STORAGE_SUFFIX = 'webmud3-ez-speech-pacing';
@@ -75,7 +74,6 @@ const MIN_SLOT_MS = 400;
  * schützt nur gegen pathologische Blöcke (ASCII-Art, 10.000 Zeichen).
  */
 const MAX_SLOT_MS = 30_000;
-
 
 /**
  * „Ausreden lassen": Lesetempo-Schätzung und gemeinsame Sprech-Uhr der

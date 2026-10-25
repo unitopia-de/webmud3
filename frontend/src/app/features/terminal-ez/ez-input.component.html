@@ -16,7 +16,7 @@
   ></div>
 
   @switch (mode()) {
-    @case ('password') {
+    @case ("password") {
       <form class="ez-input-form" (submit)="onPasswordSubmit($event)">
         <label for="ez-pw-field" class="sr-only">Passwort</label>
         <input
@@ -33,7 +33,7 @@
         </button>
       </form>
     }
-    @case ('editor') {
+    @case ("editor") {
       <p class="mode-hint" aria-hidden="true">
         Editor-Modus: jede Zeile wird beim Enter sofort gesendet.
       </p>
@@ -89,14 +89,18 @@
             (click)="onHistoryBack()"
             aria-label="Vorheriger Befehl"
             title="Vorheriger Befehl"
-          >&#9650;</button>
+          >
+            &#9650;
+          </button>
           <button
             type="button"
             class="history"
             (click)="onHistoryForward()"
             aria-label="Nächster Befehl"
             title="Nächster Befehl"
-          >&#9660;</button>
+          >
+            &#9660;
+          </button>
         </div>
         <button type="submit" class="primary" aria-label="Befehl senden">
           Senden

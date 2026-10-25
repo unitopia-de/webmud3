@@ -29,9 +29,9 @@ describe('MxpStreamFilter.processToSegments', () => {
   });
 
   it('emits empty array for fully-empty result', () => {
-    expect(filter.processToSegments(`${ESC}[1z<!ENTITY ap "1">${ESC}[7z`)).toEqual(
-      [],
-    );
+    expect(
+      filter.processToSegments(`${ESC}[1z<!ENTITY ap "1">${ESC}[7z`),
+    ).toEqual([]);
   });
 
   it('isolates a clickable segment', () => {
@@ -100,8 +100,7 @@ describe('MxpStreamFilter.processToSegments', () => {
   });
 
   it('treats <rshort>/<rlong>/<stat>/<sound> as non-clickable', () => {
-    const input =
-      `${ESC}[1z<rshort>Marktplatz</rshort> <rlong>...</rlong>${ESC}[7z`;
+    const input = `${ESC}[1z<rshort>Marktplatz</rshort> <rlong>...</rlong>${ESC}[7z`;
     const out = filter.processToSegments(input);
     // Text-only — rshort/rlong tags are stripped but their content is kept
     // as plain text (just like in stage 1).

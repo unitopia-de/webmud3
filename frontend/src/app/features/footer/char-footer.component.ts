@@ -11,9 +11,6 @@ import {
   signal,
   ViewChild,
 } from '@angular/core';
-import { combineLatest, Subscription } from 'rxjs';
-import { map } from 'rxjs/operators';
-
 import { NetworkStatusService } from '@webmud3/frontend/features/connection/network-status.service';
 import { MudSignalService } from '@webmud3/frontend/features/gmcp/signals/mud-signal.service';
 import {
@@ -22,6 +19,9 @@ import {
   SelectionModeService,
 } from '@webmud3/frontend/features/terminal';
 import { OutputJumpService } from '@webmud3/frontend/features/terminal/output-jump.service';
+import { combineLatest, Subscription } from 'rxjs';
+import { map } from 'rxjs/operators';
+
 import { FooterMenuService } from './footer-menu.service';
 
 /**

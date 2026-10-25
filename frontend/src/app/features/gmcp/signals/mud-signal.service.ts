@@ -1,12 +1,12 @@
 import { inject, Injectable, OnDestroy } from '@angular/core';
-import { Observable, Subject, Subscription, filter } from 'rxjs';
+import { filter, Observable, Subject, Subscription } from 'rxjs';
 
-import { GmcpService, GmcpMessage } from '../gmcp.service';
+import { GmcpMessage, GmcpService } from '../gmcp.service';
 import type {
+  FileEntry,
+  InventoryEntry,
   MudSignal,
   MudSignalType,
-  InventoryEntry,
-  FileEntry,
 } from './mud-signals';
 
 /**
@@ -185,11 +185,11 @@ export class MudSignalService implements OnDestroy {
     // fall back to whatever Core.Hello told us earlier.
     const inlineMudname =
       typeof d?.['mudname'] === 'string'
-        ? (d['mudname'] as string)
+        ? d['mudname']
         : typeof d?.['mud'] === 'string'
-          ? (d['mud'] as string)
+          ? d['mud']
           : typeof d?.['host'] === 'string'
-            ? (d['host'] as string)
+            ? d['host']
             : undefined;
 
     const mudname = inlineMudname ?? this.cachedMudname;
@@ -210,13 +210,13 @@ export class MudSignalService implements OnDestroy {
     // UNItopia sends `name` for the MUD identifier; spec also allows "mudname".
     const mudname =
       typeof d?.['name'] === 'string'
-        ? (d['name'] as string)
+        ? d['name']
         : typeof d?.['mudname'] === 'string'
-          ? (d['mudname'] as string)
+          ? d['mudname']
           : undefined;
 
     const version =
-      typeof d?.['version'] === 'string' ? (d['version'] as string) : undefined;
+      typeof d?.['version'] === 'string' ? d['version'] : undefined;
 
     if (mudname) {
       this.cachedMudname = mudname;
@@ -303,12 +303,12 @@ export class MudSignalService implements OnDestroy {
       filename: String(d['filename'] ?? ''),
       filetype: String(d['filetype'] ?? ''),
       title: String(d['title'] ?? ''),
-      filesize: typeof d['filesize'] === 'number' ? (d['filesize'] as number) : -1,
+      filesize: typeof d['filesize'] === 'number' ? d['filesize'] : -1,
       newfile: Boolean(d['newfile']),
       writeacl: Boolean(d['writeacl']),
       temporary: Boolean(d['temporary']),
       closable: Boolean(d['closable']),
-      content: typeof d['content'] === 'string' ? (d['content'] as string) : undefined,
+      content: typeof d['content'] === 'string' ? d['content'] : undefined,
     };
 
     return { type: 'Files.Open', fileinfo };
@@ -343,7 +343,9 @@ export class MudSignalService implements OnDestroy {
     let choices: string[] = [];
 
     if (Array.isArray(data)) {
-      choices = data.filter((entry): entry is string => typeof entry === 'string');
+      choices = data.filter(
+        (entry): entry is string => typeof entry === 'string',
+      );
     } else if (data && typeof data === 'object') {
       const candidate = (data as Record<string, unknown>)['choices'];
       if (Array.isArray(candidate)) {
@@ -383,21 +385,22 @@ export class MudSignalService implements OnDestroy {
       // both and normalize to a single \n-joined string for the renderer.
       let map: string | null = null;
       if (typeof o['map'] === 'string') {
-        map = o['map'] as string;
+        map = o['map'];
       } else if (Array.isArray(o['map'])) {
         map = (o['map'] as unknown[])
           .map((row) => (typeof row === 'string' ? row : ''))
           .join('\n');
       }
 
-      const pos = Array.isArray(o['pos']) && o['pos'].length >= 2
-        && typeof o['pos'][0] === 'number'
-        && typeof o['pos'][1] === 'number'
-        ? ([o['pos'][0] as number, o['pos'][1] as number] as [number, number])
-        : undefined;
+      const pos =
+        Array.isArray(o['pos']) &&
+        o['pos'].length >= 2 &&
+        typeof o['pos'][0] === 'number' &&
+        typeof o['pos'][1] === 'number'
+          ? ([o['pos'][0], o['pos'][1]] as [number, number])
+          : undefined;
 
-      const fill =
-        typeof o['fill'] === 'string' ? (o['fill'] as string) : undefined;
+      const fill = typeof o['fill'] === 'string' ? o['fill'] : undefined;
 
       return { type: 'Playermap.Info', map, pos, fill };
     }

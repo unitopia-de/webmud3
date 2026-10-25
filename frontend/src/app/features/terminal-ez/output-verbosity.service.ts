@@ -1,7 +1,6 @@
 import { Injectable, signal } from '@angular/core';
-
-import { namespacedStorage } from '@webmud3/frontend/shared/utils/storage-namespace';
 import type { OutputVerbosity } from '@webmud3/frontend/features/terminal';
+import { namespacedStorage } from '@webmud3/frontend/shared/utils/storage-namespace';
 
 const STORAGE_SUFFIX = 'webmud3-ez-output-verbosity';
 /** Legacy-Schlüssel der früheren „Ruhige Ausgabe"-Checkbox ('1' = an). */

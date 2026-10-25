@@ -7,9 +7,9 @@ import {
 } from '@angular/core';
 
 import { WindowComponent } from './window.component';
+import { WindowService } from './window.service';
 import { WINDOW_COMPONENTS } from './window-component-registry';
 import type { WindowConfig } from './window-config';
-import { WindowService } from './window.service';
 
 /**
  * Renders all currently open windows from `WindowService.windows$`.

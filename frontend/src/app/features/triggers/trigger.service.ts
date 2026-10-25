@@ -1,7 +1,6 @@
 import { Injectable } from '@angular/core';
-import { BehaviorSubject, Observable } from 'rxjs';
-
 import { namespacedStorage } from '@webmud3/frontend/shared/utils/storage-namespace';
+import { BehaviorSubject, Observable } from 'rxjs';
 
 import {
   compileTrigger,
@@ -193,7 +192,9 @@ export class TriggerService {
     try {
       const parsed = JSON.parse(raw) as unknown;
       if (!Array.isArray(parsed)) {
-        console.warn('[TriggerService] Stored triggers are not an array, ignoring');
+        console.warn(
+          '[TriggerService] Stored triggers are not an array, ignoring',
+        );
         return;
       }
 
@@ -286,7 +287,10 @@ function isPersistedTrigger(value: unknown): value is Trigger {
 }
 
 function generateId(): string {
-  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+  if (
+    typeof crypto !== 'undefined' &&
+    typeof crypto.randomUUID === 'function'
+  ) {
     return crypto.randomUUID();
   }
   // Fallback for environments without randomUUID (older test runners).

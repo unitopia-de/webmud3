@@ -1,9 +1,9 @@
 import { inject, Injectable, OnDestroy } from '@angular/core';
-import { Subscription } from 'rxjs';
-
-import { WindowGeometryService } from '@webmud3/frontend/features/windows/window-geometry.service';
 import { WindowService } from '@webmud3/frontend/features/windows/window.service';
 import type { WindowConfig } from '@webmud3/frontend/features/windows/window-config';
+import { WindowGeometryService } from '@webmud3/frontend/features/windows/window-geometry.service';
+import { Subscription } from 'rxjs';
+
 import type { FileInfo } from '../gmcp/signals/mud-signals';
 import { FilesService } from './files.service';
 
@@ -25,9 +25,10 @@ const EDITOR_KEY_FALLBACK = '__default__';
  * shared default key only if the path is empty (should not happen in practice).
  */
 function geometryKeyFor(fileinfo: FileInfo): string {
-  const id = fileinfo.file && fileinfo.file.length > 0
-    ? fileinfo.file
-    : EDITOR_KEY_FALLBACK;
+  const id =
+    fileinfo.file && fileinfo.file.length > 0
+      ? fileinfo.file
+      : EDITOR_KEY_FALLBACK;
   return `editor:${id}`;
 }
 
@@ -99,8 +100,8 @@ export class EditorWindowService implements OnDestroy {
       tooltip: fileinfo.file,
       component: 'editor',
       data: { fileinfo },
-      posX: saved?.x ?? (EDITOR_DEFAULT_X + offset),
-      posY: saved?.y ?? (EDITOR_DEFAULT_Y + offset),
+      posX: saved?.x ?? EDITOR_DEFAULT_X + offset,
+      posY: saved?.y ?? EDITOR_DEFAULT_Y + offset,
       width: saved?.w ?? EDITOR_DEFAULT_WIDTH,
       height: saved?.h ?? EDITOR_DEFAULT_HEIGHT,
       saveable: true,

@@ -15,7 +15,9 @@ export class DebugSettingsService {
     false,
   );
   private readonly pasteLoggingSubject = new BehaviorSubject<boolean>(false);
-  private readonly outputHexLoggingSubject = new BehaviorSubject<boolean>(false);
+  private readonly outputHexLoggingSubject = new BehaviorSubject<boolean>(
+    false,
+  );
 
   public readonly screenReaderLogging$ =
     this.screenReaderLoggingSubject.asObservable();

@@ -1,11 +1,11 @@
 import {
+  ChangeDetectionStrategy,
   Component,
   ElementRef,
   EventEmitter,
   Input,
   Output,
   ViewChild,
-  ChangeDetectionStrategy,
 } from '@angular/core';
 
 /**

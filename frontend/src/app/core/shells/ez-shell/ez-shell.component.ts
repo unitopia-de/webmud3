@@ -2,49 +2,51 @@ import {
   AfterViewInit,
   ChangeDetectionStrategy,
   Component,
+  effect,
+  inject,
   OnDestroy,
   OnInit,
   ViewChild,
-  effect,
-  inject,
 } from '@angular/core';
 import { Router } from '@angular/router';
-import { Subscription } from 'rxjs';
-
 import { MudService } from '@webmud3/frontend/core/mud/services/mud.service';
-import { OutputHistoryService } from '@webmud3/frontend/shared/services/output-history.service';
+import { CommlogWindowService } from '@webmud3/frontend/features/commlog/commlog-window.service';
 import { ConnectionMenuService } from '@webmud3/frontend/features/connection/connection-menu.service';
 import { WakeLockService } from '@webmud3/frontend/features/connection/wake-lock.service';
 import { DirlistWindowService } from '@webmud3/frontend/features/editor/dirlist-window.service';
 import { EditorWindowService } from '@webmud3/frontend/features/editor/editor-window.service';
 import { CharFooterComponent } from '@webmud3/frontend/features/footer/char-footer.component';
 import { FooterMenuService } from '@webmud3/frontend/features/footer/footer-menu.service';
-import { CommlogWindowService } from '@webmud3/frontend/features/commlog/commlog-window.service';
 import { InventoryWindowService } from '@webmud3/frontend/features/inventory/inventory-window.service';
 import { NumpadWindowService } from '@webmud3/frontend/features/numpad/numpad-window.service';
 import { PlayermapWindowService } from '@webmud3/frontend/features/playermap/playermap-window.service';
 import { SettingsWindowService } from '@webmud3/frontend/features/settings/settings-window.service';
 import { SoundService } from '@webmud3/frontend/features/sound/sound.service';
-import { EzInputComponent, EzInputSubmission } from '@webmud3/frontend/features/terminal-ez/ez-input.component';
-import { EzOutputComponent } from '@webmud3/frontend/features/terminal-ez/ez-output.component';
-import { StickyInputService } from '@webmud3/frontend/features/terminal-ez/sticky-input.service';
-import { OutputVerbosityService } from '@webmud3/frontend/features/terminal-ez/output-verbosity.service';
 import {
   MxpChoiceMenuComponent,
   OutputVerbosity,
   SPEECH_RATE_OPTIONS,
   SpeechPacingService,
   SpeechRate,
-  TerminalThemeService,
   TERMINAL_THEME_ORDER,
   TERMINAL_THEMES,
+  TerminalThemeService,
 } from '@webmud3/frontend/features/terminal';
+import {
+  EzInputComponent,
+  EzInputSubmission,
+} from '@webmud3/frontend/features/terminal-ez/ez-input.component';
+import { EzOutputComponent } from '@webmud3/frontend/features/terminal-ez/ez-output.component';
+import { OutputVerbosityService } from '@webmud3/frontend/features/terminal-ez/output-verbosity.service';
+import { StickyInputService } from '@webmud3/frontend/features/terminal-ez/sticky-input.service';
 import {
   SoundLibraryWindowService,
   TriggerConfigWindowService,
 } from '@webmud3/frontend/features/triggers';
-import { WindowContainerComponent } from '@webmud3/frontend/features/windows/window-container.component';
 import { WindowService } from '@webmud3/frontend/features/windows/window.service';
+import { WindowContainerComponent } from '@webmud3/frontend/features/windows/window-container.component';
+import { OutputHistoryService } from '@webmud3/frontend/shared/services/output-history.service';
+import { Subscription } from 'rxjs';
 
 /**
  * Splitscreen-Variante des MUD-Clients unter `/ez`.
@@ -147,11 +149,12 @@ export class EzShellComponent implements OnInit, AfterViewInit, OnDestroy {
   // NVDA/JAWS behaviour. See OutputVerbosityService.
   private readonly VERBOSITY_MENU_ID = 'ez-output-verbosity';
   private readonly VERBOSITY_MENU_PREFIX = 'ez-output-verbosity:';
-  private readonly VERBOSITY_LEVELS: { id: OutputVerbosity; label: string }[] = [
-    { id: 'chatty', label: 'Gesprächig' },
-    { id: 'normal', label: 'Normal' },
-    { id: 'quiet', label: 'Ruhig (VoiceOver)' },
-  ];
+  private readonly VERBOSITY_LEVELS: { id: OutputVerbosity; label: string }[] =
+    [
+      { id: 'chatty', label: 'Gesprächig' },
+      { id: 'normal', label: 'Normal' },
+      { id: 'quiet', label: 'Ruhig (VoiceOver)' },
+    ];
   // EZ-only toggle: „Ausreden lassen". Verhindert, dass neue Ausgabe eine
   // laufende Screenreader-Ansage abschneidet. Orthogonal zur Stufe oben —
   // wer „Ruhig" wählt, bekommt hier zusätzlich das Anhängen statt Ersetzen
@@ -388,7 +391,10 @@ export class EzShellComponent implements OnInit, AfterViewInit, OnDestroy {
     const rate = this.speechPacing.rate();
     this.footerMenu.setChecked(this.PACING_MENU_ID, enabled);
     for (const r of this.RATE_LEVELS) {
-      this.footerMenu.setChecked(`${this.RATE_MENU_PREFIX}${r.id}`, r.id === rate);
+      this.footerMenu.setChecked(
+        `${this.RATE_MENU_PREFIX}${r.id}`,
+        r.id === rate,
+      );
     }
   });
 

@@ -1,9 +1,9 @@
 import { TestBed } from '@angular/core/testing';
-import { Subject } from 'rxjs';
-
 import { GmcpService } from '@webmud3/frontend/features/gmcp/gmcp.service';
 import { MudSignalService } from '@webmud3/frontend/features/gmcp/signals/mud-signal.service';
 import { SocketsService } from '@webmud3/frontend/features/sockets/sockets.service';
+import { Subject } from 'rxjs';
+
 import { MudService } from './mud.service';
 
 describe('MudService', () => {
@@ -48,7 +48,10 @@ describe('MudService', () => {
 
     TestBed.configureTestingModule({
       providers: [
-        { provide: SocketsService, useValue: sockets as unknown as SocketsService },
+        {
+          provide: SocketsService,
+          useValue: sockets as unknown as SocketsService,
+        },
         { provide: GmcpService, useValue: gmcp as unknown as GmcpService },
         {
           provide: MudSignalService,
@@ -101,8 +104,11 @@ describe('MudService', () => {
 
   it('sendGmcp delegates to the gmcp service', () => {
     svc.sendGmcp('Core.Hello', { client: 'x' });
-    expect(TestBed.inject(GmcpService).send).toHaveBeenCalledWith('Core.Hello', {
-      client: 'x',
-    });
+    expect(TestBed.inject(GmcpService).send).toHaveBeenCalledWith(
+      'Core.Hello',
+      {
+        client: 'x',
+      },
+    );
   });
 });

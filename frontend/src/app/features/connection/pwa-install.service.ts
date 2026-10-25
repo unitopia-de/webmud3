@@ -1,5 +1,4 @@
 import { inject, Injectable } from '@angular/core';
-
 import { FooterMenuService } from '@webmud3/frontend/features/footer/footer-menu.service';
 
 /**

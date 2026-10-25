@@ -1,4 +1,5 @@
 import { namespacedKey } from '@webmud3/frontend/shared/utils/storage-namespace';
+
 import { StickyInputService } from './sticky-input.service';
 
 const KEY = namespacedKey('webmud3-ez-sticky-input');

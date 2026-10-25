@@ -14,10 +14,7 @@ import {
 
 import { GmcpService } from '../gmcp/gmcp.service';
 import { MudSignalService } from '../gmcp/signals/mud-signal.service';
-import type {
-  FileEntry,
-  FileInfo,
-} from '../gmcp/signals/mud-signals';
+import type { FileEntry, FileInfo } from '../gmcp/signals/mud-signals';
 import { FilesGmcpModule } from './files-gmcp.module';
 
 export type DirectoryListing = {

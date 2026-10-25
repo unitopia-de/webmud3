@@ -1,4 +1,5 @@
 import { namespacedKey } from '@webmud3/frontend/shared/utils/storage-namespace';
+
 import { PerfHudService } from './perf-hud.service';
 
 const KEY = namespacedKey('webmud3-ez-perf-hud');

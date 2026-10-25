@@ -1,8 +1,8 @@
 import { TestBed } from '@angular/core/testing';
 import { NavigationEnd, Router } from '@angular/router';
+import { namespacedKey } from '@webmud3/frontend/shared/utils/storage-namespace';
 import { Subject } from 'rxjs';
 
-import { namespacedKey } from '@webmud3/frontend/shared/utils/storage-namespace';
 import { ShellPreferenceService } from './shell-preference.service';
 
 const KEY = namespacedKey('webmud3-last-shell');

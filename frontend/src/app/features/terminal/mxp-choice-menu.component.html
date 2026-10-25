@@ -14,12 +14,7 @@
   >
     @for (cmd of menu.commands; track cmd; let i = $index) {
       <li role="menuitem">
-        <button
-          type="button"
-          class="mxp-choice-item"
-          [autofocus]="i === 0"
-          (click)="onPick(cmd)"
-        >
+        <button type="button" class="mxp-choice-item" (click)="onPick(cmd)">
           {{ cmd }}
         </button>
       </li>

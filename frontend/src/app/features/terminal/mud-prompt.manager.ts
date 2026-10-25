@@ -1,12 +1,12 @@
 import type { Terminal } from '@xterm/xterm';
 
 import {
-  CTRL,
   CSI_REGEX,
-  SS3,
-  SS3_LEN,
+  CTRL,
   cursorLeft,
   resetLine,
+  SS3,
+  SS3_LEN,
 } from './models/escapes';
 import type { MudInputController } from './mud-input.controller';
 

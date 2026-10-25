@@ -2,8 +2,8 @@ import { TestBed } from '@angular/core/testing';
 
 import { builtinSoundId } from './models/sound';
 import type { TriggerDraft } from './models/trigger';
-import { TriggerEngineService } from './trigger-engine.service';
 import { TriggerService } from './trigger.service';
+import { TriggerEngineService } from './trigger-engine.service';
 
 const ESC = '\x1b';
 
@@ -54,9 +54,7 @@ describe('TriggerEngineService', () => {
     triggers.create(highlight({ pattern: 'world' }));
 
     const result = engine.processChunk('hello world!');
-    expect(result.text).toBe(
-      `hello ${ESC}[38;2;255;255;0mworld${ESC}[0m!`,
-    );
+    expect(result.text).toBe(`hello ${ESC}[38;2;255;255;0mworld${ESC}[0m!`);
     expect(result.sounds).toEqual([]);
   });
 
@@ -76,9 +74,7 @@ describe('TriggerEngineService', () => {
 
     const result = engine.processChunk('A goblin attacks you fiercely.');
     expect(result.text).toBe('A goblin attacks you fiercely.');
-    expect(result.sounds).toEqual([
-      { soundId: 'builtin:alert', volume: 0.7 },
-    ]);
+    expect(result.sounds).toEqual([{ soundId: 'builtin:alert', volume: 0.7 }]);
   });
 
   it('respects the per-trigger global enabled flag', () => {
@@ -98,14 +94,24 @@ describe('TriggerEngineService', () => {
   });
 
   it('drops overlapping highlights — earlier trigger wins', () => {
-    triggers.create(highlight({ name: 'A', pattern: 'abcd', action: { kind: 'highlight', foreground: '#f00' } }));
-    triggers.create(highlight({ name: 'B', pattern: 'bcde', action: { kind: 'highlight', foreground: '#0f0' } }));
+    triggers.create(
+      highlight({
+        name: 'A',
+        pattern: 'abcd',
+        action: { kind: 'highlight', foreground: '#f00' },
+      }),
+    );
+    triggers.create(
+      highlight({
+        name: 'B',
+        pattern: 'bcde',
+        action: { kind: 'highlight', foreground: '#0f0' },
+      }),
+    );
 
     const result = engine.processChunk('xabcdefy');
     // Only "abcd" survives, "bcde" overlap is dropped.
-    expect(result.text).toBe(
-      `x${ESC}[38;2;255;0;0mabcd${ESC}[0mefy`,
-    );
+    expect(result.text).toBe(`x${ESC}[38;2;255;0;0mabcd${ESC}[0mefy`);
   });
 
   it('collects multiple matches per trigger with the g flag', () => {
@@ -137,9 +143,7 @@ describe('TriggerEngineService', () => {
     const result = engine.processChunk('found GOLD!');
     expect(result.text).toContain('GOLD');
     // The match wraps GOLD, not "gold".
-    expect(result.text).toBe(
-      `found ${ESC}[38;2;255;255;0mGOLD${ESC}[0m!`,
-    );
+    expect(result.text).toBe(`found ${ESC}[38;2;255;255;0mGOLD${ESC}[0m!`);
   });
 
   it('reflects later trigger edits via the reactive cache', () => {

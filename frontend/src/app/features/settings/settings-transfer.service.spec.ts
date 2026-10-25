@@ -1,4 +1,5 @@
 import { namespacedKey } from '@webmud3/frontend/shared/utils/storage-namespace';
+
 import {
   EXPORTABLE_SETTING_KEYS,
   SettingsTransferService,
@@ -15,7 +16,10 @@ describe('SettingsTransferService', () => {
   describe('buildExport', () => {
     it('collects only the whitelist keys that are actually set', () => {
       localStorage.setItem(namespacedKey('webmud3-terminal-theme'), 'dark');
-      localStorage.setItem(namespacedKey('webmud3-ez-output-verbosity'), 'quiet');
+      localStorage.setItem(
+        namespacedKey('webmud3-ez-output-verbosity'),
+        'quiet',
+      );
       // Not in the whitelist → must be ignored.
       localStorage.setItem(namespacedKey('webmud3-session-token'), 'secret');
       localStorage.setItem(namespacedKey('webmud3-history'), 'huge backlog');
@@ -63,10 +67,12 @@ describe('SettingsTransferService', () => {
       const count = svc.applyImport(file);
 
       expect(count).toBe(2);
-      expect(localStorage.getItem(namespacedKey('webmud3-terminal-theme'))).toBe(
-        'light',
+      expect(
+        localStorage.getItem(namespacedKey('webmud3-terminal-theme')),
+      ).toBe('light');
+      expect(localStorage.getItem(namespacedKey('webmud3-sound-enabled'))).toBe(
+        '0',
       );
-      expect(localStorage.getItem(namespacedKey('webmud3-sound-enabled'))).toBe('0');
     });
 
     it('ignores keys that are not in the whitelist', () => {
@@ -85,7 +91,9 @@ describe('SettingsTransferService', () => {
       const count = svc.applyImport(file);
 
       expect(count).toBe(1);
-      expect(localStorage.getItem(namespacedKey('webmud3-session-token'))).toBeNull();
+      expect(
+        localStorage.getItem(namespacedKey('webmud3-session-token')),
+      ).toBeNull();
       expect(localStorage.getItem(namespacedKey('totally-unknown'))).toBeNull();
     });
 
@@ -107,10 +115,12 @@ describe('SettingsTransferService', () => {
       const count = svc.applyImport(json);
 
       expect(count).toBe(2);
-      expect(localStorage.getItem(namespacedKey('webmud3-terminal-theme'))).toBe(
-        'matrix',
-      );
-      expect(localStorage.getItem(namespacedKey('webmud3-ez-sticky-input'))).toBe('1');
+      expect(
+        localStorage.getItem(namespacedKey('webmud3-terminal-theme')),
+      ).toBe('matrix');
+      expect(
+        localStorage.getItem(namespacedKey('webmud3-ez-sticky-input')),
+      ).toBe('1');
     });
   });
 });

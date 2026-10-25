@@ -259,9 +259,7 @@ export class TriggerConfigComponent {
         );
       }
     } catch (err) {
-      this.importError.set(
-        err instanceof Error ? err.message : String(err),
-      );
+      this.importError.set(err instanceof Error ? err.message : String(err));
     }
   }
 

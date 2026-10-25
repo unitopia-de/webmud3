@@ -1,13 +1,18 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  ElementRef,
   inject,
   signal,
   ViewChild,
-  ElementRef,
 } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 
+import {
+  builtinSoundId,
+  type PersonalSound,
+  personalSoundId,
+} from './models/sound';
 import {
   ALLOWED_MIME_TYPES,
   MAX_PERSONAL_SOUND_BYTES,
@@ -16,11 +21,6 @@ import {
 } from './sound-library.service';
 import { SoundPlayerService } from './sound-player.service';
 import { TriggerService } from './trigger.service';
-import {
-  builtinSoundId,
-  personalSoundId,
-  type PersonalSound,
-} from './models/sound';
 
 type Tab = 'builtin' | 'personal';
 

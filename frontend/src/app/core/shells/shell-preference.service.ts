@@ -1,8 +1,7 @@
 import { inject, Injectable } from '@angular/core';
 import { NavigationEnd, Router } from '@angular/router';
-import { filter } from 'rxjs/operators';
-
 import { namespacedStorage } from '@webmud3/frontend/shared/utils/storage-namespace';
+import { filter } from 'rxjs/operators';
 
 /** The two interactive shells the app can launch into. */
 export type ShellPath = '/' | '/ez';

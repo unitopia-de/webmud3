@@ -1,7 +1,6 @@
 import { inject, Injectable, OnDestroy, signal } from '@angular/core';
-import { Subscription } from 'rxjs';
-
 import { MudSignalService } from '@webmud3/frontend/features/gmcp/signals/mud-signal.service';
+import { Subscription } from 'rxjs';
 
 /**
  * A single collected communication line.
@@ -82,8 +81,8 @@ export class CommlogService implements OnDestroy {
     const entry: CommlogEntry = {
       timestamp: Date.now(),
       channel,
-      player: typeof d['player'] === 'string' ? (d['player'] as string) : '-',
-      text: typeof d['text'] === 'string' ? (d['text'] as string) : '',
+      player: typeof d['player'] === 'string' ? d['player'] : '-',
+      text: typeof d['text'] === 'string' ? d['text'] : '',
     };
 
     this.entries.update((list) => {

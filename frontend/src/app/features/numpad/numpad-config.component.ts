@@ -1,5 +1,4 @@
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -8,14 +7,15 @@ import {
   signal,
 } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
+import { FormsModule } from '@angular/forms';
 
 import {
+  isNumpadCode,
   NumpadBindings,
   NumpadKey,
+  numpadLayerId,
   NumpadModifiers,
   NumpadService,
-  isNumpadCode,
-  numpadLayerId,
 } from './numpad.service';
 
 type Cell = {

@@ -1,16 +1,14 @@
 import {
+  provideHttpClient,
+  withInterceptorsFromDi,
+  withXhr,
+} from '@angular/common/http';
+import {
   enableProdMode,
   inject,
   provideAppInitializer,
   provideZoneChangeDetection,
 } from '@angular/core';
-
-import { environment } from './environments/environment';
-import {
-  provideHttpClient,
-  withInterceptorsFromDi,
-  withXhr,
-} from '@angular/common/http';
 import { bootstrapApplication } from '@angular/platform-browser';
 import { provideRouter } from '@angular/router';
 import { provideServiceWorker } from '@angular/service-worker';
@@ -18,6 +16,7 @@ import { provideServiceWorker } from '@angular/service-worker';
 import { AppComponent } from './app/app.component';
 import { routes } from './app/app.routes';
 import { ServerConfigService } from './app/features/serverconfig/server-config.service';
+import { environment } from './environments/environment';
 
 if (environment.production) {
   enableProdMode();

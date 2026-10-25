@@ -1,4 +1,5 @@
 import { namespacedKey } from '@webmud3/frontend/shared/utils/storage-namespace';
+
 import { SpeechPacingService } from './speech-pacing.service';
 
 const KEY = namespacedKey('webmud3-ez-speech-pacing');

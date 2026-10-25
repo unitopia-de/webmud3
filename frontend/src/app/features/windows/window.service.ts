@@ -81,7 +81,9 @@ export class WindowService {
       incoming: new Subject<WindowEvent>(),
     };
 
-    config.outgoing.subscribe((event) => this.handleOutgoingEvent(config, event));
+    config.outgoing.subscribe((event) =>
+      this.handleOutgoingEvent(config, event),
+    );
 
     this.windowsSubject.next([...this.windowsSubject.value, config]);
 
@@ -202,7 +204,10 @@ export class WindowService {
       // bar): width <= vw -> full width fits, otherwise the right edge
       // matters less than seeing the close button.
       const newX = Math.max(0, Math.min(w.posX, Math.max(0, vw - width)));
-      const newY = Math.max(0, Math.min(w.posY, Math.max(0, vh - MIN_VISIBLE_PX)));
+      const newY = Math.max(
+        0,
+        Math.min(w.posY, Math.max(0, vh - MIN_VISIBLE_PX)),
+      );
 
       if (newX !== w.posX || newY !== w.posY) {
         w.posX = newX;

@@ -1,9 +1,8 @@
 import { TestBed } from '@angular/core/testing';
-
 import { namespacedKey } from '@webmud3/frontend/shared/utils/storage-namespace';
 
-import type { Trigger, TriggerDraft } from './models/trigger';
 import { builtinSoundId } from './models/sound';
+import type { Trigger, TriggerDraft } from './models/trigger';
 import { TriggerService } from './trigger.service';
 
 const STORAGE_SUFFIX = 'wm3cc.triggers.v1';
@@ -68,9 +67,9 @@ describe('TriggerService', () => {
 
   it('rejects unknown regex flags', () => {
     const service = TestBed.inject(TriggerService);
-    expect(() =>
-      service.create(highlightDraft({ flags: 'xyz' })),
-    ).toThrow(/Invalid trigger pattern/);
+    expect(() => service.create(highlightDraft({ flags: 'xyz' }))).toThrow(
+      /Invalid trigger pattern/,
+    );
   });
 
   it('updates an existing trigger and refreshes updatedAt', () => {
@@ -114,7 +113,9 @@ describe('TriggerService', () => {
     const names = service.triggers.map((t) => t.name);
     expect(names).toEqual(['C', 'A', 'B']);
 
-    const stored = JSON.parse(readStored(STORAGE_SUFFIX) as string) as Trigger[];
+    const stored = JSON.parse(
+      readStored(STORAGE_SUFFIX) as string,
+    ) as Trigger[];
     expect(stored.map((t) => t.name)).toEqual(['C', 'A', 'B']);
   });
 
@@ -162,8 +163,16 @@ describe('TriggerService', () => {
     localStorage.setItem(
       namespacedKey(STORAGE_SUFFIX),
       JSON.stringify([
-        { id: 'ok', name: 'Good', pattern: 'x', flags: '', enabled: true,
-          action: { kind: 'highlight' }, createdAt: 1, updatedAt: 1 },
+        {
+          id: 'ok',
+          name: 'Good',
+          pattern: 'x',
+          flags: '',
+          enabled: true,
+          action: { kind: 'highlight' },
+          createdAt: 1,
+          updatedAt: 1,
+        },
         { not: 'a trigger' },
         null,
       ]),
@@ -183,9 +192,10 @@ describe('TriggerService', () => {
     expect(service.settings.globallyEnabled).toBe(false);
     expect(service.settings.masterVolume).toBe(1);
 
-    const stored = JSON.parse(
-      readStored(SETTINGS_SUFFIX) as string,
-    ) as { globallyEnabled: boolean; masterVolume: number };
+    const stored = JSON.parse(readStored(SETTINGS_SUFFIX) as string) as {
+      globallyEnabled: boolean;
+      masterVolume: number;
+    };
     expect(stored).toEqual({ globallyEnabled: false, masterVolume: 1 });
   });
 

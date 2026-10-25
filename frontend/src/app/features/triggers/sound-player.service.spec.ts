@@ -102,10 +102,14 @@ describe('SoundPlayerService', () => {
 
   it('returns false and warns when the sound id is unknown', () => {
     library.resolveUrl.mockReturnValue(null);
-    const warn = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
+    const warn = jest
+      .spyOn(console, 'warn')
+      .mockImplementation(() => undefined);
 
     expect(player.play('personal:gone')).toBe(false);
-    expect(warn).toHaveBeenCalledWith('[SoundPlayer] Unknown sound id: personal:gone');
+    expect(warn).toHaveBeenCalledWith(
+      '[SoundPlayer] Unknown sound id: personal:gone',
+    );
   });
 
   it('debounces consecutive plays of the same id within 250 ms', () => {
@@ -121,8 +125,8 @@ describe('SoundPlayerService', () => {
   });
 
   it('plays different sound ids independently of each other', () => {
-    library.resolveUrl.mockImplementation(
-      (id) => id === 'builtin:a' ? 'a.wav' : 'b.wav',
+    library.resolveUrl.mockImplementation((id) =>
+      id === 'builtin:a' ? 'a.wav' : 'b.wav',
     );
 
     expect(player.play('builtin:a')).toBe(true);

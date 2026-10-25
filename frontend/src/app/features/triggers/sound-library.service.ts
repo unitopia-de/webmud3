@@ -1,15 +1,14 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
-import { BehaviorSubject, firstValueFrom, Observable } from 'rxjs';
-
 import { namespacedStorage } from '@webmud3/frontend/shared/utils/storage-namespace';
+import { BehaviorSubject, firstValueFrom, Observable } from 'rxjs';
 
 import {
   BUILTIN_PREFIX,
   type BuiltinSound,
+  parseSoundId,
   PERSONAL_PREFIX,
   type PersonalSound,
-  parseSoundId,
   type Sound,
 } from './models/sound';
 
@@ -122,7 +121,10 @@ export class SoundLibraryService {
    *
    * Throws on quota violation; the store stays untouched on failure.
    */
-  public async importPersonal(file: File, label?: string): Promise<PersonalSound> {
+  public async importPersonal(
+    file: File,
+    label?: string,
+  ): Promise<PersonalSound> {
     if (!ALLOWED_MIME_TYPES.includes(file.type)) {
       throw new Error(`Unsupported MIME type: ${file.type || 'unknown'}`);
     }
@@ -209,7 +211,9 @@ export class SoundLibraryService {
         kind: 'builtin' as const,
         id: entry.id,
         label: entry.label,
-        url: entry.file.startsWith('http') ? entry.file : `${baseDir}${entry.file}`,
+        url: entry.file.startsWith('http')
+          ? entry.file
+          : `${baseDir}${entry.file}`,
       }));
 
       this.builtinSubject.next(list);
@@ -243,7 +247,10 @@ export class SoundLibraryService {
       }
       this.personalSubject.next(valid);
     } catch (err) {
-      console.warn('[SoundLibrary] Failed to parse stored personal sounds', err);
+      console.warn(
+        '[SoundLibrary] Failed to parse stored personal sounds',
+        err,
+      );
     }
   }
 
@@ -307,7 +314,10 @@ function isPersistedPersonal(value: unknown): value is PersonalSound {
 }
 
 function generateId(): string {
-  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+  if (
+    typeof crypto !== 'undefined' &&
+    typeof crypto.randomUUID === 'function'
+  ) {
     return crypto.randomUUID();
   }
   return `s_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;

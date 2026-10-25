@@ -1,5 +1,6 @@
 ﻿import {
   AfterViewInit,
+  ChangeDetectionStrategy,
   Component,
   computed,
   ElementRef,
@@ -7,9 +8,35 @@
   OnDestroy,
   signal,
   ViewChild,
-  ChangeDetectionStrategy,
 } from '@angular/core';
 import { Router } from '@angular/router';
+import { CommlogWindowService } from '@webmud3/frontend/features/commlog/commlog-window.service';
+import { ConnectionMenuService } from '@webmud3/frontend/features/connection/connection-menu.service';
+import { WakeLockService } from '@webmud3/frontend/features/connection/wake-lock.service';
+import { DebugSettingsService } from '@webmud3/frontend/features/debug/debug-settings.service';
+import { hexDump } from '@webmud3/frontend/features/debug/hex-dump';
+import { DirlistWindowService } from '@webmud3/frontend/features/editor/dirlist-window.service';
+import { EditorWindowService } from '@webmud3/frontend/features/editor/editor-window.service';
+import { FooterMenuService } from '@webmud3/frontend/features/footer/footer-menu.service';
+import { InputCompletionService } from '@webmud3/frontend/features/gmcp/input-completion.service';
+import { CharGmcpModule } from '@webmud3/frontend/features/gmcp/modules/char-gmcp.module';
+import { InventoryWindowService } from '@webmud3/frontend/features/inventory/inventory-window.service';
+import { NumpadWindowService } from '@webmud3/frontend/features/numpad/numpad-window.service';
+import { PlayermapWindowService } from '@webmud3/frontend/features/playermap/playermap-window.service';
+import { SettingsWindowService } from '@webmud3/frontend/features/settings/settings-window.service';
+import { SoundService } from '@webmud3/frontend/features/sound/sound.service';
+import { OutputJumpService } from '@webmud3/frontend/features/terminal/output-jump.service';
+import {
+  SoundLibraryWindowService,
+  SoundPlayerService as TriggerSoundPlayerService,
+  TriggerConfigWindowService,
+  TriggerEngineService,
+} from '@webmud3/frontend/features/triggers';
+import { WindowService } from '@webmud3/frontend/features/windows/window.service';
+import { OutputHistoryService } from '@webmud3/frontend/shared/services/output-history.service';
+import { SecureString } from '@webmud3/frontend/shared/types/secure-string';
+import { namespacedStorage } from '@webmud3/frontend/shared/utils/storage-namespace';
+import type { LinemodeState } from '@webmud3/shared';
 import { AttachAddon } from '@xterm/addon-attach';
 import { ClipboardAddon } from '@xterm/addon-clipboard';
 import { FitAddon } from '@xterm/addon-fit';
@@ -17,43 +44,16 @@ import { IDisposable, Terminal } from '@xterm/xterm';
 import { Subscription } from 'rxjs';
 import { pairwise } from 'rxjs/operators';
 
-import { MudService } from '../../services/mud.service';
-import { MudNoticeService } from '../../services/mud-notice.service';
-import { SecureString } from '@webmud3/frontend/shared/types/secure-string';
-import { OutputHistoryService } from '@webmud3/frontend/shared/services/output-history.service';
-import { namespacedStorage } from '@webmud3/frontend/shared/utils/storage-namespace';
-import { DebugSettingsService } from '@webmud3/frontend/features/debug/debug-settings.service';
-import { hexDump } from '@webmud3/frontend/features/debug/hex-dump';
-import { FooterMenuService } from '@webmud3/frontend/features/footer/footer-menu.service';
-import { DirlistWindowService } from '@webmud3/frontend/features/editor/dirlist-window.service';
-import { SoundService } from '@webmud3/frontend/features/sound/sound.service';
 import {
-  SoundLibraryWindowService,
-  SoundPlayerService as TriggerSoundPlayerService,
-  TriggerConfigWindowService,
-  TriggerEngineService,
-} from '@webmud3/frontend/features/triggers';
-import { EditorWindowService } from '@webmud3/frontend/features/editor/editor-window.service';
-import { InputCompletionService } from '@webmud3/frontend/features/gmcp/input-completion.service';
-import { CharGmcpModule } from '@webmud3/frontend/features/gmcp/modules/char-gmcp.module';
-import { InventoryWindowService } from '@webmud3/frontend/features/inventory/inventory-window.service';
-import { ConnectionMenuService } from '@webmud3/frontend/features/connection/connection-menu.service';
-import { WakeLockService } from '@webmud3/frontend/features/connection/wake-lock.service';
-import { OutputJumpService } from '@webmud3/frontend/features/terminal/output-jump.service';
-import { NumpadWindowService } from '@webmud3/frontend/features/numpad/numpad-window.service';
-import { PlayermapWindowService } from '@webmud3/frontend/features/playermap/playermap-window.service';
-import { CommlogWindowService } from '@webmud3/frontend/features/commlog/commlog-window.service';
-import { SettingsWindowService } from '@webmud3/frontend/features/settings/settings-window.service';
-import { WindowService } from '@webmud3/frontend/features/windows/window.service';
-import type { LinemodeState } from '@webmud3/shared';
-import {
+  ClickAction,
+  CTRL,
+  cursorLeft,
   MobileInputComponent,
   MudInputController,
+  MudPromptContext,
   MudPromptManager,
   MudScreenReaderAnnouncer,
   MudSocketAdapter,
-  MudPromptContext,
-  ClickAction,
   MxpChoiceMenuComponent,
   MxpChoiceMenuService,
   MxpClickableService,
@@ -64,16 +64,16 @@ import {
   MxpStreamFilter,
   MxpTagRouter,
   SelectionModeService,
-  StreamSegment,
   SpeechSettingsService,
-  TerminalThemeService,
+  StreamSegment,
   TERMINAL_THEME_ORDER,
   TERMINAL_THEMES,
   TerminalThemeDefinition,
   TerminalThemeId,
-  CTRL,
-  cursorLeft,
+  TerminalThemeService,
 } from '../../../../features/terminal';
+import { MudService } from '../../services/mud.service';
+import { MudNoticeService } from '../../services/mud-notice.service';
 
 /**
  * Minimum number of columns the terminal must always be able to display.

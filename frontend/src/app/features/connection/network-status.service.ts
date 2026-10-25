@@ -1,5 +1,4 @@
 import { inject, Injectable, signal } from '@angular/core';
-
 import { MudService } from '@webmud3/frontend/core/mud/services/mud.service';
 
 /**

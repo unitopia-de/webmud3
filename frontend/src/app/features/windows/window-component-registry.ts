@@ -1,5 +1,4 @@
 import type { Type } from '@angular/core';
-
 import { CommlogComponent } from '@webmud3/frontend/features/commlog/commlog.component';
 import { DirlistComponent } from '@webmud3/frontend/features/editor/dirlist.component';
 import { EditorComponent } from '@webmud3/frontend/features/editor/editor.component';

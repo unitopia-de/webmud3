@@ -132,13 +132,14 @@ export class MxpStreamFilter {
     }
 
     const state: FilterState = {
-      current: this.clickStack.length > 0
-        ? {
-            kind: 'click',
-            buf: '',
-            openTag: this.clickStack[this.clickStack.length - 1],
-          }
-        : { kind: 'text', buf: '' },
+      current:
+        this.clickStack.length > 0
+          ? {
+              kind: 'click',
+              buf: '',
+              openTag: this.clickStack[this.clickStack.length - 1],
+            }
+          : { kind: 'text', buf: '' },
       clickStack: this.clickStack,
       segments: [],
     };

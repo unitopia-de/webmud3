@@ -1,8 +1,8 @@
+import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
+import type { ServerConfig } from '@webmud3/shared';
 import { firstValueFrom } from 'rxjs';
 import { environment } from 'src/environments/environment';
-import { HttpClient } from '@angular/common/http';
-import type { ServerConfig } from '@webmud3/shared';
 
 @Injectable({
   providedIn: 'root',

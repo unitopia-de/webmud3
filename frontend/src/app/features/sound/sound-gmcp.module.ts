@@ -1,7 +1,9 @@
 import { inject, Injectable } from '@angular/core';
-
+import {
+  GmcpMessage,
+  GmcpService,
+} from '@webmud3/frontend/features/gmcp/gmcp.service';
 import type { GmcpModule } from '@webmud3/frontend/features/gmcp/gmcp-module';
-import { GmcpMessage, GmcpService } from '@webmud3/frontend/features/gmcp/gmcp.service';
 
 /**
  * Announces support for the `Sound` package to the MUD.

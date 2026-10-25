@@ -1,11 +1,9 @@
-import { MudInputController } from './mud-input.controller';
 import { CTRL } from './models/escapes';
+import { MudInputController } from './mud-input.controller';
 
 describe('MudInputController', () => {
-  const makeController = (
-    options: { onTabComplete?: jest.Mock } = {},
-  ) => {
-    const terminal = { write: jest.fn() } as { write: jest.Mock };
+  const makeController = (options: { onTabComplete?: jest.Mock } = {}) => {
+    const terminal = { write: jest.fn() };
     const onCommit = jest.fn();
     const controller = new MudInputController(
       terminal as any,

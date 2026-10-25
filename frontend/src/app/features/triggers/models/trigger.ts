@@ -55,10 +55,7 @@ export type CompileResult =
  * `g` flag set so the engine can iterate over all matches in a line. A `y`
  * flag would also disable lastIndex advancement and is therefore rejected.
  */
-export function compileTrigger(
-  pattern: string,
-  flags: string,
-): CompileResult {
+export function compileTrigger(pattern: string, flags: string): CompileResult {
   const cleanFlags = normalizeFlags(flags);
 
   if (cleanFlags === null) {

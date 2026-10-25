@@ -29,9 +29,8 @@ export type ChoiceMenuRequest = {
  */
 @Injectable({ providedIn: 'root' })
 export class MxpChoiceMenuService {
-  private readonly currentSubject = new BehaviorSubject<ChoiceMenuRequest | null>(
-    null,
-  );
+  private readonly currentSubject =
+    new BehaviorSubject<ChoiceMenuRequest | null>(null);
 
   public readonly currentMenu$: Observable<ChoiceMenuRequest | null> =
     this.currentSubject.asObservable();

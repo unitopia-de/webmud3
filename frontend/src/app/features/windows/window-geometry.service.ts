@@ -1,5 +1,4 @@
 import { Injectable } from '@angular/core';
-
 import { namespacedStorage } from '@webmud3/frontend/shared/utils/storage-namespace';
 
 const STORAGE_SUFFIX = 'webmud3-window-geometry';

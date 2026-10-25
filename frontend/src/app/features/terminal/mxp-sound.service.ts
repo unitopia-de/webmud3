@@ -1,5 +1,4 @@
 import { inject, Injectable } from '@angular/core';
-
 import { SoundService } from '@webmud3/frontend/features/sound/sound.service';
 
 /**

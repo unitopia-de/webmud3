@@ -1,9 +1,5 @@
 import { CommonModule } from '@angular/common';
-import {
-  ChangeDetectionStrategy,
-  Component,
-  inject,
-} from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { map } from 'rxjs/operators';
 
 import { PlayermapService, PlayermapState } from './playermap.service';
@@ -75,7 +71,11 @@ export class PlayermapComponent {
 
     const startCol =
       typeof playerCol === 'number'
-        ? this.clampStart(playerCol, PLAYERMAP_VIEW_COLS, this.maxRowLen(sourceRows))
+        ? this.clampStart(
+            playerCol,
+            PLAYERMAP_VIEW_COLS,
+            this.maxRowLen(sourceRows),
+          )
         : 0;
     const startRow =
       typeof playerRow === 'number'

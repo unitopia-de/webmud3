@@ -6,11 +6,9 @@
   (pointerup)="onTitleBarPointerUp($event)"
   (contextmenu)="$event.preventDefault()"
 >
-  <h2
-    class="title"
-    [id]="titleId"
-    [title]="config.tooltip ?? config.title"
-  >{{ config.title }}</h2>
+  <h2 class="title" [id]="titleId" [title]="config.tooltip ?? config.title">
+    {{ config.title }}
+  </h2>
   <button
     type="button"
     class="close-btn"
