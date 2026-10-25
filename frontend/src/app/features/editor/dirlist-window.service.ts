@@ -26,6 +26,11 @@ const DIRLIST_DEFAULT_Y = 60;
  * for wizards, absent for regular players); ordinary players never see the
  * entry.
  *
+ * Lifetime: registration is one-way per connection — a `Char.Name` without
+ * `wizard` does NOT remove the entry again (see the constructor). The entry
+ * is torn down when the GMCP session ends, because only then is it unknown
+ * who logs in next.
+ *
  * When the user clicks the entry, a directory window is opened. The actual
  * directory contents arrive asynchronously via `Files.DirectoryList` pushes
  * (handled by `FilesService` -> `DirlistComponent`).
@@ -51,9 +56,27 @@ export class DirlistWindowService implements OnDestroy {
       this.signals.on('Char.Name').subscribe((s) => {
         // UNItopia sends `wizard` as a non-zero number for wizard accounts
         // and omits it for regular players. Treat any truthy value as wizard.
+        //
+        // Bewusst ohne `else`-Zweig: Der MUD sendet `Char.Name` mehrfach pro
+        // Verbindung, und nicht jede dieser Meldungen trägt `wizard` — die
+        // vor dem Einloggen gesendete kennt den Charakter noch gar nicht.
+        // Ein `else { unregister }` nahm Göttern den Eintrag deshalb wieder
+        // weg, sobald eine solche Meldung eintraf; typisch beim zweiten
+        // Anmelden in derselben Sitzung. u1_master kannte denselben
+        // Positiv-Fall ohne Gegenstück und zeigte das Problem nicht.
         if (s.wizard) {
           this.ensureMenuRegistered();
-        } else {
+        }
+      }),
+    );
+
+    // Abgebaut wird stattdessen an der Verbindung: Mit dem Ende der
+    // GMCP-Sitzung ist unbekannt, wer sich als Nächstes anmeldet, also darf
+    // der Eintrag nicht stehen bleiben. Nach einem Reconnect schickt der MUD
+    // `Char.Name` erneut, Götter bekommen ihn damit automatisch zurück.
+    this.subscriptions.push(
+      this.gmcp.active$.subscribe((isActive) => {
+        if (!isActive) {
           this.ensureMenuUnregistered();
         }
       }),
