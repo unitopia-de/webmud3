@@ -52,7 +52,7 @@
     "zone.js": "~0.15.1"
   },
   "devDependencies": {
-    "@angular-builders/jest": "~21.0.3",
+    "@angular-builders/jest": "~22.0.1",
     "@angular-eslint/builder": "~22.6.0",
     "@angular-eslint/eslint-plugin": "~22.6.0",
     "@angular-eslint/template-parser": "~22.6.0",
