@@ -23,6 +23,35 @@ import type {
  * });
  * ```
  */
+/**
+ * Wandelt einen unbekannten GMCP-Wert in Text.
+ *
+ * Die Nutzlast kommt vom MUD und ist nicht garantiert primitiv. `String(x)`
+ * würde bei einem Objekt oder Array das nutzlose `"[object Object]"` liefern
+ * und genau so im UI landen; hier greift stattdessen der Ersatzwert.
+ *
+ * Ein leerer String gilt dabei als „kein Wert" und liefert ebenfalls den
+ * Ersatzwert. Das ist für die Kandidatenketten unten nötig (`name ?? desc ??
+ * short …`): Ein leeres `name`-Feld soll zum nächsten Kandidaten
+ * weiterreichen, statt die Kette mit Leertext abzubrechen.
+ */
+function asText(value: unknown, fallback = ''): string {
+  if (value === null || value === undefined) {
+    return fallback;
+  }
+  if (typeof value === 'string') {
+    return value === '' ? fallback : value;
+  }
+  if (
+    typeof value === 'number' ||
+    typeof value === 'boolean' ||
+    typeof value === 'bigint'
+  ) {
+    return String(value);
+  }
+  return fallback;
+}
+
 @Injectable({ providedIn: 'root' })
 export class MudSignalService implements OnDestroy {
   private readonly gmcp = inject(GmcpService);
@@ -180,7 +209,7 @@ export class MudSignalService implements OnDestroy {
   private mapCharName(data: unknown): MudSignal {
     const d = data as Record<string, unknown>;
 
-    const name = String(d?.['name'] ?? '');
+    const name = asText(d?.['name']);
     // Prefer a mudname carried in the Char.Name payload itself; otherwise
     // fall back to whatever Core.Hello told us earlier.
     const inlineMudname =
@@ -285,7 +314,7 @@ export class MudSignalService implements OnDestroy {
 
     return {
       type: 'Files.Dir',
-      path: String(d['path'] ?? '/'),
+      path: asText(d['path'], '/'),
       entries: rawEntries as FileEntry[],
     };
   }
@@ -297,12 +326,12 @@ export class MudSignalService implements OnDestroy {
     // refers to it as `lasturl`. Map it explicitly here so downstream
     // consumers don't have to know the wire-level name.
     const fileinfo: import('./mud-signals').FileInfo = {
-      lasturl: String(d['url'] ?? d['lasturl'] ?? ''),
-      file: String(d['file'] ?? ''),
-      path: String(d['path'] ?? ''),
-      filename: String(d['filename'] ?? ''),
-      filetype: String(d['filetype'] ?? ''),
-      title: String(d['title'] ?? ''),
+      lasturl: asText(d['url']) || asText(d['lasturl']),
+      file: asText(d['file']),
+      path: asText(d['path']),
+      filename: asText(d['filename']),
+      filetype: asText(d['filetype']),
+      title: asText(d['title']),
       filesize: typeof d['filesize'] === 'number' ? d['filesize'] : -1,
       newfile: Boolean(d['newfile']),
       writeacl: Boolean(d['writeacl']),
@@ -488,16 +517,21 @@ export class MudSignalService implements OnDestroy {
     if (item && typeof item === 'object') {
       const o = item as Record<string, unknown>;
 
-      const name = String(
-        o['name'] ?? o['desc'] ?? o['short'] ?? o['title'] ?? o['id'] ?? '',
-      );
-      const category = String(
-        o['category'] ?? o['type'] ?? o['group'] ?? 'Sonstiges',
-      );
+      const name =
+        asText(o['name']) ||
+        asText(o['desc']) ||
+        asText(o['short']) ||
+        asText(o['title']) ||
+        asText(o['id']);
+      const category =
+        asText(o['category']) ||
+        asText(o['type']) ||
+        asText(o['group']) ||
+        'Sonstiges';
 
       return { name, category };
     }
 
-    return { name: String(item ?? ''), category: 'Sonstiges' };
+    return { name: asText(item), category: 'Sonstiges' };
   }
 }

@@ -457,9 +457,9 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
 
     // Cache helper textarea created by xterm (used to mirror prompt + input)
     this.helperTextarea =
-      (this.terminalRef.nativeElement.querySelector(
+      this.terminalRef.nativeElement.querySelector<HTMLTextAreaElement>(
         '.xterm-helper-textarea',
-      ) as HTMLTextAreaElement | null) ?? null;
+      );
 
     // Set aria-label on helper textarea for better screen reader context
     if (this.helperTextarea) {
@@ -1447,8 +1447,18 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
   private unlockAudio(): void {
     try {
       if (!this.audioContext) {
-        this.audioContext = new (window.AudioContext ||
-          (window as any).webkitAudioContext)();
+        // Safari (älter) kennt nur `webkitAudioContext`. Statt `any` ein
+        // enger Cast auf genau diese eine Eigenschaft — so bleibt der
+        // Konstruktoraufruf typgeprüft.
+        const AudioContextCtor =
+          window.AudioContext ??
+          (window as unknown as { webkitAudioContext?: typeof AudioContext })
+            .webkitAudioContext;
+        if (!AudioContextCtor) {
+          this.audioUnlocked = false;
+          return;
+        }
+        this.audioContext = new AudioContextCtor();
       }
 
       if (this.audioContext.state === 'suspended') {

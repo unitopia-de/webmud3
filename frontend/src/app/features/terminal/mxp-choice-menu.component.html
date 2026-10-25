@@ -3,8 +3,19 @@
   The backdrop catches outside-clicks. It is fully transparent so the
   terminal underneath stays visible; pointer-events are needed so the
   click handler actually fires.
+
+  Bewusst ohne Tastatur-Handler und aus dem A11y-Baum genommen: Der Backdrop
+  ist reiner Maus-Komfort. Dasselbe leistet für Tastatur-Nutzer die
+  Escape-Taste (`@HostListener('document:keydown.escape')` in der Komponente),
+  die das Menü ebenfalls schließt — ein fokussierbarer, leerer Backdrop wäre
+  nur ein zusätzliches Hindernis in der Tab-Reihenfolge.
   -->
-  <div class="mxp-choice-backdrop" (click)="onBackdropClick()"></div>
+
+  <div
+    class="mxp-choice-backdrop"
+    aria-hidden="true"
+    (click)="onBackdropClick()"
+  ></div>
   <ul
     class="mxp-choice-menu"
     role="menu"

@@ -71,8 +71,20 @@
   flex: 1 1 auto;
 }
 
-.numpad-key {
+.numpad-key-wrap {
   position: relative;
+  display: flex;
+
+  // Trägt die Grid-Spanne, seit der Bearbeiten-Knopf aus der Taste
+  // herausgezogen wurde (siehe Template).
+  &.span-2 {
+    grid-column: span 2;
+  }
+}
+
+.numpad-key {
+  // Füllt den Wrapper, damit die Taste optisch unverändert bleibt.
+  flex: 1 1 auto;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -94,9 +106,6 @@
     background: #1e1e1e;
   }
 
-  &.span-2 {
-    grid-column: span 2;
-  }
 }
 
 .numpad-label {
@@ -120,6 +129,11 @@
   position: absolute;
   top: 2px;
   right: 4px;
+  // Eigener <button>: Standard-Chrom abschalten, damit er wie vorher als
+  // kleines Stift-Zeichen über der Taste sitzt.
+  background: none;
+  border: 0;
+  line-height: 1;
   font-size: 10px;
   color: #888;
   cursor: pointer;

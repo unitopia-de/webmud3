@@ -274,7 +274,14 @@ export class EditorComponent implements OnInit, AfterViewInit, OnDestroy {
     let monaco: typeof MonacoNs;
 
     try {
-      monaco = await loader.init();
+      // Zusicherung mit Grund: `loader.init()` ist in @monaco-editor/loader
+      // über den Subpath 'monaco-editor/esm/vs/editor/editor.api' typisiert.
+      // Den kann TypeScript mit dem `exports`-Feld von monaco-editor 0.55
+      // nicht auflösen (das Mapping `"./*": "./*"` zeigt auf eine Datei ohne
+      // Endung), der Rückgabewert ist dadurch ein Fehlertyp. Die Zusicherung
+      // bindet ihn an die hier überall verwendete, auflösbare Deklaration
+      // aus 'monaco-editor'.
+      monaco = (await loader.init()) as typeof MonacoNs;
     } catch (err) {
       this.errorMessage = `Editor konnte nicht geladen werden: ${this.formatError(err)}`;
       this.statusMessage = '';

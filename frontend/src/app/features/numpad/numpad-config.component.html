@@ -43,22 +43,33 @@
   <div class="numpad-grid">
     @for (cell of layout; track cell) {
       @if (cell.key) {
-        <button
-          type="button"
-          class="numpad-key"
-          [class.span-2]="cell.span === 2"
-          [title]="commandFor(cell.key) || '(unbelegt)'"
-          (click)="onKeyClick(cell.key)"
-        >
-          <span class="numpad-label">{{ cell.label }}</span>
-          <span class="numpad-cmd">{{ commandFor(cell.key) || "—" }}</span>
-          <span
+        <!--
+          Der Bearbeiten-Stift ist ein eigener Knopf NEBEN der Taste, nicht
+          darin: Ein klickbares Element in einem <button> ist ungültiges HTML
+          und per Tastatur unerreichbar — Tastatur-/Screenreader-Nutzer kamen
+          so gar nicht an die Belegung. Der Wrapper hält beide zusammen und
+          trägt die Grid-Spanne.
+        -->
+        <div class="numpad-key-wrap" [class.span-2]="cell.span === 2">
+          <button
+            type="button"
+            class="numpad-key"
+            [title]="commandFor(cell.key) || '(unbelegt)'"
+            (click)="onKeyClick(cell.key)"
+          >
+            <span class="numpad-label">{{ cell.label }}</span>
+            <span class="numpad-cmd">{{ commandFor(cell.key) || "—" }}</span>
+          </button>
+          <button
+            type="button"
             class="numpad-edit"
             (click)="startEdit(cell.key, commandFor(cell.key), $event)"
+            [attr.aria-label]="'Belegung von ' + cell.label + ' bearbeiten'"
             title="Bearbeiten"
-            >✎</span
           >
-        </button>
+            ✎
+          </button>
+        </div>
       } @else {
         <span class="numpad-gap"></span>
       }

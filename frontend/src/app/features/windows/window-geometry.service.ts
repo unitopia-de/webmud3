@@ -120,7 +120,9 @@ export class WindowGeometryService {
     }
 
     try {
-      const parsed = JSON.parse(raw);
+      // `JSON.parse` liefert `any`; als `unknown` deklariert erzwingt es die
+      // Prüfungen unten, statt sie nur optisch dastehen zu lassen.
+      const parsed: unknown = JSON.parse(raw);
       if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
         const result: GeometryMap = {};
         for (const [key, value] of Object.entries(parsed)) {

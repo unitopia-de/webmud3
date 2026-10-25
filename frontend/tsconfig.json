@@ -2,7 +2,10 @@
 {
   "compileOnSave": false,
   "compilerOptions": {
-    "baseUrl": "./",
+    /* Kein `baseUrl`: TypeScript 6 verwirft die Option (TS5101), und ab
+       TS 4.1 löst `paths` ohnehin relativ zu DIESER Datei auf. Nötig war sie
+       nur für einen einzigen Import der Form `src/environments/environment`
+       (in `server-config.service.ts`), der jetzt relativ geschrieben ist. */
     "outDir": "./dist/out-tsc",
     "sourceMap": true,
     "declaration": false,
@@ -16,8 +19,9 @@
     "strict": true,
     "skipLibCheck": true,
     "resolveJsonModule": true,
+    /* Ohne `baseUrl` müssen die Ziele relativ beginnen ("./"). */
     "paths": {
-      "@webmud3/frontend/*": ["src/app/*"]
+      "@webmud3/frontend/*": ["./src/app/*"]
     }
   },
   "angularCompilerOptions": {

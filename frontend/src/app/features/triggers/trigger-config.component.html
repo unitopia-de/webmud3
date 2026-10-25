@@ -120,8 +120,9 @@
     <section class="tc-editor">
       <h3>{{ isEditing() ? "Trigger bearbeiten" : "Neuer Trigger" }}</h3>
       <div class="tc-row-input">
-        <label>Name</label>
+        <label for="tc-name">Name</label>
         <input
+          id="tc-name"
           type="text"
           [ngModel]="nameField()"
           (ngModelChange)="nameField.set($event)"
@@ -129,8 +130,9 @@
         />
       </div>
       <div class="tc-row-input">
-        <label>Pattern</label>
+        <label for="tc-pattern">Pattern</label>
         <input
+          id="tc-pattern"
           type="text"
           spellcheck="false"
           [ngModel]="patternField()"
@@ -139,8 +141,9 @@
         />
       </div>
       <div class="tc-row-input">
-        <label>Flags</label>
+        <label for="tc-flags-field">Flags</label>
         <input
+          id="tc-flags-field"
           type="text"
           spellcheck="false"
           maxlength="5"
@@ -183,8 +186,9 @@
         </label>
         @if (actionKindField() === "highlight") {
           <div class="tc-row-input">
-            <label>Vordergrund</label>
+            <label for="tc-foreground">Vordergrund</label>
             <input
+              id="tc-foreground"
               type="color"
               [ngModel]="foregroundField() || '#ffffff'"
               (ngModelChange)="foregroundField.set($event)"
@@ -199,8 +203,9 @@
             </button>
           </div>
           <div class="tc-row-input">
-            <label>Hintergrund</label>
+            <label for="tc-background">Hintergrund</label>
             <input
+              id="tc-background"
               type="color"
               [ngModel]="backgroundField() || '#000000'"
               (ngModelChange)="backgroundField.set($event)"
@@ -227,8 +232,9 @@
         }
         @if (actionKindField() === "sound") {
           <div class="tc-row-input">
-            <label>Sound</label>
+            <label for="tc-sound">Sound</label>
             <select
+              id="tc-sound"
               [ngModel]="soundIdField()"
               (ngModelChange)="soundIdField.set($event)"
             >
@@ -259,8 +265,9 @@
             </button>
           </div>
           <div class="tc-row-input">
-            <label>Lautstärke</label>
+            <label for="tc-volume">Lautstärke</label>
             <input
+              id="tc-volume"
               type="range"
               min="0"
               max="1"

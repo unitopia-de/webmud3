@@ -45,6 +45,12 @@ const sharedTsRules = {
   'no-var': 'error',
   'prefer-const': 'warn',
 
+  // Aus: Dieser Client ist ein Terminal. ANSI-Sequenzen und Steuerzeichen in
+  // Regexes (`\x1B[...`, `[\x00-\x08…]`) sind hier der Arbeitsgegenstand, nicht
+  // ein Versehen — die Regel träfe jeden ANSI-Filter (escapes.ts,
+  // mud-screenreader.ts, ansi-injector.ts, playermap.component.ts).
+  'no-control-regex': 'off',
+
   // Basisregel aus, TS-Variante an (siehe Block-Kommentar).
   'no-empty-function': 'off',
   '@typescript-eslint/no-empty-function': 'warn',
@@ -113,6 +119,14 @@ module.exports = tseslint.config(
         'error',
         { type: 'element', prefix: 'app', style: 'kebab-case' },
       ],
+      // Hinweis statt Fehler: Vier Komponenten setzen bewusst
+      // `ChangeDetectionStrategy.Eager` — die Classic-Shell mit ihrem
+      // xterm-Terminal, die Mobile-Eingabe und die App-Wurzel. Eine
+      // Umstellung auf OnPush ändert das Rendering-Verhalten zur Laufzeit und
+      // muss am Bildschirm geprüft werden; als blockierender Lint-Fehler
+      // würde die Regel nur zu einem pauschalen `disable` verleiten. Für neue
+      // Komponenten bleibt der Hinweis sichtbar.
+      '@angular-eslint/prefer-on-push-component-change-detection': 'warn',
       ...sharedTsRules,
     },
   },
@@ -130,6 +144,13 @@ module.exports = tseslint.config(
       '@typescript-eslint/no-unsafe-argument': 'off',
       '@typescript-eslint/no-unsafe-return': 'off',
       '@typescript-eslint/unbound-method': 'off',
+      // Aus demselben Grund: Die verbliebenen `any` sind Mock-Werkzeuge —
+      // `Subject<any>` für GMCP-Nutzlasten, `Record<string, any>` für den
+      // Zugriff auf private Komponentenfelder, `terminal as any` für ein
+      // xterm-Double. Mit `unknown` bräuchte jede Verwendung einen
+      // zusätzlichen Cast; das macht die Tests schlechter lesbar, ohne etwas
+      // abzusichern.
+      '@typescript-eslint/no-explicit-any': 'off',
     },
   },
   {

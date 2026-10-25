@@ -140,6 +140,6 @@ export class PlayermapComponent {
   }
 
   private stripAnsi(raw: string): string {
-    return raw.replace(/\x1B\[[0-9;?]*[ -\/]*[@-~]/g, '');
+    return raw.replace(/\x1B\[[0-9;?]*[ -/]*[@-~]/g, '');
   }
 }

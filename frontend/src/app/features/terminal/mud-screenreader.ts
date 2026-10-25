@@ -1,7 +1,7 @@
 import { AnnounceQueue, SpeechPacing } from './mud-announce-queue';
 
 const INPUT_CLEAR_DELAY_MS = 700;
-const ANSI_ESCAPE_PATTERN = /\x1B\[[0-9;?]*[ -\/]*[@-~]/g;
+const ANSI_ESCAPE_PATTERN = /\x1B\[[0-9;?]*[ -/]*[@-~]/g;
 const CONTROL_CHAR_PATTERN = /[\x00-\x08\x0B-\x1F\x7F]/g;
 /**
  * Upper bound on the number of <p> line nodes kept in the history region.

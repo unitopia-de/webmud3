@@ -45,7 +45,20 @@ export class WindowContainerComponent {
     try {
       return JSON.stringify(value, null, 2);
     } catch {
-      return String(value);
+      // Scheitert z. B. an zyklischen Referenzen. `String(value)` lieferte
+      // dann das nutzlose "[object Object]" — für eine Diagnoseanzeige ist
+      // ein klarer Hinweis brauchbarer. Primitive gibt es weiterhin wörtlich.
+      if (typeof value === 'string') {
+        return value;
+      }
+      if (
+        typeof value === 'number' ||
+        typeof value === 'boolean' ||
+        typeof value === 'bigint'
+      ) {
+        return String(value);
+      }
+      return '(nicht darstellbar)';
     }
   }
 }

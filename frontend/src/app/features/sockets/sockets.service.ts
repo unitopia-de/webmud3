@@ -66,7 +66,11 @@ export class SocketsService {
     return this.connectedToMud.value;
   }
 
-  public constructor(serverConfigService: ServerConfigService) {
+  public constructor() {
+    // `inject()` statt Konstruktor-Parameter (Angular-Empfehlung). Der
+    // Injection-Kontext ist im Konstruktor-Body aktiv, der Aufruf ist hier
+    // also gleichwertig zur Parameter-Injektion.
+    const serverConfigService = inject(ServerConfigService);
     const socketUrl = serverConfigService.getBackendUrl();
     const socketNamespace = serverConfigService.getSocketNamespace();
 
@@ -146,17 +150,12 @@ export class SocketsService {
       this.handleMudDisconnect();
     });
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (this.socket as unknown as any).on(
-      'mudOutput',
-      (output: string, seq: number) => {
-        this.handleMudOutput(output, seq);
-      },
-    );
+    this.socket.on('mudOutput', (output: string, seq: number) => {
+      this.handleMudOutput(output, seq);
+    });
 
     // Optional batch replay on reconnect
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (this.socket as unknown as any).on(
+    this.socket.on(
       'mudOutputBatch',
       (entries: Array<{ data: string; seq: number }>) => {
         this.handleMudOutputBatch(entries);
@@ -175,23 +174,19 @@ export class SocketsService {
       this.handleTimingMark(callback);
     });
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (this.socket as unknown as any).on('mudGmcpActive', (active: boolean) => {
+    this.socket.on('mudGmcpActive', (active: boolean) => {
       this.handleGmcpActive(active);
     });
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (this.socket as unknown as any).on('serverShutdown', () => {
+    this.socket.on('serverShutdown', () => {
       this.handleServerShutdown();
     });
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (this.socket as unknown as any).on('serverHello', (serverId: string) => {
+    this.socket.on('serverHello', (serverId: string) => {
       this.handleServerHello(serverId);
     });
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (this.socket as unknown as any).on(
+    this.socket.on(
       'mudGmcpIncoming',
       (packageName: string, messageName: string, data: unknown) => {
         this.handleGmcpIncoming(packageName, messageName, data);
@@ -266,8 +261,7 @@ export class SocketsService {
   public sendGmcp(module: string, data: unknown): void {
     console.log(`[Sockets] Sockets-Service: 'sendGmcp'`, { module, data });
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (this.socket as unknown as any).emit('mudGmcpOutgoing', module, data);
+    this.socket.emit('mudGmcpOutgoing', module, data);
   }
 
   private handleMudConnect = (

@@ -8,8 +8,9 @@ module.exports = {
   moduleNameMapper: {
     '^@webmud3/frontend/(.*)$': '<rootDir>/src/app/$1',
   },
-  // Match tsconfig's `baseUrl: "./"` so absolute-from-root imports like
-  // `src/environments/environment` (used in transitively-loaded modules
-  // such as ServerConfigService) resolve in tests too.
+  // Auflösung von Importen, die vom Projektstamm aus geschrieben sind
+  // (`src/...`). Seit dem Wegfall von `baseUrl` in der tsconfig (TypeScript 6
+  // verwirft die Option) gibt es im Quellcode keinen solchen Import mehr;
+  // der Eintrag bleibt als Netz für Alt-Importe in Specs.
   modulePaths: ['<rootDir>'],
 };
