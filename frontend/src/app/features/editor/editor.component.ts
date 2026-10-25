@@ -39,6 +39,21 @@ type EditorPayload = {
  * Accessibility: `accessibilitySupport: 'on'` activates Monaco's screen-reader
  * paging mode (NVDA / JAWS / VoiceOver compatible).
  */
+/**
+ * Monaco-Version, die zur Laufzeit geladen wird.
+ *
+ * `@monaco-editor/loader` holt den Editor NICHT aus `node_modules`, sondern
+ * zur Laufzeit von einem CDN — und zwar aus einer im Loader fest verdrahteten
+ * Version (bei Loader 1.7.0: 0.55.1). Ohne diese Festlegung liefe die App also
+ * auf einer anderen Monaco-Version als die Typen hier beschreiben. Der Wert
+ * muss zur Abhängigkeit `monaco-editor` in der package.json passen.
+ */
+const MONACO_VERSION = '0.57.0';
+const MONACO_CDN = `https://cdn.jsdelivr.net/npm/monaco-editor@${MONACO_VERSION}/min/vs`;
+
+/** `loader.config` darf nur vor dem ersten `init()` greifen — einmal genügt. */
+let monacoLoaderConfigured = false;
+
 @Component({
   selector: 'app-editor',
   templateUrl: './editor.component.html',
@@ -272,6 +287,11 @@ export class EditorComponent implements OnInit, AfterViewInit, OnDestroy {
 
   private async bootstrap(fileinfo: FileInfo): Promise<void> {
     let monaco: typeof MonacoNs;
+
+    if (!monacoLoaderConfigured) {
+      loader.config({ paths: { vs: MONACO_CDN } });
+      monacoLoaderConfigured = true;
+    }
 
     try {
       // Zusicherung mit Grund: `loader.init()` ist in @monaco-editor/loader
