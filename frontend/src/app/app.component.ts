@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, ChangeDetectionStrategy } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 
 import { ShellPreferenceService } from '@webmud3/frontend/core/shells/shell-preference.service';
@@ -21,6 +21,7 @@ import { PwaUpdateService } from '@webmud3/frontend/features/connection/pwa-upda
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.scss'],
   imports: [RouterOutlet],
+  changeDetection: ChangeDetectionStrategy.Eager,
   standalone: true,
 })
 export class AppComponent {

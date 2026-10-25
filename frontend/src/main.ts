@@ -9,6 +9,7 @@ import { environment } from './environments/environment';
 import {
   provideHttpClient,
   withInterceptorsFromDi,
+  withXhr,
 } from '@angular/common/http';
 import { bootstrapApplication } from '@angular/platform-browser';
 import { provideRouter } from '@angular/router';
@@ -25,7 +26,7 @@ if (environment.production) {
 bootstrapApplication(AppComponent, {
   providers: [
     provideZoneChangeDetection(),
-    provideHttpClient(withInterceptorsFromDi()),
+    provideHttpClient(withXhr(), withInterceptorsFromDi()),
     // Top-level routing — `/` lädt die klassische Shell, `/ez` die
     // (in Aufbau befindliche) Splitscreen-Variante. Siehe app.routes.ts.
     provideRouter(routes),

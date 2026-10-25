@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, ChangeDetectionStrategy } from '@angular/core';
 
 import { MudClientComponent } from '@webmud3/frontend/core/mud/components/mud-client/mud-client.component';
 import { CharFooterComponent } from '@webmud3/frontend/features/footer/char-footer.component';
@@ -23,6 +23,7 @@ import { WindowService } from '@webmud3/frontend/features/windows/window.service
   templateUrl: './classic-shell.component.html',
   styleUrls: ['./classic-shell.component.scss'],
   imports: [MudClientComponent, WindowContainerComponent, CharFooterComponent],
+  changeDetection: ChangeDetectionStrategy.Eager,
   standalone: true,
 })
 export class ClassicShellComponent {

@@ -5,6 +5,7 @@ import {
   Input,
   Output,
   ViewChild,
+  ChangeDetectionStrategy,
 } from '@angular/core';
 
 /**
@@ -42,6 +43,7 @@ export interface MobileInputHistoryProvider {
   standalone: true,
   imports: [],
   templateUrl: './mobile-input.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrls: ['./mobile-input.component.scss'],
 })
 export class MobileInputComponent {

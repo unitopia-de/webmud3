@@ -7,6 +7,7 @@
   OnDestroy,
   signal,
   ViewChild,
+  ChangeDetectionStrategy,
 } from '@angular/core';
 import { Router } from '@angular/router';
 import { AttachAddon } from '@xterm/addon-attach';
@@ -148,6 +149,7 @@ type MudClientState = {
   standalone: true,
   imports: [MobileInputComponent, MxpChoiceMenuComponent],
   templateUrl: './mud-client.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrls: ['./mud-client.component.scss'],
 })
 export class MudClientComponent implements AfterViewInit, OnDestroy {
@@ -316,9 +318,7 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
     this.markerInvalidator();
     const end = this.selectionMode.end();
     if (end === null || end.target !== 'xterm') return null;
-    return this.xtermBufferPosToPixel(
-      end.data as { col: number; row: number },
-    );
+    return this.xtermBufferPosToPixel(end.data as { col: number; row: number });
   });
   /** Read-only state accessor for template bindings. */
   public get useMobileInput(): boolean {
@@ -502,12 +502,8 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
       // Re-evaluate marker pixel positions whenever the buffer scrolls
       // or the cell grid changes size — otherwise the handles would
       // drift relative to the cells they're anchored to.
-      this.terminal.onScroll(() =>
-        this.markerInvalidator.update((n) => n + 1),
-      ),
-      this.terminal.onResize(() =>
-        this.markerInvalidator.update((n) => n + 1),
-      ),
+      this.terminal.onScroll(() => this.markerInvalidator.update((n) => n + 1)),
+      this.terminal.onResize(() => this.markerInvalidator.update((n) => n + 1)),
     );
 
     this.showEchoSubscription = this.showEcho$.subscribe((showEcho) => {
@@ -1259,7 +1255,11 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
       .filter((c) => c.length > 0);
 
     if (commands.length === 0) {
-      return { action: { kind: 'simple', command: '' }, label: '', expireDomain: expire };
+      return {
+        action: { kind: 'simple', command: '' },
+        label: '',
+        expireDomain: expire,
+      };
     }
     if (commands.length === 1) {
       return {
@@ -1835,8 +1835,9 @@ export class MudClientComponent implements AfterViewInit, OnDestroy {
       this.terminalRef.nativeElement.querySelector<HTMLElement>(
         '.xterm-screen',
       );
-    const rect = (screen ?? this.terminalRef.nativeElement)
-      .getBoundingClientRect();
+    const rect = (
+      screen ?? this.terminalRef.nativeElement
+    ).getBoundingClientRect();
     if (rect.width === 0 || rect.height === 0) {
       return null;
     }

@@ -2,7 +2,7 @@ import {
   HttpTestingController,
   provideHttpClientTesting,
 } from '@angular/common/http/testing';
-import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClient, withXhr } from '@angular/common/http';
 import { TestBed } from '@angular/core/testing';
 
 import { SoundLibraryComponent } from './sound-library.component';
@@ -10,7 +10,7 @@ import { SoundLibraryService } from './sound-library.service';
 
 function setup() {
   TestBed.configureTestingModule({
-    providers: [provideHttpClient(), provideHttpClientTesting()],
+    providers: [provideHttpClient(withXhr()), provideHttpClientTesting()],
     imports: [SoundLibraryComponent],
   });
   const fixture = TestBed.createComponent(SoundLibraryComponent);
@@ -47,7 +47,10 @@ describe('SoundLibraryComponent', () => {
     await library.whenReady();
 
     expect(component.tab()).toBe('builtin');
-    expect(component.builtinSounds().map((s) => s.id)).toEqual(['alert', 'bell']);
+    expect(component.builtinSounds().map((s) => s.id)).toEqual([
+      'alert',
+      'bell',
+    ]);
     http.verify();
   });
 

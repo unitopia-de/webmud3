@@ -2,7 +2,7 @@ import {
   HttpTestingController,
   provideHttpClientTesting,
 } from '@angular/common/http/testing';
-import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClient, withXhr } from '@angular/common/http';
 import { TestBed } from '@angular/core/testing';
 
 import { TriggerConfigComponent } from './trigger-config.component';
@@ -10,7 +10,7 @@ import { TriggerService } from './trigger.service';
 
 function setup() {
   TestBed.configureTestingModule({
-    providers: [provideHttpClient(), provideHttpClientTesting()],
+    providers: [provideHttpClient(withXhr()), provideHttpClientTesting()],
     imports: [TriggerConfigComponent],
   });
   const fixture = TestBed.createComponent(TriggerConfigComponent);
@@ -18,7 +18,10 @@ function setup() {
   const http = TestBed.inject(HttpTestingController);
   const reqs = http.match('assets/sounds/manifest.json');
   for (const req of reqs) {
-    req.flush({ version: 1, sounds: [{ id: 'alert', label: 'Alert', file: 'alert.wav' }] });
+    req.flush({
+      version: 1,
+      sounds: [{ id: 'alert', label: 'Alert', file: 'alert.wav' }],
+    });
   }
   const component = fixture.componentInstance;
   const triggerService = TestBed.inject(TriggerService);
@@ -192,15 +195,24 @@ describe('TriggerConfigComponent', () => {
   it('moveUp / moveDown shift triggers in the list', () => {
     const { component, triggerService } = setup();
     const a = triggerService.create({
-      name: 'A', pattern: 'a', flags: '', enabled: true,
+      name: 'A',
+      pattern: 'a',
+      flags: '',
+      enabled: true,
       action: { kind: 'highlight', foreground: '#fff' },
     });
     const b = triggerService.create({
-      name: 'B', pattern: 'b', flags: '', enabled: true,
+      name: 'B',
+      pattern: 'b',
+      flags: '',
+      enabled: true,
       action: { kind: 'highlight', foreground: '#fff' },
     });
     const c = triggerService.create({
-      name: 'C', pattern: 'c', flags: '', enabled: true,
+      name: 'C',
+      pattern: 'c',
+      flags: '',
+      enabled: true,
       action: { kind: 'highlight', foreground: '#fff' },
     });
 
@@ -214,11 +226,17 @@ describe('TriggerConfigComponent', () => {
   it('moveUp is a no-op for the first trigger and moveDown for the last', () => {
     const { component, triggerService } = setup();
     const a = triggerService.create({
-      name: 'A', pattern: 'a', flags: '', enabled: true,
+      name: 'A',
+      pattern: 'a',
+      flags: '',
+      enabled: true,
       action: { kind: 'highlight', foreground: '#fff' },
     });
     const b = triggerService.create({
-      name: 'B', pattern: 'b', flags: '', enabled: true,
+      name: 'B',
+      pattern: 'b',
+      flags: '',
+      enabled: true,
       action: { kind: 'highlight', foreground: '#fff' },
     });
 
@@ -232,11 +250,17 @@ describe('TriggerConfigComponent', () => {
   it('renders each trigger name as a numbered, jumpable heading', () => {
     const { fixture, triggerService } = setup();
     triggerService.create({
-      name: 'Alpha', pattern: 'a', flags: '', enabled: true,
+      name: 'Alpha',
+      pattern: 'a',
+      flags: '',
+      enabled: true,
       action: { kind: 'highlight', foreground: '#fff' },
     });
     triggerService.create({
-      name: 'Beta', pattern: 'b', flags: '', enabled: true,
+      name: 'Beta',
+      pattern: 'b',
+      flags: '',
+      enabled: true,
       action: { kind: 'highlight', foreground: '#fff' },
     });
     fixture.detectChanges();

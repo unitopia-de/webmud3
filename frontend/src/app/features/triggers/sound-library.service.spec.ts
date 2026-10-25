@@ -2,7 +2,7 @@ import {
   HttpTestingController,
   provideHttpClientTesting,
 } from '@angular/common/http/testing';
-import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClient, withXhr } from '@angular/common/http';
 import { TestBed } from '@angular/core/testing';
 
 import { namespacedKey } from '@webmud3/frontend/shared/utils/storage-namespace';
@@ -31,7 +31,11 @@ function makeManifest() {
  * characters long. Base64 inflates raw bytes by ~4/3, so we invert that to
  * pick the underlying blob size.
  */
-function makeAudioFile(bytes: number, mime = 'audio/wav', name = 'sample.wav'): File {
+function makeAudioFile(
+  bytes: number,
+  mime = 'audio/wav',
+  name = 'sample.wav',
+): File {
   const headerLen = `data:${mime};base64,`.length;
   // Subtract a small safety margin so base64 padding never pushes us above
   // the requested size.
@@ -49,7 +53,7 @@ describe('SoundLibraryService', () => {
     localStorage.clear();
     TestBed.configureTestingModule({
       providers: [
-        provideHttpClient(),
+        provideHttpClient(withXhr()),
         provideHttpClientTesting(),
         SoundLibraryService,
       ],
@@ -97,7 +101,9 @@ describe('SoundLibraryService', () => {
   });
 
   it('imports a personal sound and persists it', async () => {
-    httpMock.expectOne('assets/sounds/manifest.json').flush({ version: 1, sounds: [] });
+    httpMock
+      .expectOne('assets/sounds/manifest.json')
+      .flush({ version: 1, sounds: [] });
 
     const file = makeAudioFile(1024, 'audio/wav', 'mybeep.wav');
     const sound = await service.importPersonal(file);
@@ -116,7 +122,9 @@ describe('SoundLibraryService', () => {
   });
 
   it('uses a custom label when provided', async () => {
-    httpMock.expectOne('assets/sounds/manifest.json').flush({ version: 1, sounds: [] });
+    httpMock
+      .expectOne('assets/sounds/manifest.json')
+      .flush({ version: 1, sounds: [] });
 
     const sound = await service.importPersonal(
       makeAudioFile(512, 'audio/ogg', 'whatever.ogg'),
@@ -126,27 +134,41 @@ describe('SoundLibraryService', () => {
   });
 
   it('rejects an unsupported MIME type', async () => {
-    httpMock.expectOne('assets/sounds/manifest.json').flush({ version: 1, sounds: [] });
+    httpMock
+      .expectOne('assets/sounds/manifest.json')
+      .flush({ version: 1, sounds: [] });
 
-    const file = new File(['x'], 'evil.exe', { type: 'application/octet-stream' });
-    await expect(service.importPersonal(file)).rejects.toThrow(/Unsupported MIME type/);
+    const file = new File(['x'], 'evil.exe', {
+      type: 'application/octet-stream',
+    });
+    await expect(service.importPersonal(file)).rejects.toThrow(
+      /Unsupported MIME type/,
+    );
     expect(service.personal).toEqual([]);
   });
 
   it('rejects a file that exceeds the per-sound limit', async () => {
-    httpMock.expectOne('assets/sounds/manifest.json').flush({ version: 1, sounds: [] });
+    httpMock
+      .expectOne('assets/sounds/manifest.json')
+      .flush({ version: 1, sounds: [] });
 
     const tooBig = makeAudioFile(MAX_PERSONAL_SOUND_BYTES + 1024);
-    await expect(service.importPersonal(tooBig)).rejects.toThrow(/Sound too large/);
+    await expect(service.importPersonal(tooBig)).rejects.toThrow(
+      /Sound too large/,
+    );
     expect(service.personal).toEqual([]);
   });
 
   it('rejects an import that would exceed the total quota', async () => {
-    httpMock.expectOne('assets/sounds/manifest.json').flush({ version: 1, sounds: [] });
+    httpMock
+      .expectOne('assets/sounds/manifest.json')
+      .flush({ version: 1, sounds: [] });
 
     // Fill close to the cap with multiple imports.
     const chunk = makeAudioFile(MAX_PERSONAL_SOUND_BYTES);
-    const numChunks = Math.floor(MAX_PERSONAL_TOTAL_BYTES / MAX_PERSONAL_SOUND_BYTES);
+    const numChunks = Math.floor(
+      MAX_PERSONAL_TOTAL_BYTES / MAX_PERSONAL_SOUND_BYTES,
+    );
 
     for (let i = 0; i < numChunks; i++) {
       await service.importPersonal(chunk, `s${i}`);
@@ -158,7 +180,9 @@ describe('SoundLibraryService', () => {
   });
 
   it('renames and deletes personal sounds', async () => {
-    httpMock.expectOne('assets/sounds/manifest.json').flush({ version: 1, sounds: [] });
+    httpMock
+      .expectOne('assets/sounds/manifest.json')
+      .flush({ version: 1, sounds: [] });
 
     const created = await service.importPersonal(makeAudioFile(256));
     service.renamePersonal(created.id, '  Renamed  ');
@@ -173,21 +197,25 @@ describe('SoundLibraryService', () => {
   });
 
   it('reloads personal sounds from storage on construction', async () => {
-    httpMock.expectOne('assets/sounds/manifest.json').flush({ version: 1, sounds: [] });
+    httpMock
+      .expectOne('assets/sounds/manifest.json')
+      .flush({ version: 1, sounds: [] });
 
     await service.importPersonal(makeAudioFile(256, 'audio/wav', 'one.wav'));
 
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
       providers: [
-        provideHttpClient(),
+        provideHttpClient(withXhr()),
         provideHttpClientTesting(),
         SoundLibraryService,
       ],
     });
     const second = TestBed.inject(SoundLibraryService);
     const secondHttp = TestBed.inject(HttpTestingController);
-    secondHttp.expectOne('assets/sounds/manifest.json').flush({ version: 1, sounds: [] });
+    secondHttp
+      .expectOne('assets/sounds/manifest.json')
+      .flush({ version: 1, sounds: [] });
     await second.whenReady();
 
     expect(second.personal).toHaveLength(1);
