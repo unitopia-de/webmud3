@@ -22,7 +22,14 @@
     /* Ohne `baseUrl` müssen die Ziele relativ beginnen ("./"). */
     "paths": {
       "@webmud3/frontend/*": ["./src/app/*"]
-    }
+    },
+    /* TypeScript 6 bindet `@types/*` nicht mehr automatisch ein (Default
+       `types: []`). Diese Basis-Datei benutzen ESLints `projectService` und
+       der Editor direkt — auch für Specs, weil sie die nächstgelegene
+       `tsconfig.json` ist. Ohne Eintrag war dort `jest` unbekannt und
+       `jest.Mocked<…>` zerfiel still zu `any`. App und Spec legen ihre
+       `types` selbst fest; Build und Tests berührt dieser Eintrag nicht. */
+    "types": ["jest", "node"]
   },
   "angularCompilerOptions": {
     "strictTemplates": true,
